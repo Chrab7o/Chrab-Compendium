@@ -1,12 +1,16 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { supabase } from '../lib/supabaseClient'
+import { useAuth } from '../contexts/AuthContext'
 import { categoryLabel } from '../lib/categories'
 
 export default function EntryDetail() {
   const { id } = useParams()
+  const { isDM } = useAuth()
   const [entry, setEntry] = useState(null)
+  const [dmNotes, setDmNotes] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
@@ -28,12 +32,30 @@ export default function EntryDetail() {
     }
   }, [id])
 
+  useEffect(() => {
+    if (!isDM) {
+      setDmNotes([])
+      return
+    }
+    let cancelled = false
+    supabase
+      .from('entries')
+      .select('*')
+      .eq('parent_entry_id', id)
+      .then(({ data }) => {
+        if (!cancelled) setDmNotes(data ?? [])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [id, isDM])
+
   if (loading) return <p className="status-message">Loading...</p>
   if (error || !entry)
     return <p className="status-message error">Couldn't find that entry.</p>
 
   return (
-    <article className="entry-detail">
+    <article className="page entry-detail">
       <Link to="/general" className="back-link">
         &larr; Back
       </Link>
@@ -52,8 +74,22 @@ export default function EntryDetail() {
         </div>
       )}
       <div className="entry-content">
-        <ReactMarkdown>{entry.content}</ReactMarkdown>
+        <ReactMarkdown remarkPlugins={[remarkGfm]}>{entry.content}</ReactMarkdown>
       </div>
+
+      {isDM && dmNotes.length > 0 && (
+        <div className="dm-notes-section">
+          <h2>DM Notes</h2>
+          {dmNotes.map((note) => (
+            <div key={note.id} className="dm-notes-block">
+              <h3>{note.title}</h3>
+              <div className="entry-content">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{note.content}</ReactMarkdown>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </article>
   )
 }

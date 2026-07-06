@@ -1,12 +1,12 @@
-export const CATEGORIES = [
-  { value: 'lore', label: 'World Lore' },
-  { value: 'npc', label: 'NPC' },
-  { value: 'location', label: 'Location' },
-  { value: 'session-note', label: 'Session Note' },
-  { value: 'homebrew', label: 'Homebrew' },
-  { value: 'item', label: 'Item' },
-]
+// Categories are DM-editable (see CategoryContext), fetched once and cached
+// here so categoryLabel() can stay a plain synchronous lookup everywhere
+// it's already used, instead of every call site needing the live list.
+let cache = []
+
+export function setCategoriesCache(list) {
+  cache = list
+}
 
 export function categoryLabel(value) {
-  return CATEGORIES.find((c) => c.value === value)?.label ?? value
+  return cache.find((c) => c.value === value)?.label ?? value
 }

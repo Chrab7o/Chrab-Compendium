@@ -1,30 +1,41 @@
 import { useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { supabase } from '../lib/supabaseClient'
 
-export default function DMLogin() {
-  const { isDM, signIn } = useAuth()
+export default function Login() {
+  const { session, isDM, signIn } = useAuth()
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState(null)
   const [submitting, setSubmitting] = useState(false)
 
-  if (isDM) return <Navigate to="/dm" replace />
+  if (session) return <Navigate to={isDM ? '/dm' : '/notes'} replace />
 
   async function handleSubmit(e) {
     e.preventDefault()
     setSubmitting(true)
     setError(null)
-    const { error: signInError } = await signIn(email, password)
+    const { data, error: signInError } = await signIn(email, password)
+    if (signInError) {
+      setSubmitting(false)
+      setError(signInError.message)
+      return
+    }
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', data.user.id)
+      .single()
     setSubmitting(false)
-    if (signInError) setError(signInError.message)
-    else navigate('/dm')
+    navigate(profile?.role === 'dm' ? '/dm' : '/notes')
   }
 
   return (
-    <section className="dm-login">
-      <h1>DM Login</h1>
+    <section className="page dm-login">
+      <h1>Login</h1>
+      <p className="view-subtitle">For the DM and players — accounts are created by the DM.</p>
       <form onSubmit={handleSubmit}>
         <label>
           Email
