@@ -797,12 +797,18 @@ button:disabled {
    full window width — no breakout hacks needed, the sidebar just reaches
    the real edge naturally. */
 .browse-header {
-  padding: 1.5rem 2rem 0;
+  padding: 1.25rem 2rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.browse-header h1 {
+  margin: 0;
 }
 
 .browse-layout {
   display: grid;
-  grid-template-columns: 220px 1fr;
+  grid-template-columns: 300px 1fr;
   gap: 0;
   align-items: stretch;
   min-height: calc(100vh - 130px);
@@ -843,7 +849,7 @@ button:disabled {
   padding: 1.5rem 1.25rem;
   position: sticky;
   top: 0;
-  align-self: start;
+  align-self: stretch;
 }
 
 .tree-row {
