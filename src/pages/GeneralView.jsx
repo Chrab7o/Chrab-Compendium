@@ -9,7 +9,7 @@ export default function GeneralView() {
       <div className="browse-header">
         <h1>{campaign ? `${campaign.name} Lore` : 'World Lore'}</h1>
       </div>
-      <CategoryBrowser />
+      <CategoryBrowser editable={false} />
     </section>
   )
 }

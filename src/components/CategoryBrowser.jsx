@@ -31,11 +31,13 @@ function SortableEntry({ id, children }) {
   )
 }
 
-// The full category/folder/entry browser+organizer. Used both as the
-// public-facing General page (full page layout) and embedded, compact, in
-// the DM Dashboard so folders/entries can be managed without leaving it.
-export default function CategoryBrowser({ compact = false }) {
+// The full category/folder/entry browser+organizer. `editable` gates all
+// the organize tools (drag handles, +/rename/delete/move, add-entry) —
+// General uses this in read-only mode even for the DM, since editing now
+// lives exclusively on /dm/organize.
+export default function CategoryBrowser({ compact = false, editable = true }) {
   const { isDM } = useAuth()
+  const canEdit = isDM && editable
   const { campaignId } = useCampaignContext()
   const [folders, setFolders] = useState([])
   const [entries, setEntries] = useState([])
@@ -114,7 +116,7 @@ export default function CategoryBrowser({ compact = false }) {
       <CategorySidebar
         folders={folders}
         entries={placedEntries}
-        isDM={isDM}
+        isDM={canEdit}
         selected={selected}
         onSelect={(category, folderId) => setSelected({ category, folderId })}
         onChange={fetchData}
@@ -149,7 +151,7 @@ export default function CategoryBrowser({ compact = false }) {
               ))}
             </nav>
 
-            {isDM && (
+            {canEdit && (
               <div className="browser-toolbar">
                 <Link
                   to={`/dm/entries/new?category=${selected.category}${selected.folderId ? `&folder=${selected.folderId}` : ''}`}
@@ -162,7 +164,7 @@ export default function CategoryBrowser({ compact = false }) {
 
             {currentEntries.length === 0 && <p className="status-message">Nothing here yet.</p>}
 
-            {isDM ? (
+            {canEdit ? (
               <DndContext collisionDetection={closestCenter} onDragEnd={handleEntryDragEnd}>
                 <SortableContext items={currentEntries.map(recordKey)} strategy={verticalListSortingStrategy}>
                   <div className="entry-grid">

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { DndContext, closestCenter, useDroppable } from '@dnd-kit/core'
+import { DndContext, closestCorners, PointerSensor, useDroppable, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { supabase } from '../lib/supabaseClient'
@@ -185,6 +185,10 @@ function CategoryRoot({ cat, ctx }) {
 export default function CategorySidebar({ folders, entries, isDM, selected, onSelect, onChange, campaignId }) {
   const { categories } = useCategories()
   const [expanded, setExpanded] = useState(new Set())
+  // A small activation distance stops an ordinary click from being read as
+  // a drag, and closestCorners (over closestCenter) resolves collisions
+  // more predictably once folders nest at different nearby depths.
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }))
 
   function toggle(id) {
     setExpanded((prev) => {
@@ -318,7 +322,7 @@ export default function CategorySidebar({ folders, entries, isDM, selected, onSe
 
   return (
     <nav className="category-sidebar">
-      <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+      <DndContext sensors={sensors} collisionDetection={closestCorners} onDragEnd={handleDragEnd}>
         {categories.map((cat) => (
           <CategoryRoot key={cat.value} cat={cat} ctx={ctx} />
         ))}
