@@ -48,6 +48,7 @@ function FolderNode({ folder, depth, ctx }) {
         >
           {folder.name}
         </button>
+        {folder.visibility === 'dm' && <span className="badge badge-dm">DM</span>}
         {ctx.isDM && (
           <span className="tree-actions">
             <button type="button" title="New subfolder" onClick={() => ctx.createFolder(folder.category, folder.id)}>
@@ -55,6 +56,13 @@ function FolderNode({ folder, depth, ctx }) {
             </button>
             <button type="button" title="Rename" onClick={() => ctx.renameFolder(folder)}>
               ✎
+            </button>
+            <button
+              type="button"
+              title={folder.visibility === 'dm' ? 'Make public (and everything inside it)' : 'Make DM only (and everything inside it)'}
+              onClick={() => ctx.toggleFolderVisibility(folder)}
+            >
+              {folder.visibility === 'dm' ? '🔒' : '🔓'}
             </button>
             <button type="button" title="Move" onClick={() => setMoving((v) => !v)}>
               ⇄
@@ -226,6 +234,15 @@ export default function CategorySidebar({ folders, entries, isDM, selected, onSe
     onChange()
   }
 
+  // Just flips this one folder's own flag — whether it (and everything
+  // nested inside it) is actually hidden from non-DM viewers is computed
+  // server-side from the whole ancestor chain, not written onto children.
+  async function toggleFolderVisibility(folder) {
+    const next = folder.visibility === 'dm' ? 'public' : 'dm'
+    await supabase.from('folders').update({ visibility: next }).eq('id', folder.id)
+    onChange()
+  }
+
   async function deleteFolder(folder) {
     if (!confirm(`Delete folder "${folder.name}"? Its contents move up to the parent folder.`)) return
     await supabase
@@ -317,6 +334,7 @@ export default function CategorySidebar({ folders, entries, isDM, selected, onSe
     deleteFolder,
     moveFolder,
     moveFolderToCategory,
+    toggleFolderVisibility,
     visibleFolderIds,
   }
 
