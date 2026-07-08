@@ -163,6 +163,7 @@ function CategoryRoot({ cat, ctx }) {
         >
           {cat.label}
         </button>
+        {cat.visibility === 'dm' && <span className="badge badge-dm">DM</span>}
         {ctx.isDM && (
           <span className="tree-actions">
             <button type="button" title="New folder" onClick={() => ctx.createFolder(cat.value, null)}>
@@ -241,15 +242,23 @@ export default function CategorySidebar({ folders, entries, isDM, selected, onSe
     onChange()
   }
 
-  // Moves a folder AND its whole subtree to a different category, landing
-  // at that category's top level. Every folder in the subtree and every
-  // entry (and placement) filed directly in one of them gets its category
-  // updated too, or they'd vanish from both the old and new category trees.
-  async function moveFolderToCategory(folder, newCategory) {
-    if (newCategory === folder.category) return
+  // Moves a folder AND its whole subtree to a new category/parent. Every
+  // folder in the subtree and every entry (and placement) filed directly in
+  // one of them gets its category updated too, or they'd vanish from both
+  // the old and new category trees. Used by both the explicit ⇒ action and
+  // by dragging a folder across categories.
+  async function moveFolderToCategory(folder, newCategory, newParentId = null) {
+    if (newCategory === folder.category && newParentId === (folder.parent_folder_id ?? null)) return
     const affectedFolderIds = [folder.id, ...descendantFolderIds(folders, folder.id)]
+    const siblingCount = childFolders(
+      folders.filter((f) => f.category === newCategory),
+      newParentId
+    ).length
     await supabase.from('folders').update({ category: newCategory }).in('id', affectedFolderIds)
-    await supabase.from('folders').update({ parent_folder_id: null }).eq('id', folder.id)
+    await supabase
+      .from('folders')
+      .update({ parent_folder_id: newParentId, sort_order: siblingCount })
+      .eq('id', folder.id)
     await supabase.from('entries').update({ category: newCategory }).in('folder_id', affectedFolderIds)
     await supabase.from('entry_placements').update({ category: newCategory }).in('folder_id', affectedFolderIds)
     onChange()
@@ -261,21 +270,19 @@ export default function CategorySidebar({ folders, entries, isDM, selected, onSe
     const activeFolder = folders.find((f) => f.id === active.id)
     if (!activeFolder) return
 
-    // Dropped on a category root -> send back to that category's top level.
-    // (Same-category only — dragging never changes category, use ⇒ for that.)
+    // Dropped on a category root -> send to that category's top level
+    // (cascades category + everything filed in the subtree, same as ⇒).
     if (typeof over.id === 'string' && over.id.startsWith(CATEGORY_DROP_PREFIX)) {
       const targetCategory = over.id.slice(CATEGORY_DROP_PREFIX.length)
-      if (targetCategory !== activeFolder.category || activeFolder.parent_folder_id === null) return
-      await supabase.from('folders').update({ parent_folder_id: null }).eq('id', activeFolder.id)
-      onChange()
+      await moveFolderToCategory(activeFolder, targetCategory, null)
       return
     }
 
     const overFolder = folders.find((f) => f.id === over.id)
     if (!overFolder) return
 
-    if (activeFolder.parent_folder_id === overFolder.parent_folder_id) {
-      // Same parent — reorder among siblings.
+    if (activeFolder.category === overFolder.category && activeFolder.parent_folder_id === overFolder.parent_folder_id) {
+      // Same category, same parent — reorder among siblings.
       const siblings = childFolders(
         folders.filter((f) => f.category === activeFolder.category),
         activeFolder.parent_folder_id
@@ -288,19 +295,12 @@ export default function CategorySidebar({ folders, entries, isDM, selected, onSe
       return
     }
 
-    // Dropped onto a folder with a different parent — nest inside it
-    // (same category only, and never into your own subtree).
-    if (overFolder.category !== activeFolder.category) return
-    if (descendantFolderIds(folders, activeFolder.id).has(overFolder.id)) return
-    const newSiblingCount = childFolders(
-      folders.filter((f) => f.category === overFolder.category),
-      overFolder.id
-    ).length
-    await supabase
-      .from('folders')
-      .update({ parent_folder_id: overFolder.id, sort_order: newSiblingCount })
-      .eq('id', activeFolder.id)
-    onChange()
+    // Dropped onto a folder elsewhere — nest inside it, cascading category
+    // if it's a different one. Never allowed into your own subtree.
+    if (activeFolder.category === overFolder.category && descendantFolderIds(folders, activeFolder.id).has(overFolder.id)) {
+      return
+    }
+    await moveFolderToCategory(activeFolder, overFolder.category, overFolder.id)
   }
 
   const visibleFolderIds = isDM ? null : foldersWithVisibleContent(folders, entries)

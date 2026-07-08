@@ -5,7 +5,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { supabase } from '../../lib/supabaseClient'
 import { useCategories } from '../../contexts/CategoryContext'
 
-const emptyForm = { id: null, value: '', label: '' }
+const emptyForm = { id: null, value: '', label: '', visibility: 'public' }
 
 function slugify(name) {
   return name
@@ -52,7 +52,7 @@ export default function CategoryManager() {
     if (form.id) {
       const { error: updateError } = await supabase
         .from('categories')
-        .update({ label: form.label })
+        .update({ label: form.label, visibility: form.visibility })
         .eq('id', form.id)
       setSaving(false)
       if (updateError) {
@@ -63,6 +63,7 @@ export default function CategoryManager() {
       const { error: insertError } = await supabase.from('categories').insert({
         value: slugify(form.label),
         label: form.label,
+        visibility: form.visibility,
         sort_order: categories.length,
       })
       setSaving(false)
@@ -106,7 +107,8 @@ export default function CategoryManager() {
       <h2>Category Tabs</h2>
       <p className="view-subtitle">
         The top-level tabs in General's sidebar (World Lore, NPC, Location, etc.). Add as many as
-        you want.
+        you want. A "DM only" tab — and everything filed under it — is completely hidden from
+        anyone but you, no matter what an individual entry's own visibility says.
       </p>
       <form onSubmit={handleSubmit} className="dm-form">
         <label>
@@ -116,6 +118,16 @@ export default function CategoryManager() {
             onChange={(e) => setForm({ ...form, label: e.target.value })}
             required
           />
+        </label>
+        <label>
+          Visibility
+          <select
+            value={form.visibility}
+            onChange={(e) => setForm({ ...form, visibility: e.target.value })}
+          >
+            <option value="public">Public</option>
+            <option value="dm">DM only</option>
+          </select>
         </label>
         {error && <p className="status-message error">{error}</p>}
         <div className="dm-form-actions">
@@ -137,9 +149,10 @@ export default function CategoryManager() {
               <SortableRow key={c.id} id={c.id}>
                 <span>{c.label}</span>
                 <span className="dm-list-slug">{c.value}</span>
+                {c.visibility === 'dm' && <span className="badge badge-dm">DM only</span>}
                 <div className="dm-list-actions">
                   <button type="button" onClick={() => startEdit(c)}>
-                    Rename
+                    Edit
                   </button>
                   <button type="button" className="danger" onClick={() => handleDelete(c)}>
                     Delete
