@@ -10,7 +10,14 @@ import Notes from './pages/Notes'
 import MyCharacter from './pages/MyCharacter'
 import CharacterSheet from './pages/CharacterSheet'
 import ImportPage from './pages/ImportPage'
-import DMDashboard from './pages/DMDashboard'
+import DMHome from './pages/dm/DMHome'
+import DMCampaignsPage from './pages/dm/DMCampaignsPage'
+import DMCategoriesPage from './pages/dm/DMCategoriesPage'
+import DMOrganizePage from './pages/dm/DMOrganizePage'
+import DMMapsPage from './pages/dm/DMMapsPage'
+import DMCharactersPage from './pages/dm/DMCharactersPage'
+import DMNotesPage from './pages/dm/DMNotesPage'
+import DMLayout from './components/dm/DMLayout'
 import RequireDM from './components/RequireDM'
 import RequireAuth from './components/RequireAuth'
 import NewEntryFab from './components/dm/NewEntryFab'
@@ -55,34 +62,21 @@ export default function App() {
             path="/dm"
             element={
               <RequireDM>
-                <DMDashboard />
+                <DMLayout />
               </RequireDM>
             }
-          />
-          <Route
-            path="/dm/entries/new"
-            element={
-              <RequireDM>
-                <EntryEditorPage />
-              </RequireDM>
-            }
-          />
-          <Route
-            path="/dm/entries/:id/edit"
-            element={
-              <RequireDM>
-                <EntryEditorPage />
-              </RequireDM>
-            }
-          />
-          <Route
-            path="/dm/import"
-            element={
-              <RequireDM>
-                <ImportPage />
-              </RequireDM>
-            }
-          />
+          >
+            <Route index element={<DMHome />} />
+            <Route path="organize" element={<DMOrganizePage />} />
+            <Route path="categories" element={<DMCategoriesPage />} />
+            <Route path="campaigns" element={<DMCampaignsPage />} />
+            <Route path="maps" element={<DMMapsPage />} />
+            <Route path="characters" element={<DMCharactersPage />} />
+            <Route path="notes" element={<DMNotesPage />} />
+            <Route path="import" element={<ImportPage />} />
+            <Route path="entries/new" element={<EntryEditorPage />} />
+            <Route path="entries/:id/edit" element={<EntryEditorPage />} />
+          </Route>
         </Routes>
       </main>
       <NewEntryFab />

@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 
 const STORAGE_KEY = 'chrab-corner-campaign-id'
@@ -8,13 +8,14 @@ export function CampaignProvider({ children }) {
   const [campaigns, setCampaigns] = useState([])
   const [campaignId, setCampaignIdState] = useState(() => localStorage.getItem(STORAGE_KEY) ?? '')
 
-  useEffect(() => {
-    supabase
-      .from('campaigns')
-      .select('*')
-      .order('name', { ascending: true })
-      .then(({ data }) => setCampaigns(data ?? []))
+  const reload = useCallback(async () => {
+    const { data } = await supabase.from('campaigns').select('*').order('name', { ascending: true })
+    setCampaigns(data ?? [])
   }, [])
+
+  useEffect(() => {
+    reload()
+  }, [reload])
 
   function setCampaignId(id) {
     setCampaignIdState(id)
@@ -33,7 +34,7 @@ export function CampaignProvider({ children }) {
 
   return (
     <CampaignContext.Provider
-      value={{ campaigns, campaignId: effectiveCampaignId, campaign, setCampaignId }}
+      value={{ campaigns, campaignId: effectiveCampaignId, campaign, setCampaignId, reload }}
     >
       {children}
     </CampaignContext.Provider>

@@ -43,8 +43,11 @@ export default function CategoryBrowser({ compact = false }) {
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState({ category: null, folderId: null })
 
-  const load = useCallback(async () => {
-    setLoading(true)
+  // Separate from the initial/campaign-switch load: mutation-triggered
+  // refreshes (rename, move, reorder, ...) call this directly so they just
+  // swap data in place instead of unmounting the whole tree behind a
+  // blocking "Loading..." — that was making every click feel like a reload.
+  const fetchData = useCallback(async () => {
     let folderQuery = supabase.from('folders').select('*')
     let entryQuery = supabase.from('entries').select('*')
     if (campaignId) {
@@ -59,12 +62,12 @@ export default function CategoryBrowser({ compact = false }) {
     setFolders(folderData ?? [])
     setEntries(entryData ?? [])
     setPlacements(placementData ?? [])
-    setLoading(false)
   }, [campaignId])
 
   useEffect(() => {
-    load()
-  }, [load])
+    setLoading(true)
+    fetchData().then(() => setLoading(false))
+  }, [fetchData])
 
   useEffect(() => {
     setSelected({ category: null, folderId: null })
@@ -87,7 +90,7 @@ export default function CategoryBrowser({ compact = false }) {
     } else {
       await supabase.from('entries').update({ folder_id: folderId || null }).eq('id', record.id)
     }
-    load()
+    fetchData()
   }
 
   async function handleEntryDragEnd(event) {
@@ -103,7 +106,7 @@ export default function CategoryBrowser({ compact = false }) {
           : supabase.from('entries').update({ sort_order: i }).eq('id', record.id)
       )
     )
-    load()
+    fetchData()
   }
 
   return (
@@ -114,7 +117,7 @@ export default function CategoryBrowser({ compact = false }) {
         isDM={isDM}
         selected={selected}
         onSelect={(category, folderId) => setSelected({ category, folderId })}
-        onChange={load}
+        onChange={fetchData}
         campaignId={campaignId}
       />
 

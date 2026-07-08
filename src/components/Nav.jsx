@@ -27,14 +27,9 @@ export default function Nav() {
           </>
         )}
         {isDM && (
-          <>
-            <NavLink to="/dm" className={({ isActive }) => (isActive ? 'active' : '')}>
-              DM Dashboard
-            </NavLink>
-            <NavLink to="/dm/import" className={({ isActive }) => (isActive ? 'active' : '')}>
-              Import
-            </NavLink>
-          </>
+          <NavLink to="/dm" className={({ isActive }) => (isActive ? 'active' : '')}>
+            DM Dashboard
+          </NavLink>
         )}
       </nav>
       <div className="nav-right">

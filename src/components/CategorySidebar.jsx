@@ -1,10 +1,12 @@
 import { useState } from 'react'
-import { DndContext, closestCenter } from '@dnd-kit/core'
+import { DndContext, closestCenter, useDroppable } from '@dnd-kit/core'
 import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { supabase } from '../lib/supabaseClient'
 import { useCategories } from '../contexts/CategoryContext'
 import { childFolders, foldersWithVisibleContent, descendantFolderIds } from '../lib/folders'
+
+const CATEGORY_DROP_PREFIX = 'category:'
 
 function FolderNode({ folder, depth, ctx }) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
@@ -131,6 +133,55 @@ function FolderNode({ folder, depth, ctx }) {
   )
 }
 
+// A droppable (not draggable) target so folders can be dragged back up to a
+// category's top level, same as dropping one folder onto another nests it.
+function CategoryRoot({ cat, ctx }) {
+  const { setNodeRef, isOver } = useDroppable({ id: `${CATEGORY_DROP_PREFIX}${cat.value}` })
+  const allTopFolders = childFolders(
+    ctx.folders.filter((f) => f.category === cat.value),
+    null
+  )
+  const topFolders = ctx.isDM ? allTopFolders : allTopFolders.filter((f) => ctx.visibleFolderIds.has(f.id))
+  const isExpanded = ctx.expanded.has(cat.value)
+  const isSelected = ctx.selected.category === cat.value && !ctx.selected.folderId
+
+  return (
+    <div>
+      <div ref={setNodeRef} className={`tree-row${isOver ? ' drop-target' : ''}`}>
+        <button
+          type="button"
+          className="tree-toggle"
+          onClick={() => ctx.toggle(cat.value)}
+          disabled={topFolders.length === 0}
+        >
+          {topFolders.length > 0 ? (isExpanded ? '▾' : '▸') : '·'}
+        </button>
+        <button
+          type="button"
+          className={`tree-label${isSelected ? ' selected' : ''}`}
+          onClick={() => ctx.onSelect(cat.value, null)}
+        >
+          {cat.label}
+        </button>
+        {ctx.isDM && (
+          <span className="tree-actions">
+            <button type="button" title="New folder" onClick={() => ctx.createFolder(cat.value, null)}>
+              +
+            </button>
+          </span>
+        )}
+      </div>
+      {isExpanded && topFolders.length > 0 && (
+        <SortableContext items={topFolders.map((f) => f.id)} strategy={verticalListSortingStrategy}>
+          {topFolders.map((folder) => (
+            <FolderNode key={folder.id} folder={folder} depth={1} ctx={ctx} />
+          ))}
+        </SortableContext>
+      )}
+    </div>
+  )
+}
+
 export default function CategorySidebar({ folders, entries, isDM, selected, onSelect, onChange, campaignId }) {
   const { categories } = useCategories()
   const [expanded, setExpanded] = useState(new Set())
@@ -204,18 +255,47 @@ export default function CategorySidebar({ folders, entries, isDM, selected, onSe
     const { active, over } = event
     if (!over || active.id === over.id) return
     const activeFolder = folders.find((f) => f.id === active.id)
-    const overFolder = folders.find((f) => f.id === over.id)
-    if (!activeFolder || !overFolder) return
-    if (activeFolder.parent_folder_id !== overFolder.parent_folder_id) return // only reorder siblings
+    if (!activeFolder) return
 
-    const siblings = childFolders(
-      folders.filter((f) => f.category === activeFolder.category),
-      activeFolder.parent_folder_id
-    )
-    const oldIndex = siblings.findIndex((f) => f.id === active.id)
-    const newIndex = siblings.findIndex((f) => f.id === over.id)
-    const reordered = arrayMove(siblings, oldIndex, newIndex)
-    await Promise.all(reordered.map((f, i) => supabase.from('folders').update({ sort_order: i }).eq('id', f.id)))
+    // Dropped on a category root -> send back to that category's top level.
+    // (Same-category only — dragging never changes category, use ⇒ for that.)
+    if (typeof over.id === 'string' && over.id.startsWith(CATEGORY_DROP_PREFIX)) {
+      const targetCategory = over.id.slice(CATEGORY_DROP_PREFIX.length)
+      if (targetCategory !== activeFolder.category || activeFolder.parent_folder_id === null) return
+      await supabase.from('folders').update({ parent_folder_id: null }).eq('id', activeFolder.id)
+      onChange()
+      return
+    }
+
+    const overFolder = folders.find((f) => f.id === over.id)
+    if (!overFolder) return
+
+    if (activeFolder.parent_folder_id === overFolder.parent_folder_id) {
+      // Same parent — reorder among siblings.
+      const siblings = childFolders(
+        folders.filter((f) => f.category === activeFolder.category),
+        activeFolder.parent_folder_id
+      )
+      const oldIndex = siblings.findIndex((f) => f.id === active.id)
+      const newIndex = siblings.findIndex((f) => f.id === over.id)
+      const reordered = arrayMove(siblings, oldIndex, newIndex)
+      await Promise.all(reordered.map((f, i) => supabase.from('folders').update({ sort_order: i }).eq('id', f.id)))
+      onChange()
+      return
+    }
+
+    // Dropped onto a folder with a different parent — nest inside it
+    // (same category only, and never into your own subtree).
+    if (overFolder.category !== activeFolder.category) return
+    if (descendantFolderIds(folders, activeFolder.id).has(overFolder.id)) return
+    const newSiblingCount = childFolders(
+      folders.filter((f) => f.category === overFolder.category),
+      overFolder.id
+    ).length
+    await supabase
+      .from('folders')
+      .update({ parent_folder_id: overFolder.id, sort_order: newSiblingCount })
+      .eq('id', activeFolder.id)
     onChange()
   }
 
@@ -239,51 +319,9 @@ export default function CategorySidebar({ folders, entries, isDM, selected, onSe
   return (
     <nav className="category-sidebar">
       <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-        {categories.map((cat) => {
-          const allTopFolders = childFolders(
-            folders.filter((f) => f.category === cat.value),
-            null
-          )
-          const topFolders = isDM ? allTopFolders : allTopFolders.filter((f) => visibleFolderIds.has(f.id))
-          const isExpanded = expanded.has(cat.value)
-          const isSelected = selected.category === cat.value && !selected.folderId
-
-          return (
-            <div key={cat.value}>
-              <div className="tree-row">
-                <button
-                  type="button"
-                  className="tree-toggle"
-                  onClick={() => toggle(cat.value)}
-                  disabled={topFolders.length === 0}
-                >
-                  {topFolders.length > 0 ? (isExpanded ? '▾' : '▸') : '·'}
-                </button>
-                <button
-                  type="button"
-                  className={`tree-label${isSelected ? ' selected' : ''}`}
-                  onClick={() => onSelect(cat.value, null)}
-                >
-                  {cat.label}
-                </button>
-                {isDM && (
-                  <span className="tree-actions">
-                    <button type="button" title="New folder" onClick={() => createFolder(cat.value, null)}>
-                      +
-                    </button>
-                  </span>
-                )}
-              </div>
-              {isExpanded && topFolders.length > 0 && (
-                <SortableContext items={topFolders.map((f) => f.id)} strategy={verticalListSortingStrategy}>
-                  {topFolders.map((folder) => (
-                    <FolderNode key={folder.id} folder={folder} depth={1} ctx={ctx} />
-                  ))}
-                </SortableContext>
-              )}
-            </div>
-          )
-        })}
+        {categories.map((cat) => (
+          <CategoryRoot key={cat.value} cat={cat} ctx={ctx} />
+        ))}
       </DndContext>
     </nav>
   )
