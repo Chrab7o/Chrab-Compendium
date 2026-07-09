@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom'
+import { Link, NavLink } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useCampaignContext } from '../contexts/CampaignContext'
 
@@ -8,7 +8,9 @@ export default function Nav() {
 
   return (
     <header className="nav">
-      <span className="nav-brand">Chrab Corner</span>
+      <Link to="/" className="nav-brand">
+        Chrab Corner
+      </Link>
       <nav className="nav-links">
         <NavLink to="/general" className={({ isActive }) => (isActive ? 'active' : '')}>
           General

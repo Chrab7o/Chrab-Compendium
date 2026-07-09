@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { DndContext, closestCenter } from '@dnd-kit/core'
 import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
@@ -18,6 +18,8 @@ import {
   effectiveEntryCampaignId,
 } from '../lib/folders'
 import { categoryLabel } from '../lib/categories'
+
+const SELECTED_STORAGE_KEY = 'chrab-corner-sidebar-selected'
 
 // A record's stable identity for dnd-kit/React keys — an entry can appear
 // more than once (its primary spot, plus any extra placements), so the raw
@@ -51,7 +53,22 @@ export default function CategoryBrowser({ compact = false, editable = true }) {
   const [entries, setEntries] = useState([])
   const [placements, setPlacements] = useState([])
   const [loading, setLoading] = useState(true)
-  const [selected, setSelected] = useState({ category: null, folderId: null })
+  // Remembers the last category/folder a visitor was browsing, across page
+  // reloads, so they land back where they left off instead of the sidebar
+  // "pick a category" prompt every time.
+  const [selected, setSelected] = useState(() => {
+    try {
+      const saved = localStorage.getItem(SELECTED_STORAGE_KEY)
+      return saved ? JSON.parse(saved) : { category: null, folderId: null }
+    } catch {
+      return { category: null, folderId: null }
+    }
+  })
+  const isFirstCampaignCheck = useRef(true)
+
+  useEffect(() => {
+    localStorage.setItem(SELECTED_STORAGE_KEY, JSON.stringify(selected))
+  }, [selected])
 
   // Separate from the initial/campaign-switch load: mutation-triggered
   // refreshes (rename, move, reorder, ...) call this directly so they just
@@ -79,6 +96,12 @@ export default function CategoryBrowser({ compact = false, editable = true }) {
   }, [fetchData])
 
   useEffect(() => {
+    // Skip on mount — campaignId is already restored from localStorage by
+    // then, and resetting here would immediately wipe the restored `selected`.
+    if (isFirstCampaignCheck.current) {
+      isFirstCampaignCheck.current = false
+      return
+    }
     setSelected({ category: null, folderId: null })
   }, [campaignId])
 

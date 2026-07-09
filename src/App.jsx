@@ -1,5 +1,6 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route } from 'react-router-dom'
 import Nav from './components/Nav'
+import Home from './pages/Home'
 import GeneralView from './pages/GeneralView'
 import EntryDetail from './pages/EntryDetail'
 import EntryEditorPage from './pages/EntryEditorPage'
@@ -28,7 +29,7 @@ export default function App() {
       <Nav />
       <main className="app-main">
         <Routes>
-          <Route path="/" element={<Navigate to="/general" replace />} />
+          <Route path="/" element={<Home />} />
           <Route path="/general" element={<GeneralView />} />
           <Route path="/entry/:id" element={<EntryDetail />} />
           <Route path="/maps" element={<MapsView />} />

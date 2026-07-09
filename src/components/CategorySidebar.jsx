@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { DndContext, closestCorners, PointerSensor, useDroppable, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -8,6 +8,7 @@ import { useCampaignContext } from '../contexts/CampaignContext'
 import { childFolders, foldersWithVisibleContent, descendantFolderIds } from '../lib/folders'
 
 const CATEGORY_DROP_PREFIX = 'category:'
+const EXPANDED_STORAGE_KEY = 'chrab-corner-sidebar-expanded'
 
 function FolderNode({ folder, depth, ctx }) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
@@ -51,8 +52,6 @@ function FolderNode({ folder, depth, ctx }) {
         >
           {folder.name}
         </button>
-        {folder.visibility === 'dm' && <span className="badge badge-dm">DM</span>}
-        {ownCampaign && <span className="badge badge-campaign">{ownCampaign.name}</span>}
         {ctx.isDM && (
           <span className="tree-actions">
             <button type="button" title="New subfolder" onClick={() => ctx.createFolder(folder.category, folder.id)}>
@@ -91,6 +90,12 @@ function FolderNode({ folder, depth, ctx }) {
           </span>
         )}
       </div>
+      {(folder.visibility === 'dm' || ownCampaign) && (
+        <div className="tree-badges" style={{ paddingLeft: `${depth + 1}rem` }}>
+          {folder.visibility === 'dm' && <span className="badge badge-dm">DM</span>}
+          {ownCampaign && <span className="badge badge-campaign">{ownCampaign.name}</span>}
+        </div>
+      )}
       {assigningCampaign && (
         <div className="tree-move" style={{ paddingLeft: `${depth + 1}rem` }}>
           <select
@@ -200,7 +205,6 @@ function CategoryRoot({ cat, ctx }) {
         >
           {cat.label}
         </button>
-        {cat.visibility === 'dm' && <span className="badge badge-dm">DM</span>}
         {ctx.isDM && (
           <span className="tree-actions">
             <button type="button" title="New folder" onClick={() => ctx.createFolder(cat.value, null)}>
@@ -209,6 +213,11 @@ function CategoryRoot({ cat, ctx }) {
           </span>
         )}
       </div>
+      {cat.visibility === 'dm' && (
+        <div className="tree-badges">
+          <span className="badge badge-dm">DM</span>
+        </div>
+      )}
       {isExpanded && topFolders.length > 0 && (
         <SortableContext items={topFolders.map((f) => f.id)} strategy={verticalListSortingStrategy}>
           {topFolders.map((folder) => (
@@ -223,7 +232,21 @@ function CategoryRoot({ cat, ctx }) {
 export default function CategorySidebar({ folders, entries, isDM, selected, onSelect, onChange, campaignId }) {
   const { categories } = useCategories()
   const { campaigns } = useCampaignContext()
-  const [expanded, setExpanded] = useState(new Set())
+  // Remembers which folders are expanded across page reloads, so a player
+  // lands back where they left off in the tree instead of starting fresh.
+  const [expanded, setExpanded] = useState(() => {
+    try {
+      const saved = localStorage.getItem(EXPANDED_STORAGE_KEY)
+      return saved ? new Set(JSON.parse(saved)) : new Set()
+    } catch {
+      return new Set()
+    }
+  })
+
+  useEffect(() => {
+    localStorage.setItem(EXPANDED_STORAGE_KEY, JSON.stringify([...expanded]))
+  }, [expanded])
+
   // A small activation distance stops an ordinary click from being read as
   // a drag, and closestCorners (over closestCenter) resolves collisions
   // more predictably once folders nest at different nearby depths.
