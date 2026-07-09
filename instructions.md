@@ -85,7 +85,11 @@ npm run dev
    - `VITE_SUPABASE_URL`
    - `VITE_SUPABASE_ANON_KEY`
 3. Push to `main`. The workflow in `.github/workflows/deploy.yml` builds and deploys
-   automatically. Your site will be live at `https://<your-username>.github.io/Chrab-Corner/`.
+   automatically. The site is served from a custom domain at
+   [compendium.chrab.us](https://compendium.chrab.us/) — `public/CNAME` records that domain so
+   it's included in every deploy. Vite's `base` is set to `/` in `vite.config.js` to match
+   (would need to change back to `/Chrab-Corner/` if you ever moved off the custom domain back
+   to the plain `github.io/Chrab-Corner/` URL).
 
 The anon key is safe to ship in the client bundle — it's meant to be public. Row Level
 Security in `supabase/migrations/` is what actually controls who can read or write what.

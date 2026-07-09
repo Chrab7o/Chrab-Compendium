@@ -1,9 +1,9 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// Repo is served at https://<user>.github.io/Chrab-Corner/, so assets
-// must be requested from that subpath rather than the domain root.
+// Served from a custom domain (compendium.chrab.us) at the root, not from
+// a /Chrab-Corner/ subpath — so assets must be requested from root too.
 export default defineConfig({
   plugins: [react()],
-  base: '/Chrab-Corner/',
+  base: '/',
 })
