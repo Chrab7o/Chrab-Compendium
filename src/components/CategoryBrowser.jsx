@@ -8,7 +8,15 @@ import { useAuth } from '../contexts/AuthContext'
 import { useCampaignContext } from '../contexts/CampaignContext'
 import CategorySidebar from './CategorySidebar'
 import EntryCard from './EntryCard'
-import { entriesInFolder, topLevelEntries, folderPath, flattenFolders, mergePlacements } from '../lib/folders'
+import {
+  entriesInFolder,
+  topLevelEntries,
+  folderPath,
+  flattenFolders,
+  mergePlacements,
+  effectiveFolderCampaignId,
+  effectiveEntryCampaignId,
+} from '../lib/folders'
 import { categoryLabel } from '../lib/categories'
 
 // A record's stable identity for dnd-kit/React keys — an entry can appear
@@ -49,22 +57,21 @@ export default function CategoryBrowser({ compact = false, editable = true }) {
   // refreshes (rename, move, reorder, ...) call this directly so they just
   // swap data in place instead of unmounting the whole tree behind a
   // blocking "Loading..." — that was making every click feel like a reload.
+  //
+  // Always fetches everything regardless of the selected campaign — a
+  // folder's *effective* campaign depends on walking its ancestor chain
+  // (see effectiveFolderCampaignId), which needs the full tree in memory
+  // rather than a pre-filtered slice from the query itself.
   const fetchData = useCallback(async () => {
-    let folderQuery = supabase.from('folders').select('*')
-    let entryQuery = supabase.from('entries').select('*')
-    if (campaignId) {
-      folderQuery = folderQuery.or(`campaign_id.eq.${campaignId},campaign_id.is.null`)
-      entryQuery = entryQuery.or(`campaign_id.eq.${campaignId},campaign_id.is.null`)
-    }
     const [{ data: folderData }, { data: entryData }, { data: placementData }] = await Promise.all([
-      folderQuery,
-      entryQuery,
+      supabase.from('folders').select('*'),
+      supabase.from('entries').select('*'),
       supabase.from('entry_placements').select('*'),
     ])
     setFolders(folderData ?? [])
     setEntries(entryData ?? [])
     setPlacements(placementData ?? [])
-  }, [campaignId])
+  }, [])
 
   useEffect(() => {
     setLoading(true)
@@ -78,13 +85,30 @@ export default function CategoryBrowser({ compact = false, editable = true }) {
   if (loading) return <p className="status-message">Loading...</p>
 
   const placedEntries = mergePlacements(entries, placements)
+
+  // Effective-campaign filtering: computed against the FULL folders array
+  // (ancestor walks need the whole tree), then applied to produce the
+  // subset actually shown/organized against for the selected campaign.
+  const visibleFolders = campaignId
+    ? folders.filter((f) => {
+        const eff = effectiveFolderCampaignId(folders, f.id)
+        return !eff || eff === campaignId
+      })
+    : folders
+  const visibleEntries = campaignId
+    ? placedEntries.filter((e) => {
+        const eff = effectiveEntryCampaignId(folders, e)
+        return !eff || eff === campaignId
+      })
+    : placedEntries
+
   const currentEntries = selected.folderId
-    ? entriesInFolder(placedEntries, selected.folderId)
+    ? entriesInFolder(visibleEntries, selected.folderId)
     : selected.category
-      ? topLevelEntries(placedEntries, selected.category)
+      ? topLevelEntries(visibleEntries, selected.category)
       : []
 
-  const breadcrumb = selected.folderId ? folderPath(folders, selected.folderId) : []
+  const breadcrumb = selected.folderId ? folderPath(visibleFolders, selected.folderId) : []
 
   async function moveEntry(record, folderId) {
     if (record.__placementId) {
@@ -114,8 +138,8 @@ export default function CategoryBrowser({ compact = false, editable = true }) {
   return (
     <div className={compact ? 'browse-layout browse-layout-compact' : 'browse-layout'}>
       <CategorySidebar
-        folders={folders}
-        entries={placedEntries}
+        folders={visibleFolders}
+        entries={visibleEntries}
         isDM={canEdit}
         selected={selected}
         onSelect={(category, folderId) => setSelected({ category, folderId })}
@@ -180,7 +204,7 @@ export default function CategoryBrowser({ compact = false, editable = true }) {
                             title="Move to folder"
                           >
                             <option value="">(top level of {categoryLabel(selected.category)})</option>
-                            {flattenFolders(folders, selected.category).map((f) => (
+                            {flattenFolders(visibleFolders, selected.category).map((f) => (
                               <option key={f.id} value={f.id}>
                                 {f.label}
                               </option>

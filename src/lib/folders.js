@@ -99,6 +99,27 @@ export function mergePlacements(entries, placements) {
   return [...primary, ...extra]
 }
 
+// A folder's own campaign_id if set, else the nearest ancestor's — same
+// dynamic/computed approach as DM-only visibility: assigning a campaign to
+// a folder is a single-row write, and everything nested inside picks it up
+// automatically here rather than needing every descendant stamped with it.
+// A folder/entry with its own explicit campaign_id always wins over an
+// ancestor's, so a deeper exception is still possible.
+export function effectiveFolderCampaignId(folders, folderId) {
+  const byId = new Map(folders.map((f) => [f.id, f]))
+  let current = byId.get(folderId)
+  while (current) {
+    if (current.campaign_id) return current.campaign_id
+    current = current.parent_folder_id ? byId.get(current.parent_folder_id) : null
+  }
+  return null
+}
+
+export function effectiveEntryCampaignId(folders, entry) {
+  if (entry.campaign_id) return entry.campaign_id
+  return entry.folder_id ? effectiveFolderCampaignId(folders, entry.folder_id) : null
+}
+
 // Every descendant folder id of `folderId`, used to block moving a folder
 // into its own subtree.
 export function descendantFolderIds(folders, folderId) {

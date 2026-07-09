@@ -4,6 +4,7 @@ import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } 
 import { CSS } from '@dnd-kit/utilities'
 import { supabase } from '../lib/supabaseClient'
 import { useCategories } from '../contexts/CategoryContext'
+import { useCampaignContext } from '../contexts/CampaignContext'
 import { childFolders, foldersWithVisibleContent, descendantFolderIds } from '../lib/folders'
 
 const CATEGORY_DROP_PREFIX = 'category:'
@@ -24,6 +25,8 @@ function FolderNode({ folder, depth, ctx }) {
   const isSelected = ctx.selected.folderId === folder.id
   const [moving, setMoving] = useState(false)
   const [movingCategory, setMovingCategory] = useState(false)
+  const [assigningCampaign, setAssigningCampaign] = useState(false)
+  const ownCampaign = folder.campaign_id ? ctx.campaigns.find((c) => c.id === folder.campaign_id) : null
 
   return (
     <div ref={setNodeRef} style={style}>
@@ -49,6 +52,7 @@ function FolderNode({ folder, depth, ctx }) {
           {folder.name}
         </button>
         {folder.visibility === 'dm' && <span className="badge badge-dm">DM</span>}
+        {ownCampaign && <span className="badge badge-campaign">{ownCampaign.name}</span>}
         {ctx.isDM && (
           <span className="tree-actions">
             <button type="button" title="New subfolder" onClick={() => ctx.createFolder(folder.category, folder.id)}>
@@ -63,6 +67,13 @@ function FolderNode({ folder, depth, ctx }) {
               onClick={() => ctx.toggleFolderVisibility(folder)}
             >
               {folder.visibility === 'dm' ? '🔒' : '🔓'}
+            </button>
+            <button
+              type="button"
+              title="Assign a campaign (everything inside inherits it too, unless it has its own)"
+              onClick={() => setAssigningCampaign((v) => !v)}
+            >
+              🏕
             </button>
             <button type="button" title="Move" onClick={() => setMoving((v) => !v)}>
               ⇄
@@ -80,6 +91,24 @@ function FolderNode({ folder, depth, ctx }) {
           </span>
         )}
       </div>
+      {assigningCampaign && (
+        <div className="tree-move" style={{ paddingLeft: `${depth + 1}rem` }}>
+          <select
+            defaultValue={folder.campaign_id ?? ''}
+            onChange={(e) => {
+              ctx.assignFolderCampaign(folder, e.target.value || null)
+              setAssigningCampaign(false)
+            }}
+          >
+            <option value="">General (no campaign, or inherit from parent)</option>
+            {ctx.campaigns.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
       {moving && (
         <div className="tree-move" style={{ paddingLeft: `${depth + 1}rem` }}>
           <select
@@ -193,6 +222,7 @@ function CategoryRoot({ cat, ctx }) {
 
 export default function CategorySidebar({ folders, entries, isDM, selected, onSelect, onChange, campaignId }) {
   const { categories } = useCategories()
+  const { campaigns } = useCampaignContext()
   const [expanded, setExpanded] = useState(new Set())
   // A small activation distance stops an ordinary click from being read as
   // a drag, and closestCorners (over closestCenter) resolves collisions
@@ -240,6 +270,15 @@ export default function CategorySidebar({ folders, entries, isDM, selected, onSe
   async function toggleFolderVisibility(folder) {
     const next = folder.visibility === 'dm' ? 'public' : 'dm'
     await supabase.from('folders').update({ visibility: next }).eq('id', folder.id)
+    onChange()
+  }
+
+  // Same idea, but for campaign scoping: only this folder's own row
+  // changes. Everything nested inside picks up the assignment via
+  // effectiveFolderCampaignId/effectiveEntryCampaignId (computed client-side
+  // in CategoryBrowser), unless it has its own explicit campaign set.
+  async function assignFolderCampaign(folder, campaignId) {
+    await supabase.from('folders').update({ campaign_id: campaignId }).eq('id', folder.id)
     onChange()
   }
 
@@ -324,6 +363,7 @@ export default function CategorySidebar({ folders, entries, isDM, selected, onSe
   const ctx = {
     folders,
     categories,
+    campaigns,
     isDM,
     expanded,
     toggle,
@@ -335,6 +375,7 @@ export default function CategorySidebar({ folders, entries, isDM, selected, onSe
     moveFolder,
     moveFolderToCategory,
     toggleFolderVisibility,
+    assignFolderCampaign,
     visibleFolderIds,
   }
 

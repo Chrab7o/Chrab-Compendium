@@ -262,6 +262,11 @@ button:disabled {
   color: #fff;
 }
 
+.badge-campaign {
+  background: var(--accent);
+  color: #1a1520;
+}
+
 .badge-placement {
   display: inline-block;
   margin-top: 0.4rem;
