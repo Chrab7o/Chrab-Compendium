@@ -12,6 +12,11 @@ campaign you're viewing (or "All campaigns" for everything general/public):
   + general world lore), or everything if no campaign is selected.
 - **Maps** — pannable/zoomable image maps with clickable markers that jump to an entry,
   also scoped by the campaign picker.
+- **Locations / People / Session Notes** — tag-based views, not folder browsing: any entry
+  tagged `location`, `person`, or `session-note` (case-insensitive) shows up on the matching
+  page, scoped by the campaign picker same as everywhere else. An entry can carry more than
+  one of these tags and show up on multiple pages; it doesn't need to live in any particular
+  folder to qualify.
 - **My Notes** (players, login required) — private notes, visible only to that player
   and to the DM.
 - **DM Dashboard** (`/dm`, DM login required) — sees and edits everything, including
