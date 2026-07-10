@@ -62,6 +62,11 @@ export default function EntryDetail() {
       <div className="entry-detail-header">
         <h1>{entry.title}</h1>
         {entry.visibility === 'dm' && <span className="badge badge-dm">DM only</span>}
+        {isDM && (
+          <Link to={`/dm/entries/${id}/edit`} className="button-link" style={{ marginLeft: 'auto' }}>
+            Edit
+          </Link>
+        )}
       </div>
       <span className="entry-card-category">{categoryLabel(entry.category)}</span>
       {entry.tags?.length > 0 && (
