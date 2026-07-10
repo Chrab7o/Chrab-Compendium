@@ -2,7 +2,9 @@ name: Sync Obsidian Vault
 
 on:
   schedule:
-    - cron: '*/30 * * * *'
+    # Once daily at 12:00 UTC — trigger manually from the Actions tab
+    # anytime you need it sooner.
+    - cron: '0 12 * * *'
   workflow_dispatch:
 
 jobs:
