@@ -5,11 +5,18 @@
 //
 // One-directional (Obsidian -> Compendium) for CONTENT: editing a synced
 // entry's title/text/tags/folder on the site will be overwritten by the
-// next sync. Never deletes — a note that disappears from Drive just gets
-// skipped (logged), not removed from the DB. Every run re-reads every note
-// under the configured root folder and upserts by Drive's permanent
-// file/folder id, so re-runs are idempotent and renames/moves in Drive
-// resolve to updates, not duplicates.
+// next sync. A note or folder removed from Drive is deleted on the site
+// too, on the NEXT run after it disappears (not instantly — this only
+// polls on a schedule). Every run re-reads every note under the configured
+// root folder and upserts by Drive's permanent file/folder id, so re-runs
+// are idempotent and renames/moves in Drive resolve to updates, not
+// duplicates/deletes.
+//
+// Because deletion is irreversible and this runs unattended, two circuit
+// breakers refuse to delete anything if the run looks broken rather than
+// intentional: zero notes found at all (almost certainly a Drive
+// permission/auth problem, not an empty vault), or more than half of
+// everything previously synced would be deleted in one run.
 //
 // Visibility and campaign assignment are the one exception: those are only
 // ever set when a folder/entry is FIRST created (from this config's
@@ -72,6 +79,12 @@ async function main() {
   const imageFiles = allFiles.filter((f) => isImageFile(f.name))
   const imagesByName = new Map(imageFiles.map((f) => [f.name.toLowerCase(), f]))
   console.log(`Found ${noteFiles.length} notes, ${imageFiles.length} images.`)
+
+  if (noteFiles.length === 0) {
+    throw new Error(
+      'Found 0 notes in Drive — refusing to continue. This almost always means a permissions/config problem (folder unshared, wrong rootFolderId, revoked service account) rather than an actually-empty vault. Fix that and re-run rather than let this delete everything synced so far.'
+    )
+  }
 
   // --- Parse every note, resolving its category/visibility/campaign from
   // config.folders by its top-level folder name. Notes whose top folder
@@ -282,8 +295,58 @@ async function main() {
     }
   }
 
+  // --- Delete entries/folders whose Drive counterpart is gone. Note files
+  // not currently mapped to a category (skipped above) are NOT deleted —
+  // "not configured yet" isn't the same as "removed from the vault". ---
+  const seenFileIds = new Set(noteFiles.map((f) => f.id))
+  const seenFolderIds = new Set(allFiles.flatMap((f) => f.folderIdPath))
+
+  const { data: syncedEntries } = await supabase
+    .from('entries')
+    .select('id, title, obsidian_file_id')
+    .not('obsidian_file_id', 'is', null)
+  const entriesToDelete = (syncedEntries ?? []).filter((e) => !seenFileIds.has(e.obsidian_file_id))
+
+  const { data: syncedFolders } = await supabase
+    .from('folders')
+    .select('id, name, obsidian_folder_id')
+    .not('obsidian_folder_id', 'is', null)
+  const foldersToDelete = (syncedFolders ?? []).filter((f) => !seenFolderIds.has(f.obsidian_folder_id))
+
+  const totalSynced = (syncedEntries?.length ?? 0) + (syncedFolders?.length ?? 0)
+  const totalToDelete = entriesToDelete.length + foldersToDelete.length
+  let deletedEntries = 0
+  let deletedFolders = 0
+  let deletionSkipped = false
+
+  if (totalToDelete > 0 && totalSynced >= 3 && totalToDelete > totalSynced * 0.5) {
+    deletionSkipped = true
+    console.error(
+      `Refusing to delete ${totalToDelete}/${totalSynced} previously-synced rows in one run (over 50%) — ` +
+        'this looks more like a Drive read problem than an intentional mass-delete. Nothing was deleted this run.'
+    )
+  } else if (totalToDelete > 0) {
+    if (entriesToDelete.length > 0) {
+      const { error } = await supabase
+        .from('entries')
+        .delete()
+        .in('id', entriesToDelete.map((e) => e.id))
+      if (error) console.error(`Failed to delete removed entries: ${error.message}`)
+      else deletedEntries = entriesToDelete.length
+    }
+    if (foldersToDelete.length > 0) {
+      const { error } = await supabase
+        .from('folders')
+        .delete()
+        .in('id', foldersToDelete.map((f) => f.id))
+      if (error) console.error(`Failed to delete removed folders: ${error.message}`)
+      else deletedFolders = foldersToDelete.length
+    }
+  }
+
   console.log('--- Sync summary ---')
   console.log(`Entries created: ${created}, updated: ${updated}, skipped (unmapped folder): ${skipped}`)
+  console.log(`Entries deleted: ${deletedEntries}, folders deleted: ${deletedFolders}${deletionSkipped ? ' (deletion pass skipped by circuit breaker)' : ''}`)
   console.log(`Images uploaded: ${uploaded}, reused from cache: ${reused}`)
   if (unresolvedLinks.length > 0) {
     console.log(`${unresolvedLinks.length} notes have unresolved links:`)

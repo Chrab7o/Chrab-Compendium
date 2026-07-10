@@ -179,12 +179,16 @@ Instead of manually re-running the Obsidian importer above every time your notes
 `scripts/obsidian-sync.mjs` does it on a schedule via GitHub Actions — reading a Google
 Drive mirror of your vault and upserting into the same tables. **One-directional for
 content**: Obsidian is the source of truth for title/text/tags/folder placement, so editing
-those directly on the site gets overwritten by the next sync. It never deletes — a note
-removed from the synced Drive folder just gets skipped (logged in the Action run), not
-deleted from the site. Re-runs are safe: Google Drive's permanent file/folder ids are stored
-(`entries.obsidian_file_id`, `folders.obsidian_folder_id`) so a sync updates the same rows
-instead of duplicating them, and renaming/moving a note or folder in Drive updates in place
-too.
+those directly on the site gets overwritten by the next sync — and **deleting a note or
+folder in Obsidian deletes it on the site too**, on the next sync run after it disappears.
+This is irreversible (no undo/trash), so two circuit breakers refuse to delete anything if a
+run looks broken rather than intentional: finding zero notes at all (almost always a Drive
+permissions/config problem, not an empty vault), or more than half of everything previously
+synced disappearing in one run. Either case aborts the deletion pass and logs why, without
+touching anything. Re-runs are otherwise safe: Google Drive's permanent file/folder ids are
+stored (`entries.obsidian_file_id`, `folders.obsidian_folder_id`) so a sync updates the same
+rows instead of duplicating them, and renaming/moving a note or folder in Drive updates in
+place too.
 
 **Visibility and campaign assignment are the exception** — those are only set when a
 folder/entry is first created (from the config's defaults/overrides below), never touched
