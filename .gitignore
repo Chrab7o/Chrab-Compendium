@@ -4,3 +4,4 @@ dist
 .env.local
 obsidian-export/
 backup
+backups.txt
