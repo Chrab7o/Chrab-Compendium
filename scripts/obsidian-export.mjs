@@ -12,27 +12,12 @@
 // Reads VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY from .env (same file
 // `npm run dev` uses) plus EXPORT_DM_EMAIL / EXPORT_DM_PASSWORD, which you
 // can add to that same local, gitignored .env just for running this.
-import { readFileSync, mkdirSync, writeFileSync } from 'node:fs'
+import { mkdirSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { createClient } from '@supabase/supabase-js'
 import { dump as dumpYaml } from 'js-yaml'
+import { loadEnvFile } from './lib/env.mjs'
 
-function loadEnvFile(file) {
-  try {
-    const text = readFileSync(file, 'utf8')
-    for (const line of text.split('\n')) {
-      const trimmed = line.trim()
-      if (!trimmed || trimmed.startsWith('#')) continue
-      const eq = trimmed.indexOf('=')
-      if (eq === -1) continue
-      const key = trimmed.slice(0, eq).trim()
-      const value = trimmed.slice(eq + 1).trim()
-      if (!(key in process.env)) process.env[key] = value
-    }
-  } catch {
-    // no .env file present — fine, rely on real env vars instead
-  }
-}
 loadEnvFile(new URL('../.env', import.meta.url))
 
 const OUT_DIR = process.env.EXPORT_DIR || 'obsidian-export'

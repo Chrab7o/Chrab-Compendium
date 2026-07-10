@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "sync:obsidian": "node scripts/obsidian-sync.mjs",
-    "export:obsidian": "node scripts/obsidian-export.mjs"
+    "export:obsidian": "node scripts/obsidian-export.mjs",
+    "backfill:obsidian": "node scripts/obsidian-backfill-ids.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

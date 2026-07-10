@@ -13,8 +13,9 @@ import { readFileSync } from 'node:fs'
 import { randomUUID } from 'node:crypto'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { GoogleAuth } from 'google-auth-library'
 import { createClient } from '@supabase/supabase-js'
+import { loadEnvFile } from './lib/env.mjs'
+import { createDriveClient, walkDrive, downloadText, downloadBuffer } from './lib/drive.mjs'
 import {
   isMarkdownFile,
   isImageFile,
@@ -24,13 +25,15 @@ import {
   resolveWikilinks,
 } from '../src/lib/obsidianImport.js'
 
+// No-op in GitHub Actions (secrets are already real env vars, no .env file
+// present there) — lets this same script also be dry-run locally from .env.
+loadEnvFile(new URL('../.env', import.meta.url))
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const config = JSON.parse(
   readFileSync(path.join(__dirname, 'obsidian-sync.config.json'), 'utf8')
 )
 
-const DRIVE_API = 'https://www.googleapis.com/drive/v3'
-const FOLDER_MIME = 'application/vnd.google-apps.folder'
 const EMBED_RE = /!\[\[([^\]|#]+)(?:#[^\]|]*)?(?:\|[^\]]+)?\]\]/g
 const CONTENT_TYPES = {
   png: 'image/png',
@@ -41,69 +44,8 @@ const CONTENT_TYPES = {
   svg: 'image/svg+xml',
 }
 
-async function listChildren(drive, folderId) {
-  let files = []
-  let pageToken
-  do {
-    const res = await drive.request({
-      url: `${DRIVE_API}/files`,
-      params: {
-        q: `'${folderId}' in parents and trashed = false`,
-        fields: 'nextPageToken, files(id, name, mimeType)',
-        pageSize: 1000,
-        pageToken,
-      },
-    })
-    files = files.concat(res.data.files ?? [])
-    pageToken = res.data.nextPageToken
-  } while (pageToken)
-  return files
-}
-
-// Flat list of every non-folder file under rootId, each tagged with the
-// chain of ancestor folder names/ids from the root (mirrors what
-// webkitRelativePath gives the browser importer, but built from Drive's
-// actual parent/child structure instead of a path string).
-async function walkDrive(drive, rootId) {
-  const results = []
-  async function recurse(folderId, pathSegments, folderIdPath) {
-    const children = await listChildren(drive, folderId)
-    for (const child of children) {
-      if (child.mimeType === FOLDER_MIME) {
-        await recurse(child.id, [...pathSegments, child.name], [...folderIdPath, child.id])
-      } else {
-        results.push({ ...child, pathSegments, folderIdPath })
-      }
-    }
-  }
-  await recurse(rootId, [], [])
-  return results
-}
-
-async function downloadText(drive, fileId) {
-  const res = await drive.request({
-    url: `${DRIVE_API}/files/${fileId}`,
-    params: { alt: 'media' },
-    responseType: 'text',
-  })
-  return res.data
-}
-
-async function downloadBuffer(drive, fileId) {
-  const res = await drive.request({
-    url: `${DRIVE_API}/files/${fileId}`,
-    params: { alt: 'media' },
-    responseType: 'arraybuffer',
-  })
-  return Buffer.from(res.data)
-}
-
 async function main() {
-  const auth = new GoogleAuth({
-    credentials: JSON.parse(process.env.GDRIVE_SERVICE_ACCOUNT_KEY),
-    scopes: ['https://www.googleapis.com/auth/drive.readonly'],
-  })
-  const drive = await auth.getClient()
+  const drive = await createDriveClient()
 
   const supabase = createClient(
     process.env.VITE_SUPABASE_URL,
