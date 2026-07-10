@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../contexts/AuthContext'
+import { emailToUsername } from '../lib/auth'
 
 export default function Account() {
   const { session } = useAuth()
@@ -39,7 +40,7 @@ export default function Account() {
     <section className="page">
       <div className="view-header">
         <h1>My Account</h1>
-        <p className="view-subtitle">Signed in as {session.user.email}</p>
+        <p className="view-subtitle">Signed in as {emailToUsername(session.user.email)}</p>
       </div>
 
       <div className="entry-grid">
