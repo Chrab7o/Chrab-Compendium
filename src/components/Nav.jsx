@@ -12,9 +12,6 @@ export default function Nav() {
         Chrab Corner
       </Link>
       <nav className="nav-links">
-        <NavLink to="/general" className={({ isActive }) => (isActive ? 'active' : '')}>
-          General
-        </NavLink>
         <NavLink to="/maps" className={({ isActive }) => (isActive ? 'active' : '')}>
           Maps
         </NavLink>

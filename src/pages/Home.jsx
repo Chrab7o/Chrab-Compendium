@@ -1,67 +1,64 @@
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useCampaignContext } from '../contexts/CampaignContext'
+import CategoryBrowser from '../components/CategoryBrowser'
 
 export default function Home() {
   const navigate = useNavigate()
-  const { session, isDM, isPlayer } = useAuth()
-  const { campaigns, setCampaignId } = useCampaignContext()
-
-  function browseCampaign(id) {
-    setCampaignId(id)
-    navigate('/general')
-  }
+  const { session, isPlayer } = useAuth()
+  const { campaigns, campaignId, campaign, setCampaignId } = useCampaignContext()
 
   return (
-    <section className="page home-page">
-      <div className="home-hero">
-        <h1>Chrab Corner</h1>
-        <p className="home-tagline">
-          World lore, characters, maps, and secrets — everything for the table, in one place.
-        </p>
-        <div className="home-actions">
-          <button type="button" onClick={() => navigate('/general')}>
-            Browse World Lore
-          </button>
-          <button type="button" className="secondary" onClick={() => navigate('/maps')}>
-            View Maps
-          </button>
-          {!session && (
-            <button type="button" className="secondary" onClick={() => navigate('/login')}>
-              Login
+    <section className="home-page">
+      <div className="page home-hero-section">
+        <div className="home-hero">
+          <h1>Chrab Corner</h1>
+          <p className="home-tagline">
+            {campaign
+              ? `Browsing ${campaign.name} lore.`
+              : 'World lore, characters, maps, and secrets — everything for the table, in one place.'}
+          </p>
+          <div className="home-actions">
+            <button type="button" onClick={() => navigate('/maps')}>
+              View Maps
             </button>
-          )}
-          {isDM && (
-            <button type="button" className="secondary" onClick={() => navigate('/dm')}>
-              DM Dashboard
-            </button>
-          )}
-          {isPlayer && (
-            <button type="button" className="secondary" onClick={() => navigate('/character')}>
-              My Character
-            </button>
-          )}
+            {!session && (
+              <button type="button" className="secondary" onClick={() => navigate('/login')}>
+                Login
+              </button>
+            )}
+            {isPlayer && (
+              <button type="button" className="secondary" onClick={() => navigate('/character')}>
+                My Character
+              </button>
+            )}
+          </div>
         </div>
-      </div>
 
-      {campaigns.length > 0 && (
-        <>
-          <h2>Campaigns</h2>
-          <div className="entry-grid">
+        {campaigns.length > 0 && (
+          <div className="home-campaign-picker">
+            <button
+              type="button"
+              className={campaignId ? 'chip' : 'chip active'}
+              onClick={() => setCampaignId('')}
+            >
+              All campaigns
+            </button>
             {campaigns.map((c) => (
               <button
                 key={c.id}
                 type="button"
-                className="entry-card home-campaign-card"
-                onClick={() => browseCampaign(c.id)}
+                className={campaignId === c.id ? 'chip active' : 'chip'}
+                onClick={() => setCampaignId(c.id)}
               >
-                <h3>{c.name}</h3>
-                {c.description && <p className="status-message">{c.description}</p>}
+                {c.name}
               </button>
             ))}
           </div>
-        </>
-      )}
+        )}
+      </div>
+
+      <CategoryBrowser editable={false} />
     </section>
   )
 }

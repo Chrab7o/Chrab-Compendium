@@ -6,10 +6,10 @@ backed by Supabase and deployed as a static site on GitHub Pages.
 Nav tabs (centered), with a campaign picker top-right that scopes every tab to whichever
 campaign you're viewing (or "All campaigns" for everything general/public):
 
-- **General** — a sidebar tree (Lore, NPC, Location, etc., each expandable into
-  arbitrarily nested folders) next to a content pane showing whatever's selected.
-  Scoped to the selected campaign (its entries + general world lore), or everything if
-  no campaign is selected.
+- **Home** (`/`) — the landing page and main browser: a hero banner plus a sidebar tree
+  (Lore, NPC, Location, etc., each expandable into arbitrarily nested folders) next to a
+  content pane showing whatever's selected. Scoped to the selected campaign (its entries
+  + general world lore), or everything if no campaign is selected.
 - **Maps** — pannable/zoomable image maps with clickable markers that jump to an entry,
   also scoped by the campaign picker.
 - **My Notes** (players, login required) — private notes, visible only to that player
@@ -122,7 +122,7 @@ Whether something is public or DM-only is still controlled entirely by that entr
 Anonymous/player visitors just won't see a folder at all if none of its contents
 (recursively) are visible to them.
 
-In the General sidebar, logged in as DM you get, per folder row (hover to reveal): **+**
+In the Home sidebar, logged in as DM you get, per folder row (hover to reveal): **+**
 (new subfolder), **✎** (rename), **⇄** (move to a different parent), **✕** (delete —
 contents move up to the parent folder, nothing is lost). Each category root also has its
 own **+** for a top-level folder. Drag the ⠿ handle to reorder folders among their
@@ -175,7 +175,7 @@ src/lib/supabaseClient.js     Supabase client, reads VITE_SUPABASE_* env vars
 src/contexts/AuthContext      Tracks login session + role (dm/player)
 src/contexts/CampaignContext  Global "which campaign am I viewing" picker state
 src/hooks/useEntries.js       Fetches entries with campaign/category filters
-src/pages/                    Route-level views (General, Maps, Notes, DM Dashboard, etc.)
+src/pages/                    Route-level views (Home, Maps, Notes, DM Dashboard, etc.)
 src/components/MapViewer.jsx  Shared Leaflet (CRS.Simple) map + marker renderer
 src/components/dm/            DM-only campaign/entry/map/marker/notes CRUD + viewers
 .github/workflows/deploy.yml  Build + deploy to GitHub Pages on push to main

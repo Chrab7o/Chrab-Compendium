@@ -56,7 +56,7 @@ export default function EntryDetail() {
 
   return (
     <article className="page entry-detail">
-      <Link to="/general" className="back-link">
+      <Link to="/" className="back-link">
         &larr; Back
       </Link>
       <div className="entry-detail-header">
