@@ -173,6 +173,48 @@ Players see their own character at **My Character** (`/character`), scoped to wh
 campaign is selected in the nav picker — reassign a character's campaign/player anytime
 from the DM Dashboard's "Characters" panel.
 
+### Auto-syncing an Obsidian vault (advanced)
+
+Instead of manually re-running the Obsidian importer above every time your notes change,
+`scripts/obsidian-sync.mjs` does it on a schedule via GitHub Actions — reading a Google
+Drive mirror of your vault and upserting into the same tables. **One-directional**:
+Obsidian is the source of truth, so editing a synced entry directly on the site gets
+overwritten by the next sync. It never deletes — a note removed from the synced Drive
+folder just gets skipped (logged in the Action run), not deleted from the site. Re-runs are
+safe: Google Drive's permanent file/folder ids are stored (`entries.obsidian_file_id`,
+`folders.obsidian_folder_id`) so a sync updates the same rows instead of duplicating them,
+and renaming/moving a note or folder in Drive updates in place too.
+
+One-time setup:
+
+1. Keep your vault (or a copy structured to mirror the compendium's categories) synced
+   into a Google Drive folder — e.g. via the Google Drive desktop app pointed at that
+   folder. Note the folder's id from its URL
+   (`https://drive.google.com/drive/folders/<id>`).
+2. In [Google Cloud Console](https://console.cloud.google.com/), create/reuse a project,
+   enable the **Google Drive API**, then create a **service account** and download its
+   JSON key. Share the Drive folder from step 1 with that service account's email
+   (`client_email` in the JSON key), as a Viewer.
+3. Create a dedicated Supabase account for the sync job — same steps as any account
+   (**Authentication → Users**), e.g. email `obsidian-sync@players.chrab.us`, and set its
+   `role` to `dm` in **Table Editor → profiles**. Using a separate account (not your own
+   DM login) means it can be revoked/rotated without touching your real login.
+4. In the repo's **Settings → Secrets and variables → Actions**, add:
+   - `SYNC_DM_EMAIL` / `SYNC_DM_PASSWORD` — the account from step 3
+   - `GDRIVE_SERVICE_ACCOUNT_KEY` — the full JSON key from step 2, as one value
+   - (`VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` are already there from the Pages
+     deploy setup)
+5. Edit `scripts/obsidian-sync.config.json`: set `rootFolderId` to the id from step 1, and
+   map each top-level vault folder name to a category `value` (see **DM Dashboard →
+   Categories** for the exact values) — a top-level folder not listed here is skipped, not
+   guessed at. Optionally override `visibility`/`campaignId` per folder. Commit it.
+
+`.github/workflows/obsidian-sync.yml` runs every 30 minutes and can also be triggered
+on-demand from the **Actions** tab (`Sync Obsidian Vault` → **Run workflow**). Check a
+run's log for a summary (created/updated/skipped/unresolved-link counts) or errors.
+You can also dry-run it locally with `npm run sync:obsidian` if you export the same five
+env vars in your shell first.
+
 ## Project structure
 
 ```
@@ -185,4 +227,6 @@ src/pages/                    Route-level views (Home, Maps, Notes, DM Dashboard
 src/components/MapViewer.jsx  Shared Leaflet (CRS.Simple) map + marker renderer
 src/components/dm/            DM-only campaign/entry/map/marker/notes CRUD + viewers
 .github/workflows/deploy.yml  Build + deploy to GitHub Pages on push to main
+scripts/obsidian-sync.mjs     Scheduled Obsidian (via Google Drive) -> Supabase sync
+.github/workflows/obsidian-sync.yml  Runs the sync above every 30 min + on demand
 ```
