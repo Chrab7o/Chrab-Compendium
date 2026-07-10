@@ -9,7 +9,9 @@ import Login from './pages/Login'
 import Notes from './pages/Notes'
 import MyCharacter from './pages/MyCharacter'
 import CharacterSheet from './pages/CharacterSheet'
+import CampaignHome from './pages/CampaignHome'
 import ImportPage from './pages/ImportPage'
+import PlayerLayout from './components/PlayerLayout'
 import DMHome from './pages/dm/DMHome'
 import DMCampaignsPage from './pages/dm/DMCampaignsPage'
 import DMCategoriesPage from './pages/dm/DMCategoriesPage'
@@ -33,12 +35,15 @@ export default function App() {
           <Route path="/entry/:id" element={<EntryDetail />} />
           <Route path="/maps" element={<MapsView />} />
           <Route path="/map/:slug" element={<MapDetail />} />
+          <Route path="/campaign/:id" element={<CampaignHome />} />
           <Route path="/login" element={<Login />} />
           <Route
             path="/notes"
             element={
               <RequireAuth>
-                <Notes />
+                <PlayerLayout>
+                  <Notes />
+                </PlayerLayout>
               </RequireAuth>
             }
           />
@@ -46,7 +51,9 @@ export default function App() {
             path="/character"
             element={
               <RequireAuth>
-                <MyCharacter />
+                <PlayerLayout>
+                  <MyCharacter />
+                </PlayerLayout>
               </RequireAuth>
             }
           />
@@ -54,7 +61,9 @@ export default function App() {
             path="/character/:id"
             element={
               <RequireAuth>
-                <CharacterSheet />
+                <PlayerLayout>
+                  <CharacterSheet />
+                </PlayerLayout>
               </RequireAuth>
             }
           />

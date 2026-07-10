@@ -1,12 +1,18 @@
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useCampaignContext } from '../contexts/CampaignContext'
 import CategoryBrowser from '../components/CategoryBrowser'
 
 export default function Home() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { session, isPlayer } = useAuth()
   const { campaigns, campaignId, campaign, setCampaignId } = useCampaignContext()
+  // A campaign quick-link card (CampaignHome) navigates here with the target
+  // category in router state, so browsing lands directly on it.
+  const initialSelected = location.state?.category
+    ? { category: location.state.category, folderId: null }
+    : null
 
   const welcome = (
     <div className="home-empty-state">
@@ -60,5 +66,5 @@ export default function Home() {
     </div>
   )
 
-  return <CategoryBrowser editable={false} emptyState={welcome} />
+  return <CategoryBrowser editable={false} emptyState={welcome} initialSelected={initialSelected} />
 }

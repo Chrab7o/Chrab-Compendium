@@ -45,7 +45,12 @@ function SortableEntry({ id, children }) {
 // the organize tools (drag handles, +/rename/delete/move, add-entry) —
 // General uses this in read-only mode even for the DM, since editing now
 // lives exclusively on /dm/organize.
-export default function CategoryBrowser({ compact = false, editable = true, emptyState = null }) {
+export default function CategoryBrowser({
+  compact = false,
+  editable = true,
+  emptyState = null,
+  initialSelected = null,
+}) {
   const { isDM } = useAuth()
   const canEdit = isDM && editable
   const { campaignId } = useCampaignContext()
@@ -55,8 +60,10 @@ export default function CategoryBrowser({ compact = false, editable = true, empt
   const [loading, setLoading] = useState(true)
   // Remembers the last category/folder a visitor was browsing, across page
   // reloads, so they land back where they left off instead of the sidebar
-  // "pick a category" prompt every time.
+  // "pick a category" prompt every time. A caller-supplied initialSelected
+  // (e.g. a campaign quick-link) takes priority over that restored state.
   const [selected, setSelected] = useState(() => {
+    if (initialSelected) return initialSelected
     try {
       const saved = localStorage.getItem(SELECTED_STORAGE_KEY)
       return saved ? JSON.parse(saved) : { category: null, folderId: null }

@@ -1,6 +1,7 @@
 import { Link, NavLink } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useCampaignContext } from '../contexts/CampaignContext'
+import CampaignsDropdown from './CampaignsDropdown'
 
 export default function Nav() {
   const { isDM, isPlayer, signOut } = useAuth()
@@ -12,18 +13,17 @@ export default function Nav() {
         Chrab Corner
       </Link>
       <nav className="nav-links">
+        <NavLink to="/" end className={({ isActive }) => (isActive ? 'active' : '')}>
+          Home
+        </NavLink>
         <NavLink to="/maps" className={({ isActive }) => (isActive ? 'active' : '')}>
           Maps
         </NavLink>
+        <CampaignsDropdown />
         {isPlayer && (
-          <>
-            <NavLink to="/notes" className={({ isActive }) => (isActive ? 'active' : '')}>
-              My Notes
-            </NavLink>
-            <NavLink to="/character" className={({ isActive }) => (isActive ? 'active' : '')}>
-              My Character
-            </NavLink>
-          </>
+          <NavLink to="/character" className={({ isActive }) => (isActive ? 'active' : '')}>
+            My Character
+          </NavLink>
         )}
         {isDM && (
           <NavLink to="/dm" className={({ isActive }) => (isActive ? 'active' : '')}>
