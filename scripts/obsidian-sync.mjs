@@ -3,12 +3,20 @@
 // .github/workflows/obsidian-sync.yml (cron + manual dispatch); can also be
 // run locally with the same env vars for testing.
 //
-// One-directional (Obsidian -> Compendium): editing a synced entry on the
-// site will be overwritten by the next sync. Never deletes — a note that
-// disappears from Drive just gets skipped (logged), not removed from the DB.
-// Every run re-reads every note under the configured root folder and
-// upserts by Drive's permanent file/folder id, so re-runs are idempotent
-// and renames/moves in Drive resolve to updates, not duplicates.
+// One-directional (Obsidian -> Compendium) for CONTENT: editing a synced
+// entry's title/text/tags/folder on the site will be overwritten by the
+// next sync. Never deletes — a note that disappears from Drive just gets
+// skipped (logged), not removed from the DB. Every run re-reads every note
+// under the configured root folder and upserts by Drive's permanent
+// file/folder id, so re-runs are idempotent and renames/moves in Drive
+// resolve to updates, not duplicates.
+//
+// Visibility and campaign assignment are the one exception: those are only
+// ever set when a folder/entry is FIRST created (from this config's
+// defaults/overrides) and never touched again on later syncs. Once
+// something exists, its DM-only flag and campaign are a site-managed
+// concern — set via the DM Dashboard's folder/entry tools — so the sync
+// can't silently undo them.
 import { readFileSync } from 'node:fs'
 import { randomUUID } from 'node:crypto'
 import path from 'node:path'
@@ -116,9 +124,14 @@ async function main() {
         .eq('obsidian_folder_id', driveId)
         .maybeSingle()
       if (existing) {
+        // Structure only — name/parent/category follow Drive, but
+        // campaign_id (and visibility, untouched here entirely) is a
+        // site-managed concern once a folder exists, set via the DM
+        // Dashboard's own folder tools. Overwriting it here on every sync
+        // would silently undo whatever the DM assigned there.
         await supabase
           .from('folders')
-          .update({ name, parent_folder_id: parentId, category, campaign_id: campaignId })
+          .update({ name, parent_folder_id: parentId, category })
           .eq('id', existing.id)
         folderIdByDriveId.set(driveId, existing.id)
         parentId = existing.id
@@ -165,26 +178,39 @@ async function main() {
         .eq('obsidian_file_id', note.driveId)
         .maybeSingle()
 
-      const fields = {
-        title: note.title,
-        content: note.body,
-        category: note.category,
-        visibility: note.visibility,
-        campaign_id: note.campaignId,
-        folder_id: folderId,
-        tags: note.tags,
-      }
-
       let entryId
       if (existing) {
-        const { error } = await supabase.from('entries').update(fields).eq('id', existing.id)
+        // Content/structure only — visibility and campaign_id are a
+        // site-managed concern once an entry exists (set via the DM
+        // Dashboard's entry editor). Overwriting them here on every sync
+        // would silently undo a DM-only flag or campaign assignment made
+        // on the site.
+        const { error } = await supabase
+          .from('entries')
+          .update({
+            title: note.title,
+            content: note.body,
+            category: note.category,
+            folder_id: folderId,
+            tags: note.tags,
+          })
+          .eq('id', existing.id)
         if (error) throw error
         entryId = existing.id
         updated += 1
       } else {
         const { data, error } = await supabase
           .from('entries')
-          .insert({ ...fields, obsidian_file_id: note.driveId })
+          .insert({
+            title: note.title,
+            content: note.body,
+            category: note.category,
+            visibility: note.visibility,
+            campaign_id: note.campaignId,
+            folder_id: folderId,
+            tags: note.tags,
+            obsidian_file_id: note.driveId,
+          })
           .select()
           .single()
         if (error) throw error

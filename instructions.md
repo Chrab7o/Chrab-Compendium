@@ -177,13 +177,20 @@ from the DM Dashboard's "Characters" panel.
 
 Instead of manually re-running the Obsidian importer above every time your notes change,
 `scripts/obsidian-sync.mjs` does it on a schedule via GitHub Actions — reading a Google
-Drive mirror of your vault and upserting into the same tables. **One-directional**:
-Obsidian is the source of truth, so editing a synced entry directly on the site gets
-overwritten by the next sync. It never deletes — a note removed from the synced Drive
-folder just gets skipped (logged in the Action run), not deleted from the site. Re-runs are
-safe: Google Drive's permanent file/folder ids are stored (`entries.obsidian_file_id`,
-`folders.obsidian_folder_id`) so a sync updates the same rows instead of duplicating them,
-and renaming/moving a note or folder in Drive updates in place too.
+Drive mirror of your vault and upserting into the same tables. **One-directional for
+content**: Obsidian is the source of truth for title/text/tags/folder placement, so editing
+those directly on the site gets overwritten by the next sync. It never deletes — a note
+removed from the synced Drive folder just gets skipped (logged in the Action run), not
+deleted from the site. Re-runs are safe: Google Drive's permanent file/folder ids are stored
+(`entries.obsidian_file_id`, `folders.obsidian_folder_id`) so a sync updates the same rows
+instead of duplicating them, and renaming/moving a note or folder in Drive updates in place
+too.
+
+**Visibility and campaign assignment are the exception** — those are only set when a
+folder/entry is first created (from the config's defaults/overrides below), never touched
+again afterward. Once something exists on the site, whether it's DM-only and which campaign
+it belongs to is managed entirely through the DM Dashboard's existing folder/entry tools, the
+same as anything else — the sync won't silently reset a flag you set there.
 
 One-time setup:
 
