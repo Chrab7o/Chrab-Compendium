@@ -9,6 +9,7 @@ import Login from './pages/Login'
 import Notes from './pages/Notes'
 import MyCharacter from './pages/MyCharacter'
 import CharacterSheet from './pages/CharacterSheet'
+import Account from './pages/Account'
 import CampaignHome from './pages/CampaignHome'
 import ImportPage from './pages/ImportPage'
 import PlayerLayout from './components/PlayerLayout'
@@ -63,6 +64,16 @@ export default function App() {
               <RequireAuth>
                 <PlayerLayout>
                   <CharacterSheet />
+                </PlayerLayout>
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/account"
+            element={
+              <RequireAuth>
+                <PlayerLayout>
+                  <Account />
                 </PlayerLayout>
               </RequireAuth>
             }

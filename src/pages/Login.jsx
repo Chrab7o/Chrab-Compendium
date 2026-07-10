@@ -11,7 +11,7 @@ export default function Login() {
   const [error, setError] = useState(null)
   const [submitting, setSubmitting] = useState(false)
 
-  if (session) return <Navigate to={isDM ? '/dm' : '/notes'} replace />
+  if (session) return <Navigate to={isDM ? '/dm' : '/account'} replace />
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -29,7 +29,7 @@ export default function Login() {
       .eq('id', data.user.id)
       .single()
     setSubmitting(false)
-    navigate(profile?.role === 'dm' ? '/dm' : '/notes')
+    navigate(profile?.role === 'dm' ? '/dm' : '/account')
   }
 
   return (

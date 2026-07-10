@@ -10,6 +10,9 @@ export default function PlayerLayout({ children }) {
         <NavLink to="/notes" className={({ isActive }) => (isActive ? 'active' : '')}>
           My Notes
         </NavLink>
+        <NavLink to="/account" className={({ isActive }) => (isActive ? 'active' : '')}>
+          Account
+        </NavLink>
       </nav>
       {children}
     </div>
