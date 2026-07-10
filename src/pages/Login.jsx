@@ -2,12 +2,11 @@ import { useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabaseClient'
-import { usernameToEmail } from '../lib/auth'
 
 export default function Login() {
   const { session, isDM, signIn } = useAuth()
   const navigate = useNavigate()
-  const [username, setUsername] = useState('')
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState(null)
   const [submitting, setSubmitting] = useState(false)
@@ -18,7 +17,7 @@ export default function Login() {
     e.preventDefault()
     setSubmitting(true)
     setError(null)
-    const { data, error: signInError } = await signIn(usernameToEmail(username), password)
+    const { data, error: signInError } = await signIn(email, password)
     if (signInError) {
       setSubmitting(false)
       setError(signInError.message)
@@ -39,11 +38,11 @@ export default function Login() {
       <p className="view-subtitle">For the DM and players — accounts are created by the DM.</p>
       <form onSubmit={handleSubmit}>
         <label>
-          Username
+          Email
           <input
-            type="text"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             required
             autoComplete="username"
           />

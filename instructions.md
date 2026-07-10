@@ -33,13 +33,10 @@ Every Supabase Auth user gets a row in the `profiles` table (`role` = `dm` or `p
 New accounts default to `player`; to make an account a DM, open **Table Editor → profiles**
 in the Supabase dashboard and change that row's `role` to `dm`.
 
-Supabase Auth is email-based, but players log in with a plain **username**, not an email —
-`src/lib/auth.js` appends a fixed, non-deliverable `@players.chrab.us` domain to whatever a
-player types before it's sent to Supabase. So when creating a player account (below), put
-`<username>@players.chrab.us` in the dashboard's Email field (e.g. `frodo@players.chrab.us`)
-and just tell the player their username (`frodo`) and password — they never see or type the
-`@players.chrab.us` part. Real email addresses (containing `@`) still work unchanged, which is
-how the DM's own account can keep using a real email.
+Supabase Auth is email-based. Players don't need a *real* email — a made-up address like
+`frodo@players.chrab.us` works fine as their login, since Supabase never actually sends
+anything there. Whatever you put in the Email field when creating their account (below) is
+exactly what they type to log in.
 
 ## One-time setup
 
@@ -71,8 +68,8 @@ with `npx supabase ...`).
    already exist at push time as `dm`. If you already created player accounts *before*
    running it, double-check their `role` in **Table Editor → profiles** afterward.
 4. Go to **Authentication → Users** in the dashboard to create accounts — one for
-   yourself (DM) and one per player (see the username convention above for the Email
-   field). Leave public sign-ups disabled.
+   yourself (DM) and one per player (a made-up email is fine, see above). Leave public
+   sign-ups disabled.
 5. Go to **Project Settings → API** and copy the **Project URL** and **anon public** key.
 
 (If you'd rather not use the CLI, you can instead paste each migration file's contents
