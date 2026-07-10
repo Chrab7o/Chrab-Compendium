@@ -1,12 +1,7 @@
 {
-  "rootFolderId": "REPLACE_WITH_DRIVE_FOLDER_ID",
+  "rootFolderId": "1KODYUC1Ghc0mkzCsfUREF_dT-lrRXjw9",
   "folders": {
-    "Session Notes": { "category": "session-note" },
-    "NPCs": { "category": "npc" },
-    "Locations": { "category": "location" },
-    "Lore": { "category": "lore" },
-    "Homebrew": { "category": "homebrew" },
-    "Items": { "category": "item" }
+    "Worlds": { "category": "worlds" }
   },
   "defaultVisibility": "public",
   "defaultCampaignId": null
