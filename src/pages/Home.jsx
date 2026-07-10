@@ -8,57 +8,57 @@ export default function Home() {
   const { session, isPlayer } = useAuth()
   const { campaigns, campaignId, campaign, setCampaignId } = useCampaignContext()
 
-  return (
-    <section className="home-page">
-      <div className="page home-hero-section">
-        <div className="home-hero">
-          <h1>Chrab Corner</h1>
-          <p className="home-tagline">
-            {campaign
-              ? `Browsing ${campaign.name} lore.`
-              : 'World lore, characters, maps, and secrets — everything for the table, in one place.'}
-          </p>
-          <div className="home-actions">
-            <button type="button" onClick={() => navigate('/maps')}>
-              View Maps
+  const welcome = (
+    <div className="home-empty-state">
+      <div className="home-hero">
+        <h1>Chrab Corner</h1>
+        <p className="home-tagline">
+          {campaign
+            ? `Browsing ${campaign.name} lore.`
+            : 'World lore, characters, maps, and secrets — everything for the table, in one place.'}
+        </p>
+        <div className="home-actions">
+          <button type="button" onClick={() => navigate('/maps')}>
+            View Maps
+          </button>
+          {!session && (
+            <button type="button" className="secondary" onClick={() => navigate('/login')}>
+              Login
             </button>
-            {!session && (
-              <button type="button" className="secondary" onClick={() => navigate('/login')}>
-                Login
-              </button>
-            )}
-            {isPlayer && (
-              <button type="button" className="secondary" onClick={() => navigate('/character')}>
-                My Character
-              </button>
-            )}
-          </div>
+          )}
+          {isPlayer && (
+            <button type="button" className="secondary" onClick={() => navigate('/character')}>
+              My Character
+            </button>
+          )}
         </div>
-
-        {campaigns.length > 0 && (
-          <div className="home-campaign-picker">
-            <button
-              type="button"
-              className={campaignId ? 'chip' : 'chip active'}
-              onClick={() => setCampaignId('')}
-            >
-              All campaigns
-            </button>
-            {campaigns.map((c) => (
-              <button
-                key={c.id}
-                type="button"
-                className={campaignId === c.id ? 'chip active' : 'chip'}
-                onClick={() => setCampaignId(c.id)}
-              >
-                {c.name}
-              </button>
-            ))}
-          </div>
-        )}
       </div>
 
-      <CategoryBrowser editable={false} />
-    </section>
+      {campaigns.length > 0 && (
+        <div className="home-campaign-picker">
+          <button
+            type="button"
+            className={campaignId ? 'chip' : 'chip active'}
+            onClick={() => setCampaignId('')}
+          >
+            All campaigns
+          </button>
+          {campaigns.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              className={campaignId === c.id ? 'chip active' : 'chip'}
+              onClick={() => setCampaignId(c.id)}
+            >
+              {c.name}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <p className="home-hint">&larr; Pick a category from the sidebar to start browsing.</p>
+    </div>
   )
+
+  return <CategoryBrowser editable={false} emptyState={welcome} />
 }

@@ -45,7 +45,7 @@ function SortableEntry({ id, children }) {
 // the organize tools (drag handles, +/rename/delete/move, add-entry) —
 // General uses this in read-only mode even for the DM, since editing now
 // lives exclusively on /dm/organize.
-export default function CategoryBrowser({ compact = false, editable = true }) {
+export default function CategoryBrowser({ compact = false, editable = true, emptyState = null }) {
   const { isDM } = useAuth()
   const canEdit = isDM && editable
   const { campaignId } = useCampaignContext()
@@ -172,7 +172,7 @@ export default function CategoryBrowser({ compact = false, editable = true }) {
 
       <div className="browse-content">
         {!selected.category ? (
-          <p className="status-message">Pick a category from the sidebar to start browsing.</p>
+          emptyState || <p className="status-message">Pick a category from the sidebar to start browsing.</p>
         ) : (
           <>
             <nav className="breadcrumb">
