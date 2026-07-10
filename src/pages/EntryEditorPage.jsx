@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 import { useCategories } from '../contexts/CategoryContext'
+import { useTags } from '../contexts/TagContext'
 import { flattenFolders } from '../lib/folders'
 import RichTextEditor from '../components/RichTextEditor'
 import PlacementManager from '../components/dm/PlacementManager'
@@ -15,7 +16,7 @@ const emptyForm = {
   campaign_id: '',
   parent_entry_id: '',
   folder_id: '',
-  tags: '',
+  tags: [],
 }
 
 function toFormState(entry) {
@@ -24,7 +25,7 @@ function toFormState(entry) {
     campaign_id: entry.campaign_id ?? '',
     parent_entry_id: entry.parent_entry_id ?? '',
     folder_id: entry.folder_id ?? '',
-    tags: (entry.tags ?? []).join(', '),
+    tags: entry.tags ?? [],
   }
 }
 
@@ -33,6 +34,7 @@ export default function EntryEditorPage() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const { categories } = useCategories()
+  const { tags: availableTags } = useTags()
   const isNew = !id
 
   const [form, setForm] = useState(() => ({
@@ -97,10 +99,7 @@ export default function EntryEditorPage() {
       campaign_id: form.campaign_id || null,
       parent_entry_id: form.parent_entry_id || null,
       folder_id: form.folder_id || null,
-      tags: form.tags
-        .split(',')
-        .map((t) => t.trim())
-        .filter(Boolean),
+      tags: form.tags,
     }
 
     if (isNew) {
@@ -139,6 +138,13 @@ export default function EntryEditorPage() {
   if (loading) return <p className="status-message">Loading...</p>
 
   const linkableEntries = otherEntries.filter((e) => e.id !== id)
+
+  function toggleTag(value) {
+    setForm((f) => ({
+      ...f,
+      tags: f.tags.includes(value) ? f.tags.filter((t) => t !== value) : [...f.tags, value],
+    }))
+  }
 
   return (
     <section className="page entry-editor-page">
@@ -233,10 +239,24 @@ export default function EntryEditorPage() {
             ))}
           </select>
         </label>
-        <label>
-          Tags (comma separated)
-          <input value={form.tags} onChange={(e) => setForm({ ...form, tags: e.target.value })} />
-        </label>
+        <fieldset className="tag-checklist">
+          <legend>Tags</legend>
+          {availableTags.length === 0 && (
+            <p className="status-message">
+              No tags yet — add some from DM Dashboard → Tags.
+            </p>
+          )}
+          {availableTags.map((t) => (
+            <label key={t.value} className="tag-checklist-item">
+              <input
+                type="checkbox"
+                checked={form.tags.includes(t.value)}
+                onChange={() => toggleTag(t.value)}
+              />
+              {t.label}
+            </label>
+          ))}
+        </fieldset>
         {error && <p className="status-message error">{error}</p>}
         <div className="dm-form-actions">
           <button type="submit" disabled={saving}>

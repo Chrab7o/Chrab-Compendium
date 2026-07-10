@@ -17,6 +17,7 @@ import PlayerLayout from './components/PlayerLayout'
 import DMHome from './pages/dm/DMHome'
 import DMCampaignsPage from './pages/dm/DMCampaignsPage'
 import DMCategoriesPage from './pages/dm/DMCategoriesPage'
+import DMTagsPage from './pages/dm/DMTagsPage'
 import DMOrganizePage from './pages/dm/DMOrganizePage'
 import DMMapsPage from './pages/dm/DMMapsPage'
 import DMCharactersPage from './pages/dm/DMCharactersPage'
@@ -93,6 +94,7 @@ export default function App() {
             <Route index element={<DMHome />} />
             <Route path="organize" element={<DMOrganizePage />} />
             <Route path="categories" element={<DMCategoriesPage />} />
+            <Route path="tags" element={<DMTagsPage />} />
             <Route path="campaigns" element={<DMCampaignsPage />} />
             <Route path="maps" element={<DMMapsPage />} />
             <Route path="characters" element={<DMCharactersPage />} />

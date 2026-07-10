@@ -4,6 +4,7 @@ import { HashRouter } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import { CampaignProvider } from './contexts/CampaignContext'
 import { CategoryProvider } from './contexts/CategoryContext'
+import { TagProvider } from './contexts/TagContext'
 import App from './App'
 import 'leaflet/dist/leaflet.css'
 import './index.css'
@@ -14,7 +15,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
       <AuthProvider>
         <CampaignProvider>
           <CategoryProvider>
-            <App />
+            <TagProvider>
+              <App />
+            </TagProvider>
           </CategoryProvider>
         </CampaignProvider>
       </AuthProvider>

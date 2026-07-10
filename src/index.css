@@ -228,6 +228,13 @@ textarea {
   padding: 0.5rem 0.65rem;
 }
 
+input[type='checkbox'] {
+  background: none;
+  border: none;
+  padding: 0;
+  width: auto;
+}
+
 button {
   font-family: inherit;
   background: var(--accent);
@@ -505,6 +512,28 @@ button:disabled {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 0.9rem;
+}
+
+.tag-checklist {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+}
+
+.tag-checklist legend {
+  padding: 0 0.4rem;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.dm-form .tag-checklist-item {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--text);
 }
 
 .dm-form-actions {
