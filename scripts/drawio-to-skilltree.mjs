@@ -14,6 +14,11 @@
 //   draw.io) are ignored rather than treated as "its own prerequisite".
 // - A shape with no arrows touching it at all (a title box, a stray text
 //   label) is decoration, not a node, and is skipped automatically.
+// - A node with more than one incoming arrow gets the first as its
+//   structural parent (drives outline nesting) and the rest as extra
+//   prerequisites, defaulted to "require ALL of them" since arrows can't
+//   express either/or — flip that per-node in DM Dashboard -> Skill Trees
+//   afterward for any that should only need one.
 import { readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
@@ -87,15 +92,18 @@ const vertices = cells.filter((c) => c.vertex === '1' && c.id)
 const edges = cells.filter((c) => c.edge === '1' && c.source && c.target && c.source !== c.target)
 
 const touchedIds = new Set(edges.flatMap((e) => [e.source, e.target]))
+// The first incoming arrow found becomes the structural parent (drives
+// outline nesting); any further ones become extra prerequisites instead of
+// being dropped, since a node can need more than one now.
 const parentByChild = new Map()
+const extraPrereqsByChild = new Map()
 for (const e of edges) {
-  if (parentByChild.has(e.target)) {
-    console.warn(
-      `Node ${e.target} already has a parent (${parentByChild.get(e.target)}) — ignoring the extra arrow from ${e.source}. A skill tree node can only have one prerequisite.`
-    )
+  if (!parentByChild.has(e.target)) {
+    parentByChild.set(e.target, e.source)
     continue
   }
-  parentByChild.set(e.target, e.source)
+  if (!extraPrereqsByChild.has(e.target)) extraPrereqsByChild.set(e.target, [])
+  extraPrereqsByChild.get(e.target).push(e.source)
 }
 
 const nodes = vertices
@@ -105,6 +113,8 @@ const nodes = vertices
     return {
       localId: v.id,
       parentLocalId: parentByChild.get(v.id) ?? null,
+      extraPrereqLocalIds: extraPrereqsByChild.get(v.id) ?? [],
+      requireAllPrereqs: true,
       name,
       description,
       cost,
@@ -115,6 +125,15 @@ const nodes = vertices
 const treeName = path.basename(inputPath).replace(/\.(drawio\.xml|drawio|xml)$/i, '')
 writeFileSync(outputPath, JSON.stringify({ name: treeName, description: '', nodes }, null, 2))
 
+const multiPrereqNodes = nodes.filter((n) => n.extraPrereqLocalIds.length > 0)
 console.log(`Wrote ${nodes.length} nodes to ${outputPath}`)
 console.log(`${nodes.filter((n) => !n.parentLocalId).length} root node(s) (no incoming arrow).`)
 console.log(`${vertices.length - nodes.length} shape(s) skipped as decoration (no arrows touching them).`)
+if (multiPrereqNodes.length > 0) {
+  console.log(
+    `${multiPrereqNodes.length} node(s) have more than one incoming arrow — defaulted to requiring ALL of them. ` +
+      `Arrows can't express "any one is enough", so review these in DM Dashboard -> Skill Trees and flip ` +
+      `"Require ALL prerequisites" off for any that should be an either/or:`
+  )
+  for (const n of multiPrereqNodes) console.log(`  - ${n.name}`)
+}

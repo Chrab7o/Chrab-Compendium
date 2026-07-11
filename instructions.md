@@ -184,17 +184,21 @@ System-agnostic — a tree's nodes just have a name, description, and point cost
 for any game, not just D&D. Build one from **DM Dashboard → Skill Trees** (`/dm/skill-trees`):
 create a tree (optionally scoped to a campaign), then add nodes — each node except a root
 needs a parent, and unlocking it later requires that parent to already be unlocked first
-(single-parent, same shape as folder nesting elsewhere in the app).
+(single-parent nesting for display, same shape as folder nesting elsewhere in the app).
+
+A node can also have **additional prerequisites** beyond its parent (e.g. two branches that
+converge on one unlock) — pick them in the node's edit form, plus whether it needs **all** of
+its prerequisites unlocked (the default) or just **any one** of them.
 
 Grant a character points to spend from the DM Dashboard's **Characters** panel — a number
 input appears per applicable tree once one exists for that character's campaign (or a
 general one). Players spend those points themselves from **Skill Tree** in their own nav
 (next to Character Sheet/My Notes/Account) — unlocking is enforced server-side (a
-`security definer` Postgres function checks ownership, that the prerequisite is already
-unlocked, and that enough points remain) so a player can't unlock something out of order or
-overspend by tampering with the client. There's no "respec" in v1 — delete a specific
-character's unlock row directly in the Supabase dashboard's Table Editor
-(`character_skill_unlocks`) if a mistake needs correcting.
+`security definer` Postgres function checks ownership, that its prerequisites are satisfied,
+and that enough points remain) so a player can't unlock something out of order or overspend
+by tampering with the client. There's no "respec" in v1 — delete a specific character's
+unlock row directly in the Supabase dashboard's Table Editor (`character_skill_unlocks`) if a
+mistake needs correcting.
 
 **Export/Import**: from the node editor, **Export JSON** downloads a tree's full structure
 (portable — uses local ids, not database ids, so it never collides with anything).
@@ -212,9 +216,11 @@ step this script doesn't do). Conventions it expects:
 - Arrows point **from a prerequisite to the node it unlocks**. A shape with no incoming
   arrow becomes a root (more than one is fine). A shape with no arrows touching it at all
   (a title box, a stray label) is treated as decoration and skipped.
-- A node can only have one prerequisite (same single-parent shape as everything else here) —
-  if two different arrows point at the same node, the first one found wins and the rest are
-  logged as skipped, so check the script's output before importing.
+- A node can have more than one incoming arrow — the first one found becomes its structural
+  parent, the rest become additional prerequisites. Since arrows can't express "any one is
+  enough", multi-prerequisite nodes always default to requiring **all** of them; the script
+  lists which ones ended up with multiple arrows so you can flip specific ones to "any one"
+  afterward if that's what you meant (e.g. two branches that either one unlocks a node).
 
 Run it with `npm run convert:drawio -- "My Tree.drawio.xml"`, then use the DM Dashboard's
 **Import JSON** with the `.skilltree.json` file it writes.
