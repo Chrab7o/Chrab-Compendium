@@ -5,3 +5,6 @@ dist
 obsidian-export/
 backup
 backups.txt
+*.drawio
+*.drawio.xml
+*.skilltree.json

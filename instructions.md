@@ -201,6 +201,24 @@ character's unlock row directly in the Supabase dashboard's Table Editor
 **Import JSON** always creates a **new** tree from an uploaded file rather than merging into
 an existing one, so you can freely share/reuse tree designs across campaigns or back them up.
 
+**Building a tree in draw.io instead**: `scripts/drawio-to-skilltree.mjs` converts an
+exported draw.io diagram straight into that same import JSON. In draw.io: **File → Export
+as → XML...**, with **Compressed unchecked** (the compressed default needs a decompression
+step this script doesn't do). Conventions it expects:
+- A node's label is either plain text, or stacked lines (each its own paragraph/line in the
+  shape) — the first line is the name, the last line is the point cost *if* it looks like
+  `123xp` (case-insensitive), and everything between is the description. No recognizable
+  cost line just means cost 0.
+- Arrows point **from a prerequisite to the node it unlocks**. A shape with no incoming
+  arrow becomes a root (more than one is fine). A shape with no arrows touching it at all
+  (a title box, a stray label) is treated as decoration and skipped.
+- A node can only have one prerequisite (same single-parent shape as everything else here) —
+  if two different arrows point at the same node, the first one found wins and the rest are
+  logged as skipped, so check the script's output before importing.
+
+Run it with `npm run convert:drawio -- "My Tree.drawio.xml"`, then use the DM Dashboard's
+**Import JSON** with the `.skilltree.json` file it writes.
+
 ### Auto-syncing an Obsidian vault (advanced)
 
 Instead of manually re-running the Obsidian importer above every time your notes change,

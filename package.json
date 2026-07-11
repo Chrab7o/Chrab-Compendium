@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "sync:obsidian": "node scripts/obsidian-sync.mjs",
     "export:obsidian": "node scripts/obsidian-export.mjs",
-    "backfill:obsidian": "node scripts/obsidian-backfill-ids.mjs"
+    "backfill:obsidian": "node scripts/obsidian-backfill-ids.mjs",
+    "convert:drawio": "node scripts/drawio-to-skilltree.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
