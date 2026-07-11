@@ -13,6 +13,9 @@ export default function PlayerLayout({ children }) {
         <NavLink to="/account" className={({ isActive }) => (isActive ? 'active' : '')}>
           Account
         </NavLink>
+        <NavLink to="/skills" className={({ isActive }) => (isActive ? 'active' : '')}>
+          Skill Tree
+        </NavLink>
       </nav>
       {children}
     </div>

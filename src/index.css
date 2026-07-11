@@ -1081,6 +1081,36 @@ button:disabled {
   padding: 0.2rem;
 }
 
+.character-skill-points {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  padding-top: 0.4rem;
+  border-top: 1px solid var(--border);
+}
+
+.character-skill-points label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.character-skill-points input {
+  width: 4rem;
+}
+
+.skill-node-row {
+  justify-content: space-between;
+}
+
+.skill-node-description {
+  margin: -0.25rem 0 0.4rem;
+  font-size: 0.85rem;
+}
+
 .browse-content {
   min-width: 0;
   padding: 1.5rem 2rem;

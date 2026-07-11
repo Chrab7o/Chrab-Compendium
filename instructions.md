@@ -178,6 +178,29 @@ Players see their own character at **My Character** (`/character`), scoped to wh
 campaign is selected in the nav picker — reassign a character's campaign/player anytime
 from the DM Dashboard's "Characters" panel.
 
+### Skill trees
+
+System-agnostic — a tree's nodes just have a name, description, and point cost, so it works
+for any game, not just D&D. Build one from **DM Dashboard → Skill Trees** (`/dm/skill-trees`):
+create a tree (optionally scoped to a campaign), then add nodes — each node except a root
+needs a parent, and unlocking it later requires that parent to already be unlocked first
+(single-parent, same shape as folder nesting elsewhere in the app).
+
+Grant a character points to spend from the DM Dashboard's **Characters** panel — a number
+input appears per applicable tree once one exists for that character's campaign (or a
+general one). Players spend those points themselves from **Skill Tree** in their own nav
+(next to Character Sheet/My Notes/Account) — unlocking is enforced server-side (a
+`security definer` Postgres function checks ownership, that the prerequisite is already
+unlocked, and that enough points remain) so a player can't unlock something out of order or
+overspend by tampering with the client. There's no "respec" in v1 — delete a specific
+character's unlock row directly in the Supabase dashboard's Table Editor
+(`character_skill_unlocks`) if a mistake needs correcting.
+
+**Export/Import**: from the node editor, **Export JSON** downloads a tree's full structure
+(portable — uses local ids, not database ids, so it never collides with anything).
+**Import JSON** always creates a **new** tree from an uploaded file rather than merging into
+an existing one, so you can freely share/reuse tree designs across campaigns or back them up.
+
 ### Auto-syncing an Obsidian vault (advanced)
 
 Instead of manually re-running the Obsidian importer above every time your notes change,

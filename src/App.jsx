@@ -11,6 +11,7 @@ import Notes from './pages/Notes'
 import MyCharacter from './pages/MyCharacter'
 import CharacterSheet from './pages/CharacterSheet'
 import Account from './pages/Account'
+import MySkillTree from './pages/MySkillTree'
 import CampaignHome from './pages/CampaignHome'
 import ImportPage from './pages/ImportPage'
 import PlayerLayout from './components/PlayerLayout'
@@ -21,6 +22,7 @@ import DMTagsPage from './pages/dm/DMTagsPage'
 import DMOrganizePage from './pages/dm/DMOrganizePage'
 import DMMapsPage from './pages/dm/DMMapsPage'
 import DMCharactersPage from './pages/dm/DMCharactersPage'
+import DMSkillTreesPage from './pages/dm/DMSkillTreesPage'
 import DMNotesPage from './pages/dm/DMNotesPage'
 import DMLayout from './components/dm/DMLayout'
 import RequireDM from './components/RequireDM'
@@ -84,6 +86,16 @@ export default function App() {
             }
           />
           <Route
+            path="/skills"
+            element={
+              <RequireAuth>
+                <PlayerLayout>
+                  <MySkillTree />
+                </PlayerLayout>
+              </RequireAuth>
+            }
+          />
+          <Route
             path="/dm"
             element={
               <RequireDM>
@@ -98,6 +110,7 @@ export default function App() {
             <Route path="campaigns" element={<DMCampaignsPage />} />
             <Route path="maps" element={<DMMapsPage />} />
             <Route path="characters" element={<DMCharactersPage />} />
+            <Route path="skill-trees" element={<DMSkillTreesPage />} />
             <Route path="notes" element={<DMNotesPage />} />
             <Route path="import" element={<ImportPage />} />
             <Route path="entries/new" element={<EntryEditorPage />} />
