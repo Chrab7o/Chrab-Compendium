@@ -1,36 +1,40 @@
 :root {
   color-scheme: light dark;
-  /* "Ashfall" identity: near-black stone/violet backdrop so the three
-     jewel-tone accents (antique gold, emerald, crimson) read as the loot,
-     not the SaaS-blue-on-navy look this used to have. */
-  --bg: #0d0a12;
-  --surface: #18131e;
-  --surface-2: #221b2c;
-  --border: #3c2f4a;
+  /* "Ashfall" identity, vivid pass: even the "neutral" chrome (border,
+     muted text, secondary surfaces) carries real saturated violet instead
+     of flat desaturated grey — closer to the Gaming archetype's
+     vibrant+neon+immersive color mood than a muted/washed-out dark theme. */
+  --bg: #100a1c;
+  --surface: #1c1430;
+  --surface-2: #2a1f42;
+  --border: #4a2f82;
   --text: #f4ecdd;
-  --text-muted: #b2a08f;
+  --text-muted: #b79ee0;
 
-  --accent: #c9a032;
-  --accent-strong: #f0c94a;
+  --accent: #d9a300;
+  --accent-strong: #ffc93c;
   --on-accent: #241a06;
 
-  --accent-2: #1f7a4d;
-  --accent-2-strong: #3ecb82;
+  --accent-2: #12a05f;
+  --accent-2-strong: #2ee6a6;
   --on-accent-2: #06170d;
 
-  --accent-red: #9c2530;
-  --accent-red-strong: #d9434c;
+  --accent-red: #c81e3a;
+  --accent-red-strong: #f43f5e;
   --danger: var(--accent-red);
   --danger-strong: var(--accent-red-strong);
-  --on-danger: #f8ece9;
+  --on-danger: #fdecef;
 
-  /* Ambient-only arcane violet — used for the background wash, not as a
-     semantic token elsewhere, so it doesn't compete with gold/emerald/red. */
-  --accent-purple: #6d3fa8;
+  /* Fourth accent: vivid violet, promoted from ambient-only to an actual
+     usable token (campaign tags + background glow) rather than reserved
+     purely for decoration. */
+  --accent-purple: #7c3aed;
+  --accent-purple-strong: #a78bfa;
+  --on-accent-purple: #f5f0ff;
 
-  --shadow-glow-accent: 0 0 34px rgba(240, 201, 74, 0.35);
-  --shadow-glow-accent-2: 0 0 34px rgba(62, 203, 130, 0.32);
-  --shadow-glow-danger: 0 0 34px rgba(217, 67, 76, 0.32);
+  --shadow-glow-accent: 0 0 34px rgba(255, 201, 60, 0.4);
+  --shadow-glow-accent-2: 0 0 34px rgba(46, 230, 166, 0.35);
+  --shadow-glow-danger: 0 0 34px rgba(244, 63, 94, 0.35);
 
   --space-1: 0.25rem;
   --space-2: 0.5rem;
@@ -71,8 +75,8 @@ body {
   margin: 0;
   min-height: 100vh;
   background:
-    radial-gradient(1200px 600px at 12% -10%, rgba(201, 160, 50, 0.16), transparent 60%),
-    radial-gradient(1000px 700px at 100% 0%, rgba(109, 63, 168, 0.16), transparent 55%),
+    radial-gradient(1200px 600px at 12% -10%, rgba(217, 163, 0, 0.18), transparent 60%),
+    radial-gradient(1000px 700px at 100% 0%, rgba(124, 58, 237, 0.22), transparent 55%),
     var(--bg);
   color: var(--text);
   font-size: var(--text-base);
@@ -90,7 +94,7 @@ h3 {
 h1 {
   font-size: var(--text-2xl);
   line-height: 1.2;
-  text-shadow: 0 0 24px rgba(201, 160, 50, 0.2);
+  text-shadow: 0 0 24px rgba(255, 201, 60, 0.25);
 }
 
 h2 {
@@ -211,7 +215,7 @@ h3 {
   color: var(--accent-strong);
   letter-spacing: 0.03em;
   text-decoration: none;
-  text-shadow: 0 0 18px rgba(240, 201, 74, 0.3);
+  text-shadow: 0 0 18px rgba(255, 201, 60, 0.4);
 }
 
 .nav-links {
@@ -689,8 +693,8 @@ button:disabled {
 }
 
 .badge-campaign {
-  background: var(--accent);
-  color: var(--on-accent);
+  background: var(--accent-purple);
+  color: var(--on-accent-purple);
 }
 
 .badge-session {
@@ -1713,7 +1717,7 @@ button.tree-label:hover {
   padding: 3rem 1.5rem 2.5rem;
   margin-bottom: 1.5rem;
   border-radius: var(--radius-lg);
-  background: linear-gradient(135deg, var(--accent-strong) 0%, var(--accent) 65%, #8a6a1e 100%);
+  background: linear-gradient(135deg, var(--accent-strong) 0%, var(--accent) 65%, #7a4d00 100%);
   box-shadow: var(--shadow-md), var(--shadow-glow-accent);
 }
 
