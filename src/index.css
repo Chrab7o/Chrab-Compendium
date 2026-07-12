@@ -1,19 +1,18 @@
 :root {
   color-scheme: light dark;
-  --bg: #15121e;
-  --surface: #231e30;
-  --surface-2: #2d2640;
-  --border: #453a5e;
-  --text: #ece7f5;
-  --text-muted: #a89fc0;
-  --accent: #b8894f;
-  --accent-strong: #d6a969;
+  --bg: #0b0e15;
+  --surface: #131a26;
+  --surface-2: #1a2436;
+  --border: #2c3c58;
+  --text: #e6ebf5;
+  --text-muted: #8b9ab8;
+  --accent: #2f5aa8;
+  --accent-strong: #5c85d6;
+  --on-accent: #f2f6fd;
   --accent-2: #2f8f82;
   --accent-2-strong: #55c4b5;
-  --accent-red: #8f2e35;
-  --accent-red-strong: #c94b52;
-  --accent-blue: #33507e;
-  --accent-blue-strong: #5c7fb5;
+  --accent-red: #9c2f35;
+  --accent-red-strong: #d6555c;
   --danger: var(--accent-red);
   --danger-strong: var(--accent-red-strong);
 
@@ -56,8 +55,8 @@ body {
   margin: 0;
   min-height: 100vh;
   background:
-    radial-gradient(1200px 600px at 12% -10%, rgba(184, 137, 79, 0.09), transparent 60%),
-    radial-gradient(1000px 700px at 100% 0%, rgba(51, 80, 126, 0.12), transparent 55%),
+    radial-gradient(1200px 600px at 12% -10%, rgba(47, 90, 168, 0.14), transparent 60%),
+    radial-gradient(1000px 700px at 100% 0%, rgba(156, 47, 53, 0.1), transparent 55%),
     var(--bg);
   color: var(--text);
   font-size: var(--text-base);
@@ -88,7 +87,7 @@ h3 {
 }
 
 :focus-visible {
-  outline: 2px solid var(--accent-blue-strong);
+  outline: 2px solid var(--accent-strong);
   outline-offset: 2px;
 }
 
@@ -116,12 +115,12 @@ h3 {
   gap: 0.75rem;
   padding: 0.5rem 1rem;
   background: var(--accent);
-  color: #1a1520;
+  color: var(--on-accent);
   font-size: 0.9rem;
 }
 
 .impersonation-banner .link-button {
-  color: #1a1520;
+  color: var(--on-accent);
   font-weight: 600;
   text-decoration: underline;
 }
@@ -311,10 +310,10 @@ button.link-button:hover {
   position: absolute;
   left: 0;
   bottom: 0;
-  width: 4.5rem;
-  height: 3px;
-  border-radius: 999px;
-  background: linear-gradient(90deg, var(--accent-strong), var(--accent-blue-strong));
+  width: 3.5rem;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--accent-strong);
 }
 
 .view-subtitle {
@@ -337,7 +336,7 @@ textarea {
 select:focus,
 input:focus,
 textarea:focus {
-  border-color: var(--accent-blue-strong);
+  border-color: var(--accent-strong);
 }
 
 input[type='checkbox'] {
@@ -350,7 +349,7 @@ input[type='checkbox'] {
 button {
   font-family: inherit;
   background: var(--accent);
-  color: #1a1520;
+  color: var(--on-accent);
   border: none;
   border-radius: var(--radius-sm);
   padding: 0.55rem 1rem;
@@ -368,15 +367,14 @@ button:hover {
 
 button.secondary {
   background: var(--surface-2);
-  color: var(--accent-blue-strong);
-  border: 1px solid var(--accent-blue);
+  color: var(--text);
+  border: 1px solid var(--border);
   box-shadow: none;
 }
 
 button.secondary:hover {
-  background: var(--accent-blue);
-  color: #fff;
-  border-color: var(--accent-blue-strong);
+  background: var(--surface);
+  border-color: var(--text-muted);
 }
 
 button.danger {
@@ -402,31 +400,40 @@ button:disabled {
 
 .entry-card {
   display: block;
-  background: linear-gradient(160deg, var(--surface) 0%, var(--surface-2) 100%);
+  position: relative;
+  overflow: hidden;
+  background: var(--surface);
   border: 1px solid var(--border);
-  border-top: 3px solid var(--accent);
   border-radius: var(--radius-md);
-  padding: 1.1rem;
+  padding: 1.5rem 1.1rem 1.1rem;
   text-decoration: none;
   color: var(--text);
   box-shadow: var(--shadow-sm);
   transition: border-color var(--transition), box-shadow var(--transition), transform var(--transition);
 }
 
+.entry-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 8px;
+  background: var(--accent);
+}
+
 .entry-card:hover {
-  border-left-color: var(--accent);
-  border-right-color: var(--accent);
-  border-bottom-color: var(--accent);
+  border-color: var(--accent);
   box-shadow: var(--shadow-md);
   transform: translateY(-3px);
 }
 
-.entry-card.entry-card-dm {
-  border-top-color: var(--accent-red-strong);
+.entry-card.entry-card-dm::before {
+  background: var(--accent-red-strong);
 }
 
-.entry-card.entry-card-session {
-  border-top-color: var(--accent-blue-strong);
+.entry-card.entry-card-session::before {
+  background: var(--accent-2-strong);
 }
 
 .entry-card-header {
@@ -479,7 +486,7 @@ button:disabled {
 
 .badge-campaign {
   background: var(--accent);
-  color: #1a1520;
+  color: var(--on-accent);
 }
 
 .badge-placement {
@@ -632,13 +639,24 @@ button:disabled {
 }
 
 .dm-panel {
-  background: linear-gradient(160deg, var(--surface) 0%, var(--surface-2) 100%);
+  position: relative;
+  overflow: hidden;
+  background: var(--surface);
   border: 1px solid var(--border);
-  border-top: 3px solid var(--accent);
   border-radius: var(--radius-md);
-  padding: 1.5rem;
+  padding: 1.9rem 1.5rem 1.5rem;
   margin-bottom: 2rem;
   box-shadow: var(--shadow-sm);
+}
+
+.dm-panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 8px;
+  background: var(--accent);
 }
 
 .dm-form {
@@ -809,7 +827,7 @@ button:disabled {
 
 .dm-list-actions a {
   background: var(--accent);
-  color: #1a1520;
+  color: var(--on-accent);
   border: none;
   border-radius: var(--radius-sm);
   padding: 0.55rem 1rem;
@@ -841,7 +859,7 @@ button:disabled {
 
 .button-link {
   background: var(--accent);
-  color: #1a1520;
+  color: var(--on-accent);
   border: none;
   border-radius: var(--radius-sm);
   padding: 0.55rem 1rem;
@@ -1388,6 +1406,10 @@ button.tree-label:hover {
   padding: 0;
 }
 
+.sortable-row .entry-card::before {
+  display: none;
+}
+
 .entry-move-select {
   width: 100%;
   margin-top: 0.4rem;
@@ -1410,6 +1432,10 @@ button.tree-label:hover {
   border-color: var(--danger);
 }
 
+.danger-zone::before {
+  background: var(--danger);
+}
+
 .danger-zone h2 {
   color: var(--danger);
 }
@@ -1424,19 +1450,18 @@ button.tree-label:hover {
   padding: 3rem 1.5rem 2.5rem;
   margin-bottom: 1.5rem;
   border-radius: var(--radius-lg);
-  background: linear-gradient(160deg, var(--surface) 0%, var(--surface-2) 100%);
-  border: 1px solid var(--border);
+  background: var(--accent);
   box-shadow: var(--shadow-md);
 }
 
 .home-hero h1 {
   font-size: var(--text-3xl);
-  color: var(--accent-strong);
+  color: var(--on-accent);
   margin: 0 0 0.75rem;
 }
 
 .home-tagline {
-  color: var(--text-muted);
+  color: rgba(242, 246, 253, 0.82);
   font-size: 1.1rem;
   margin: 0 auto 1.75rem;
   max-width: 32rem;
@@ -1447,6 +1472,27 @@ button.tree-label:hover {
   flex-wrap: wrap;
   gap: 0.85rem;
   justify-content: center;
+}
+
+.home-actions button {
+  background: var(--on-accent);
+  color: var(--accent);
+  box-shadow: none;
+}
+
+.home-actions button:hover {
+  background: #fff;
+}
+
+.home-actions button.secondary {
+  background: transparent;
+  color: var(--on-accent);
+  border: 1px solid rgba(242, 246, 253, 0.5);
+}
+
+.home-actions button.secondary:hover {
+  background: rgba(242, 246, 253, 0.14);
+  border-color: var(--on-accent);
 }
 
 .home-campaign-picker {
