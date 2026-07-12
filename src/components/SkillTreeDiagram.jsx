@@ -2,9 +2,9 @@ import { useMemo } from 'react'
 import dagre from '@dagrejs/dagre'
 import { fullPrereqIds } from '../lib/skillTrees'
 
-const NODE_WIDTH = 160
-const NODE_HEIGHT = 56
-const CHAR_WIDTH = 7 // rough estimate for auto-sizing box width to the label
+const NODE_WIDTH = 140
+const NODE_HEIGHT = 52
+const CHAR_WIDTH = 6.5 // rough estimate for auto-sizing box width to the label
 
 // Read-only, auto-laid-out diagram of a tree's shape — no dragging/panning,
 // just a computed picture (via dagre, since a multi-prereq tree is a DAG,
@@ -14,7 +14,7 @@ const CHAR_WIDTH = 7 // rough estimate for auto-sizing box width to the label
 export default function SkillTreeDiagram({ nodes, extrasByNode, unlockedIds }) {
   const layout = useMemo(() => {
     const g = new dagre.graphlib.Graph()
-    g.setGraph({ rankdir: 'TB', nodesep: 30, ranksep: 60 })
+    g.setGraph({ rankdir: 'TB', nodesep: 18, ranksep: 50 })
     g.setDefaultEdgeLabel(() => ({}))
 
     for (const n of nodes) {

@@ -38,7 +38,7 @@ export default function MySkillTree() {
   }
 
   return (
-    <section className="page">
+    <section className="page-wide">
       <div className="view-header">
         <h1>Skill Tree</h1>
       </div>

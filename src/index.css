@@ -221,6 +221,14 @@ h3 {
   padding: 2rem;
 }
 
+/* Same padding as .page, but no reading-column cap — for pages with content
+   that's genuinely wide (the skill tree diagram), same "opt in" idea as
+   .browse-header/GeneralView skipping .page for the sidebar. */
+.page-wide {
+  width: 100%;
+  padding: 2rem;
+}
+
 .view-header {
   margin-bottom: 1.5rem;
 }
@@ -1150,6 +1158,7 @@ button:disabled {
   padding: 1rem;
   background: var(--bg);
   margin-bottom: 1rem;
+  max-height: 80vh;
 }
 
 .skill-tree-diagram-edge {

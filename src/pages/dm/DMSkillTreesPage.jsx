@@ -31,7 +31,7 @@ export default function DMSkillTreesPage() {
   if (loading) return <p className="status-message">Loading...</p>
 
   return (
-    <section className="page">
+    <section className="page-wide">
       <div className="view-header">
         <h1>Skill Trees</h1>
         <p className="view-subtitle">
