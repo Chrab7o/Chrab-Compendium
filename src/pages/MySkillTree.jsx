@@ -2,14 +2,20 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../contexts/AuthContext'
 import { useCampaignContext } from '../contexts/CampaignContext'
+import { useImpersonation } from '../contexts/ImpersonationContext'
 import SkillTreeProgress from '../components/SkillTreeProgress'
 
 export default function MySkillTree() {
   const { session } = useAuth()
   const { campaignId } = useCampaignContext()
+  const { impersonating } = useImpersonation()
   const [characterId, setCharacterId] = useState(undefined)
 
   useEffect(() => {
+    if (impersonating) {
+      setCharacterId(impersonating.characterId)
+      return
+    }
     let cancelled = false
     let query = supabase.from('characters').select('id').eq('owner_id', session.user.id)
     query = campaignId ? query.eq('campaign_id', campaignId) : query.is('campaign_id', null)
@@ -19,7 +25,7 @@ export default function MySkillTree() {
     return () => {
       cancelled = true
     }
-  }, [session.user.id, campaignId])
+  }, [session.user.id, campaignId, impersonating])
 
   if (characterId === undefined) return <p className="page status-message">Loading...</p>
   if (characterId === null) {

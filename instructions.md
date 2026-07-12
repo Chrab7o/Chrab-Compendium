@@ -206,11 +206,17 @@ Trees). Leave it empty and everyone in that campaign sees it (the previous, defa
 behavior); pick specific characters and it's hidden from everyone else — enforced by RLS, not
 just hidden in the UI, same as everything else here.
 
-**DM preview of a specific character's progress**: since the DM's own account has no
-character, the player-facing `/skills` page will always say "no character found" for a DM
-session — that's expected, not a bug. To check a specific player's actual progress, use
-**DM Dashboard → Characters → View Skill Tree** instead (read-only; grant points from the
-same Characters panel).
+**Viewing/acting as a player**: since the DM's own account has no character, the
+player-facing `/skills`, `/notes`, etc. pages will always say "no character found" for a DM
+session on their own — that's expected, not a bug. To actually check or interact with a
+specific player's stuff without their login, click **View As** next to a character in
+**DM Dashboard → Characters** (only available once that character has a player assigned). A
+persistent "Viewing as *Name*" banner appears — every player-facing page (Character Sheet, My
+Notes, Skill Tree, Account) now acts on that character/player instead of the DM's own
+session, including writes (unlocking nodes, adding notes). Click **Exit** in the banner to
+return to normal. Password changes are hidden while viewing as someone else, since that would
+change the DM's own login, not theirs. This is a client-side convenience only — the real
+access control is still enforced server-side regardless of what's being "viewed as".
 
 **Visual diagram**: click **Show diagram** (in the node editor or either Skill Tree view) for
 an auto-laid-out picture of the tree instead of the outline list — nodes position themselves

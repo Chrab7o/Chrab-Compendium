@@ -2,12 +2,15 @@ import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../contexts/AuthContext'
 import { useCampaignContext } from '../contexts/CampaignContext'
+import { useImpersonation } from '../contexts/ImpersonationContext'
 
 const emptyForm = { id: null, title: '', content: '', campaign_id: '' }
 
 export default function Notes() {
   const { session } = useAuth()
   const { campaigns } = useCampaignContext()
+  const { impersonating } = useImpersonation()
+  const ownerId = impersonating?.ownerId ?? session.user.id
   const [notes, setNotes] = useState([])
   const [loading, setLoading] = useState(true)
   const [form, setForm] = useState(emptyForm)
@@ -19,11 +22,11 @@ export default function Notes() {
     const { data } = await supabase
       .from('player_notes')
       .select('*')
-      .eq('owner_id', session.user.id)
+      .eq('owner_id', ownerId)
       .order('updated_at', { ascending: false })
     setNotes(data ?? [])
     setLoading(false)
-  }, [session.user.id])
+  }, [ownerId])
 
   useEffect(() => {
     load()
@@ -45,7 +48,7 @@ export default function Notes() {
     setError(null)
 
     const payload = {
-      owner_id: session.user.id,
+      owner_id: ownerId,
       title: form.title,
       content: form.content,
       campaign_id: form.campaign_id || null,
@@ -76,7 +79,9 @@ export default function Notes() {
       <div className="view-header">
         <h1>My Notes</h1>
         <p className="view-subtitle">
-          Private to you — visible to your DM, but not to other players or the public.
+          {impersonating
+            ? `Viewing ${impersonating.name}'s private notes.`
+            : 'Private to you — visible to your DM, but not to other players or the public.'}
         </p>
       </div>
 

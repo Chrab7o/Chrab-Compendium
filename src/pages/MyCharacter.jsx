@@ -3,13 +3,19 @@ import { Navigate } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../contexts/AuthContext'
 import { useCampaignContext } from '../contexts/CampaignContext'
+import { useImpersonation } from '../contexts/ImpersonationContext'
 
 export default function MyCharacter() {
   const { session } = useAuth()
   const { campaignId } = useCampaignContext()
+  const { impersonating } = useImpersonation()
   const [characterId, setCharacterId] = useState(undefined) // undefined = loading, null = none found
 
   useEffect(() => {
+    if (impersonating) {
+      setCharacterId(impersonating.characterId)
+      return
+    }
     let cancelled = false
     setCharacterId(undefined)
     let query = supabase.from('characters').select('id').eq('owner_id', session.user.id)
@@ -20,7 +26,7 @@ export default function MyCharacter() {
     return () => {
       cancelled = true
     }
-  }, [session.user.id, campaignId])
+  }, [session.user.id, campaignId, impersonating])
 
   if (characterId === undefined)
     return (

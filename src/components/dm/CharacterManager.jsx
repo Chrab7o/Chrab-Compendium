@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabaseClient'
+import { useImpersonation } from '../../contexts/ImpersonationContext'
 
 function SkillPointInput({ treeName, initialValue, onSave }) {
   const [value, setValue] = useState(initialValue)
@@ -45,6 +46,8 @@ function SkillPointInput({ treeName, initialValue, onSave }) {
 }
 
 export default function CharacterManager({ campaigns, onChange }) {
+  const navigate = useNavigate()
+  const { startImpersonating } = useImpersonation()
   const [characters, setCharacters] = useState([])
   const [players, setPlayers] = useState([])
   const [skillTrees, setSkillTrees] = useState([])
@@ -92,6 +95,11 @@ export default function CharacterManager({ campaigns, onChange }) {
     const { error: updateError } = await supabase.from('characters').update(patch).eq('id', id)
     if (updateError) setError(updateError.message)
     else load()
+  }
+
+  function viewAs(character) {
+    startImpersonating(character)
+    navigate('/account')
   }
 
   async function handleDelete(id) {
@@ -156,7 +164,15 @@ export default function CharacterManager({ campaigns, onChange }) {
               </select>
               <div className="dm-list-actions">
                 <Link to={`/character/${c.id}`}>View</Link>
-                <Link to={`/dm/characters/${c.id}/skill-tree`}>View Skill Tree</Link>
+                {c.owner_id ? (
+                  <button type="button" onClick={() => viewAs(c)}>
+                    View As
+                  </button>
+                ) : (
+                  <span className="dm-list-meta" title="Assign a player first">
+                    View As (needs a player)
+                  </span>
+                )}
                 <button type="button" className="danger" onClick={() => handleDelete(c.id)}>
                   Delete
                 </button>

@@ -1,14 +1,31 @@
-import { Link, NavLink } from 'react-router-dom'
+import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useCampaignContext } from '../contexts/CampaignContext'
+import { useImpersonation } from '../contexts/ImpersonationContext'
 import CampaignsDropdown from './CampaignsDropdown'
 
 export default function Nav() {
+  const navigate = useNavigate()
   const { isDM, isPlayer, signOut } = useAuth()
   const { campaigns, campaignId, setCampaignId } = useCampaignContext()
+  const { impersonating, stopImpersonating } = useImpersonation()
+
+  function exitImpersonation() {
+    stopImpersonating()
+    navigate('/dm/characters')
+  }
 
   return (
-    <header className="nav">
+    <>
+      {impersonating && (
+        <div className="impersonation-banner">
+          Viewing as <strong>{impersonating.name}</strong>
+          <button type="button" className="link-button" onClick={exitImpersonation}>
+            Exit
+          </button>
+        </div>
+      )}
+      <header className="nav">
       <Link to="/" className="nav-brand">
         Chrab Corner
       </Link>
@@ -65,5 +82,6 @@ export default function Nav() {
         )}
       </div>
     </header>
+    </>
   )
 }
