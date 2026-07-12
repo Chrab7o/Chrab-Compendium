@@ -1,20 +1,36 @@
 :root {
   color-scheme: light dark;
-  --bg: #0b0e15;
-  --surface: #131a26;
-  --surface-2: #1a2436;
-  --border: #2c3c58;
-  --text: #e6ebf5;
-  --text-muted: #8b9ab8;
-  --accent: #2f5aa8;
-  --accent-strong: #5c85d6;
-  --on-accent: #f2f6fd;
-  --accent-2: #2f8f82;
-  --accent-2-strong: #55c4b5;
-  --accent-red: #9c2f35;
-  --accent-red-strong: #d6555c;
+  /* "Ashfall" identity: near-black stone/violet backdrop so the three
+     jewel-tone accents (antique gold, emerald, crimson) read as the loot,
+     not the SaaS-blue-on-navy look this used to have. */
+  --bg: #0d0a12;
+  --surface: #18131e;
+  --surface-2: #221b2c;
+  --border: #3c2f4a;
+  --text: #f4ecdd;
+  --text-muted: #b2a08f;
+
+  --accent: #c9a032;
+  --accent-strong: #f0c94a;
+  --on-accent: #241a06;
+
+  --accent-2: #1f7a4d;
+  --accent-2-strong: #3ecb82;
+  --on-accent-2: #06170d;
+
+  --accent-red: #9c2530;
+  --accent-red-strong: #d9434c;
   --danger: var(--accent-red);
   --danger-strong: var(--accent-red-strong);
+  --on-danger: #f8ece9;
+
+  /* Ambient-only arcane violet — used for the background wash, not as a
+     semantic token elsewhere, so it doesn't compete with gold/emerald/red. */
+  --accent-purple: #6d3fa8;
+
+  --shadow-glow-accent: 0 0 34px rgba(240, 201, 74, 0.35);
+  --shadow-glow-accent-2: 0 0 34px rgba(62, 203, 130, 0.32);
+  --shadow-glow-danger: 0 0 34px rgba(217, 67, 76, 0.32);
 
   --space-1: 0.25rem;
   --space-2: 0.5rem;
@@ -55,8 +71,8 @@ body {
   margin: 0;
   min-height: 100vh;
   background:
-    radial-gradient(1200px 600px at 12% -10%, rgba(47, 90, 168, 0.14), transparent 60%),
-    radial-gradient(1000px 700px at 100% 0%, rgba(156, 47, 53, 0.1), transparent 55%),
+    radial-gradient(1200px 600px at 12% -10%, rgba(201, 160, 50, 0.16), transparent 60%),
+    radial-gradient(1000px 700px at 100% 0%, rgba(109, 63, 168, 0.16), transparent 55%),
     var(--bg);
   color: var(--text);
   font-size: var(--text-base);
@@ -74,6 +90,7 @@ h3 {
 h1 {
   font-size: var(--text-2xl);
   line-height: 1.2;
+  text-shadow: 0 0 24px rgba(201, 160, 50, 0.2);
 }
 
 h2 {
@@ -175,7 +192,7 @@ h3 {
   justify-content: center;
   gap: 0.75rem;
   padding: 0.5rem 1rem;
-  background: var(--accent);
+  background: linear-gradient(90deg, var(--accent), var(--accent-strong));
   color: var(--on-accent);
   font-size: 0.9rem;
 }
@@ -194,6 +211,7 @@ h3 {
   color: var(--accent-strong);
   letter-spacing: 0.03em;
   text-decoration: none;
+  text-shadow: 0 0 18px rgba(240, 201, 74, 0.3);
 }
 
 .nav-links {
@@ -208,6 +226,19 @@ h3 {
   gap: 1rem;
   align-items: center;
   justify-self: end;
+}
+
+.nav-right a {
+  color: var(--text-muted);
+  text-decoration: none;
+  padding-bottom: 2px;
+  border-bottom: 2px solid transparent;
+}
+
+.nav-right a.active,
+.nav-right a:hover {
+  color: var(--text);
+  border-bottom-color: var(--accent);
 }
 
 .campaign-picker {
@@ -457,7 +488,7 @@ button.link-button:hover {
   width: 3.5rem;
   height: 4px;
   border-radius: 2px;
-  background: var(--accent-strong);
+  background: linear-gradient(90deg, var(--accent-strong), transparent);
 }
 
 .view-subtitle {
@@ -492,7 +523,7 @@ input[type='checkbox'] {
 
 button {
   font-family: inherit;
-  background: var(--accent);
+  background: linear-gradient(135deg, var(--accent-strong), var(--accent));
   color: var(--on-accent);
   border: none;
   border-radius: var(--radius-sm);
@@ -500,12 +531,12 @@ button {
   cursor: pointer;
   font-weight: 600;
   box-shadow: var(--shadow-sm);
-  transition: background var(--transition), box-shadow var(--transition), transform var(--transition);
+  transition: filter var(--transition), box-shadow var(--transition), transform var(--transition);
 }
 
 button:hover {
-  background: var(--accent-strong);
-  box-shadow: var(--shadow-md);
+  filter: brightness(1.08);
+  box-shadow: var(--shadow-md), var(--shadow-glow-accent);
   transform: translateY(-1px);
 }
 
@@ -519,15 +550,18 @@ button.secondary {
 button.secondary:hover {
   background: var(--surface);
   border-color: var(--text-muted);
+  filter: none;
+  box-shadow: none;
 }
 
 button.danger {
-  background: var(--danger);
-  color: #fff;
+  background: linear-gradient(135deg, var(--accent-red-strong), var(--accent-red));
+  color: var(--on-danger);
 }
 
 button.danger:hover {
-  background: var(--danger-strong);
+  filter: brightness(1.08);
+  box-shadow: var(--shadow-md), var(--shadow-glow-danger);
 }
 
 button:disabled {
@@ -579,21 +613,31 @@ button:disabled {
   left: 0;
   right: 0;
   height: 8px;
-  background: var(--accent);
+  background: linear-gradient(90deg, var(--accent), var(--accent-strong));
 }
 
 .entry-card:hover {
   border-color: var(--accent);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-md), var(--shadow-glow-accent);
   transform: translateY(-3px);
 }
 
 .entry-card.entry-card-dm::before {
-  background: var(--accent-red-strong);
+  background: linear-gradient(90deg, var(--accent-red), var(--accent-red-strong));
+}
+
+.entry-card.entry-card-dm:hover {
+  border-color: var(--accent-red);
+  box-shadow: var(--shadow-md), var(--shadow-glow-danger);
 }
 
 .entry-card.entry-card-session::before {
-  background: var(--accent-2-strong);
+  background: linear-gradient(90deg, var(--accent-2), var(--accent-2-strong));
+}
+
+.entry-card.entry-card-session:hover {
+  border-color: var(--accent-2);
+  box-shadow: var(--shadow-md), var(--shadow-glow-accent-2);
 }
 
 .entry-card-header {
@@ -641,7 +685,7 @@ button:disabled {
 
 .badge-dm {
   background: var(--danger);
-  color: #fff;
+  color: var(--on-danger);
 }
 
 .badge-campaign {
@@ -651,7 +695,7 @@ button:disabled {
 
 .badge-session {
   background: var(--accent-2);
-  color: #0d1f1c;
+  color: var(--on-accent-2);
 }
 
 .badge-placement {
@@ -875,7 +919,7 @@ button:disabled {
   left: 0;
   right: 0;
   height: 8px;
-  background: var(--accent);
+  background: linear-gradient(90deg, var(--accent), var(--accent-strong));
 }
 
 .dm-form {
@@ -981,7 +1025,7 @@ button:disabled {
   border-radius: var(--radius-md);
   overflow: hidden;
   border: 1px solid var(--border);
-  background: #0c0b10;
+  background: var(--bg);
   box-shadow: var(--shadow-sm);
 }
 
@@ -1045,7 +1089,7 @@ button:disabled {
 }
 
 .dm-list-actions a {
-  background: var(--accent);
+  background: linear-gradient(135deg, var(--accent-strong), var(--accent));
   color: var(--on-accent);
   border: none;
   border-radius: var(--radius-sm);
@@ -1055,12 +1099,12 @@ button:disabled {
   text-decoration: none;
   font-size: 0.95rem;
   box-shadow: var(--shadow-sm);
-  transition: background var(--transition), box-shadow var(--transition), transform var(--transition);
+  transition: filter var(--transition), box-shadow var(--transition), transform var(--transition);
 }
 
 .dm-list-actions a:hover {
-  background: var(--accent-strong);
-  box-shadow: var(--shadow-md);
+  filter: brightness(1.08);
+  box-shadow: var(--shadow-md), var(--shadow-glow-accent);
   transform: translateY(-1px);
 }
 
@@ -1077,7 +1121,7 @@ button:disabled {
 }
 
 .button-link {
-  background: var(--accent);
+  background: linear-gradient(135deg, var(--accent-strong), var(--accent));
   color: var(--on-accent);
   border: none;
   border-radius: var(--radius-sm);
@@ -1087,12 +1131,12 @@ button:disabled {
   text-decoration: none;
   white-space: nowrap;
   box-shadow: var(--shadow-sm);
-  transition: background var(--transition), box-shadow var(--transition), transform var(--transition);
+  transition: filter var(--transition), box-shadow var(--transition), transform var(--transition);
 }
 
 .button-link:hover {
-  background: var(--accent-strong);
-  box-shadow: var(--shadow-md);
+  filter: brightness(1.08);
+  box-shadow: var(--shadow-md), var(--shadow-glow-accent);
   transform: translateY(-1px);
 }
 
@@ -1126,14 +1170,14 @@ button:disabled {
   align-items: center;
   justify-content: center;
   box-shadow: var(--shadow-md);
-  background: var(--accent-2);
-  color: #0d1f1c;
-  transition: background var(--transition), box-shadow var(--transition), transform var(--transition);
+  background: linear-gradient(135deg, var(--accent-2-strong), var(--accent-2));
+  color: var(--on-accent-2);
+  transition: filter var(--transition), box-shadow var(--transition), transform var(--transition);
 }
 
 .fab-button:hover {
-  background: var(--accent-2-strong);
-  box-shadow: var(--shadow-lg);
+  filter: brightness(1.08);
+  box-shadow: var(--shadow-lg), var(--shadow-glow-accent-2);
   transform: translateY(-2px);
 }
 
@@ -1652,7 +1696,7 @@ button.tree-label:hover {
 }
 
 .danger-zone::before {
-  background: var(--danger);
+  background: linear-gradient(90deg, var(--accent-red), var(--accent-red-strong));
 }
 
 .danger-zone h2 {
@@ -1669,18 +1713,19 @@ button.tree-label:hover {
   padding: 3rem 1.5rem 2.5rem;
   margin-bottom: 1.5rem;
   border-radius: var(--radius-lg);
-  background: var(--accent);
-  box-shadow: var(--shadow-md);
+  background: linear-gradient(135deg, var(--accent-strong) 0%, var(--accent) 65%, #8a6a1e 100%);
+  box-shadow: var(--shadow-md), var(--shadow-glow-accent);
 }
 
 .home-hero h1 {
   font-size: var(--text-3xl);
   color: var(--on-accent);
   margin: 0 0 0.75rem;
+  text-shadow: none;
 }
 
 .home-tagline {
-  color: rgba(242, 246, 253, 0.82);
+  color: rgba(36, 26, 6, 0.78);
   font-size: 1.1rem;
   margin: 0 auto 1.75rem;
   max-width: 32rem;
@@ -1695,22 +1740,25 @@ button.tree-label:hover {
 
 .home-actions button {
   background: var(--on-accent);
-  color: var(--accent);
+  color: var(--accent-strong);
   box-shadow: none;
+  filter: none;
 }
 
 .home-actions button:hover {
-  background: #fff;
+  background: var(--surface-2);
+  filter: none;
+  box-shadow: none;
 }
 
 .home-actions button.secondary {
   background: transparent;
   color: var(--on-accent);
-  border: 1px solid rgba(242, 246, 253, 0.5);
+  border: 1px solid rgba(36, 26, 6, 0.45);
 }
 
 .home-actions button.secondary:hover {
-  background: rgba(242, 246, 253, 0.14);
+  background: rgba(36, 26, 6, 0.12);
   border-color: var(--on-accent);
 }
 
@@ -1750,5 +1798,5 @@ button.chip:hover {
 .chip.active {
   background: var(--accent-2);
   border-color: var(--accent-2);
-  color: #0f1a18;
+  color: var(--on-accent-2);
 }
