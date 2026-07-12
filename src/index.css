@@ -46,6 +46,9 @@
   --radius-sm: 8px;
   --radius-md: 14px;
   --radius-lg: 22px;
+  /* Tighter, less "soft SaaS rectangle" radius for surfaces that get a
+     carved-frame treatment: cards, panels, hero, buttons. */
+  --radius-frame: 6px;
 
   --shadow-sm: 0 2px 8px rgba(10, 6, 20, 0.35);
   --shadow-md: 0 8px 20px rgba(10, 6, 20, 0.45);
@@ -73,10 +76,17 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background:
-    radial-gradient(1200px 600px at 12% -10%, rgba(230, 164, 0, 0.24), transparent 60%),
-    radial-gradient(1000px 700px at 100% 0%, rgba(139, 79, 255, 0.28), transparent 55%),
-    var(--bg);
+  /* Deliberately NOT the two-symmetric-blurry-blob mesh gradient every
+     AI-generated dark landing page uses — one asymmetric torch-light
+     source, a vignette for depth, and a faint grain layer for material
+     texture instead of a flat gradient field. */
+  background-color: var(--bg);
+  background-image:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='matrix' values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.05 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>"),
+    radial-gradient(1300px 900px at 8% -8%, rgba(230, 164, 0, 0.22), transparent 58%),
+    radial-gradient(1400px 1400px at 50% 45%, transparent 42%, rgba(0, 0, 0, 0.45) 100%);
+  background-blend-mode: overlay, normal, normal;
+  background-repeat: repeat, no-repeat, no-repeat;
   color: var(--text);
   font-size: var(--text-base);
 }
@@ -479,8 +489,22 @@ button.link-button:hover {
 
 .view-header h1 {
   position: relative;
-  margin-bottom: 0.6rem;
-  padding-bottom: 0.6rem;
+  margin-bottom: 0.9rem;
+  padding-bottom: 0.9rem;
+}
+
+/* A rule-diamond-rule flourish (illuminated-manuscript chapter mark)
+   instead of a flat gradient underline bar. */
+.view-header h1::before {
+  content: '';
+  position: absolute;
+  left: 10px;
+  bottom: -3px;
+  width: 8px;
+  height: 8px;
+  background: var(--accent-strong);
+  transform: rotate(45deg);
+  box-shadow: var(--shadow-glow-accent);
 }
 
 .view-header h1::after {
@@ -489,8 +513,7 @@ button.link-button:hover {
   left: 0;
   bottom: 0;
   width: 3.5rem;
-  height: 4px;
-  border-radius: 2px;
+  height: 2px;
   background: linear-gradient(90deg, var(--accent-strong), transparent);
 }
 
@@ -529,17 +552,17 @@ button {
   background: linear-gradient(135deg, var(--accent-strong), var(--accent));
   color: var(--on-accent);
   border: none;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-frame);
   padding: 0.55rem 1rem;
   cursor: pointer;
   font-weight: 600;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-sm), inset 0 0 0 1px rgba(0, 0, 0, 0.22);
   transition: filter var(--transition), box-shadow var(--transition), transform var(--transition);
 }
 
 button:hover {
   filter: brightness(1.08);
-  box-shadow: var(--shadow-md), var(--shadow-glow-accent);
+  box-shadow: var(--shadow-md), var(--shadow-glow-accent), inset 0 0 0 1px rgba(0, 0, 0, 0.22);
   transform: translateY(-1px);
 }
 
@@ -564,7 +587,7 @@ button.danger {
 
 button.danger:hover {
   filter: brightness(1.08);
-  box-shadow: var(--shadow-md), var(--shadow-glow-danger);
+  box-shadow: var(--shadow-md), var(--shadow-glow-danger), inset 0 0 0 1px rgba(0, 0, 0, 0.22);
 }
 
 button:disabled {
@@ -585,11 +608,11 @@ button:disabled {
   overflow: hidden;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  padding: 1.5rem 1.1rem 1.1rem;
+  border-radius: var(--radius-frame);
+  padding: 1.1rem 1.1rem 1.1rem 1.4rem;
   text-decoration: none;
   color: var(--text);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-sm), inset 1px 0 0 rgba(255, 255, 255, 0.04);
   transition: border-color var(--transition), box-shadow var(--transition), transform var(--transition);
   animation: card-enter 0.3s ease both;
   animation-delay: var(--stagger-delay, 0ms);
@@ -609,38 +632,40 @@ button:disabled {
 .entry-grid > *:nth-child(7) { --stagger-delay: 180ms; }
 .entry-grid > *:nth-child(n+8) { --stagger-delay: 200ms; }
 
+/* A left-edge "spine" instead of the ubiquitous SaaS-dashboard top strip —
+   reads as a shelved book/tome rather than a generic card component. */
 .entry-card::before {
   content: '';
   position: absolute;
   top: 0;
+  bottom: 0;
   left: 0;
-  right: 0;
-  height: 8px;
-  background: linear-gradient(90deg, var(--accent), var(--accent-strong));
+  width: 5px;
+  background: linear-gradient(180deg, var(--accent), var(--accent-strong));
 }
 
 .entry-card:hover {
   border-color: var(--accent);
-  box-shadow: var(--shadow-md), var(--shadow-glow-accent);
+  box-shadow: var(--shadow-md), var(--shadow-glow-accent), inset 1px 0 0 rgba(255, 255, 255, 0.04);
   transform: translateY(-3px);
 }
 
 .entry-card.entry-card-dm::before {
-  background: linear-gradient(90deg, var(--accent-red), var(--accent-red-strong));
+  background: linear-gradient(180deg, var(--accent-red), var(--accent-red-strong));
 }
 
 .entry-card.entry-card-dm:hover {
   border-color: var(--accent-red);
-  box-shadow: var(--shadow-md), var(--shadow-glow-danger);
+  box-shadow: var(--shadow-md), var(--shadow-glow-danger), inset 1px 0 0 rgba(255, 255, 255, 0.04);
 }
 
 .entry-card.entry-card-session::before {
-  background: linear-gradient(90deg, var(--accent-2), var(--accent-2-strong));
+  background: linear-gradient(180deg, var(--accent-2), var(--accent-2-strong));
 }
 
 .entry-card.entry-card-session:hover {
   border-color: var(--accent-2);
-  box-shadow: var(--shadow-md), var(--shadow-glow-accent-2);
+  box-shadow: var(--shadow-md), var(--shadow-glow-accent-2), inset 1px 0 0 rgba(255, 255, 255, 0.04);
 }
 
 .entry-card-header {
@@ -909,20 +934,20 @@ button:disabled {
   overflow: hidden;
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  padding: 1.9rem 1.5rem 1.5rem;
+  border-radius: var(--radius-frame);
+  padding: 1.5rem 1.5rem 1.5rem 1.8rem;
   margin-bottom: 2rem;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-sm), inset 1px 0 0 rgba(255, 255, 255, 0.04);
 }
 
 .dm-panel::before {
   content: '';
   position: absolute;
   top: 0;
+  bottom: 0;
   left: 0;
-  right: 0;
-  height: 8px;
-  background: linear-gradient(90deg, var(--accent), var(--accent-strong));
+  width: 5px;
+  background: linear-gradient(180deg, var(--accent), var(--accent-strong));
 }
 
 .dm-form {
@@ -1699,7 +1724,7 @@ button.tree-label:hover {
 }
 
 .danger-zone::before {
-  background: linear-gradient(90deg, var(--accent-red), var(--accent-red-strong));
+  background: linear-gradient(180deg, var(--accent-red), var(--accent-red-strong));
 }
 
 .danger-zone h2 {
@@ -1713,11 +1738,18 @@ button.tree-label:hover {
 }
 
 .home-hero {
+  position: relative;
   padding: 3rem 1.5rem 2.5rem;
   margin-bottom: 1.5rem;
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   background: linear-gradient(135deg, var(--accent-strong) 0%, var(--accent) 65%, #7a4d00 100%);
-  box-shadow: var(--shadow-md), var(--shadow-glow-accent);
+  /* Carved double-ring plate instead of a soft single-rounded blob: an
+     inset dark groove, then a thin inset gold line inside it. */
+  box-shadow:
+    var(--shadow-md),
+    var(--shadow-glow-accent),
+    inset 0 0 0 4px rgba(36, 26, 6, 0.28),
+    inset 0 0 0 6px rgba(255, 233, 175, 0.35);
 }
 
 .home-hero h1 {
@@ -1725,6 +1757,18 @@ button.tree-label:hover {
   color: var(--on-accent);
   margin: 0 0 0.75rem;
   text-shadow: none;
+  position: relative;
+}
+
+.home-hero h1::before {
+  content: '';
+  display: block;
+  width: 10px;
+  height: 10px;
+  margin: 0 auto 0.9rem;
+  background: var(--on-accent);
+  opacity: 0.5;
+  transform: rotate(45deg);
 }
 
 .home-tagline {
