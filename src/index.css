@@ -1102,6 +1102,17 @@ button:disabled {
   width: 4rem;
 }
 
+.skill-point-input-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.skill-point-saved {
+  color: var(--accent-2-strong);
+  font-size: 0.8rem;
+}
+
 .skill-node-row {
   justify-content: space-between;
 }

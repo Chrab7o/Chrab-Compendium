@@ -54,8 +54,9 @@ function SkillNodeView({ node, depth, ctx }) {
 // picker) so both call sites see the same thing regardless of which
 // campaign the viewer currently has selected in nav.
 export default function SkillTreeProgress({ characterId, editable }) {
-  const [campaignId, setCampaignId] = useState(undefined)
-  const [trees, setTrees] = useState([])
+  // undefined = not fetched yet (show a real loading state); [] only once
+  // we've actually confirmed there's nothing scoped to this character.
+  const [trees, setTrees] = useState(undefined)
   const [treeId, setTreeId] = useState('')
   const [nodes, setNodes] = useState([])
   const [prereqRows, setPrereqRows] = useState([])
@@ -65,25 +66,28 @@ export default function SkillTreeProgress({ characterId, editable }) {
   const [showDiagram, setShowDiagram] = useState(false)
 
   useEffect(() => {
-    supabase
-      .from('characters')
-      .select('campaign_id')
-      .eq('id', characterId)
-      .single()
-      .then(({ data }) => setCampaignId(data?.campaign_id ?? null))
+    let cancelled = false
+    setTrees(undefined)
+    // Fetched together (not one-then-the-other) so there's no in-between
+    // moment where the character's campaign is known but the tree list
+    // isn't yet — that gap used to render a misleading "no skill trees"
+    // message before the second request had a chance to come back.
+    Promise.all([
+      supabase.from('characters').select('campaign_id').eq('id', characterId).single(),
+      supabase.from('skill_trees').select('*'),
+    ]).then(([{ data: character }, { data: treeData }]) => {
+      if (cancelled) return
+      const campaignId = character?.campaign_id ?? null
+      const scoped = (treeData ?? []).filter(
+        (t) => !campaignId || !t.campaign_id || t.campaign_id === campaignId
+      )
+      setTrees(scoped)
+      setTreeId((current) => (scoped.some((t) => t.id === current) ? current : scoped[0]?.id ?? ''))
+    })
+    return () => {
+      cancelled = true
+    }
   }, [characterId])
-
-  useEffect(() => {
-    if (campaignId === undefined) return
-    supabase
-      .from('skill_trees')
-      .select('*')
-      .then(({ data }) => {
-        const scoped = (data ?? []).filter((t) => !campaignId || !t.campaign_id || t.campaign_id === campaignId)
-        setTrees(scoped)
-        setTreeId((current) => (scoped.some((t) => t.id === current) ? current : scoped[0]?.id ?? ''))
-      })
-  }, [campaignId])
 
   const loadTreeState = useCallback(async () => {
     if (!treeId) {
@@ -134,7 +138,7 @@ export default function SkillTreeProgress({ characterId, editable }) {
     loadTreeState()
   }
 
-  if (campaignId === undefined) return <p className="status-message">Loading...</p>
+  if (trees === undefined) return <p className="status-message">Loading...</p>
   if (trees.length === 0) {
     return <p className="status-message">No skill trees are set up for this character's campaign yet.</p>
   }

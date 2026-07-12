@@ -23,7 +23,11 @@ export default function DMCharacterSkillTreePage() {
     <section className="page">
       <div className="view-header">
         <h1>{character.name}'s Skill Tree</h1>
-        <p className="view-subtitle">Read-only — grant points from DM Dashboard → Characters.</p>
+        <p className="view-subtitle">
+          Read-only — grant points from DM Dashboard → Characters. Note: you're viewing this as
+          the DM, so any "restrict to specific players" setting doesn't hide anything from
+          you — sign in as the actual player to confirm what they see.
+        </p>
       </div>
       <SkillTreeProgress characterId={id} editable={false} />
     </section>

@@ -2,27 +2,77 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabaseClient'
 
+function SkillPointInput({ treeName, initialValue, onSave }) {
+  const [value, setValue] = useState(initialValue)
+  const [saved, setSaved] = useState(false)
+
+  // Keep in sync if the underlying row changes from elsewhere (e.g. a
+  // reload after some other edit), but not while the DM is mid-edit.
+  useEffect(() => {
+    setValue(initialValue)
+  }, [initialValue])
+
+  async function save() {
+    await onSave(Number(value) || 0)
+    setSaved(true)
+    setTimeout(() => setSaved(false), 1500)
+  }
+
+  return (
+    <label className="skill-point-input">
+      {treeName} points
+      <span className="skill-point-input-row">
+        <input
+          type="number"
+          min="0"
+          value={value}
+          onChange={(e) => setValue(e.target.value)}
+          onBlur={save}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault()
+              e.target.blur()
+            }
+          }}
+        />
+        <button type="button" onClick={save}>
+          Save
+        </button>
+        {saved && <span className="skill-point-saved">Saved</span>}
+      </span>
+    </label>
+  )
+}
+
 export default function CharacterManager({ campaigns, onChange }) {
   const [characters, setCharacters] = useState([])
   const [players, setPlayers] = useState([])
   const [skillTrees, setSkillTrees] = useState([])
   const [skillPoints, setSkillPoints] = useState([])
+  const [visibleToRows, setVisibleToRows] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
   async function load() {
     setLoading(true)
-    const [{ data: characterData }, { data: playerData }, { data: treeData }, { data: pointsData }] =
-      await Promise.all([
-        supabase.from('characters').select('*').order('name', { ascending: true }),
-        supabase.from('profiles').select('id, display_name').eq('role', 'player'),
-        supabase.from('skill_trees').select('*'),
-        supabase.from('character_skill_trees').select('*'),
-      ])
+    const [
+      { data: characterData },
+      { data: playerData },
+      { data: treeData },
+      { data: pointsData },
+      { data: visibleToData },
+    ] = await Promise.all([
+      supabase.from('characters').select('*').order('name', { ascending: true }),
+      supabase.from('profiles').select('id, display_name').eq('role', 'player'),
+      supabase.from('skill_trees').select('*'),
+      supabase.from('character_skill_trees').select('*'),
+      supabase.from('skill_tree_visible_to').select('*'),
+    ])
     setCharacters(characterData ?? [])
     setPlayers(playerData ?? [])
     setSkillTrees(treeData ?? [])
     setSkillPoints(pointsData ?? [])
+    setVisibleToRows(visibleToData ?? [])
     setLoading(false)
   }
 
@@ -67,9 +117,18 @@ export default function CharacterManager({ campaigns, onChange }) {
       {error && <p className="status-message error">{error}</p>}
       <ul className="dm-list">
         {characters.map((c) => {
-          const applicableTrees = skillTrees.filter(
-            (t) => !t.campaign_id || t.campaign_id === c.campaign_id
-          )
+          // Same campaign scoping as everywhere else, plus: if a tree is
+          // restricted to specific characters, it only counts as
+          // "applicable" here when this character is one of them — so the
+          // DM isn't offered a points box for a tree this character can't
+          // actually see.
+          const restrictedTreeIds = new Set(visibleToRows.map((v) => v.tree_id))
+          const applicableTrees = skillTrees.filter((t) => {
+            const inCampaign = !t.campaign_id || t.campaign_id === c.campaign_id
+            if (!inCampaign) return false
+            if (!restrictedTreeIds.has(t.id)) return true
+            return visibleToRows.some((v) => v.tree_id === t.id && v.character_id === c.id)
+          })
           return (
             <li key={c.id}>
               <span>{c.name}</span>
@@ -107,15 +166,12 @@ export default function CharacterManager({ campaigns, onChange }) {
                   {applicableTrees.map((t) => {
                     const row = skillPoints.find((p) => p.character_id === c.id && p.tree_id === t.id)
                     return (
-                      <label key={t.id}>
-                        {t.name} points
-                        <input
-                          type="number"
-                          min="0"
-                          defaultValue={row?.points_available ?? 0}
-                          onBlur={(e) => setPoints(c.id, t.id, Number(e.target.value) || 0)}
-                        />
-                      </label>
+                      <SkillPointInput
+                        key={t.id}
+                        treeName={t.name}
+                        initialValue={row?.points_available ?? 0}
+                        onSave={(points) => setPoints(c.id, t.id, points)}
+                      />
                     )
                   })}
                 </div>
