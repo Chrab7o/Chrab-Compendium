@@ -1,12 +1,16 @@
 import { useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 
-const emptyForm = { id: null, name: '', description: '', campaign_id: '' }
+const emptyForm = { id: null, name: '', description: '', campaign_id: '', restrictedToIds: [] }
 
-export default function SkillTreeManager({ trees, campaigns, onChange }) {
+export default function SkillTreeManager({ trees, campaigns, characters, visibleToRows, onChange }) {
   const [form, setForm] = useState(emptyForm)
   const [error, setError] = useState(null)
   const [saving, setSaving] = useState(false)
+
+  function restrictedIdsFor(treeId) {
+    return visibleToRows.filter((r) => r.tree_id === treeId).map((r) => r.character_id)
+  }
 
   function startEdit(tree) {
     setForm({
@@ -14,6 +18,7 @@ export default function SkillTreeManager({ trees, campaigns, onChange }) {
       name: tree.name,
       description: tree.description ?? '',
       campaign_id: tree.campaign_id ?? '',
+      restrictedToIds: restrictedIdsFor(tree.id),
     })
     setError(null)
   }
@@ -21,6 +26,15 @@ export default function SkillTreeManager({ trees, campaigns, onChange }) {
   function resetForm() {
     setForm(emptyForm)
     setError(null)
+  }
+
+  function toggleRestricted(characterId) {
+    setForm((f) => ({
+      ...f,
+      restrictedToIds: f.restrictedToIds.includes(characterId)
+        ? f.restrictedToIds.filter((id) => id !== characterId)
+        : [...f.restrictedToIds, characterId],
+    }))
   }
 
   async function handleSubmit(e) {
@@ -34,15 +48,37 @@ export default function SkillTreeManager({ trees, campaigns, onChange }) {
       campaign_id: form.campaign_id || null,
     }
 
-    const { error: saveError } = form.id
-      ? await supabase.from('skill_trees').update(payload).eq('id', form.id)
-      : await supabase.from('skill_trees').insert(payload)
+    let treeId = form.id
+    if (form.id) {
+      const { error: saveError } = await supabase.from('skill_trees').update(payload).eq('id', form.id)
+      if (saveError) {
+        setSaving(false)
+        setError(saveError.message)
+        return
+      }
+    } else {
+      const { data, error: saveError } = await supabase.from('skill_trees').insert(payload).select().single()
+      if (saveError) {
+        setSaving(false)
+        setError(saveError.message)
+        return
+      }
+      treeId = data.id
+    }
+
+    await supabase.from('skill_tree_visible_to').delete().eq('tree_id', treeId)
+    if (form.restrictedToIds.length > 0) {
+      const { error: visError } = await supabase
+        .from('skill_tree_visible_to')
+        .insert(form.restrictedToIds.map((character_id) => ({ tree_id: treeId, character_id })))
+      if (visError) {
+        setSaving(false)
+        setError(visError.message)
+        return
+      }
+    }
 
     setSaving(false)
-    if (saveError) {
-      setError(saveError.message)
-      return
-    }
     resetForm()
     onChange()
   }
@@ -92,6 +128,23 @@ export default function SkillTreeManager({ trees, campaigns, onChange }) {
             ))}
           </select>
         </label>
+
+        {characters.length > 0 && (
+          <fieldset className="tag-checklist">
+            <legend>Restrict to specific players (leave empty for everyone in the campaign above)</legend>
+            {characters.map((c) => (
+              <label key={c.id} className="tag-checklist-item">
+                <input
+                  type="checkbox"
+                  checked={form.restrictedToIds.includes(c.id)}
+                  onChange={() => toggleRestricted(c.id)}
+                />
+                {c.name}
+              </label>
+            ))}
+          </fieldset>
+        )}
+
         {error && <p className="status-message error">{error}</p>}
         <div className="dm-form-actions">
           <button type="submit" disabled={saving}>
@@ -106,22 +159,31 @@ export default function SkillTreeManager({ trees, campaigns, onChange }) {
       </form>
 
       <ul className="dm-list">
-        {trees.map((tree) => (
-          <li key={tree.id}>
-            <span>{tree.name}</span>
-            <span className="dm-list-meta">
-              {campaigns.find((c) => c.id === tree.campaign_id)?.name ?? 'General'}
-            </span>
-            <div className="dm-list-actions">
-              <button type="button" onClick={() => startEdit(tree)}>
-                Edit
-              </button>
-              <button type="button" className="danger" onClick={() => handleDelete(tree)}>
-                Delete
-              </button>
-            </div>
-          </li>
-        ))}
+        {trees.map((tree) => {
+          const restrictedIds = restrictedIdsFor(tree.id)
+          return (
+            <li key={tree.id}>
+              <span>{tree.name}</span>
+              <span className="dm-list-meta">
+                {campaigns.find((c) => c.id === tree.campaign_id)?.name ?? 'General'}
+              </span>
+              {restrictedIds.length > 0 && (
+                <span className="dm-list-meta">
+                  Restricted to{' '}
+                  {restrictedIds.map((id) => characters.find((c) => c.id === id)?.name ?? '?').join(', ')}
+                </span>
+              )}
+              <div className="dm-list-actions">
+                <button type="button" onClick={() => startEdit(tree)}>
+                  Edit
+                </button>
+                <button type="button" className="danger" onClick={() => handleDelete(tree)}>
+                  Delete
+                </button>
+              </div>
+            </li>
+          )
+        })}
         {trees.length === 0 && <li className="status-message">No skill trees yet.</li>}
       </ul>
     </div>

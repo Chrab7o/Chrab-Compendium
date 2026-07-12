@@ -7,12 +7,20 @@ import SkillTreeNodeEditor from '../../components/dm/SkillTreeNodeEditor'
 export default function DMSkillTreesPage() {
   const { campaigns } = useCampaignContext()
   const [trees, setTrees] = useState([])
+  const [characters, setCharacters] = useState([])
+  const [visibleToRows, setVisibleToRows] = useState([])
   const [loading, setLoading] = useState(true)
 
   const load = useCallback(async () => {
     setLoading(true)
-    const { data } = await supabase.from('skill_trees').select('*').order('name', { ascending: true })
-    setTrees(data ?? [])
+    const [{ data: treeData }, { data: characterData }, { data: visibleToData }] = await Promise.all([
+      supabase.from('skill_trees').select('*').order('name', { ascending: true }),
+      supabase.from('characters').select('id, name').order('name', { ascending: true }),
+      supabase.from('skill_tree_visible_to').select('*'),
+    ])
+    setTrees(treeData ?? [])
+    setCharacters(characterData ?? [])
+    setVisibleToRows(visibleToData ?? [])
     setLoading(false)
   }, [])
 
@@ -32,7 +40,13 @@ export default function DMSkillTreesPage() {
           parent unlocked first).
         </p>
       </div>
-      <SkillTreeManager trees={trees} campaigns={campaigns} onChange={load} />
+      <SkillTreeManager
+        trees={trees}
+        campaigns={campaigns}
+        characters={characters}
+        visibleToRows={visibleToRows}
+        onChange={load}
+      />
       <SkillTreeNodeEditor trees={trees} />
     </section>
   )

@@ -97,6 +97,7 @@ export default function CharacterManager({ campaigns, onChange }) {
               </select>
               <div className="dm-list-actions">
                 <Link to={`/character/${c.id}`}>View</Link>
+                <Link to={`/dm/characters/${c.id}/skill-tree`}>View Skill Tree</Link>
                 <button type="button" className="danger" onClick={() => handleDelete(c.id)}>
                   Delete
                 </button>

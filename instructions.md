@@ -200,6 +200,24 @@ by tampering with the client. There's no "respec" in v1 — delete a specific ch
 unlock row directly in the Supabase dashboard's Table Editor (`character_skill_unlocks`) if a
 mistake needs correcting.
 
+**Restricting a tree to specific players**: optional, on top of its campaign scoping — check
+players in "Restrict to specific players" when creating/editing a tree (DM Dashboard → Skill
+Trees). Leave it empty and everyone in that campaign sees it (the previous, default
+behavior); pick specific characters and it's hidden from everyone else — enforced by RLS, not
+just hidden in the UI, same as everything else here.
+
+**DM preview of a specific character's progress**: since the DM's own account has no
+character, the player-facing `/skills` page will always say "no character found" for a DM
+session — that's expected, not a bug. To check a specific player's actual progress, use
+**DM Dashboard → Characters → View Skill Tree** instead (read-only; grant points from the
+same Characters panel).
+
+**Visual diagram**: click **Show diagram** (in the node editor or either Skill Tree view) for
+an auto-laid-out picture of the tree instead of the outline list — nodes position themselves
+based on their connections (via `@dagrejs/dagre`), no manual arranging. It's not
+draggable/editable, just a picture; the outline is still what you use to actually build or
+unlock things.
+
 **Export/Import**: from the node editor, **Export JSON** downloads a tree's full structure
 (portable — uses local ids, not database ids, so it never collides with anything).
 **Import JSON** always creates a **new** tree from an uploaded file rather than merging into

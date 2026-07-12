@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import { childNodes, treeToExportJson, orderNodesForImport, wouldCreateCycle } from '../../lib/skillTrees'
+import SkillTreeDiagram from '../SkillTreeDiagram'
 
 const emptyForm = {
   id: null,
@@ -65,6 +66,7 @@ export default function SkillTreeNodeEditor({ trees }) {
   const [form, setForm] = useState(null)
   const [error, setError] = useState(null)
   const [saving, setSaving] = useState(false)
+  const [showDiagram, setShowDiagram] = useState(false)
 
   const tree = trees.find((t) => t.id === treeId)
   const nodesById = new Map(nodes.map((n) => [n.id, n]))
@@ -299,19 +301,26 @@ export default function SkillTreeNodeEditor({ trees }) {
             <button type="button" className="secondary" onClick={handleExport}>
               Export JSON
             </button>
+            <button type="button" className="secondary" onClick={() => setShowDiagram((v) => !v)}>
+              {showDiagram ? 'Show list' : 'Show diagram'}
+            </button>
           </div>
 
-          <div className="tree-outline">
-            {roots.map((node) => (
-              <SkillNodeRow
-                key={node.id}
-                node={node}
-                depth={0}
-                ctx={{ nodes, expanded, extrasByNode, toggle, startAddChild, startEdit, handleDelete }}
-              />
-            ))}
-            {roots.length === 0 && <p className="status-message">No nodes yet.</p>}
-          </div>
+          {showDiagram ? (
+            <SkillTreeDiagram nodes={nodes} extrasByNode={extrasByNode} />
+          ) : (
+            <div className="tree-outline">
+              {roots.map((node) => (
+                <SkillNodeRow
+                  key={node.id}
+                  node={node}
+                  depth={0}
+                  ctx={{ nodes, expanded, extrasByNode, toggle, startAddChild, startEdit, handleDelete }}
+                />
+              ))}
+              {roots.length === 0 && <p className="status-message">No nodes yet.</p>}
+            </div>
+          )}
 
           {form && (
             <form onSubmit={handleSubmit} className="dm-form">
