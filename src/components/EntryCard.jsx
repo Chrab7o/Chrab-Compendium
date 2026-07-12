@@ -2,11 +2,15 @@ import { Link } from 'react-router-dom'
 import { categoryLabel } from '../lib/categories'
 
 export default function EntryCard({ entry }) {
+  const isDm = entry.visibility === 'dm'
+  const isSession = !isDm && entry.tags?.some((tag) => tag.toLowerCase() === 'session-note')
+  const cardClass = `entry-card${isDm ? ' entry-card-dm' : ''}${isSession ? ' entry-card-session' : ''}`
+
   return (
-    <Link to={`/entry/${entry.id}`} className="entry-card">
+    <Link to={`/entry/${entry.id}`} className={cardClass}>
       <div className="entry-card-header">
         <h3>{entry.title}</h3>
-        {entry.visibility === 'dm' && <span className="badge badge-dm">DM only</span>}
+        {isDm && <span className="badge badge-dm">DM only</span>}
       </div>
       <span className="entry-card-category">{categoryLabel(entry.category)}</span>
       {entry.tags?.length > 0 && (
