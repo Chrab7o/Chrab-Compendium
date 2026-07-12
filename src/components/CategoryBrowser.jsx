@@ -8,6 +8,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useCampaignContext } from '../contexts/CampaignContext'
 import CategorySidebar from './CategorySidebar'
 import EntryCard from './EntryCard'
+import { BrowseIcon } from './Icons'
 import {
   entriesInFolder,
   topLevelEntries,
@@ -112,7 +113,14 @@ export default function CategoryBrowser({
     setSelected({ category: null, folderId: null })
   }, [campaignId])
 
-  if (loading) return <p className="status-message">Loading...</p>
+  if (loading) {
+    return (
+      <div className="browse-loading" role="status">
+        <span className="browse-loading-spinner" aria-hidden="true" />
+        Loading...
+      </div>
+    )
+  }
 
   const placedEntries = mergePlacements(entries, placements)
 
@@ -179,7 +187,13 @@ export default function CategoryBrowser({
 
       <div className="browse-content">
         {!selected.category ? (
-          emptyState || <p className="status-message">Pick a category from the sidebar to start browsing.</p>
+          emptyState || (
+            <div className="browse-empty">
+              <BrowseIcon />
+              <p className="browse-empty-title">Nothing selected yet</p>
+              <p>Pick a category from the sidebar to start browsing.</p>
+            </div>
+          )
         ) : (
           <>
             <nav className="breadcrumb">
@@ -216,7 +230,17 @@ export default function CategoryBrowser({
               </div>
             )}
 
-            {currentEntries.length === 0 && <p className="status-message">Nothing here yet.</p>}
+            {currentEntries.length === 0 && (
+              <div className="browse-empty">
+                <BrowseIcon />
+                <p className="browse-empty-title">Nothing here yet</p>
+                <p>
+                  {canEdit
+                    ? 'Add an entry here, or pick another folder from the sidebar.'
+                    : 'Try another folder from the sidebar.'}
+                </p>
+              </div>
+            )}
 
             {canEdit ? (
               <DndContext collisionDetection={closestCenter} onDragEnd={handleEntryDragEnd}>

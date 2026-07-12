@@ -11,6 +11,7 @@ export default function EntryCard({ entry }) {
       <div className="entry-card-header">
         <h3>{entry.title}</h3>
         {isDm && <span className="badge badge-dm">DM only</span>}
+        {isSession && <span className="badge badge-session">Session note</span>}
       </div>
       <span className="entry-card-category">{categoryLabel(entry.category)}</span>
       {entry.tags?.length > 0 && (

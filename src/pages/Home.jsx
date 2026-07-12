@@ -62,7 +62,7 @@ export default function Home() {
         </div>
       )}
 
-      <p className="home-hint">&larr; Pick a category from the sidebar to start browsing.</p>
+      <p className="home-hint">Pick a category from the sidebar to start browsing.</p>
     </div>
   )
 

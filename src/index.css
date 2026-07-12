@@ -38,8 +38,8 @@
   --text-md: 1.1rem;
   --text-lg: 1.35rem;
   --text-xl: 1.75rem;
-  --text-2xl: 2.25rem;
-  --text-3xl: 3rem;
+  --text-2xl: clamp(1.6rem, 1.3rem + 1.2vw, 2.25rem);
+  --text-3xl: clamp(2rem, 1.5rem + 2vw, 3rem);
 
   --transition: 0.2s ease;
 
@@ -91,6 +91,67 @@ h3 {
   outline-offset: 2px;
 }
 
+/* overflow:hidden clips the default outline on these, so they need an
+   inset ring instead of relying on outline-offset. */
+.entry-card:focus-visible,
+.dm-panel a:focus-visible,
+.fab-button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--accent-strong);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@keyframes menu-pop {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Small functional loading indicator, not decorative motion — keep it
+     spinning so "still loading" stays communicated. */
+  .browse-loading-spinner {
+    animation-duration: 0.7s !important;
+    animation-iteration-count: infinite !important;
+  }
+}
+
 .app-shell {
   min-height: 100vh;
   display: flex;
@@ -98,13 +159,13 @@ h3 {
 }
 
 .nav {
+  position: relative;
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
   padding: 1rem 2rem;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
-  flex-wrap: wrap;
   gap: 1rem;
 }
 
@@ -153,14 +214,96 @@ h3 {
   min-width: 160px;
 }
 
-@media (max-width: 720px) {
+.nav-hamburger {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  background: none;
+  border: 1px solid transparent;
+  color: var(--text);
+  box-shadow: none;
+}
+
+.nav-hamburger:hover {
+  background: var(--surface-2);
+  box-shadow: none;
+  transform: none;
+}
+
+.nav-mobile-menu {
+  display: contents;
+}
+
+@media (max-width: 860px) {
   .nav {
-    grid-template-columns: 1fr;
-    justify-items: center;
+    grid-template-columns: 1fr auto;
+  }
+
+  .nav-hamburger {
+    display: inline-flex;
+  }
+
+  .nav-mobile-menu {
+    display: none;
+    grid-column: 1 / -1;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1.25rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .nav-mobile-menu.open {
+    display: flex;
+    animation: menu-pop 0.18s ease both;
+  }
+
+  .nav-links {
+    flex-direction: column;
+    align-items: stretch;
+    justify-self: stretch;
+    gap: 0.25rem;
+  }
+
+  .nav-links a,
+  .nav-dropdown-toggle {
+    padding: 0.6rem 0.2rem;
+    border-bottom: none;
+    border-left: 2px solid transparent;
+    padding-left: 0.6rem;
+  }
+
+  .nav-links a.active,
+  .nav-links a:hover,
+  .nav-dropdown-toggle:hover,
+  .nav-dropdown-toggle[aria-expanded='true'] {
+    border-bottom: none;
+    border-left-color: var(--accent);
+    background: var(--surface-2);
+  }
+
+  .nav-dropdown-menu {
+    position: static;
+    transform: none;
+    left: auto;
+    top: auto;
+    margin-top: 0.3rem;
+    box-shadow: none;
   }
 
   .nav-right {
-    justify-self: center;
+    justify-self: stretch;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .campaign-picker {
+    min-width: 0;
+    width: 100%;
   }
 }
 
@@ -216,6 +359,7 @@ button.nav-dropdown-toggle:hover {
   padding: 0.4rem;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
   z-index: 20;
+  animation: menu-pop 0.15s ease both;
 }
 
 .nav-dropdown-menu a {
@@ -410,7 +554,23 @@ button:disabled {
   color: var(--text);
   box-shadow: var(--shadow-sm);
   transition: border-color var(--transition), box-shadow var(--transition), transform var(--transition);
+  animation: card-enter 0.3s ease both;
+  animation-delay: var(--stagger-delay, 0ms);
 }
+
+/* --stagger-delay is a custom property (inherited, unlike animation-delay
+   itself) so it reaches .entry-card whether entry-grid's direct child is
+   the card itself (read-only view) or a sortable-row wrapper around it
+   (DM organize view). Cheap hand-rolled stagger for the first screenful;
+   entries beyond this just share the last delay. */
+.entry-grid > *:nth-child(1) { --stagger-delay: 0ms; }
+.entry-grid > *:nth-child(2) { --stagger-delay: 30ms; }
+.entry-grid > *:nth-child(3) { --stagger-delay: 60ms; }
+.entry-grid > *:nth-child(4) { --stagger-delay: 90ms; }
+.entry-grid > *:nth-child(5) { --stagger-delay: 120ms; }
+.entry-grid > *:nth-child(6) { --stagger-delay: 150ms; }
+.entry-grid > *:nth-child(7) { --stagger-delay: 180ms; }
+.entry-grid > *:nth-child(n+8) { --stagger-delay: 200ms; }
 
 .entry-card::before {
   content: '';
@@ -489,6 +649,11 @@ button:disabled {
   color: var(--on-accent);
 }
 
+.badge-session {
+  background: var(--accent-2);
+  color: #0d1f1c;
+}
+
 .badge-placement {
   display: inline-block;
   margin-top: 0.4rem;
@@ -503,6 +668,60 @@ button:disabled {
 
 .status-message.error {
   color: var(--danger);
+}
+
+.browse-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.75rem;
+  padding: var(--space-7) var(--space-4);
+  margin-top: var(--space-2);
+  color: var(--text-muted);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.browse-empty svg {
+  width: 36px;
+  height: 36px;
+  opacity: 0.55;
+  color: var(--accent-strong);
+}
+
+.browse-empty-title {
+  color: var(--text);
+  font-weight: 600;
+  font-size: var(--text-md);
+}
+
+.browse-empty p {
+  margin: 0;
+  max-width: 30rem;
+}
+
+.browse-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  color: var(--text-muted);
+  padding: var(--space-4) 0;
+}
+
+.browse-loading-spinner {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent-strong);
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .entry-detail {
