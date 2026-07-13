@@ -1402,7 +1402,12 @@ button:disabled {
   grid-template-columns: 300px 1fr;
   gap: 0;
   align-items: stretch;
-  min-height: calc(100vh - 130px);
+  /* 93px = measured nav height (was 130px, stale from before the nav was
+     reworked into a shorter single-row + hamburger layout — that overshoot
+     is why the sidebar/content panel fell short of the real page bottom).
+     100dvh (not 100vh) so mobile browser chrome show/hide doesn't throw
+     the calc off either. */
+  min-height: calc(100dvh - 93px);
 }
 
 @media (max-width: 720px) {
@@ -1457,6 +1462,20 @@ button:disabled {
 .tree-row:hover {
   background: var(--surface-2);
   border-color: rgba(0, 0, 0, 0.85);
+}
+
+/* Keyboard focus is shown on the row itself, not on whichever inner
+   button (toggle/label) happens to be focused — a focus ring on just the
+   label would be a second, smaller, misaligned box nested inside the
+   row's own border, drifting further from it at deeper indent levels. */
+.tree-row:focus-within {
+  border-color: var(--accent-strong);
+  box-shadow: 0 0 0 1px var(--accent-strong);
+}
+
+.tree-toggle:focus-visible,
+.tree-label:focus-visible {
+  outline: none;
 }
 
 .tree-row.drop-target {
