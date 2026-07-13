@@ -1448,17 +1448,20 @@ button:disabled {
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 0.5rem;
-  border-radius: var(--radius-sm);
+  border: 1px solid rgba(0, 0, 0, 0.55);
+  border-radius: var(--radius-frame);
   min-height: 2.5rem;
-  transition: background var(--transition);
+  transition: background var(--transition), border-color var(--transition);
 }
 
 .tree-row:hover {
   background: var(--surface-2);
+  border-color: rgba(0, 0, 0, 0.85);
 }
 
 .tree-row.drop-target {
   background: var(--surface-2);
+  border-color: #000;
   outline: 2px dashed var(--accent);
   outline-offset: -2px;
 }
