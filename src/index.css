@@ -1753,10 +1753,9 @@ button.tree-label:hover {
   color: var(--danger);
 }
 
-.home-empty-state {
-  max-width: 760px;
-  margin: 2rem auto 0;
-  text-align: center;
+.home-page {
+  max-width: 1100px;
+  margin: 0 auto;
 }
 
 .home-hero {
@@ -1831,6 +1830,22 @@ button.tree-label:hover {
   border-color: var(--on-accent);
 }
 
+.home-scope-picker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 2rem 0;
+}
+
+.home-scope-label {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
 .home-campaign-picker {
   display: flex;
   flex-wrap: wrap;
@@ -1838,10 +1853,76 @@ button.tree-label:hover {
   justify-content: center;
 }
 
-.home-hint {
+.home-section {
+  margin-top: 2.5rem;
+}
+
+.home-section-header {
+  margin-bottom: 1rem;
+}
+
+.home-section-header h2 {
+  position: relative;
+  margin-bottom: 0.6rem;
+  padding-bottom: 0.6rem;
+}
+
+.home-section-header h2::before {
+  content: '';
+  position: absolute;
+  left: 8px;
+  bottom: -2px;
+  width: 6px;
+  height: 6px;
+  background: var(--accent-strong);
+  transform: rotate(45deg);
+}
+
+.home-section-header h2::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 2.5rem;
+  height: 2px;
+  background: linear-gradient(90deg, var(--accent-strong), transparent);
+}
+
+.home-section-header .view-subtitle {
+  margin: 0;
+}
+
+.home-more-maps {
+  margin-top: 0.75rem;
   color: var(--text-muted);
   font-size: 0.9rem;
-  margin: 1.75rem 0 0;
+}
+
+.home-more-maps a {
+  color: var(--accent-2-strong);
+}
+
+.entry-search-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin-bottom: 1.5rem;
+}
+
+.entry-search-input {
+  width: 100%;
+  max-width: 420px;
+}
+
+.entry-search-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.chip-tag {
+  font-size: 0.8rem;
+  padding: 0.3rem 0.8rem;
 }
 
 .chip {
