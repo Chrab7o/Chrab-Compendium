@@ -34,7 +34,8 @@ export default function Home() {
 
       <p className="home-guidance">
         Use <strong>Maps</strong>, <strong>Locations</strong>, <strong>People</strong>,{' '}
-        <strong>Session Notes</strong>, and <strong>Campaigns</strong> up top to browse everything.
+        <strong>Session Notes</strong>, <strong>Search</strong>, and <strong>Campaigns</strong> up top
+        to browse everything.
       </p>
     </section>
   )

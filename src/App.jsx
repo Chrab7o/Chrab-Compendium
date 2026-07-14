@@ -6,6 +6,7 @@ import EntryEditorPage from './pages/EntryEditorPage'
 import MapsView from './pages/MapsView'
 import MapDetail from './pages/MapDetail'
 import TagView from './pages/TagView'
+import SearchPage from './pages/SearchPage'
 import Login from './pages/Login'
 import Notes from './pages/Notes'
 import MyCharacter from './pages/MyCharacter'
@@ -43,6 +44,7 @@ export default function App() {
           <Route path="/locations" element={<TagView tag="location" title="Locations" />} />
           <Route path="/people" element={<TagView tag="person" title="People" />} />
           <Route path="/session-notes" element={<TagView tag="session-note" title="Session Notes" />} />
+          <Route path="/search" element={<SearchPage />} />
           <Route path="/campaign/:id" element={<CampaignHome />} />
           <Route path="/login" element={<Login />} />
           <Route

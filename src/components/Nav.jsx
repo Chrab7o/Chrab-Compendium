@@ -66,6 +66,9 @@ export default function Nav() {
           <NavLink to="/session-notes" className={({ isActive }) => (isActive ? 'active' : '')}>
             Session Notes
           </NavLink>
+          <NavLink to="/search" className={({ isActive }) => (isActive ? 'active' : '')}>
+            Search
+          </NavLink>
           <CampaignsDropdown />
           {isPlayer && (
             <NavLink to="/character" className={({ isActive }) => (isActive ? 'active' : '')}>

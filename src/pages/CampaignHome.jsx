@@ -55,8 +55,9 @@ export default function CampaignHome() {
       </div>
 
       <p className="home-guidance">
-        Use <strong>Maps</strong>, <strong>Locations</strong>, <strong>People</strong>, and{' '}
-        <strong>Session Notes</strong> up top — they're already scoped to {campaign.name}.
+        Use <strong>Maps</strong>, <strong>Locations</strong>, <strong>People</strong>,{' '}
+        <strong>Session Notes</strong>, and <strong>Search</strong> up top — they're already scoped to{' '}
+        {campaign.name}.
       </p>
 
       {!mapsLoading && maps.length > 0 && (
