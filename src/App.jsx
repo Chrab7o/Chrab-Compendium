@@ -5,6 +5,7 @@ import EntryDetail from './pages/EntryDetail'
 import EntryEditorPage from './pages/EntryEditorPage'
 import MapsView from './pages/MapsView'
 import MapDetail from './pages/MapDetail'
+import WorldMapPage from './pages/WorldMapPage'
 import TagView from './pages/TagView'
 import SearchPage from './pages/SearchPage'
 import Login from './pages/Login'
@@ -21,6 +22,7 @@ import DMCampaignsPage from './pages/dm/DMCampaignsPage'
 import DMCategoriesPage from './pages/dm/DMCategoriesPage'
 import DMTagsPage from './pages/dm/DMTagsPage'
 import DMOrganizePage from './pages/dm/DMOrganizePage'
+import DMWorldsPage from './pages/dm/DMWorldsPage'
 import DMMapsPage from './pages/dm/DMMapsPage'
 import DMCharactersPage from './pages/dm/DMCharactersPage'
 import DMSkillTreesPage from './pages/dm/DMSkillTreesPage'
@@ -41,6 +43,7 @@ export default function App() {
           <Route path="/entry/:id" element={<EntryDetail />} />
           <Route path="/maps" element={<MapsView />} />
           <Route path="/map/:slug" element={<MapDetail />} />
+          <Route path="/world/:slug" element={<WorldMapPage />} />
           <Route path="/locations" element={<TagView tag="location" title="Locations" />} />
           <Route path="/people" element={<TagView tag="person" title="People" />} />
           <Route path="/session-notes" element={<TagView tag="session-note" title="Session Notes" />} />
@@ -107,6 +110,7 @@ export default function App() {
           >
             <Route index element={<DMHome />} />
             <Route path="organize" element={<DMOrganizePage />} />
+            <Route path="worlds" element={<DMWorldsPage />} />
             <Route path="categories" element={<DMCategoriesPage />} />
             <Route path="tags" element={<DMTagsPage />} />
             <Route path="campaigns" element={<DMCampaignsPage />} />

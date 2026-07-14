@@ -1054,6 +1054,14 @@ button:disabled {
   font-size: 0.85rem;
 }
 
+.dm-list-thumb {
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
 .dm-list-actions {
   margin-left: auto;
   display: flex;
@@ -1852,6 +1860,90 @@ button.tree-label:hover {
 
 .home-guidance strong {
   color: var(--text);
+}
+
+.world-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1.25rem;
+}
+
+.world-card {
+  position: relative;
+  display: block;
+  min-height: 220px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background-color: var(--surface-2);
+  background-size: cover;
+  background-position: center;
+  overflow: hidden;
+  text-decoration: none;
+  color: var(--text);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow var(--transition), transform var(--transition);
+}
+
+.world-card:hover {
+  box-shadow: var(--shadow-md), var(--shadow-glow-accent);
+  transform: translateY(-3px);
+}
+
+.world-card-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 1.25rem;
+  background: linear-gradient(180deg, transparent 40%, rgba(35, 20, 10, 0.78) 100%);
+}
+
+.world-card-overlay h3 {
+  margin: 0 0 0.35rem;
+  color: #f6ecd2;
+}
+
+.world-card-overlay p {
+  margin: 0;
+  color: rgba(246, 236, 210, 0.85);
+  font-size: 0.9rem;
+}
+
+.world-map-page {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.world-map-hero {
+  position: relative;
+  min-height: 200px;
+  margin-bottom: 1.5rem;
+  border-radius: var(--radius-md);
+  background-color: var(--accent);
+  background-size: cover;
+  background-position: center;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+  box-shadow: var(--shadow-md), var(--shadow-glow-accent);
+}
+
+.world-map-hero-overlay {
+  width: 100%;
+  padding: 1.5rem;
+  background: linear-gradient(180deg, transparent 30%, rgba(35, 20, 10, 0.78) 100%);
+}
+
+.world-map-hero-overlay h1 {
+  margin: 0 0 0.35rem;
+  color: #f6ecd2;
+}
+
+.world-map-hero-overlay .home-tagline {
+  margin: 0;
+  max-width: none;
+  color: rgba(246, 236, 210, 0.85);
 }
 
 .home-section {

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import { uploadMapImage, deleteMapImage, readImageDimensions } from '../../lib/mapStorage'
 
-const emptyForm = { id: null, name: '', slug: '', campaign_id: '' }
+const emptyForm = { id: null, name: '', slug: '', campaign_id: '', world_id: '' }
 
 function slugify(name) {
   return name
@@ -12,14 +12,20 @@ function slugify(name) {
     .replace(/(^-|-$)/g, '')
 }
 
-export default function MapManager({ maps, campaigns, onChange }) {
+export default function MapManager({ maps, campaigns, worlds, onChange }) {
   const [form, setForm] = useState(emptyForm)
   const [file, setFile] = useState(null)
   const [error, setError] = useState(null)
   const [saving, setSaving] = useState(false)
 
   function startEdit(map) {
-    setForm({ id: map.id, name: map.name, slug: map.slug, campaign_id: map.campaign_id ?? '' })
+    setForm({
+      id: map.id,
+      name: map.name,
+      slug: map.slug,
+      campaign_id: map.campaign_id ?? '',
+      world_id: map.world_id ?? '',
+    })
     setFile(null)
     setError(null)
   }
@@ -45,6 +51,7 @@ export default function MapManager({ maps, campaigns, onChange }) {
         name: form.name,
         slug: form.slug || slugify(form.name),
         campaign_id: form.campaign_id || null,
+        world_id: form.world_id || null,
       }
 
       if (form.id) {
@@ -112,6 +119,20 @@ export default function MapManager({ maps, campaigns, onChange }) {
             {campaigns.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          World
+          <select
+            value={form.world_id}
+            onChange={(e) => setForm({ ...form, world_id: e.target.value })}
+          >
+            <option value="">No world (not shown on any World page)</option>
+            {worlds.map((w) => (
+              <option key={w.id} value={w.id}>
+                {w.name}
               </option>
             ))}
           </select>

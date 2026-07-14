@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import { useCampaignContext } from '../../contexts/CampaignContext'
+import { useWorlds } from '../../hooks/useWorlds'
 import MapManager from '../../components/dm/MapManager'
 import MapMarkerEditor from '../../components/dm/MapMarkerEditor'
 
 export default function DMMapsPage() {
   const { campaigns } = useCampaignContext()
+  const { worlds, reload: reloadWorlds } = useWorlds()
   const [maps, setMaps] = useState([])
   const [entries, setEntries] = useState([])
   const [loading, setLoading] = useState(true)
@@ -32,7 +34,15 @@ export default function DMMapsPage() {
       <div className="view-header">
         <h1>Maps</h1>
       </div>
-      <MapManager maps={maps} campaigns={campaigns} onChange={load} />
+      <MapManager
+        maps={maps}
+        campaigns={campaigns}
+        worlds={worlds}
+        onChange={() => {
+          load()
+          reloadWorlds()
+        }}
+      />
       <MapMarkerEditor maps={maps} entries={entries} />
     </section>
   )

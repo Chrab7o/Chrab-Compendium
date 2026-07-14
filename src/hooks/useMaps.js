@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 
-export function useMaps({ campaignId, includeGeneral = true } = {}) {
+export function useMaps({ campaignId, includeGeneral = true, worldId } = {}) {
   const [maps, setMaps] = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -17,6 +17,9 @@ export function useMaps({ campaignId, includeGeneral = true } = {}) {
           ? query.or(`campaign_id.eq.${campaignId},campaign_id.is.null`)
           : query.eq('campaign_id', campaignId)
       }
+      if (worldId) {
+        query = query.eq('world_id', worldId)
+      }
 
       const { data } = await query
       if (!cancelled) {
@@ -29,7 +32,7 @@ export function useMaps({ campaignId, includeGeneral = true } = {}) {
     return () => {
       cancelled = true
     }
-  }, [campaignId, includeGeneral])
+  }, [campaignId, includeGeneral, worldId])
 
   return { maps, loading }
 }

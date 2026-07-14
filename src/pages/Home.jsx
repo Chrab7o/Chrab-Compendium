@@ -1,12 +1,17 @@
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { useWorlds } from '../hooks/useWorlds'
+import { getWorldHeroImageUrl } from '../lib/worldStorage'
 
-// A plain landing page — orientation + where to log in. Actual browsing
-// lives in the top nav (Maps/Locations/People/Session Notes/Campaigns), not
-// here, so this stays simple rather than re-showing everything the site has.
+// The landing page — orientation + where to log in, plus (new in this
+// phase) picking which world to explore. Actual category/tag browsing
+// still lives in the top nav for now (Maps/Locations/People/Session
+// Notes/Search/Campaigns) — trimming/consolidating that nav is a later
+// phase, not this one.
 export default function Home() {
   const navigate = useNavigate()
   const { session, isPlayer } = useAuth()
+  const { worlds, loading: worldsLoading } = useWorlds()
 
   return (
     <section className="page-wide home-page">
@@ -31,6 +36,33 @@ export default function Home() {
           )}
         </div>
       </div>
+
+      {!worldsLoading && worlds.length > 0 && (
+        <div className="home-section">
+          <div className="home-section-header">
+            <h2>Choose a world</h2>
+          </div>
+          <div className="world-card-grid">
+            {worlds.map((world) => (
+              <Link
+                key={world.id}
+                to={`/world/${world.slug}`}
+                className="world-card"
+                style={
+                  world.hero_image_path
+                    ? { backgroundImage: `url(${getWorldHeroImageUrl(world.hero_image_path)})` }
+                    : undefined
+                }
+              >
+                <div className="world-card-overlay">
+                  <h3>{world.name}</h3>
+                  {world.description && <p>{world.description}</p>}
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
 
       <p className="home-guidance">
         Use <strong>Maps</strong>, <strong>Locations</strong>, <strong>People</strong>,{' '}
