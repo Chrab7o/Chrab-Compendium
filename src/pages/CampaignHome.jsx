@@ -1,24 +1,37 @@
-import { useEffect, useState } from 'react'
-import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
-import { supabase } from '../lib/supabaseClient'
+import { Navigate, useNavigate, useParams } from 'react-router-dom'
+import { useEffect } from 'react'
 import { useCampaignContext } from '../contexts/CampaignContext'
-import { useCategories } from '../contexts/CategoryContext'
-import { mergePlacements, effectiveEntryCampaignId } from '../lib/folders'
+import { useMaps } from '../hooks/useMaps'
+import { useMapMarkers } from '../hooks/useMapMarkers'
+import { getMapImageUrl } from '../lib/mapStorage'
+import MapViewer from '../components/MapViewer'
 
-// The quick-link cards below aren't hardcoded to any fixed set of categories —
-// a category shows up here only if it actually has entries scoped to this
-// campaign (or general entries with no campaign of their own), the same
-// dynamic/computed scoping CategoryBrowser uses. Add a category in the DM
-// Dashboard and, once it has content, it appears here automatically.
+// A campaign-scoped map, its own component so useMapMarkers (keyed on one
+// map id) only ever tracks the map actually being shown.
+function CampaignMap({ map }) {
+  const { markers } = useMapMarkers(map.id)
+  return (
+    <MapViewer
+      imageUrl={getMapImageUrl(map.image_path)}
+      width={map.image_width}
+      height={map.image_height}
+      markers={markers}
+    />
+  )
+}
+
+// A landing page for one campaign, not a category dump — earlier this
+// listed a quick-link card per category with content, but for a world
+// organized mostly through nested folders inside one or two categories,
+// that card just flattened the whole folder tree into "click here to see
+// literally everything," the same "shows all files" problem Home itself
+// had. Browsing lives in the top nav (already campaign-scoped once you're
+// here, via CampaignContext) and, per-campaign, in that campaign's own map.
 export default function CampaignHome() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { campaigns, setCampaignId } = useCampaignContext()
-  const { categories } = useCategories()
-  const [folders, setFolders] = useState([])
-  const [entries, setEntries] = useState([])
-  const [placements, setPlacements] = useState([])
-  const [loading, setLoading] = useState(true)
+  const { maps, loading: mapsLoading } = useMaps({ campaignId: id, includeGeneral: true })
 
   const campaign = campaigns.find((c) => c.id === id)
 
@@ -26,33 +39,11 @@ export default function CampaignHome() {
     setCampaignId(id)
   }, [id, setCampaignId])
 
-  useEffect(() => {
-    setLoading(true)
-    Promise.all([
-      supabase.from('folders').select('*'),
-      supabase.from('entries').select('*'),
-      supabase.from('entry_placements').select('*'),
-    ]).then(([{ data: folderData }, { data: entryData }, { data: placementData }]) => {
-      setFolders(folderData ?? [])
-      setEntries(entryData ?? [])
-      setPlacements(placementData ?? [])
-      setLoading(false)
-    })
-  }, [id])
-
   if (campaigns.length > 0 && !campaign) return <Navigate to="/" replace />
-  if (loading || !campaign) return <p className="page status-message">Loading...</p>
-
-  const scopedEntries = mergePlacements(entries, placements).filter((e) => {
-    const eff = effectiveEntryCampaignId(folders, e)
-    return !eff || eff === id
-  })
-  const categoriesWithContent = categories.filter((cat) =>
-    scopedEntries.some((e) => e.category === cat.value)
-  )
+  if (!campaign) return <p className="page status-message">Loading...</p>
 
   return (
-    <section className="page campaign-home">
+    <section className="page-wide campaign-home">
       <div className="home-hero">
         <h1>{campaign.name}</h1>
         {campaign.description && <p className="home-tagline">{campaign.description}</p>}
@@ -63,16 +54,19 @@ export default function CampaignHome() {
         </div>
       </div>
 
-      {categoriesWithContent.length > 0 ? (
-        <div className="entry-grid">
-          {categoriesWithContent.map((cat) => (
-            <Link key={cat.value} to="/" state={{ category: cat.value }} className="entry-card">
-              <h3>{cat.label}</h3>
-            </Link>
-          ))}
+      <p className="home-guidance">
+        Use <strong>Maps</strong>, <strong>Locations</strong>, <strong>People</strong>, and{' '}
+        <strong>Session Notes</strong> up top — they're already scoped to {campaign.name}.
+      </p>
+
+      {!mapsLoading && maps.length > 0 && (
+        <div className="home-section">
+          <div className="home-section-header">
+            <h2>Map</h2>
+            <p className="view-subtitle">Click a marker to jump straight to its entry.</p>
+          </div>
+          <CampaignMap map={maps[0]} />
         </div>
-      ) : (
-        <p className="status-message">Nothing has been added for this campaign yet.</p>
       )}
     </section>
   )
