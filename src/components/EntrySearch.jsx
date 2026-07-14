@@ -55,7 +55,15 @@ export default function EntrySearch({ initialCategory = null }) {
     })
   }
 
+  const hasFilters = Boolean(query || category || activeTags.size > 0)
+
+  // Nothing typed and nothing filtered means every entry in scope would
+  // match — showing that whole pile by default is exactly the "messy, no
+  // one asked for this" result this component exists to avoid, so it
+  // stays empty until the visitor actually searches or filters for
+  // something (an incoming initialCategory from a quick-link counts).
   const results = useMemo(() => {
+    if (!hasFilters) return []
     const merged = mergePlacements(entries, placements)
     const q = query.trim().toLowerCase()
     return merged
@@ -70,9 +78,7 @@ export default function EntrySearch({ initialCategory = null }) {
         return true
       })
       .sort((a, b) => a.title.localeCompare(b.title))
-  }, [entries, placements, folders, campaignId, category, activeTags, query])
-
-  const hasFilters = Boolean(query || category || activeTags.size > 0)
+  }, [hasFilters, entries, placements, folders, campaignId, category, activeTags, query])
 
   return (
     <div className="entry-search">
@@ -131,11 +137,19 @@ export default function EntrySearch({ initialCategory = null }) {
         </div>
       )}
 
-      {!loading && results.length === 0 && (
+      {!loading && !hasFilters && (
+        <div className="browse-empty">
+          <BrowseIcon />
+          <p className="browse-empty-title">Search to see results</p>
+          <p>Type a name or pick a category/tag above.</p>
+        </div>
+      )}
+
+      {!loading && hasFilters && results.length === 0 && (
         <div className="browse-empty">
           <BrowseIcon />
           <p className="browse-empty-title">Nothing found</p>
-          <p>{hasFilters ? 'Try a different search or fewer filters.' : 'Nothing here yet.'}</p>
+          <p>Try a different search or fewer filters.</p>
         </div>
       )}
 

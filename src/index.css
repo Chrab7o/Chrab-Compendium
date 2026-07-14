@@ -1830,27 +1830,14 @@ button.tree-label:hover {
   border-color: var(--on-accent);
 }
 
-.home-scope-picker {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  margin: 2rem 0;
-}
-
-.home-scope-label {
+.home-guidance {
+  text-align: center;
   color: var(--text-muted);
-  font-size: 0.85rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  margin: 2rem 0 0;
 }
 
-.home-campaign-picker {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.6rem;
-  justify-content: center;
+.home-guidance strong {
+  color: var(--text);
 }
 
 .home-section {
@@ -1890,16 +1877,6 @@ button.tree-label:hover {
 
 .home-section-header .view-subtitle {
   margin: 0;
-}
-
-.home-more-maps {
-  margin-top: 0.75rem;
-  color: var(--text-muted);
-  font-size: 0.9rem;
-}
-
-.home-more-maps a {
-  color: var(--accent-2-strong);
 }
 
 .entry-search-controls {
