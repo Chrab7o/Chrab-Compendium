@@ -6,6 +6,6 @@ export default function RequireDM({ children }) {
 
   if (loading) return <p className="status-message">Loading...</p>
   if (!session) return <Navigate to="/login" replace />
-  if (!isDM) return <Navigate to="/notes" replace />
+  if (!isDM) return <Navigate to="/character" replace />
   return children
 }

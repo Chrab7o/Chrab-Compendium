@@ -3,11 +3,10 @@ import { useAuth } from '../contexts/AuthContext'
 import { useWorlds } from '../hooks/useWorlds'
 import { getWorldHeroImageUrl } from '../lib/worldStorage'
 
-// The landing page — orientation + where to log in, plus (new in this
-// phase) picking which world to explore. Actual category/tag browsing
-// still lives in the top nav for now (Maps/Locations/People/Session
-// Notes/Search/Campaigns) — trimming/consolidating that nav is a later
-// phase, not this one.
+// The landing page — orientation + where to log in, plus picking which
+// world to explore. Actual category/tag browsing lives in the top nav
+// (Maps/Locations/People/Session Notes/Search); campaign scoping is the
+// site-wide filter in the nav corner, not a separate destination.
 export default function Home() {
   const navigate = useNavigate()
   const { session, isPlayer } = useAuth()
@@ -31,7 +30,7 @@ export default function Home() {
           )}
           {isPlayer && (
             <button type="button" className="secondary" onClick={() => navigate('/character')}>
-              My Character
+              Character
             </button>
           )}
         </div>
@@ -66,8 +65,8 @@ export default function Home() {
 
       <p className="home-guidance">
         Use <strong>Maps</strong>, <strong>Locations</strong>, <strong>People</strong>,{' '}
-        <strong>Session Notes</strong>, <strong>Search</strong>, and <strong>Campaigns</strong> up top
-        to browse everything.
+        <strong>Session Notes</strong>, and <strong>Search</strong> up top to browse everything —
+        filter by campaign with the picker in the corner.
       </p>
     </section>
   )

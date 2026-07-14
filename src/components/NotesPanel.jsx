@@ -6,7 +6,10 @@ import { useImpersonation } from '../contexts/ImpersonationContext'
 
 const emptyForm = { id: null, title: '', content: '', campaign_id: '' }
 
-export default function Notes() {
+// The Character hub's "My Notes" tab — private, player-authored scratch
+// notes. Was its own routed page; the CRUD logic is unchanged, just no
+// longer wrapped in its own <section className="page"> since it's embedded.
+export default function NotesPanel() {
   const { session } = useAuth()
   const { campaigns } = useCampaignContext()
   const { impersonating } = useImpersonation()
@@ -75,15 +78,12 @@ export default function Notes() {
   }
 
   return (
-    <section className="page">
-      <div className="view-header">
-        <h1>My Notes</h1>
-        <p className="view-subtitle">
-          {impersonating
-            ? `Viewing ${impersonating.name}'s private notes.`
-            : 'Private to you — visible to your DM, but not to other players or the public.'}
-        </p>
-      </div>
+    <div>
+      <p className="view-subtitle">
+        {impersonating
+          ? `Viewing ${impersonating.name}'s private notes.`
+          : 'Private to you — visible to your DM, but not to other players or the public.'}
+      </p>
 
       <div className="dm-panel">
         <form onSubmit={handleSubmit} className="dm-form">
@@ -152,6 +152,6 @@ export default function Notes() {
           ))}
         </ul>
       </div>
-    </section>
+    </div>
   )
 }

@@ -99,7 +99,7 @@ export default function CharacterManager({ campaigns, onChange }) {
 
   function viewAs(character) {
     startImpersonating(character)
-    navigate('/account')
+    navigate('/character')
   }
 
   async function handleDelete(id) {

@@ -9,14 +9,9 @@ import WorldMapPage from './pages/WorldMapPage'
 import TagView from './pages/TagView'
 import SearchPage from './pages/SearchPage'
 import Login from './pages/Login'
-import Notes from './pages/Notes'
-import MyCharacter from './pages/MyCharacter'
+import CharacterHub from './pages/CharacterHub'
 import CharacterSheet from './pages/CharacterSheet'
-import Account from './pages/Account'
-import MySkillTree from './pages/MySkillTree'
-import CampaignHome from './pages/CampaignHome'
 import ImportPage from './pages/ImportPage'
-import PlayerLayout from './components/PlayerLayout'
 import DMHome from './pages/dm/DMHome'
 import DMCampaignsPage from './pages/dm/DMCampaignsPage'
 import DMCategoriesPage from './pages/dm/DMCategoriesPage'
@@ -48,25 +43,12 @@ export default function App() {
           <Route path="/people" element={<TagView tag="person" title="People" />} />
           <Route path="/session-notes" element={<TagView tag="session-note" title="Session Notes" />} />
           <Route path="/search" element={<SearchPage />} />
-          <Route path="/campaign/:id" element={<CampaignHome />} />
           <Route path="/login" element={<Login />} />
-          <Route
-            path="/notes"
-            element={
-              <RequireAuth>
-                <PlayerLayout>
-                  <Notes />
-                </PlayerLayout>
-              </RequireAuth>
-            }
-          />
           <Route
             path="/character"
             element={
               <RequireAuth>
-                <PlayerLayout>
-                  <MyCharacter />
-                </PlayerLayout>
+                <CharacterHub />
               </RequireAuth>
             }
           />
@@ -74,29 +56,7 @@ export default function App() {
             path="/character/:id"
             element={
               <RequireAuth>
-                <PlayerLayout>
-                  <CharacterSheet />
-                </PlayerLayout>
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/account"
-            element={
-              <RequireAuth>
-                <PlayerLayout>
-                  <Account />
-                </PlayerLayout>
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/skills"
-            element={
-              <RequireAuth>
-                <PlayerLayout>
-                  <MySkillTree />
-                </PlayerLayout>
+                <CharacterSheet />
               </RequireAuth>
             }
           />

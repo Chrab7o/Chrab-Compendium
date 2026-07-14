@@ -1,10 +1,12 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../contexts/AuthContext'
 import { useImpersonation } from '../contexts/ImpersonationContext'
 
-export default function Account() {
+// The Character hub's "Account" tab — was its own page with a quick-link
+// grid to Character/Notes/Skills; those are now just the other tabs in the
+// same hub, so this is just the password-change form.
+export default function AccountPanel() {
   const { session } = useAuth()
   const { impersonating } = useImpersonation()
   const [password, setPassword] = useState('')
@@ -38,28 +40,10 @@ export default function Account() {
   }
 
   return (
-    <section className="page">
-      <div className="view-header">
-        <h1>My Account</h1>
-        <p className="view-subtitle">
-          {impersonating ? `Viewing as ${impersonating.name}` : `Signed in as ${session.user.email}`}
-        </p>
-      </div>
-
-      <div className="entry-grid">
-        <Link to="/character" className="entry-card">
-          <h3>Character Sheet</h3>
-          <p className="status-message">View and track your character.</p>
-        </Link>
-        <Link to="/notes" className="entry-card">
-          <h3>My Notes</h3>
-          <p className="status-message">Private notes only you and your DM can see.</p>
-        </Link>
-        <Link to="/skills" className="entry-card">
-          <h3>Skill Tree</h3>
-          <p className="status-message">Spend points and track unlocks.</p>
-        </Link>
-      </div>
+    <div>
+      <p className="view-subtitle">
+        {impersonating ? `Viewing as ${impersonating.name}` : `Signed in as ${session.user.email}`}
+      </p>
 
       {impersonating ? (
         <p className="status-message">
@@ -100,6 +84,6 @@ export default function Account() {
           </form>
         </div>
       )}
-    </section>
+    </div>
   )
 }

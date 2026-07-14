@@ -16,8 +16,13 @@ import {
   getCurrency,
 } from '../lib/foundryCharacter'
 
-export default function CharacterSheet() {
-  const { id } = useParams()
+// Reads the character id from a prop when embedded (the Character hub
+// passes its own resolved id) or from the route param at the DM's direct
+// /character/:id link (CharacterManager, FoundryImporter) — same component
+// either way, just a different source for which character to show.
+export default function CharacterSheet({ characterId: characterIdProp }) {
+  const { id: routeId } = useParams()
+  const id = characterIdProp ?? routeId
   const [character, setCharacter] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)

@@ -3,7 +3,6 @@ import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useCampaignContext } from '../contexts/CampaignContext'
 import { useImpersonation } from '../contexts/ImpersonationContext'
-import CampaignsDropdown from './CampaignsDropdown'
 import { MenuIcon, CloseIcon } from './Icons'
 
 export default function Nav() {
@@ -69,10 +68,9 @@ export default function Nav() {
           <NavLink to="/search" className={({ isActive }) => (isActive ? 'active' : '')}>
             Search
           </NavLink>
-          <CampaignsDropdown />
           {isPlayer && (
             <NavLink to="/character" className={({ isActive }) => (isActive ? 'active' : '')}>
-              My Character
+              Character
             </NavLink>
           )}
           {isDM && (
@@ -86,7 +84,7 @@ export default function Nav() {
             className="campaign-picker"
             value={campaignId}
             onChange={(e) => setCampaignId(e.target.value)}
-            aria-label="Viewing campaign"
+            aria-label="Filter by campaign"
           >
             <option value="">All campaigns</option>
             {campaigns.map((c) => (

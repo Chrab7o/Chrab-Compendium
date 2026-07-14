@@ -1,19 +1,27 @@
 import { useEffect, useState } from 'react'
-import { Navigate } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../contexts/AuthContext'
 import { useCampaignContext } from '../contexts/CampaignContext'
 import { useImpersonation } from '../contexts/ImpersonationContext'
 
-export default function MyCharacter() {
+// Resolves "the character belonging to the current viewer" — the logged-in
+// player's own character for the selected campaign, or (for a DM) whichever
+// character they've started impersonating. Centralizes the lookup that used
+// to be copy-pasted near-verbatim across MyCharacter.jsx and MySkillTree.jsx.
+// Returns characterId: undefined while loading, null if none found.
+export function useMyCharacter() {
   const { session } = useAuth()
   const { campaignId } = useCampaignContext()
   const { impersonating } = useImpersonation()
-  const [characterId, setCharacterId] = useState(undefined) // undefined = loading, null = none found
+  const [characterId, setCharacterId] = useState(undefined)
 
   useEffect(() => {
     if (impersonating) {
       setCharacterId(impersonating.characterId)
+      return
+    }
+    if (!session) {
+      setCharacterId(null)
       return
     }
     let cancelled = false
@@ -26,19 +34,7 @@ export default function MyCharacter() {
     return () => {
       cancelled = true
     }
-  }, [session.user.id, campaignId, impersonating])
+  }, [session, campaignId, impersonating])
 
-  if (characterId === undefined)
-    return (
-      <p className="page status-message">Loading...</p>
-    )
-  if (characterId) return <Navigate to={`/character/${characterId}`} replace />
-
-  return (
-    <p className="page status-message">
-      No character found for{' '}
-      {campaignId ? 'the selected campaign' : 'general (no campaign selected)'}. Ask your DM to
-      import or assign one, or pick a different campaign from the picker above.
-    </p>
-  )
+  return { characterId, impersonating }
 }
