@@ -120,6 +120,16 @@ export function effectiveEntryCampaignId(folders, entry) {
   return entry.folder_id ? effectiveFolderCampaignId(folders, entry.folder_id) : null
 }
 
+// Every entry filed under `folderId` or any of its descendant folders,
+// including extra placements — used by map regions to show "everything
+// filed here" without reimplementing folder-tree walking a second time.
+export function entriesUnderFolderTree(folders, entries, placements, folderId) {
+  if (!folderId) return []
+  const ids = new Set([folderId, ...descendantFolderIds(folders, folderId)])
+  const merged = mergePlacements(entries, placements)
+  return [...ids].flatMap((id) => entriesInFolder(merged, id))
+}
+
 // Every descendant folder id of `folderId`, used to block moving a folder
 // into its own subtree.
 export function descendantFolderIds(folders, folderId) {

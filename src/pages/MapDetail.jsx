@@ -1,9 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
-import { useMapMarkers } from '../hooks/useMapMarkers'
-import { getMapImageUrl } from '../lib/mapStorage'
-import MapViewer from '../components/MapViewer'
+import MapWithRegions from '../components/MapWithRegions'
 
 export default function MapDetail() {
   const { slug } = useParams()
@@ -28,25 +26,18 @@ export default function MapDetail() {
     }
   }, [slug])
 
-  const { markers } = useMapMarkers(map?.id)
-
   if (loading) return <p className="status-message">Loading...</p>
   if (!map) return <p className="status-message error">Couldn't find that map.</p>
 
   return (
-    <section className="page">
+    <section className="page-wide">
       <Link to="/maps" className="back-link">
         &larr; Back to maps
       </Link>
       <div className="view-header">
         <h1>{map.name}</h1>
       </div>
-      <MapViewer
-        imageUrl={getMapImageUrl(map.image_path)}
-        width={map.image_width}
-        height={map.image_height}
-        markers={markers}
-      />
+      <MapWithRegions map={map} />
     </section>
   )
 }

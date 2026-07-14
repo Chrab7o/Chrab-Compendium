@@ -1117,6 +1117,71 @@ button:disabled {
   margin: 0.5rem 0 1rem;
 }
 
+.map-region-vertex {
+  display: block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent-strong);
+  border: 2px solid var(--on-accent);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+.map-detail-layout {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.5rem;
+}
+
+.map-detail-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.region-panel {
+  width: 340px;
+  flex-shrink: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-frame);
+  padding: 1.25rem;
+  box-shadow: var(--shadow-sm), inset 1px 0 0 rgba(0, 0, 0, 0.06);
+  max-height: 80vh;
+  overflow-y: auto;
+  animation: card-enter 0.25s ease both;
+}
+
+.region-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.region-panel-header h2 {
+  margin: 0;
+}
+
+.region-panel-group {
+  margin-top: 1.25rem;
+}
+
+.region-panel-group h3 {
+  margin-bottom: 0.6rem;
+}
+
+@media (max-width: 900px) {
+  .map-detail-layout {
+    flex-direction: column;
+  }
+
+  .region-panel {
+    width: 100%;
+    max-height: none;
+  }
+}
+
 .marker-form {
   background: linear-gradient(160deg, var(--surface) 0%, var(--surface-2) 100%);
   border: 1px solid var(--border);

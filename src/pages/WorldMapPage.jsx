@@ -2,24 +2,8 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 import { useMaps } from '../hooks/useMaps'
-import { useMapMarkers } from '../hooks/useMapMarkers'
-import { getMapImageUrl } from '../lib/mapStorage'
 import { getWorldHeroImageUrl } from '../lib/worldStorage'
-import MapViewer from '../components/MapViewer'
-
-// A single map's markers, isolated so useMapMarkers (keyed on one map id)
-// only ever tracks whichever timeline is currently selected.
-function TimelineMap({ map }) {
-  const { markers } = useMapMarkers(map.id)
-  return (
-    <MapViewer
-      imageUrl={getMapImageUrl(map.image_path)}
-      width={map.image_width}
-      height={map.image_height}
-      markers={markers}
-    />
-  )
-}
+import MapWithRegions from '../components/MapWithRegions'
 
 export default function WorldMapPage() {
   const { slug } = useParams()
@@ -94,12 +78,7 @@ export default function WorldMapPage() {
         </div>
       )}
 
-      {activeMap && (
-        <>
-          <p className="view-subtitle">Click a marker to jump straight to its entry.</p>
-          <TimelineMap key={activeMap.id} map={activeMap} />
-        </>
-      )}
+      {activeMap && <MapWithRegions key={activeMap.id} map={activeMap} />}
 
       <p className="home-guidance">
         <Link to="/">&larr; Back to Home</Link>

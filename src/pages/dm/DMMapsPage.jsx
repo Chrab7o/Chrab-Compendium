@@ -4,22 +4,26 @@ import { useCampaignContext } from '../../contexts/CampaignContext'
 import { useWorlds } from '../../hooks/useWorlds'
 import MapManager from '../../components/dm/MapManager'
 import MapMarkerEditor from '../../components/dm/MapMarkerEditor'
+import MapRegionEditor from '../../components/dm/MapRegionEditor'
 
 export default function DMMapsPage() {
   const { campaigns } = useCampaignContext()
   const { worlds, reload: reloadWorlds } = useWorlds()
   const [maps, setMaps] = useState([])
   const [entries, setEntries] = useState([])
+  const [folders, setFolders] = useState([])
   const [loading, setLoading] = useState(true)
 
   const load = useCallback(async () => {
     setLoading(true)
-    const [{ data: mapData }, { data: entryData }] = await Promise.all([
+    const [{ data: mapData }, { data: entryData }, { data: folderData }] = await Promise.all([
       supabase.from('maps').select('*').order('name', { ascending: true }),
       supabase.from('entries').select('id, title').order('title', { ascending: true }),
+      supabase.from('folders').select('*'),
     ])
     setMaps(mapData ?? [])
     setEntries(entryData ?? [])
+    setFolders(folderData ?? [])
     setLoading(false)
   }, [])
 
@@ -44,6 +48,7 @@ export default function DMMapsPage() {
         }}
       />
       <MapMarkerEditor maps={maps} entries={entries} />
+      <MapRegionEditor maps={maps} folders={folders} />
     </section>
   )
 }
