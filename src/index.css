@@ -1,39 +1,49 @@
 :root {
-  color-scheme: light dark;
-  /* "Ashfall" identity, bolder pass: pushed every "neutral" and accent
-     token further toward saturated/bright rather than a subtle nudge —
-     borders and muted text are now unmistakably colored, not just tinted. */
-  --bg: #100a1c;
-  --surface: #24123a;
-  --surface-2: #341a54;
-  --border: #7c4fe0;
-  --text: #f4ecdd;
-  --text-muted: #d1a8ff;
+  color-scheme: light;
+  /* "Marginalia" identity: a full pivot away from the dark "Ashfall"
+     palette toward a light parchment/open-book feel — cream page, dark
+     ink text, a wax-seal crimson primary (replacing gold), hunter green
+     secondary (replacing emerald), and a brass/gilt tertiary (replacing
+     the old violet, same token names so campaign badges etc. keep
+     working — just retinted). No dark mode. */
+  --bg: #e7d7ae;
+  --surface: #f6ecd2;
+  --surface-2: #efe0b8;
+  --border: #8b6f47;
+  --text: #2b1d12;
+  --text-muted: #6b5636;
 
-  --accent: #e6a400;
-  --accent-strong: #ffd23f;
-  --on-accent: #241a06;
+  --accent: #7a1f2b;
+  --accent-strong: #a32d3d;
+  --on-accent: #f6ecd2;
 
-  --accent-2: #0ec46f;
-  --accent-2-strong: #35ffb8;
-  --on-accent-2: #06170d;
+  --accent-2: #2f5233;
+  --accent-2-strong: #4a7a52;
+  --on-accent-2: #f6ecd2;
 
-  --accent-red: #e0173e;
-  --accent-red-strong: #ff5277;
+  /* Danger is a distinct hue from the primary accent this time — both used
+     to be gold/red-adjacent-enough to coexist, but now the primary accent
+     IS crimson, so danger shifts to a brighter rust-red to stay distinct. */
+  --accent-red: #b83227;
+  --accent-red-strong: #d84a3a;
   --danger: var(--accent-red);
   --danger-strong: var(--accent-red-strong);
-  --on-danger: #fdecef;
+  --on-danger: #fdf1ea;
 
-  /* Fourth accent: vivid violet, promoted from ambient-only to an actual
-     usable token (campaign tags + background glow) rather than reserved
-     purely for decoration. */
-  --accent-purple: #8b4fff;
-  --accent-purple-strong: #b499ff;
-  --on-accent-purple: #f5f0ff;
+  /* Fourth accent: antique brass/gilt (was vivid violet) — same token
+     names so existing wiring (campaign badges etc.) keeps working. A
+     lighter mid-tone, so its "on" color is dark ink, not light cream. */
+  --accent-purple: #8a6d1f;
+  --accent-purple-strong: #b3922f;
+  --on-accent-purple: #2b1d12;
 
-  --shadow-glow-accent: 0 0 36px rgba(255, 210, 63, 0.45);
-  --shadow-glow-accent-2: 0 0 36px rgba(53, 255, 184, 0.4);
-  --shadow-glow-danger: 0 0 36px rgba(255, 82, 119, 0.4);
+  /* Glow tokens repurposed: a neon blur doesn't fit ink-on-paper, so these
+     are now soft warm-toned emphasis shadows (a slight lift/halo) rather
+     than a bright glow — same token names, so every existing usage
+     (buttons, card hover, heading flourish) is retinted for free. */
+  --shadow-glow-accent: 0 6px 18px rgba(122, 31, 43, 0.25);
+  --shadow-glow-accent-2: 0 6px 18px rgba(47, 82, 51, 0.22);
+  --shadow-glow-danger: 0 6px 18px rgba(184, 50, 39, 0.28);
 
   --space-1: 0.25rem;
   --space-2: 0.5rem;
@@ -50,9 +60,9 @@
      carved-frame treatment: cards, panels, hero, buttons. */
   --radius-frame: 6px;
 
-  --shadow-sm: 0 2px 8px rgba(10, 6, 20, 0.35);
-  --shadow-md: 0 8px 20px rgba(10, 6, 20, 0.45);
-  --shadow-lg: 0 16px 40px rgba(10, 6, 20, 0.55);
+  --shadow-sm: 0 2px 8px rgba(60, 40, 20, 0.18);
+  --shadow-md: 0 8px 20px rgba(60, 40, 20, 0.22);
+  --shadow-lg: 0 16px 40px rgba(60, 40, 20, 0.28);
 
   --text-xs: 0.75rem;
   --text-sm: 0.85rem;
@@ -76,17 +86,16 @@
 body {
   margin: 0;
   min-height: 100vh;
-  /* Deliberately NOT the two-symmetric-blurry-blob mesh gradient every
-     AI-generated dark landing page uses — one asymmetric torch-light
-     source, a vignette for depth, and a faint grain layer for material
-     texture instead of a flat gradient field. */
+  /* Aged-paper texture: a sepia grain layer (multiply, so it darkens like
+     paper fiber rather than glowing like the old dark theme's noise) plus
+     a soft warm vignette toward the edges — no neon light source, no
+     dark-mode torch glow, just a page. */
   background-color: var(--bg);
   background-image:
-    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='matrix' values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.05 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>"),
-    radial-gradient(1300px 900px at 8% -8%, rgba(230, 164, 0, 0.22), transparent 58%),
-    radial-gradient(1400px 1400px at 50% 45%, transparent 42%, rgba(0, 0, 0, 0.45) 100%);
-  background-blend-mode: overlay, normal, normal;
-  background-repeat: repeat, no-repeat, no-repeat;
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='matrix' values='0 0 0 0 0.27  0 0 0 0 0.18  0 0 0 0 0.08  0 0 0 0.07 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>"),
+    radial-gradient(1400px 1400px at 50% 45%, transparent 55%, rgba(90, 60, 30, 0.16) 100%);
+  background-blend-mode: multiply, normal;
+  background-repeat: repeat, no-repeat;
   color: var(--text);
   font-size: var(--text-base);
 }
@@ -103,7 +112,6 @@ h3 {
 h1 {
   font-size: var(--text-2xl);
   line-height: 1.2;
-  text-shadow: 0 0 26px rgba(255, 210, 63, 0.32);
 }
 
 h2 {
@@ -221,10 +229,9 @@ h3 {
   font-family: var(--font-display);
   font-size: 1.4rem;
   font-weight: 600;
-  color: var(--accent-strong);
+  color: var(--accent);
   letter-spacing: 0.03em;
   text-decoration: none;
-  text-shadow: 0 0 20px rgba(255, 210, 63, 0.5);
 }
 
 .nav-links {
@@ -612,7 +619,7 @@ button:disabled {
   padding: 1.1rem 1.1rem 1.1rem 1.4rem;
   text-decoration: none;
   color: var(--text);
-  box-shadow: var(--shadow-sm), inset 1px 0 0 rgba(255, 255, 255, 0.04);
+  box-shadow: var(--shadow-sm), inset 1px 0 0 rgba(0, 0, 0, 0.06);
   transition: border-color var(--transition), box-shadow var(--transition), transform var(--transition);
   animation: card-enter 0.3s ease both;
   animation-delay: var(--stagger-delay, 0ms);
@@ -646,7 +653,7 @@ button:disabled {
 
 .entry-card:hover {
   border-color: var(--accent);
-  box-shadow: var(--shadow-md), var(--shadow-glow-accent), inset 1px 0 0 rgba(255, 255, 255, 0.04);
+  box-shadow: var(--shadow-md), var(--shadow-glow-accent), inset 1px 0 0 rgba(0, 0, 0, 0.06);
   transform: translateY(-3px);
 }
 
@@ -656,7 +663,7 @@ button:disabled {
 
 .entry-card.entry-card-dm:hover {
   border-color: var(--accent-red);
-  box-shadow: var(--shadow-md), var(--shadow-glow-danger), inset 1px 0 0 rgba(255, 255, 255, 0.04);
+  box-shadow: var(--shadow-md), var(--shadow-glow-danger), inset 1px 0 0 rgba(0, 0, 0, 0.06);
 }
 
 .entry-card.entry-card-session::before {
@@ -665,7 +672,7 @@ button:disabled {
 
 .entry-card.entry-card-session:hover {
   border-color: var(--accent-2);
-  box-shadow: var(--shadow-md), var(--shadow-glow-accent-2), inset 1px 0 0 rgba(255, 255, 255, 0.04);
+  box-shadow: var(--shadow-md), var(--shadow-glow-accent-2), inset 1px 0 0 rgba(0, 0, 0, 0.06);
 }
 
 .entry-card-header {
@@ -937,7 +944,7 @@ button:disabled {
   border-radius: var(--radius-frame);
   padding: 1.5rem 1.5rem 1.5rem 1.8rem;
   margin-bottom: 2rem;
-  box-shadow: var(--shadow-sm), inset 1px 0 0 rgba(255, 255, 255, 0.04);
+  box-shadow: var(--shadow-sm), inset 1px 0 0 rgba(0, 0, 0, 0.06);
 }
 
 .dm-panel::before {
@@ -1763,14 +1770,15 @@ button.tree-label:hover {
   padding: 3rem 1.5rem 2.5rem;
   margin-bottom: 1.5rem;
   border-radius: var(--radius-md);
-  background: linear-gradient(135deg, var(--accent-strong) 0%, var(--accent) 65%, #7a4d00 100%);
+  background: linear-gradient(135deg, var(--accent-strong) 0%, var(--accent) 65%, #3d0f16 100%);
   /* Carved double-ring plate instead of a soft single-rounded blob: an
-     inset dark groove, then a thin inset gold line inside it. */
+     inset dark groove, then a thin inset warm-cream line inside it —
+     like a wax-seal medallion pressed into the page. */
   box-shadow:
     var(--shadow-md),
     var(--shadow-glow-accent),
-    inset 0 0 0 4px rgba(36, 26, 6, 0.28),
-    inset 0 0 0 6px rgba(255, 233, 175, 0.35);
+    inset 0 0 0 4px rgba(35, 8, 12, 0.32),
+    inset 0 0 0 6px rgba(246, 236, 210, 0.35);
 }
 
 .home-hero h1 {
@@ -1793,7 +1801,7 @@ button.tree-label:hover {
 }
 
 .home-tagline {
-  color: rgba(36, 26, 6, 0.78);
+  color: rgba(246, 236, 210, 0.85);
   font-size: 1.1rem;
   margin: 0 auto 1.75rem;
   max-width: 32rem;
@@ -1808,7 +1816,7 @@ button.tree-label:hover {
 
 .home-actions button {
   background: var(--on-accent);
-  color: var(--accent-strong);
+  color: var(--accent);
   box-shadow: none;
   filter: none;
 }
@@ -1822,11 +1830,11 @@ button.tree-label:hover {
 .home-actions button.secondary {
   background: transparent;
   color: var(--on-accent);
-  border: 1px solid rgba(36, 26, 6, 0.45);
+  border: 1px solid rgba(246, 236, 210, 0.5);
 }
 
 .home-actions button.secondary:hover {
-  background: rgba(36, 26, 6, 0.12);
+  background: rgba(246, 236, 210, 0.15);
   border-color: var(--on-accent);
 }
 

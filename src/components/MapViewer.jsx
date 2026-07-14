@@ -44,7 +44,7 @@ export default function MapViewer({
         maxBounds={bounds}
         maxBoundsViscosity={0.8}
         minZoom={-4}
-        style={{ height: '100%', width: '100%', background: '#0c0b10' }}
+        style={{ height: '100%', width: '100%', background: '#3a2a18' }}
       >
         <ImageOverlay url={imageUrl} bounds={bounds} />
         {editable && <ClickCapture height={height} onMapClick={onMapClick} />}
