@@ -249,7 +249,7 @@ export default function CategoryBrowser({
                     {currentEntries.map((record) => (
                       <SortableEntry key={recordKey(record)} id={recordKey(record)}>
                         <div className="entry-with-move">
-                          <EntryCard entry={record} />
+                          <EntryCard entry={record} folders={folders} />
                           {record.__placementId && <span className="badge badge-placement">also placed here</span>}
                           <select
                             className="entry-move-select"
@@ -273,7 +273,7 @@ export default function CategoryBrowser({
             ) : (
               <div className="entry-grid">
                 {currentEntries.map((record) => (
-                  <EntryCard key={recordKey(record)} entry={record} />
+                  <EntryCard key={recordKey(record)} entry={record} folders={folders} />
                 ))}
               </div>
             )}

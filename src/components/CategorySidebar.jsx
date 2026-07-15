@@ -5,7 +5,8 @@ import { CSS } from '@dnd-kit/utilities'
 import { supabase } from '../lib/supabaseClient'
 import { useCategories } from '../contexts/CategoryContext'
 import { useCampaignContext } from '../contexts/CampaignContext'
-import { childFolders, foldersWithVisibleContent, descendantFolderIds } from '../lib/folders'
+import { useTags } from '../contexts/TagContext'
+import { childFolders, foldersWithVisibleContent, descendantFolderIds, effectiveFolderVisibility } from '../lib/folders'
 
 const CATEGORY_DROP_PREFIX = 'category:'
 const EXPANDED_STORAGE_KEY = 'chrab-corner-sidebar-expanded'
@@ -27,7 +28,12 @@ function FolderNode({ folder, depth, ctx }) {
   const [moving, setMoving] = useState(false)
   const [movingCategory, setMovingCategory] = useState(false)
   const [assigningCampaign, setAssigningCampaign] = useState(false)
+  const [editingTags, setEditingTags] = useState(false)
   const ownCampaign = folder.campaign_id ? ctx.campaigns.find((c) => c.id === folder.campaign_id) : null
+  const effectiveVisibility = effectiveFolderVisibility(ctx.folders, folder.id)
+  const isEffectivelyDm = effectiveVisibility === 'dm'
+  const isInheritedDm = isEffectivelyDm && folder.visibility !== 'dm'
+  const ownTags = folder.tags ?? []
 
   return (
     <div ref={setNodeRef} style={style}>
@@ -62,10 +68,16 @@ function FolderNode({ folder, depth, ctx }) {
             </button>
             <button
               type="button"
-              title={folder.visibility === 'dm' ? 'Make public (and everything inside it)' : 'Make DM only (and everything inside it)'}
+              title={
+                folder.visibility === 'dm'
+                  ? 'Make public (and everything inside it, unless a parent folder is still DM only)'
+                  : isInheritedDm
+                    ? 'Already DM only via a parent folder — this only takes effect once that parent is public again'
+                    : 'Make DM only (and everything inside it)'
+              }
               onClick={() => ctx.toggleFolderVisibility(folder)}
             >
-              {folder.visibility === 'dm' ? '🔒' : '🔓'}
+              {folder.visibility === 'dm' ? '🔒' : isInheritedDm ? '🔐' : '🔓'}
             </button>
             <button
               type="button"
@@ -73,6 +85,13 @@ function FolderNode({ folder, depth, ctx }) {
               onClick={() => setAssigningCampaign((v) => !v)}
             >
               🏕
+            </button>
+            <button
+              type="button"
+              title="Tag this folder (everything inside inherits these tags too, in addition to its own)"
+              onClick={() => setEditingTags((v) => !v)}
+            >
+              🏷
             </button>
             <button type="button" title="Move" onClick={() => setMoving((v) => !v)}>
               ⇄
@@ -90,10 +109,17 @@ function FolderNode({ folder, depth, ctx }) {
           </span>
         )}
       </div>
-      {(folder.visibility === 'dm' || ownCampaign) && (
+      {(isEffectivelyDm || ownCampaign || ownTags.length > 0) && (
         <div className="tree-badges" style={{ paddingLeft: `${depth + 1}rem` }}>
-          {folder.visibility === 'dm' && <span className="badge badge-dm">DM</span>}
+          {isEffectivelyDm && (
+            <span className="badge badge-dm">{isInheritedDm ? 'DM (inherited)' : 'DM'}</span>
+          )}
           {ownCampaign && <span className="badge badge-campaign">{ownCampaign.name}</span>}
+          {ownTags.map((t) => (
+            <span key={t} className="badge badge-tag">
+              {ctx.availableTags.find((at) => at.value === t)?.label ?? t}
+            </span>
+          ))}
         </div>
       )}
       {assigningCampaign && (
@@ -112,6 +138,28 @@ function FolderNode({ folder, depth, ctx }) {
               </option>
             ))}
           </select>
+        </div>
+      )}
+      {editingTags && (
+        <div className="tree-tags-edit" style={{ paddingLeft: `${depth + 1}rem` }}>
+          {ctx.availableTags.length === 0 && (
+            <p className="status-message">No tags yet — add some from DM Dashboard → Tags.</p>
+          )}
+          {ctx.availableTags.map((t) => (
+            <label key={t.value} className="tag-checklist-item">
+              <input
+                type="checkbox"
+                checked={ownTags.includes(t.value)}
+                onChange={() => {
+                  const next = ownTags.includes(t.value)
+                    ? ownTags.filter((v) => v !== t.value)
+                    : [...ownTags, t.value]
+                  ctx.setFolderTags(folder, next)
+                }}
+              />
+              {t.label}
+            </label>
+          ))}
         </div>
       )}
       {moving && (
@@ -232,6 +280,7 @@ function CategoryRoot({ cat, ctx }) {
 export default function CategorySidebar({ folders, entries, isDM, selected, onSelect, onChange, campaignId }) {
   const { categories } = useCategories()
   const { campaigns } = useCampaignContext()
+  const { tags: availableTags } = useTags()
   // Remembers which folders are expanded across page reloads, so a player
   // lands back where they left off in the tree instead of starting fresh.
   const [expanded, setExpanded] = useState(() => {
@@ -302,6 +351,14 @@ export default function CategorySidebar({ folders, entries, isDM, selected, onSe
   // in CategoryBrowser), unless it has its own explicit campaign set.
   async function assignFolderCampaign(folder, campaignId) {
     await supabase.from('folders').update({ campaign_id: campaignId }).eq('id', folder.id)
+    onChange()
+  }
+
+  // Same idea again, but additive: every tag on this folder is picked up by
+  // everything nested inside it (see effectiveEntryTags), on top of
+  // whatever tags an entry already has directly.
+  async function setFolderTags(folder, tags) {
+    await supabase.from('folders').update({ tags }).eq('id', folder.id)
     onChange()
   }
 
@@ -387,6 +444,7 @@ export default function CategorySidebar({ folders, entries, isDM, selected, onSe
     folders,
     categories,
     campaigns,
+    availableTags,
     isDM,
     expanded,
     toggle,
@@ -399,6 +457,7 @@ export default function CategorySidebar({ folders, entries, isDM, selected, onSe
     moveFolderToCategory,
     toggleFolderVisibility,
     assignFolderCampaign,
+    setFolderTags,
     visibleFolderIds,
   }
 

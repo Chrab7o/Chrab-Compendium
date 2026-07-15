@@ -1,9 +1,15 @@
 import { Link } from 'react-router-dom'
 import { categoryLabel } from '../lib/categories'
+import { effectiveEntryVisibility, effectiveEntryTags } from '../lib/folders'
 
-export default function EntryCard({ entry }) {
-  const isDm = entry.visibility === 'dm'
-  const isSession = !isDm && entry.tags?.some((tag) => tag.toLowerCase() === 'session-note')
+// `folders` is optional so existing call sites don't break, but pass it
+// whenever available — without it this can only see the entry's own raw
+// visibility/tags, not what it inherits from a DM-only or tagged ancestor
+// folder (see effectiveEntryVisibility/effectiveEntryTags).
+export default function EntryCard({ entry, folders = [] }) {
+  const isDm = effectiveEntryVisibility(folders, entry) === 'dm'
+  const tags = effectiveEntryTags(folders, entry)
+  const isSession = !isDm && tags.some((tag) => tag.toLowerCase() === 'session-note')
   const cardClass = `entry-card${isDm ? ' entry-card-dm' : ''}${isSession ? ' entry-card-session' : ''}`
 
   return (
@@ -14,9 +20,9 @@ export default function EntryCard({ entry }) {
         {isSession && <span className="badge badge-session">Session note</span>}
       </div>
       <span className="entry-card-category">{categoryLabel(entry.category)}</span>
-      {entry.tags?.length > 0 && (
+      {tags.length > 0 && (
         <div className="entry-card-tags">
-          {entry.tags.map((tag) => (
+          {tags.map((tag) => (
             <span key={tag} className="tag">
               {tag}
             </span>

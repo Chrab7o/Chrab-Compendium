@@ -120,6 +120,48 @@ export function effectiveEntryCampaignId(folders, entry) {
   return entry.folder_id ? effectiveFolderCampaignId(folders, entry.folder_id) : null
 }
 
+// 'dm' if this folder or any ancestor is DM-only, else 'public' — mirrors
+// the is_folder_public() RLS function (20260112000000_folder_visibility.sql)
+// client-side, purely for display (badges), not as an access check: the
+// database is still the real gate, this just lets the DM's own UI show
+// what's actually hidden instead of only a folder's own literal flag.
+export function effectiveFolderVisibility(folders, folderId) {
+  const byId = new Map(folders.map((f) => [f.id, f]))
+  let current = folderId ? byId.get(folderId) : null
+  while (current) {
+    if (current.visibility === 'dm') return 'dm'
+    current = current.parent_folder_id ? byId.get(current.parent_folder_id) : null
+  }
+  return 'public'
+}
+
+export function effectiveEntryVisibility(folders, entry) {
+  if (entry.visibility === 'dm') return 'dm'
+  return entry.folder_id ? effectiveFolderVisibility(folders, entry.folder_id) : 'public'
+}
+
+// Every tag on this folder plus every ancestor folder's tags, unioned —
+// same computed-at-read-time approach as campaign_id/visibility, but
+// additive (any ancestor's tag applies) rather than nearest-wins.
+export function effectiveFolderTags(folders, folderId) {
+  const byId = new Map(folders.map((f) => [f.id, f]))
+  const tags = new Set()
+  let current = folderId ? byId.get(folderId) : null
+  while (current) {
+    for (const t of current.tags ?? []) tags.add(t)
+    current = current.parent_folder_id ? byId.get(current.parent_folder_id) : null
+  }
+  return tags
+}
+
+export function effectiveEntryTags(folders, entry) {
+  const tags = new Set(entry.tags ?? [])
+  if (entry.folder_id) {
+    for (const t of effectiveFolderTags(folders, entry.folder_id)) tags.add(t)
+  }
+  return [...tags]
+}
+
 // Every entry filed under `folderId` or any of its descendant folders,
 // including extra placements — used by map regions to show "everything
 // filed here" without reimplementing folder-tree walking a second time.

@@ -1,5 +1,5 @@
 import { useTags } from '../contexts/TagContext'
-import { entriesUnderFolderTree } from '../lib/folders'
+import { entriesUnderFolderTree, effectiveEntryTags } from '../lib/folders'
 import { BrowseIcon } from './Icons'
 import EntryCard from './EntryCard'
 
@@ -15,7 +15,9 @@ export default function RegionEntryPanel({ region, folders, entries, placements,
   const groups = tags
     .map((tag) => ({
       tag,
-      entries: underFolder.filter((e) => e.tags?.some((t) => t.toLowerCase() === tag.value.toLowerCase())),
+      entries: underFolder.filter((e) =>
+        effectiveEntryTags(folders, e).some((t) => t.toLowerCase() === tag.value.toLowerCase())
+      ),
     }))
     .filter((g) => g.entries.length > 0)
   const taggedIds = new Set(groups.flatMap((g) => g.entries.map((e) => e.id)))
@@ -46,7 +48,7 @@ export default function RegionEntryPanel({ region, folders, entries, placements,
           <h3>{g.tag.label}</h3>
           <div className="entry-grid">
             {g.entries.map((e) => (
-              <EntryCard key={e.__placementId ? `placement-${e.__placementId}` : e.id} entry={e} />
+              <EntryCard key={e.__placementId ? `placement-${e.__placementId}` : e.id} entry={e} folders={folders} />
             ))}
           </div>
         </section>
@@ -57,7 +59,7 @@ export default function RegionEntryPanel({ region, folders, entries, placements,
           <h3>Other</h3>
           <div className="entry-grid">
             {untagged.map((e) => (
-              <EntryCard key={e.__placementId ? `placement-${e.__placementId}` : e.id} entry={e} />
+              <EntryCard key={e.__placementId ? `placement-${e.__placementId}` : e.id} entry={e} folders={folders} />
             ))}
           </div>
         </section>

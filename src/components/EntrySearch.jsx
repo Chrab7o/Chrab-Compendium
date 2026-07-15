@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabaseClient'
 import { useCampaignContext } from '../contexts/CampaignContext'
 import { useCategories } from '../contexts/CategoryContext'
 import { useTags } from '../contexts/TagContext'
-import { effectiveEntryCampaignId, mergePlacements } from '../lib/folders'
+import { effectiveEntryCampaignId, effectiveEntryTags, mergePlacements } from '../lib/folders'
 import { BrowseIcon } from './Icons'
 import EntryCard from './EntryCard'
 
@@ -62,7 +62,7 @@ export default function EntrySearch() {
           if (eff && eff !== campaignId) return false
         }
         if (category && e.category !== category) return false
-        if (activeTags.size > 0 && !e.tags?.some((t) => activeTags.has(t))) return false
+        if (activeTags.size > 0 && !effectiveEntryTags(folders, e).some((t) => activeTags.has(t))) return false
         if (q && !e.title.toLowerCase().includes(q)) return false
         return true
       })
@@ -145,7 +145,11 @@ export default function EntrySearch() {
       {!loading && hasFilters && results.length > 0 && (
         <div className="entry-grid">
           {results.map((entry) => (
-            <EntryCard key={entry.__placementId ? `placement-${entry.__placementId}` : entry.id} entry={entry} />
+            <EntryCard
+              key={entry.__placementId ? `placement-${entry.__placementId}` : entry.id}
+              entry={entry}
+              folders={folders}
+            />
           ))}
         </div>
       )}

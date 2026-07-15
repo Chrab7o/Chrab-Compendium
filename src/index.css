@@ -770,6 +770,12 @@ button:disabled {
   color: var(--on-accent-purple);
 }
 
+.badge-tag {
+  background: var(--surface-2);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+
 .badge-session {
   background: var(--accent-2);
   color: var(--on-accent-2);
@@ -1572,6 +1578,7 @@ button:disabled {
 
 .tree-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 0.5rem;
@@ -1659,8 +1666,10 @@ button.tree-label:hover {
 
 .tree-actions {
   display: none;
+  flex-wrap: wrap;
   gap: 0.5rem;
-  flex-shrink: 0;
+  flex-basis: 100%;
+  justify-content: flex-end;
 }
 
 .tree-row:hover .tree-actions {
@@ -1695,6 +1704,22 @@ button.tree-label:hover {
 
 .tree-move select {
   width: 100%;
+}
+
+.tree-tags-edit {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1rem;
+  padding: 0.5rem 0 0.6rem;
+}
+
+.tree-tags-edit .tag-checklist-item {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--text);
+  font-size: 0.9rem;
 }
 
 .tree-badges {

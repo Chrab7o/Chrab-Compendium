@@ -5,28 +5,29 @@ import remarkGfm from 'remark-gfm'
 import { supabase } from '../lib/supabaseClient'
 import { useAuth } from '../contexts/AuthContext'
 import { categoryLabel } from '../lib/categories'
+import { effectiveEntryVisibility, effectiveEntryTags } from '../lib/folders'
 
 export default function EntryDetail() {
   const { id } = useParams()
   const { isDM } = useAuth()
   const [entry, setEntry] = useState(null)
+  const [folders, setFolders] = useState([])
   const [dmNotes, setDmNotes] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
   useEffect(() => {
     let cancelled = false
-    supabase
-      .from('entries')
-      .select('*')
-      .eq('id', id)
-      .single()
-      .then(({ data, error: fetchError }) => {
-        if (cancelled) return
-        if (fetchError) setError(fetchError.message)
-        else setEntry(data)
-        setLoading(false)
-      })
+    Promise.all([
+      supabase.from('entries').select('*').eq('id', id).single(),
+      supabase.from('folders').select('*'),
+    ]).then(([{ data, error: fetchError }, { data: folderData }]) => {
+      if (cancelled) return
+      if (fetchError) setError(fetchError.message)
+      else setEntry(data)
+      setFolders(folderData ?? [])
+      setLoading(false)
+    })
     return () => {
       cancelled = true
     }
@@ -54,6 +55,9 @@ export default function EntryDetail() {
   if (error || !entry)
     return <p className="status-message error">Couldn't find that entry.</p>
 
+  const isDm = effectiveEntryVisibility(folders, entry) === 'dm'
+  const tags = effectiveEntryTags(folders, entry)
+
   return (
     <article className="page entry-detail">
       <Link to="/" className="back-link">
@@ -61,7 +65,7 @@ export default function EntryDetail() {
       </Link>
       <div className="entry-detail-header">
         <h1>{entry.title}</h1>
-        {entry.visibility === 'dm' && <span className="badge badge-dm">DM only</span>}
+        {isDm && <span className="badge badge-dm">DM only</span>}
         {isDM && (
           <Link to={`/dm/entries/${id}/edit`} className="button-link" style={{ marginLeft: 'auto' }}>
             Edit
@@ -69,9 +73,9 @@ export default function EntryDetail() {
         )}
       </div>
       <span className="entry-card-category">{categoryLabel(entry.category)}</span>
-      {entry.tags?.length > 0 && (
+      {tags.length > 0 && (
         <div className="entry-card-tags">
-          {entry.tags.map((tag) => (
+          {tags.map((tag) => (
             <span key={tag} className="tag">
               {tag}
             </span>

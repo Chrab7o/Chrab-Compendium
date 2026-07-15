@@ -100,9 +100,10 @@ export default function TagManager() {
     <div className="dm-panel">
       <h2>Tags</h2>
       <p className="view-subtitle">
-        The checklist of tags available in the entry editor. Tagging an entry "Location",
-        "Person", or "Session Note" also puts it on that nav page, campaign-scoped like
-        everywhere else — regardless of which folder it lives in.
+        The checklist of tags available in the entry editor and on folders (via the 🏷 action
+        in the organize tree). Tagging an entry — directly, or by filing it under a folder
+        tagged "Location", "Person", or "Session Note" — puts it on that nav page,
+        campaign-scoped like everywhere else.
       </p>
       <form onSubmit={handleSubmit} className="dm-form">
         <label>

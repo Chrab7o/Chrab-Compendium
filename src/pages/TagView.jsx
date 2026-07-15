@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { useCampaignContext } from '../contexts/CampaignContext'
-import { effectiveEntryCampaignId } from '../lib/folders'
+import { effectiveEntryCampaignId, effectiveEntryTags } from '../lib/folders'
 import EntryCard from '../components/EntryCard'
 
 // Shared by the Locations/People/Session Notes nav pages — each is just this
@@ -26,7 +26,9 @@ export default function TagView({ tag, title }) {
     })
   }, [])
 
-  const tagged = entries.filter((e) => e.tags?.some((t) => t.toLowerCase() === tag.toLowerCase()))
+  const tagged = entries.filter((e) =>
+    effectiveEntryTags(folders, e).some((t) => t.toLowerCase() === tag.toLowerCase())
+  )
   const scoped = campaignId
     ? tagged.filter((e) => {
         const eff = effectiveEntryCampaignId(folders, e)
@@ -47,7 +49,7 @@ export default function TagView({ tag, title }) {
 
       <div className="entry-grid">
         {scoped.map((entry) => (
-          <EntryCard key={entry.id} entry={entry} />
+          <EntryCard key={entry.id} entry={entry} folders={folders} />
         ))}
       </div>
     </section>
