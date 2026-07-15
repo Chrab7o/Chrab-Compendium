@@ -1810,6 +1810,16 @@ button.tree-label:hover {
   box-shadow: var(--shadow-sm);
 }
 
+/* Centers the diagram when it's narrower than the container. Deliberately
+   plain block + margin:auto, not flex/grid justify-content:center — those
+   clip an overflowing child's start with no way to scroll back to it,
+   while auto margins just resolve to 0 (i.e. left-align) once the diagram
+   is wider than the container, keeping it fully scrollable either way. */
+.skill-tree-diagram svg {
+  display: block;
+  margin: 0 auto;
+}
+
 .skill-tree-diagram-edge {
   stroke: var(--border);
   stroke-width: 1.5;
