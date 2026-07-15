@@ -76,6 +76,7 @@
   --transition: 0.2s ease;
 
   --font-display: 'Cinzel', 'Georgia', serif;
+  --font-nav: 'Cinzel Decorative', 'Cinzel', 'Georgia', serif;
   font-family: 'Spectral', 'Georgia', 'Iowan Old Style', serif;
 }
 
@@ -207,7 +208,7 @@ h3 {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  padding: 1rem 2rem;
+  padding: 1.5rem 2.5rem;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
   gap: 1rem;
@@ -232,26 +233,36 @@ h3 {
 
 .nav-brand {
   justify-self: start;
-  font-family: var(--font-display);
-  font-size: 1.4rem;
-  font-weight: 600;
+  font-family: var(--font-nav);
+  font-size: 1.75rem;
+  font-weight: 700;
   color: var(--accent);
-  letter-spacing: 0.03em;
+  letter-spacing: 0.02em;
   text-decoration: none;
+  transition: color var(--transition), transform 0.15s ease;
+}
+
+.nav-brand:hover {
+  color: var(--accent-strong);
+  transform: translateY(-1px);
 }
 
 .nav-links {
   display: flex;
-  gap: 1.25rem;
+  gap: 1.5rem;
   align-items: center;
   justify-self: center;
+  font-family: var(--font-nav);
+  font-size: 1.15rem;
 }
 
 .nav-right {
   display: flex;
-  gap: 1rem;
+  gap: 1.1rem;
   align-items: center;
   justify-self: end;
+  font-family: var(--font-nav);
+  font-size: 1.05rem;
 }
 
 .nav-right a {
@@ -259,24 +270,29 @@ h3 {
   text-decoration: none;
   padding-bottom: 2px;
   border-bottom: 2px solid transparent;
+  transition: color var(--transition), border-color var(--transition), transform 0.15s ease;
+  display: inline-block;
 }
 
 .nav-right a.active,
 .nav-right a:hover {
   color: var(--text);
   border-bottom-color: var(--accent);
+  transform: translateY(-2px);
 }
 
 .campaign-picker {
   min-width: 160px;
+  font-family: var(--font-nav);
+  font-size: 1rem;
 }
 
 .nav-hamburger {
   display: none;
   align-items: center;
   justify-content: center;
-  width: 2.5rem;
-  height: 2.5rem;
+  width: 2.75rem;
+  height: 2.75rem;
   padding: 0;
   background: none;
   border: 1px solid transparent;
@@ -369,12 +385,15 @@ h3 {
   text-decoration: none;
   padding-bottom: 2px;
   border-bottom: 2px solid transparent;
+  display: inline-block;
+  transition: color var(--transition), border-color var(--transition), transform 0.15s ease;
 }
 
 .nav-links a.active,
 .nav-links a:hover {
   color: var(--text);
   border-bottom-color: var(--accent);
+  transform: translateY(-2px);
 }
 
 .nav-dropdown {

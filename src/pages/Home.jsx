@@ -15,7 +15,7 @@ export default function Home() {
   return (
     <section className="page-wide home-page">
       <div className="home-hero">
-        <h1>Chrab Corner</h1>
+        <h1>Chrab's TTRPG Compendium</h1>
         <p className="home-tagline">
           World lore, characters, maps, and secrets — everything for the table, in one place.
         </p>

@@ -36,7 +36,7 @@ export default function Nav() {
       )}
       <header className="nav">
       <Link to="/" className="nav-brand">
-        Chrab Corner
+        Chrab's TTRPG Compendium
       </Link>
       <button
         type="button"
@@ -62,13 +62,10 @@ export default function Nav() {
           <NavLink to="/people" className={({ isActive }) => (isActive ? 'active' : '')}>
             People
           </NavLink>
-          <NavLink to="/session-notes" className={({ isActive }) => (isActive ? 'active' : '')}>
-            Session Notes
-          </NavLink>
           <NavLink to="/search" className={({ isActive }) => (isActive ? 'active' : '')}>
             Search
           </NavLink>
-          {isPlayer && (
+          {!isDM && (
             <NavLink to="/character" className={({ isActive }) => (isActive ? 'active' : '')}>
               Character
             </NavLink>
