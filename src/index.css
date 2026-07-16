@@ -1129,9 +1129,23 @@ button:disabled {
   gap: 0.5rem;
 }
 
-.map-container {
+/* A fixed wide/short box around a portrait or square map left fitBounds
+   with a lot of empty margin to fill (reading as "zoomed way out") since
+   it always shows the whole image without cropping it. This wrapper is
+   the available space; .map-container inside is sized in JS (MapViewer.jsx)
+   to the largest box that fits the map's own aspect ratio, same idea as
+   object-fit: contain but for a plain div rather than an <img> — CSS
+   aspect-ratio alone can't do this here since MapContainer's children are
+   percentage-sized, giving a flex item nothing intrinsic to size from. */
+.map-viewport {
   width: 100%;
   height: 70vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.map-container {
   border-radius: var(--radius-md);
   overflow: hidden;
   border: 1px solid var(--border);

@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { MapContainer, ImageOverlay, Marker, Polygon, Polyline, Popup, Tooltip, useMap, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import { useNavigate } from 'react-router-dom'
@@ -58,6 +58,35 @@ export default function MapViewer({
 }) {
   const navigate = useNavigate()
   const bounds = [[0, 0], [height, width]]
+  const viewportRef = useRef(null)
+  const [boxSize, setBoxSize] = useState(null)
+
+  // Sizes .map-container to the largest box that fits the map's own aspect
+  // ratio inside the available viewport (same idea as object-fit: contain,
+  // but for a plain div wrapping Leaflet rather than an <img>). Plain CSS
+  // (aspect-ratio + max-height) can't do this here because MapContainer's
+  // children are percentage-sized, so a flex item with no explicit size has
+  // nothing intrinsic to size itself from — hence measuring in JS instead.
+  useEffect(() => {
+    const el = viewportRef.current
+    if (!el) return
+    function recompute() {
+      const vpWidth = el.clientWidth
+      const vpHeight = el.clientHeight
+      if (!vpWidth || !vpHeight) return
+      const imageRatio = width / height
+      const viewportRatio = vpWidth / vpHeight
+      setBoxSize(
+        imageRatio > viewportRatio
+          ? { width: vpWidth, height: vpWidth / imageRatio }
+          : { width: vpHeight * imageRatio, height: vpHeight }
+      )
+    }
+    recompute()
+    const observer = new ResizeObserver(recompute)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [width, height])
 
   function handleMarkerClick(marker) {
     if (editable) {
@@ -74,64 +103,70 @@ export default function MapViewer({
   const selectedRegion = regions.find((r) => r.id === selectedRegionId)
 
   return (
-    <div className="map-container">
-      <MapContainer
-        crs={L.CRS.Simple}
-        bounds={bounds}
-        maxBounds={bounds}
-        maxBoundsViscosity={0.8}
-        minZoom={-4}
-        style={{ height: '100%', width: '100%', background: '#3a2a18' }}
-      >
-        <ImageOverlay url={imageUrl} bounds={bounds} />
-        {(editable || regionsEditable) && <ClickCapture height={height} onMapClick={onMapClick} />}
+    <div className="map-viewport" ref={viewportRef}>
+      {boxSize && (
+      <div className="map-container" style={{ width: boxSize.width, height: boxSize.height }}>
+        <MapContainer
+          crs={L.CRS.Simple}
+          bounds={bounds}
+          maxBounds={bounds}
+          maxBoundsViscosity={0.8}
+          minZoom={-4}
+          zoomSnap={0.25}
+          zoomDelta={0.5}
+          style={{ height: '100%', width: '100%', background: '#3a2a18' }}
+        >
+          <ImageOverlay url={imageUrl} bounds={bounds} />
+          {(editable || regionsEditable) && <ClickCapture height={height} onMapClick={onMapClick} />}
 
-        {regions.map((region) => (
-          <Polygon
-            key={region.id}
-            positions={region.points.map(toLatLng)}
-            pathOptions={regionPathOptions(region, { selected: region.id === selectedRegionId })}
-            eventHandlers={{ click: () => onRegionClick?.(region) }}
-          >
-            <Tooltip sticky>{region.name}</Tooltip>
-          </Polygon>
-        ))}
+          {regions.map((region) => (
+            <Polygon
+              key={region.id}
+              positions={region.points.map(toLatLng)}
+              pathOptions={regionPathOptions(region, { selected: region.id === selectedRegionId })}
+              eventHandlers={{ click: () => onRegionClick?.(region) }}
+            >
+              <Tooltip sticky>{region.name}</Tooltip>
+            </Polygon>
+          ))}
 
-        {regionsEditable && drawingPoints.length > 0 && (
-          <Polyline
-            positions={[
-              ...drawingPoints.map(toLatLng),
-              ...(drawingPoints.length > 2 ? [toLatLng(drawingPoints[0])] : []),
-            ]}
-            pathOptions={{ color: '#a32d3d', dashArray: '6 6', weight: 2 }}
-          />
-        )}
-        {regionsEditable &&
-          drawingPoints.map((p, i) => <Marker key={i} position={toLatLng(p)} icon={vertexIcon} />)}
+          {regionsEditable && drawingPoints.length > 0 && (
+            <Polyline
+              positions={[
+                ...drawingPoints.map(toLatLng),
+                ...(drawingPoints.length > 2 ? [toLatLng(drawingPoints[0])] : []),
+              ]}
+              pathOptions={{ color: '#a32d3d', dashArray: '6 6', weight: 2 }}
+            />
+          )}
+          {regionsEditable &&
+            drawingPoints.map((p, i) => <Marker key={i} position={toLatLng(p)} icon={vertexIcon} />)}
 
-        {markers.map((marker) => (
-          <Marker
-            key={marker.id}
-            position={toLatLng(marker)}
-            icon={markerIcon(marker.visibility)}
-            draggable={editable}
-            eventHandlers={{
-              click: () => handleMarkerClick(marker),
-              dragend: (e) => {
-                const { lat, lng } = e.target.getLatLng()
-                onMarkerDragEnd?.(marker, { x: lng, y: height - lat })
-              },
-            }}
-          >
-            {!editable && !marker.entry_id && <Popup>{marker.label}</Popup>}
-            <Tooltip direction="top" offset={[0, -34]}>
-              {marker.label}
-            </Tooltip>
-          </Marker>
-        ))}
+          {markers.map((marker) => (
+            <Marker
+              key={marker.id}
+              position={toLatLng(marker)}
+              icon={markerIcon(marker.visibility)}
+              draggable={editable}
+              eventHandlers={{
+                click: () => handleMarkerClick(marker),
+                dragend: (e) => {
+                  const { lat, lng } = e.target.getLatLng()
+                  onMarkerDragEnd?.(marker, { x: lng, y: height - lat })
+                },
+              }}
+            >
+              {!editable && !marker.entry_id && <Popup>{marker.label}</Popup>}
+              <Tooltip direction="top" offset={[0, -34]}>
+                {marker.label}
+              </Tooltip>
+            </Marker>
+          ))}
 
-        {selectedRegion && <RegionFocus region={selectedRegion} height={height} />}
-      </MapContainer>
+          {selectedRegion && <RegionFocus region={selectedRegion} height={height} />}
+        </MapContainer>
+      </div>
+      )}
     </div>
   )
 }
