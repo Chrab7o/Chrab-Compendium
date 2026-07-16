@@ -1,39 +1,22 @@
-import { Link, useNavigate } from 'react-router-dom'
-import { useAuth } from '../contexts/AuthContext'
+import { Link } from 'react-router-dom'
 import { useWorlds } from '../hooks/useWorlds'
 import { getWorldHeroImageUrl } from '../lib/worldStorage'
 
-// The landing page — orientation + where to log in, plus picking which
-// world to explore. Actual category/tag browsing lives in the top nav
-// (Maps/Locations/People/Session Notes/Search); campaign scoping is the
+// The landing page — orientation, then picking which world to explore.
+// Login/Character are already one click away in the nav, so they don't
+// need duplicate buttons here; actual category/tag browsing lives in the
+// top nav (Maps/Locations/People/Search); campaign scoping is the
 // site-wide filter in the nav corner, not a separate destination.
 export default function Home() {
-  const navigate = useNavigate()
-  const { session, isPlayer } = useAuth()
   const { worlds, loading: worldsLoading } = useWorlds()
 
   return (
     <section className="page-wide home-page">
-      <div className="home-hero">
+      <div className="view-header">
         <h1>Chrab's TTRPG Compendium</h1>
-        <p className="home-tagline">
+        <p className="view-subtitle">
           World lore, characters, maps, and secrets — everything for the table, in one place.
         </p>
-        <div className="home-actions">
-          <button type="button" onClick={() => navigate('/maps')}>
-            View Maps
-          </button>
-          {!session && (
-            <button type="button" className="secondary" onClick={() => navigate('/login')}>
-              Login
-            </button>
-          )}
-          {isPlayer && (
-            <button type="button" className="secondary" onClick={() => navigate('/character')}>
-              Character
-            </button>
-          )}
-        </div>
       </div>
 
       {!worldsLoading && worlds.length > 0 && (
@@ -64,9 +47,9 @@ export default function Home() {
       )}
 
       <p className="home-guidance">
-        Use <strong>Maps</strong>, <strong>Locations</strong>, <strong>People</strong>,{' '}
-        <strong>Session Notes</strong>, and <strong>Search</strong> up top to browse everything —
-        filter by campaign with the picker in the corner.
+        Use <strong>Maps</strong>, <strong>Locations</strong>, <strong>People</strong>, and{' '}
+        <strong>Search</strong> up top to browse everything — filter by campaign with the picker
+        in the corner.
       </p>
     </section>
   )

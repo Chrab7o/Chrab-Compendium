@@ -44,20 +44,23 @@ export default function WorldMapPage() {
   const activeMap = maps.find((m) => m.id === mapId)
 
   return (
-    <section className="page-wide world-map-page">
-      <div
-        className="world-map-hero"
-        style={
-          world.hero_image_path
-            ? { backgroundImage: `url(${getWorldHeroImageUrl(world.hero_image_path)})` }
-            : undefined
-        }
-      >
-        <div className="world-map-hero-overlay">
-          <h1>{world.name}</h1>
-          {world.description && <p className="home-tagline">{world.description}</p>}
+    <section className="page-wide single-map-page">
+      {world.hero_image_path ? (
+        <div
+          className="world-map-hero"
+          style={{ backgroundImage: `url(${getWorldHeroImageUrl(world.hero_image_path)})` }}
+        >
+          <div className="world-map-hero-overlay">
+            <h1>{world.name}</h1>
+            {world.description && <p className="home-tagline">{world.description}</p>}
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="view-header">
+          <h1>{world.name}</h1>
+          {world.description && <p className="view-subtitle">{world.description}</p>}
+        </div>
+      )}
 
       {!mapsLoading && maps.length === 0 && (
         <p className="status-message">No maps have been added for this world yet.</p>

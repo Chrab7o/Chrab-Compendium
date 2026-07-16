@@ -1142,7 +1142,11 @@ button:disabled {
   height: 70vh;
   display: flex;
   align-items: center;
-  justify-content: center;
+  /* Left-aligned, not centered: the page's heading above it is left-aligned
+     (site-wide convention), so centering a map narrower than the column
+     made it drift out from under its own title instead of sitting flush
+     beneath it. */
+  justify-content: flex-start;
 }
 
 .map-container {
@@ -1948,77 +1952,11 @@ button.tree-label:hover {
   margin: 0 auto;
 }
 
-.home-hero {
-  position: relative;
-  padding: 3rem 1.5rem 2.5rem;
-  margin-bottom: 1.5rem;
-  border-radius: var(--radius-md);
-  background: linear-gradient(135deg, var(--accent-strong) 0%, var(--accent) 65%, #3d0f16 100%);
-  /* Carved double-ring plate instead of a soft single-rounded blob: an
-     inset dark groove, then a thin inset warm-cream line inside it —
-     like a wax-seal medallion pressed into the page. */
-  box-shadow:
-    var(--shadow-md),
-    var(--shadow-glow-accent),
-    inset 0 0 0 4px rgba(35, 8, 12, 0.32),
-    inset 0 0 0 6px rgba(246, 236, 210, 0.35);
-}
-
-.home-hero h1 {
-  font-size: var(--text-3xl);
-  color: var(--on-accent);
-  margin: 0 0 0.75rem;
-  text-shadow: none;
-  position: relative;
-}
-
-.home-hero h1::before {
-  content: '';
-  display: block;
-  width: 10px;
-  height: 10px;
-  margin: 0 auto 0.9rem;
-  background: var(--on-accent);
-  opacity: 0.5;
-  transform: rotate(45deg);
-}
-
 .home-tagline {
   color: rgba(246, 236, 210, 0.85);
   font-size: 1.1rem;
-  margin: 0 auto 1.75rem;
+  margin: 0;
   max-width: 32rem;
-}
-
-.home-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.85rem;
-  justify-content: center;
-}
-
-.home-actions button {
-  background: var(--on-accent);
-  color: var(--accent);
-  box-shadow: none;
-  filter: none;
-}
-
-.home-actions button:hover {
-  background: var(--surface-2);
-  filter: none;
-  box-shadow: none;
-}
-
-.home-actions button.secondary {
-  background: transparent;
-  color: var(--on-accent);
-  border: 1px solid rgba(246, 236, 210, 0.5);
-}
-
-.home-actions button.secondary:hover {
-  background: rgba(246, 236, 210, 0.15);
-  border-color: var(--on-accent);
 }
 
 .home-guidance {
@@ -2079,7 +2017,7 @@ button.tree-label:hover {
   font-size: 0.9rem;
 }
 
-.world-map-page {
+.single-map-page {
   max-width: 1100px;
   margin: 0 auto;
 }

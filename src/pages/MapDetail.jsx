@@ -30,7 +30,7 @@ export default function MapDetail() {
   if (!map) return <p className="status-message error">Couldn't find that map.</p>
 
   return (
-    <section className="page-wide">
+    <section className="page-wide single-map-page">
       <Link to="/maps" className="back-link">
         &larr; Back to maps
       </Link>
