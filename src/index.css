@@ -531,21 +531,32 @@ button.link-button:hover {
   width: 100%;
 }
 
-/* Most pages opt into the centered reading column via this class. General
-   skips it deliberately so its sidebar can reach the true left edge of the
-   window instead of being boxed into a 1000px column. */
+/* Most pages opt into the centered reading column via this class.
+   DMOrganizePage skips it deliberately so its sidebar can reach the true
+   left edge of the window instead of being boxed into a 1000px column.
+   Renders as a bordered parchment sheet floating over the desk backdrop —
+   sized generously (not hugging content tightly) so it comfortably fits
+   anything from a short login form to a long entry. */
 .page {
-  width: min(1000px, 100%);
-  margin: 0 auto;
-  padding: 2rem;
+  width: min(1000px, calc(100% - 3rem));
+  margin: 1.5rem auto;
+  padding: 2.5rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
 }
 
-/* Same padding as .page, but no reading-column cap — for pages with content
-   that's genuinely wide (the skill tree diagram), same "opt in" idea as
-   .browse-header/GeneralView skipping .page for the sidebar. */
+/* Same idea, but no reading-column cap — for pages with content that's
+   genuinely wide (the skill tree diagram), same "opt in" idea as
+   .browse-header/DMOrganizePage skipping .page for the sidebar. */
 .page-wide {
-  width: 100%;
-  padding: 2rem;
+  margin: 1.5rem;
+  padding: 2.5rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
 }
 
 .view-header {
@@ -1946,7 +1957,7 @@ button.tree-label:hover {
 
 .home-page {
   max-width: 1100px;
-  margin: 0 auto;
+  margin: 1.5rem auto;
 }
 
 .home-tagline {
@@ -2016,7 +2027,7 @@ button.tree-label:hover {
 
 .single-map-page {
   max-width: 1100px;
-  margin: 0 auto;
+  margin: 1.5rem auto;
 }
 
 .world-map-hero {
