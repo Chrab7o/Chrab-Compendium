@@ -17,6 +17,7 @@ import {
   mergePlacements,
   effectiveFolderCampaignId,
   effectiveEntryCampaignId,
+  scopedCampaignIds,
 } from '../lib/folders'
 import { categoryLabel } from '../lib/categories'
 
@@ -54,7 +55,7 @@ export default function CategoryBrowser({
 }) {
   const { isDM } = useAuth()
   const canEdit = isDM && editable
-  const { campaignId } = useCampaignContext()
+  const { campaigns, campaignId, worldId } = useCampaignContext()
   const [folders, setFolders] = useState([])
   const [entries, setEntries] = useState([])
   const [placements, setPlacements] = useState([])
@@ -104,14 +105,15 @@ export default function CategoryBrowser({
   }, [fetchData])
 
   useEffect(() => {
-    // Skip on mount — campaignId is already restored from localStorage by
-    // then, and resetting here would immediately wipe the restored `selected`.
+    // Skip on mount — campaignId/worldId are already restored from
+    // localStorage by then, and resetting here would immediately wipe the
+    // restored `selected`.
     if (isFirstCampaignCheck.current) {
       isFirstCampaignCheck.current = false
       return
     }
     setSelected({ category: null, folderId: null })
-  }, [campaignId])
+  }, [campaignId, worldId])
 
   if (loading) {
     return (
@@ -126,17 +128,18 @@ export default function CategoryBrowser({
 
   // Effective-campaign filtering: computed against the FULL folders array
   // (ancestor walks need the whole tree), then applied to produce the
-  // subset actually shown/organized against for the selected campaign.
-  const visibleFolders = campaignId
+  // subset actually shown/organized against for the current session scope.
+  const allowedCampaignIds = scopedCampaignIds(campaigns, worldId, campaignId)
+  const visibleFolders = allowedCampaignIds
     ? folders.filter((f) => {
         const eff = effectiveFolderCampaignId(folders, f.id)
-        return !eff || eff === campaignId
+        return !eff || allowedCampaignIds.has(eff)
       })
     : folders
-  const visibleEntries = campaignId
+  const visibleEntries = allowedCampaignIds
     ? placedEntries.filter((e) => {
         const eff = effectiveEntryCampaignId(folders, e)
-        return !eff || eff === campaignId
+        return !eff || allowedCampaignIds.has(eff)
       })
     : placedEntries
 

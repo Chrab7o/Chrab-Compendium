@@ -120,6 +120,17 @@ export function effectiveEntryCampaignId(folders, entry) {
   return entry.folder_id ? effectiveFolderCampaignId(folders, entry.folder_id) : null
 }
 
+// The current session's active scope, as a set of campaign ids to match
+// against (or null for "no scope, show everything"). A specific campaign
+// always wins; with just a world picked (no campaign chosen yet), it's
+// every campaign belonging to that world — so entering a world narrows
+// Locations/People/Search even before you've picked one of its campaigns.
+export function scopedCampaignIds(campaigns, worldId, campaignId) {
+  if (campaignId) return new Set([campaignId])
+  if (worldId) return new Set(campaigns.filter((c) => c.world_id === worldId).map((c) => c.id))
+  return null
+}
+
 // 'dm' if this folder or any ancestor is DM-only, else 'public' — mirrors
 // the is_folder_public() RLS function (20260112000000_folder_visibility.sql)
 // client-side, purely for display (badges), not as an access check: the

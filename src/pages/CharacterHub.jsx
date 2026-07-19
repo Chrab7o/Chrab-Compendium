@@ -36,7 +36,7 @@ export default function CharacterHub() {
         <p className="status-message">
           No character found for{' '}
           {campaignId ? 'the selected campaign' : 'general (no campaign selected)'}. Ask your DM to
-          import or assign one, or pick a different campaign from the filter above.
+          import or assign one, or pick your campaign from your world's page.
         </p>
       </section>
     )

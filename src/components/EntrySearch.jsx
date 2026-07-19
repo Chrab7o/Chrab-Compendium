@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabaseClient'
 import { useCampaignContext } from '../contexts/CampaignContext'
 import { useCategories } from '../contexts/CategoryContext'
 import { useTags } from '../contexts/TagContext'
-import { effectiveEntryCampaignId, effectiveEntryTags, mergePlacements } from '../lib/folders'
+import { effectiveEntryCampaignId, effectiveEntryTags, mergePlacements, scopedCampaignIds } from '../lib/folders'
 import { BrowseIcon } from './Icons'
 import EntryCard from './EntryCard'
 
@@ -15,9 +15,11 @@ import EntryCard from './EntryCard'
 // something; dumping every entry in scope by default is exactly the
 // "messy, nobody asked for this" result this component exists to avoid.
 export default function EntrySearch() {
-  const { campaignId } = useCampaignContext()
+  const { campaigns, campaignId, worldId } = useCampaignContext()
   const { categories } = useCategories()
-  const { tags } = useTags()
+  const { tags: allTags } = useTags()
+  // Session notes are browsed via the Character hub now, not search.
+  const tags = allTags.filter((t) => t.value !== 'session-note')
   const [entries, setEntries] = useState([])
   const [folders, setFolders] = useState([])
   const [placements, setPlacements] = useState([])
@@ -55,11 +57,12 @@ export default function EntrySearch() {
     if (!hasFilters) return []
     const merged = mergePlacements(entries, placements)
     const q = query.trim().toLowerCase()
+    const allowedCampaignIds = scopedCampaignIds(campaigns, worldId, campaignId)
     return merged
       .filter((e) => {
-        if (campaignId) {
+        if (allowedCampaignIds) {
           const eff = effectiveEntryCampaignId(folders, e)
-          if (eff && eff !== campaignId) return false
+          if (eff && !allowedCampaignIds.has(eff)) return false
         }
         if (category && e.category !== category) return false
         if (activeTags.size > 0 && !effectiveEntryTags(folders, e).some((t) => activeTags.has(t))) return false
@@ -67,7 +70,7 @@ export default function EntrySearch() {
         return true
       })
       .sort((a, b) => a.title.localeCompare(b.title))
-  }, [hasFilters, entries, placements, folders, campaignId, category, activeTags, query])
+  }, [hasFilters, entries, placements, folders, campaigns, campaignId, worldId, category, activeTags, query])
 
   return (
     <div className="entry-search">
@@ -81,30 +84,29 @@ export default function EntrySearch() {
           aria-label="Search entries by name"
         />
 
-        {categories.length > 0 && (
-          <div className="entry-search-chips" role="group" aria-label="Filter by category">
-            <button
-              type="button"
-              className={category ? 'chip' : 'chip active'}
-              onClick={() => setCategory('')}
-            >
-              All
-            </button>
-            {categories.map((c) => (
-              <button
-                key={c.value}
-                type="button"
-                className={category === c.value ? 'chip active' : 'chip'}
-                onClick={() => setCategory(category === c.value ? '' : c.value)}
-              >
-                {c.label}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {tags.length > 0 && (
-          <div className="entry-search-chips" role="group" aria-label="Filter by tag">
+        {(categories.length > 0 || tags.length > 0) && (
+          <div className="entry-search-chips" role="group" aria-label="Filter by category or tag">
+            {categories.length > 0 && (
+              <>
+                <button
+                  type="button"
+                  className={category ? 'chip' : 'chip active'}
+                  onClick={() => setCategory('')}
+                >
+                  All
+                </button>
+                {categories.map((c) => (
+                  <button
+                    key={c.value}
+                    type="button"
+                    className={category === c.value ? 'chip active' : 'chip'}
+                    onClick={() => setCategory(category === c.value ? '' : c.value)}
+                  >
+                    {c.label}
+                  </button>
+                ))}
+              </>
+            )}
             {tags.map((t) => (
               <button
                 key={t.value}

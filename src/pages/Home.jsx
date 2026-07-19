@@ -5,8 +5,8 @@ import { getWorldHeroImageUrl } from '../lib/worldStorage'
 // The landing page — orientation, then picking which world to explore.
 // Login/Character are already one click away in the nav, so they don't
 // need duplicate buttons here; actual category/tag browsing lives in the
-// top nav (Maps/Locations/People/Search); campaign scoping is the
-// site-wide filter in the nav corner, not a separate destination.
+// top nav (Maps/Locations/People/Search). Campaign scoping is world-first
+// now — no site-wide picker; pick a world, then a campaign from its page.
 export default function Home() {
   const { worlds, loading: worldsLoading } = useWorlds()
 
@@ -48,8 +48,8 @@ export default function Home() {
 
       <p className="home-guidance">
         Use <strong>Maps</strong>, <strong>Locations</strong>, <strong>People</strong>, and{' '}
-        <strong>Search</strong> up top to browse everything — filter by campaign with the picker
-        in the corner.
+        <strong>Search</strong> up top to browse everything — pick a world above, then choose
+        your campaign from its page.
       </p>
     </section>
   )

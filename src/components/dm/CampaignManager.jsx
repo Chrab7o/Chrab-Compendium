@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 
-const emptyForm = { id: null, name: '', slug: '', description: '' }
+const emptyForm = { id: null, name: '', slug: '', description: '', world_id: '' }
 
 function slugify(name) {
   return name
@@ -11,7 +11,7 @@ function slugify(name) {
     .replace(/(^-|-$)/g, '')
 }
 
-export default function CampaignManager({ campaigns, onChange }) {
+export default function CampaignManager({ campaigns, worlds, onChange }) {
   const [form, setForm] = useState(emptyForm)
   const [error, setError] = useState(null)
   const [saving, setSaving] = useState(false)
@@ -35,6 +35,7 @@ export default function CampaignManager({ campaigns, onChange }) {
       name: form.name,
       slug: form.slug || slugify(form.name),
       description: form.description,
+      world_id: form.world_id || worlds[0]?.id,
     }
 
     const { error: saveError } = form.id
@@ -78,6 +79,20 @@ export default function CampaignManager({ campaigns, onChange }) {
           />
         </label>
         <label>
+          World
+          <select
+            value={form.world_id}
+            onChange={(e) => setForm({ ...form, world_id: e.target.value })}
+            required
+          >
+            {worlds.map((w) => (
+              <option key={w.id} value={w.id}>
+                {w.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
           Description
           <textarea
             value={form.description ?? ''}
@@ -103,6 +118,7 @@ export default function CampaignManager({ campaigns, onChange }) {
           <li key={c.id}>
             <span>{c.name}</span>
             <span className="dm-list-slug">/{c.slug}</span>
+            <span className="dm-list-meta">{worlds.find((w) => w.id === c.world_id)?.name}</span>
             <div className="dm-list-actions">
               <button type="button" onClick={() => startEdit(c)}>
                 Edit

@@ -1,15 +1,15 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { useCampaignContext } from '../contexts/CampaignContext'
-import { effectiveEntryCampaignId, effectiveEntryTags } from '../lib/folders'
+import { effectiveEntryCampaignId, effectiveEntryTags, scopedCampaignIds } from '../lib/folders'
 import EntryCard from '../components/EntryCard'
 
 // Shared by the Locations/People/Session Notes nav pages — each is just this
-// same tag-filtered, campaign-scoped list with a different tag/title. Not a
+// same tag-filtered, session-scoped list with a different tag/title. Not a
 // folder/category browse: an entry shows up here purely because it carries
 // the matching tag, regardless of where it otherwise lives.
 export default function TagView({ tag, title }) {
-  const { campaign, campaignId } = useCampaignContext()
+  const { campaigns, campaign, campaignId, world, worldId } = useCampaignContext()
   const [entries, setEntries] = useState([])
   const [folders, setFolders] = useState([])
   const [loading, setLoading] = useState(true)
@@ -29,17 +29,20 @@ export default function TagView({ tag, title }) {
   const tagged = entries.filter((e) =>
     effectiveEntryTags(folders, e).some((t) => t.toLowerCase() === tag.toLowerCase())
   )
-  const scoped = campaignId
+  const allowedCampaignIds = scopedCampaignIds(campaigns, worldId, campaignId)
+  const scoped = allowedCampaignIds
     ? tagged.filter((e) => {
         const eff = effectiveEntryCampaignId(folders, e)
-        return !eff || eff === campaignId
+        return !eff || allowedCampaignIds.has(eff)
       })
     : tagged
+
+  const scopeName = campaign?.name ?? world?.name
 
   return (
     <section className="page">
       <div className="view-header">
-        <h1>{campaign ? `${campaign.name} ${title}` : title}</h1>
+        <h1>{scopeName ? `${scopeName} ${title}` : title}</h1>
       </div>
 
       {loading && <p className="status-message">Loading...</p>}

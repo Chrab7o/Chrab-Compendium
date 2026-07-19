@@ -87,18 +87,15 @@
 body {
   margin: 0;
   min-height: 100vh;
-  /* A real photographed texture instead of the old procedural paper-grain
-     CSS, tiled at a fixed size (like the old CSS noise tile) rather than
-     stretched to cover the whole viewport — a fixed px size doesn't care
-     how tall the document is, so `fixed` attachment here is just for a
-     subtle parallax feel (texture stays put while content scrolls over
-     it), not a fix for cover's document-height scaling problem. This
-     source image is soft/uneven mottling with no strong linear features,
-     chosen specifically so the tile seams don't read as an obvious
-     repeating grid the way a previous, more marked texture did. */
+  /* A real photographed texture, tiled large (roughly 2-4 tiles visible
+     per screen) rather than small — fewer seam crossings on screen at
+     once reads as a couple of big textured panels instead of an obvious
+     repeating wallpaper grid. Works because this particular source is
+     soft, low-contrast mottling with no strong lines to clash at the
+     seam; a busier source (visible cracks/veins) wouldn't hold up here. */
   background-color: var(--bg);
   background-image: url('/backgrounds/parchment-bg.jpg');
-  background-size: 700px auto;
+  background-size: 2200px auto;
   background-position: center;
   background-repeat: repeat;
   background-attachment: fixed;
@@ -280,10 +277,18 @@ h3 {
   transform: translateY(-2px);
 }
 
-.campaign-picker {
-  min-width: 160px;
-  font-family: var(--font-nav);
-  font-size: 1.1rem;
+/* The decorative nav font (--font-nav) is fine for short link labels, but
+   hard to scan in a functional dropdown — reset to the plain body font
+   here instead. */
+.session-toggle {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.session-toggle select {
+  font-family: 'Spectral', 'Georgia', 'Iowan Old Style', serif;
+  font-size: 0.95rem;
+  min-width: 130px;
 }
 
 .nav-hamburger {
@@ -373,7 +378,11 @@ h3 {
     gap: 0.75rem;
   }
 
-  .campaign-picker {
+  .session-toggle {
+    flex-direction: column;
+  }
+
+  .session-toggle select {
     min-width: 0;
     width: 100%;
   }
@@ -450,6 +459,18 @@ button.nav-dropdown-toggle:hover {
   color: var(--text);
 }
 
+/* DMLayout wraps its Outlet content in this div alongside the subnav, so
+   without this, a nested .page/.page-wide is a grandchild of .app-main
+   rather than a direct child — breaking the flex: 1 stretch-to-fill-height
+   chain every other page relies on. Mirrors .app-main's own flex setup so
+   DM pages get the exact same box behavior as the rest of the site. */
+.dm-layout {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  width: 100%;
+}
+
 .dm-subnav {
   display: flex;
   flex-wrap: wrap;
@@ -457,7 +478,6 @@ button.nav-dropdown-toggle:hover {
   padding: 1rem 2rem;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
-  margin-bottom: 0.5rem;
 }
 
 .dm-subnav a {
@@ -531,21 +551,26 @@ button.link-button:hover {
 .app-main {
   flex: 1;
   width: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Most pages opt into the centered reading column via this class.
    DMOrganizePage skips it deliberately so its sidebar can reach the true
    left edge of the window instead of being boxed into a 1000px column.
-   Renders as a bordered parchment sheet floating over the desk backdrop —
-   sized generously (not hugging content tightly) so it comfortably fits
-   anything from a short login form to a long entry. */
+   Renders as a parchment sheet floating over the desk backdrop, flush top
+   and bottom against the nav and the bottom of the viewport — no border
+   (tried a black one, didn't read well; background + shadow define the
+   edge instead) and no border-radius on those edges, or the merge would
+   look like a notch. flex: 1 (app-main is a column flex container) makes
+   it stretch to fill the full height below the nav on short pages, while
+   still growing taller than the viewport normally for long content. */
 .page {
   width: min(1000px, calc(100% - 3rem));
-  margin: 1.5rem auto;
+  flex: 1;
+  margin: 0 auto;
   padding: 2.5rem;
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
   box-shadow: var(--shadow-md);
 }
 
@@ -553,16 +578,16 @@ button.link-button:hover {
    genuinely wide (the skill tree diagram), same "opt in" idea as
    .browse-header/DMOrganizePage skipping .page for the sidebar. */
 .page-wide {
-  margin: 1.5rem;
+  flex: 1;
+  margin: 0 1.5rem;
   padding: 2.5rem;
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
   box-shadow: var(--shadow-md);
 }
 
 .view-header {
   margin-bottom: 1.5rem;
+  text-align: center;
 }
 
 .view-header h1 {
@@ -571,15 +596,17 @@ button.link-button:hover {
   padding-bottom: 0.9rem;
 }
 
-/* A rule-diamond-rule flourish (illuminated-manuscript chapter mark)
-   instead of a flat gradient underline bar. */
+/* A rule-diamond-rule flourish (illuminated-manuscript chapter mark),
+   centered under the now-centered heading — fading in from both sides
+   toward the diamond instead of running left-to-right. */
 .view-header h1::before {
   content: '';
   position: absolute;
-  left: 10px;
+  left: 50%;
   bottom: -3px;
   width: 8px;
   height: 8px;
+  margin-left: -4px;
   background: var(--accent-strong);
   transform: rotate(45deg);
   box-shadow: var(--shadow-glow-accent);
@@ -588,11 +615,12 @@ button.link-button:hover {
 .view-header h1::after {
   content: '';
   position: absolute;
-  left: 0;
+  left: 50%;
   bottom: 0;
   width: 3.5rem;
   height: 2px;
-  background: linear-gradient(90deg, var(--accent-strong), transparent);
+  transform: translateX(-50%);
+  background: linear-gradient(90deg, transparent, var(--accent-strong), transparent);
 }
 
 .view-subtitle {
@@ -1155,19 +1183,12 @@ button:disabled {
   justify-content: center;
 }
 
-/* A framed-map look: a solid wax-seal-red border, then a carved groove
-   (dark line, then a thin light line) just inside it — same "pressed into
-   the page" technique used on the home hero, reused here instead of a
-   plain 1px border. */
 .map-container {
   border-radius: var(--radius-md);
   overflow: hidden;
-  border: 4px solid var(--accent-strong);
+  border: 1px solid var(--border);
   background: var(--bg);
-  box-shadow:
-    var(--shadow-md),
-    inset 0 0 0 3px rgba(35, 8, 12, 0.35),
-    inset 0 0 0 5px rgba(246, 236, 210, 0.4);
+  box-shadow: var(--shadow-sm);
 }
 
 .map-pin {
@@ -1219,15 +1240,24 @@ button:disabled {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 
+/* flex: 1 + align-items: stretch (not the old flex-start) so this actually
+   grows to fill .single-map-page's height and passes that height down to
+   .map-detail-main instead of both just sitting at natural content size —
+   same chain-breaks-if-any-link-skips-it issue as the DM layout fix. */
 .map-detail-layout {
   display: flex;
-  align-items: flex-start;
+  align-items: stretch;
   gap: 1.5rem;
+  flex: 1;
+  min-height: 0;
 }
 
 .map-detail-main {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .region-panel {
@@ -1962,7 +1992,7 @@ button.tree-label:hover {
 
 .home-page {
   max-width: 1100px;
-  margin: 1.5rem auto;
+  margin: 0 auto;
 }
 
 .home-tagline {
@@ -1984,7 +2014,11 @@ button.tree-label:hover {
 
 .world-card-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  /* auto-fit, not auto-fill: auto-fill keeps phantom empty tracks around
+     that eat up the remaining row width, leaving a lone card stuck in a
+     small column with dead space beside it. auto-fit collapses those empty
+     tracks so existing cards actually stretch to fill the row. */
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 1.25rem;
 }
 
@@ -2030,9 +2064,32 @@ button.tree-label:hover {
   font-size: 0.9rem;
 }
 
+/* .page-wide now stretches to fill the full viewport height (so short
+   pages like this one don't leave dead space below the box) — but that
+   left .map-viewport's own fixed 70vh height stranded in a much taller
+   box, with dead space above and below it instead. Making this its own
+   flex column, with the map as the flexible element, lets the map grow
+   to fill whatever extra room the page box has instead of the surrounding
+   text/back-link. Scoped to this class rather than .map-viewport itself,
+   since the DM's map-editing tools also use .map-viewport inside a plain
+   (non-stretching) .page, where the fixed 70vh is still correct. */
 .single-map-page {
+  /* Explicit width, not just max-width: as a flex item (.page-wide is
+     flex: 1) with auto side margins and no set width, it sized itself by
+     shrink-to-fit content instead of stretching up to the max-width cap —
+     auto margins on a flex item opt it out of the default stretch
+     behavior. Pinning width: 100% first removes that ambiguity. */
+  width: 100%;
   max-width: 1100px;
-  margin: 1.5rem auto;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.single-map-page .map-viewport {
+  flex: 1;
+  height: auto;
+  min-height: 50vh;
 }
 
 .world-map-hero {
@@ -2072,6 +2129,7 @@ button.tree-label:hover {
 
 .home-section-header {
   margin-bottom: 1rem;
+  text-align: center;
 }
 
 .home-section-header h2 {
@@ -2083,10 +2141,11 @@ button.tree-label:hover {
 .home-section-header h2::before {
   content: '';
   position: absolute;
-  left: 8px;
+  left: 50%;
   bottom: -2px;
   width: 6px;
   height: 6px;
+  margin-left: -3px;
   background: var(--accent-strong);
   transform: rotate(45deg);
 }
@@ -2094,11 +2153,12 @@ button.tree-label:hover {
 .home-section-header h2::after {
   content: '';
   position: absolute;
-  left: 0;
+  left: 50%;
   bottom: 0;
   width: 2.5rem;
   height: 2px;
-  background: linear-gradient(90deg, var(--accent-strong), transparent);
+  transform: translateX(-50%);
+  background: linear-gradient(90deg, transparent, var(--accent-strong), transparent);
 }
 
 .home-section-header .view-subtitle {
@@ -2114,7 +2174,6 @@ button.tree-label:hover {
 
 .entry-search-input {
   width: 100%;
-  max-width: 420px;
 }
 
 .entry-search-chips {

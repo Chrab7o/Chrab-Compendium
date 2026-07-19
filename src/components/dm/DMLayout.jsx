@@ -16,7 +16,7 @@ const LINKS = [
 
 export default function DMLayout() {
   return (
-    <div>
+    <div className="dm-layout">
       <nav className="dm-subnav">
         {LINKS.map((link) => (
           <NavLink

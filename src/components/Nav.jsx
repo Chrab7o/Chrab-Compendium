@@ -9,8 +9,9 @@ export default function Nav() {
   const navigate = useNavigate()
   const location = useLocation()
   const { isDM, isPlayer, signOut } = useAuth()
-  const { campaigns, campaignId, setCampaignId } = useCampaignContext()
+  const { worlds, worldId, setWorldId, campaigns, campaignId, setCampaignId } = useCampaignContext()
   const { impersonating, stopImpersonating } = useImpersonation()
+  const worldCampaigns = campaigns.filter((c) => c.world_id === worldId)
   const [mobileOpen, setMobileOpen] = useState(false)
 
   // Nav persists across route changes, so the mobile menu needs an explicit
@@ -51,7 +52,7 @@ export default function Nav() {
       <div id="nav-mobile-menu" className={`nav-mobile-menu${mobileOpen ? ' open' : ''}`}>
         <nav className="nav-links">
           <NavLink to="/" end className={({ isActive }) => (isActive ? 'active' : '')}>
-            Home
+            Worlds
           </NavLink>
           <NavLink to="/maps" className={({ isActive }) => (isActive ? 'active' : '')}>
             Maps
@@ -67,7 +68,7 @@ export default function Nav() {
           </NavLink>
           {!isDM && (
             <NavLink to="/character" className={({ isActive }) => (isActive ? 'active' : '')}>
-              Character
+              My Character
             </NavLink>
           )}
           {isDM && (
@@ -77,27 +78,40 @@ export default function Nav() {
           )}
         </nav>
         <div className="nav-right">
-          <select
-            className="campaign-picker"
-            value={campaignId}
-            onChange={(e) => setCampaignId(e.target.value)}
-            aria-label="Filter by campaign"
-          >
-            <option value="">All campaigns</option>
-            {campaigns.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-          {isDM || isPlayer ? (
+          {worlds.length > 0 && (
+            <div className="session-toggle">
+              <select
+                value={worldId}
+                onChange={(e) => setWorldId(e.target.value)}
+                aria-label="Active world"
+              >
+                <option value="">No world</option>
+                {worlds.map((w) => (
+                  <option key={w.id} value={w.id}>
+                    {w.name}
+                  </option>
+                ))}
+              </select>
+              {worldId && worldCampaigns.length > 0 && (
+                <select
+                  value={campaignId}
+                  onChange={(e) => setCampaignId(e.target.value)}
+                  aria-label="Active campaign"
+                >
+                  <option value="">All campaigns</option>
+                  {worldCampaigns.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+          )}
+          {(isDM || isPlayer) && (
             <button className="link-button" onClick={signOut}>
               Sign out
             </button>
-          ) : (
-            <NavLink to="/login" className={({ isActive }) => (isActive ? 'active' : '')}>
-              Login
-            </NavLink>
           )}
         </div>
       </div>
