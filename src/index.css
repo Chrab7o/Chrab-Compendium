@@ -88,14 +88,17 @@ body {
   margin: 0;
   min-height: 100vh;
   /* A real photographed texture instead of the old procedural paper-grain
-     CSS, tiled at a small fixed size (like the old CSS noise tile) rather
-     than stretched to cover the whole viewport — a fixed px size doesn't
-     care how tall the document is, so `fixed` attachment here is just for
-     a subtle parallax feel (texture stays put while content scrolls over
-     it), not a fix for cover's document-height scaling problem. */
+     CSS, tiled at a fixed size (like the old CSS noise tile) rather than
+     stretched to cover the whole viewport — a fixed px size doesn't care
+     how tall the document is, so `fixed` attachment here is just for a
+     subtle parallax feel (texture stays put while content scrolls over
+     it), not a fix for cover's document-height scaling problem. This
+     source image is soft/uneven mottling with no strong linear features,
+     chosen specifically so the tile seams don't read as an obvious
+     repeating grid the way a previous, more marked texture did. */
   background-color: var(--bg);
   background-image: url('/backgrounds/parchment-bg.jpg');
-  background-size: 420px auto;
+  background-size: 700px auto;
   background-position: center;
   background-repeat: repeat;
   background-attachment: fixed;
