@@ -52,11 +52,7 @@ export default function WorldMapPage() {
   const worldCampaigns = world ? campaigns.filter((c) => c.world_id === world.id) : []
   const effectiveCampaignId = worldCampaigns.some((c) => c.id === campaignId) ? campaignId : ''
 
-  const { maps, loading: mapsLoading } = useMaps({
-    worldId: world?.id,
-    campaignId: effectiveCampaignId || undefined,
-    campaigns,
-  })
+  const { maps, loading: mapsLoading } = useMaps({ worldId: world?.id })
 
   useEffect(() => {
     if (maps.length > 0 && !maps.some((m) => m.id === mapId)) {
@@ -91,13 +87,13 @@ export default function WorldMapPage() {
       {worldCampaigns.length > 0 && (
         <div className="map-picker">
           <label>
-            Campaign
+            Timeline
             <select
               value={effectiveCampaignId}
               onChange={(e) => setCampaignId(e.target.value)}
-              aria-label="Filter by campaign"
+              aria-label="Filter by timeline"
             >
-              <option value="">All campaigns</option>
+              <option value="">All timelines</option>
               {worldCampaigns.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
@@ -115,7 +111,7 @@ export default function WorldMapPage() {
       {maps.length > 1 && (
         <div className="map-picker">
           <label>
-            Timeline
+            Map
             <select value={mapId} onChange={(e) => setMapId(e.target.value)}>
               {maps.map((m) => (
                 <option key={m.id} value={m.id}>

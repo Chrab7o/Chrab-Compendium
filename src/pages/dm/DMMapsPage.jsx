@@ -40,15 +40,14 @@ export default function DMMapsPage() {
       </div>
       <MapManager
         maps={maps}
-        campaigns={campaigns}
         worlds={worlds}
         onChange={() => {
           load()
           reloadWorlds()
         }}
       />
-      <MapMarkerEditor maps={maps} entries={entries} />
-      <MapRegionEditor maps={maps} folders={folders} />
+      <MapMarkerEditor maps={maps} entries={entries} campaigns={campaigns} />
+      <MapRegionEditor maps={maps} folders={folders} campaigns={campaigns} />
     </section>
   )
 }

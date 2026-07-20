@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { useMapMarkers } from '../hooks/useMapMarkers'
 import { useMapRegions } from '../hooks/useMapRegions'
+import { useCampaignContext } from '../contexts/CampaignContext'
 import { getMapImageUrl } from '../lib/mapStorage'
 import MapViewer from './MapViewer'
 import RegionEntryPanel from './RegionEntryPanel'
@@ -11,8 +12,15 @@ import RegionEntryPanel from './RegionEntryPanel'
 // linked folder. Shared by MapDetail and WorldMapPage so the region-panel
 // behavior only lives in one place.
 export default function MapWithRegions({ map }) {
-  const { markers } = useMapMarkers(map.id)
-  const { regions } = useMapRegions(map.id)
+  const { campaignId } = useCampaignContext()
+  const { markers: allMarkers } = useMapMarkers(map.id)
+  const { regions: allRegions } = useMapRegions(map.id)
+  // A map is shared across every campaign/era in its world now — markers
+  // and regions are what's actually timeline-specific. General (no
+  // campaign_id) ones always show; a campaign-tagged one only shows when
+  // that's the active timeline.
+  const markers = allMarkers.filter((m) => !m.campaign_id || m.campaign_id === campaignId)
+  const regions = allRegions.filter((r) => !r.campaign_id || r.campaign_id === campaignId)
   const [selectedRegionId, setSelectedRegionId] = useState(null)
   const [folders, setFolders] = useState([])
   const [entries, setEntries] = useState([])

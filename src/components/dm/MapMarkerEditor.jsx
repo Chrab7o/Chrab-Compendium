@@ -4,9 +4,9 @@ import { useMapMarkers } from '../../hooks/useMapMarkers'
 import { getMapImageUrl } from '../../lib/mapStorage'
 import MapViewer from '../MapViewer'
 
-const emptyForm = { id: null, x: 0, y: 0, label: '', visibility: 'public', entry_id: '' }
+const emptyForm = { id: null, x: 0, y: 0, label: '', visibility: 'public', entry_id: '', campaign_id: '' }
 
-export default function MapMarkerEditor({ maps, entries }) {
+export default function MapMarkerEditor({ maps, entries, campaigns }) {
   const [mapId, setMapId] = useState('')
   const [form, setForm] = useState(null)
   const [error, setError] = useState(null)
@@ -15,6 +15,7 @@ export default function MapMarkerEditor({ maps, entries }) {
 
   const map = maps.find((m) => m.id === mapId)
   const { markers, reload } = useMapMarkers(mapId)
+  const mapCampaigns = campaigns.filter((c) => c.world_id === map?.world_id)
 
   useEffect(() => {
     if (form) formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
@@ -26,7 +27,7 @@ export default function MapMarkerEditor({ maps, entries }) {
   }
 
   function handleMarkerClick(marker) {
-    setForm({ ...marker, entry_id: marker.entry_id ?? '' })
+    setForm({ ...marker, entry_id: marker.entry_id ?? '', campaign_id: marker.campaign_id ?? '' })
     setError(null)
   }
 
@@ -52,6 +53,7 @@ export default function MapMarkerEditor({ maps, entries }) {
       label: form.label,
       visibility: form.visibility,
       entry_id: form.entry_id || null,
+      campaign_id: form.campaign_id || null,
     }
 
     const { error: saveError } = form.id
@@ -149,6 +151,20 @@ export default function MapMarkerEditor({ maps, entries }) {
                     {entries.map((entry) => (
                       <option key={entry.id} value={entry.id}>
                         {entry.title}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  Timeline
+                  <select
+                    value={form.campaign_id}
+                    onChange={(e) => setForm({ ...form, campaign_id: e.target.value })}
+                  >
+                    <option value="">General (all timelines)</option>
+                    {mapCampaigns.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
                       </option>
                     ))}
                   </select>

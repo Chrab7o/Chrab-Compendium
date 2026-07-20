@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import { uploadMapImage, deleteMapImage, readImageDimensions } from '../../lib/mapStorage'
 
-const emptyForm = { id: null, name: '', slug: '', campaign_id: '', world_id: '' }
+const emptyForm = { id: null, name: '', slug: '', world_id: '' }
 
 function slugify(name) {
   return name
@@ -12,7 +12,7 @@ function slugify(name) {
     .replace(/(^-|-$)/g, '')
 }
 
-export default function MapManager({ maps, campaigns, worlds, onChange }) {
+export default function MapManager({ maps, worlds, onChange }) {
   const [form, setForm] = useState(emptyForm)
   const [file, setFile] = useState(null)
   const [error, setError] = useState(null)
@@ -23,7 +23,6 @@ export default function MapManager({ maps, campaigns, worlds, onChange }) {
       id: map.id,
       name: map.name,
       slug: map.slug,
-      campaign_id: map.campaign_id ?? '',
       world_id: map.world_id ?? '',
     })
     setFile(null)
@@ -50,7 +49,6 @@ export default function MapManager({ maps, campaigns, worlds, onChange }) {
       const payload = {
         name: form.name,
         slug: form.slug || slugify(form.name),
-        campaign_id: form.campaign_id || null,
         world_id: form.world_id || null,
       }
 
@@ -108,20 +106,6 @@ export default function MapManager({ maps, campaigns, worlds, onChange }) {
             onChange={(e) => setForm({ ...form, slug: e.target.value })}
             placeholder={slugify(form.name)}
           />
-        </label>
-        <label>
-          Campaign
-          <select
-            value={form.campaign_id}
-            onChange={(e) => setForm({ ...form, campaign_id: e.target.value })}
-          >
-            <option value="">General (no campaign)</option>
-            {campaigns.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
         </label>
         <label>
           World

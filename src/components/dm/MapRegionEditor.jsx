@@ -6,9 +6,9 @@ import { flattenFolders } from '../../lib/folders'
 import { getMapImageUrl } from '../../lib/mapStorage'
 import MapViewer from '../MapViewer'
 
-const emptyForm = { id: null, name: '', category: '', folder_id: '', visibility: 'public' }
+const emptyForm = { id: null, name: '', category: '', folder_id: '', visibility: 'public', campaign_id: '' }
 
-export default function MapRegionEditor({ maps, folders }) {
+export default function MapRegionEditor({ maps, folders, campaigns }) {
   const { categories } = useCategories()
   const [mapId, setMapId] = useState('')
   const [drawing, setDrawing] = useState(false)
@@ -19,6 +19,7 @@ export default function MapRegionEditor({ maps, folders }) {
 
   const map = maps.find((m) => m.id === mapId)
   const { regions, reload } = useMapRegions(mapId)
+  const mapCampaigns = campaigns.filter((c) => c.world_id === map?.world_id)
 
   useEffect(() => {
     if (form && !form.category && categories.length > 0) {
@@ -82,6 +83,7 @@ export default function MapRegionEditor({ maps, folders }) {
       folder_id: region.folder_id ?? '',
       visibility: region.visibility,
       points: region.points,
+      campaign_id: region.campaign_id ?? '',
     })
     setError(null)
   }
@@ -101,6 +103,7 @@ export default function MapRegionEditor({ maps, folders }) {
       points: form.points,
       folder_id: form.folder_id || null,
       visibility: form.visibility,
+      campaign_id: form.campaign_id || null,
     }
     const { error: saveError } = form.id
       ? await supabase.from('map_regions').update(payload).eq('id', form.id)
@@ -232,6 +235,20 @@ export default function MapRegionEditor({ maps, folders }) {
                   >
                     <option value="public">Public</option>
                     <option value="dm">DM only</option>
+                  </select>
+                </label>
+                <label>
+                  Timeline
+                  <select
+                    value={form.campaign_id}
+                    onChange={(e) => setForm({ ...form, campaign_id: e.target.value })}
+                  >
+                    <option value="">General (all timelines)</option>
+                    {mapCampaigns.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
                   </select>
                 </label>
               </div>

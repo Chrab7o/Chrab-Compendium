@@ -96,7 +96,7 @@ export default function Nav() {
                 <select
                   value={campaignId}
                   onChange={(e) => setCampaignId(e.target.value)}
-                  aria-label="Active campaign"
+                  aria-label="Active timeline"
                 >
                   <option value="">All campaigns</option>
                   {worldCampaigns.map((c) => (
