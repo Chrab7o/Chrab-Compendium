@@ -3,13 +3,19 @@ import { useMaps } from '../hooks/useMaps'
 import { useCampaignContext } from '../contexts/CampaignContext'
 
 export default function MapsView() {
-  const { campaign, campaignId } = useCampaignContext()
-  const { maps, loading } = useMaps({ campaignId: campaignId || undefined, includeGeneral: true })
+  const { campaigns, campaign, campaignId, world, worldId } = useCampaignContext()
+  const { maps, loading } = useMaps({
+    campaignId: campaignId || undefined,
+    worldId: worldId || undefined,
+    campaigns,
+    includeGeneral: true,
+  })
+  const scopeName = campaign?.name ?? world?.name
 
   return (
     <section className="page">
       <div className="view-header">
-        <h1>{campaign ? `${campaign.name} Maps` : 'Maps'}</h1>
+        <h1>{scopeName ? `${scopeName} Maps` : 'Maps'}</h1>
         <p className="view-subtitle">Click a map, then click a marker to jump to its entry.</p>
       </div>
 

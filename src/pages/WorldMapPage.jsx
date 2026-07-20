@@ -55,6 +55,7 @@ export default function WorldMapPage() {
   const { maps, loading: mapsLoading } = useMaps({
     worldId: world?.id,
     campaignId: effectiveCampaignId || undefined,
+    campaigns,
   })
 
   useEffect(() => {

@@ -21,6 +21,24 @@ const vertexIcon = L.divIcon({
   iconAnchor: [7, 7],
 })
 
+// Leaflet caches its container's pixel size at creation and never re-checks
+// it on its own — if something outside Leaflet resizes .map-container
+// (the campaign filter changing what else renders on the page, a region
+// panel opening beside the map, a window resize...), the map keeps drawing
+// at the old size/position until told otherwise, which looks exactly like
+// "uncentered." boxSize already tracks the real current size (measured via
+// ResizeObserver below), so just telling Leaflet to recheck whenever it
+// changes is the fix, rather than remounting the whole map.
+function InvalidateOnResize({ width, height }) {
+  const map = useMap()
+
+  useEffect(() => {
+    map.invalidateSize()
+  }, [map, width, height])
+
+  return null
+}
+
 // Pans/zooms to a region's bounds when it becomes the selected one, whether
 // that selection came from clicking the shape itself or the side dropdown.
 function RegionFocus({ region, height }) {
@@ -116,6 +134,7 @@ export default function MapViewer({
           zoomDelta={0.5}
           style={{ height: '100%', width: '100%', background: '#3a2a18' }}
         >
+          <InvalidateOnResize width={boxSize.width} height={boxSize.height} />
           <ImageOverlay url={imageUrl} bounds={bounds} />
           {(editable || regionsEditable) && <ClickCapture height={height} onMapClick={onMapClick} />}
 
