@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { MapContainer, ImageOverlay, Marker, Polygon, Polyline, Popup, Tooltip, useMap, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import { useNavigate } from 'react-router-dom'
@@ -29,12 +29,19 @@ const vertexIcon = L.divIcon({
 // "uncentered." boxSize already tracks the real current size (measured via
 // ResizeObserver below), so just telling Leaflet to recheck whenever it
 // changes is the fix, rather than remounting the whole map.
-function InvalidateOnResize({ width, height }) {
+function InvalidateOnResize({ width, height, bounds }) {
   const map = useMap()
 
   useEffect(() => {
     map.invalidateSize()
-  }, [map, width, height])
+    // invalidateSize alone only tells Leaflet to recheck the container's
+    // pixel dimensions — it doesn't re-fit the current zoom/pan to match a
+    // container that's changed shape, which is exactly what happens when
+    // switching timelines toggles the "nothing here yet" message on/off
+    // and resizes .map-viewport. Re-fitting keeps the map filling its box
+    // correctly instead of appearing skewed/clipped.
+    map.fitBounds(bounds)
+  }, [map, width, height, bounds])
 
   return null
 }
@@ -75,7 +82,10 @@ export default function MapViewer({
   onRegionClick,
 }) {
   const navigate = useNavigate()
-  const bounds = [[0, 0], [height, width]]
+  // Memoized so InvalidateOnResize's effect only re-fires on a genuine
+  // width/height change, not on every render (a new array literal here
+  // would otherwise look like a fresh dependency each time).
+  const bounds = useMemo(() => [[0, 0], [height, width]], [height, width])
   const viewportRef = useRef(null)
   const [boxSize, setBoxSize] = useState(null)
 
@@ -134,7 +144,7 @@ export default function MapViewer({
           zoomDelta={0.5}
           style={{ height: '100%', width: '100%', background: '#3a2a18' }}
         >
-          <InvalidateOnResize width={boxSize.width} height={boxSize.height} />
+          <InvalidateOnResize width={boxSize.width} height={boxSize.height} bounds={bounds} />
           <ImageOverlay url={imageUrl} bounds={bounds} />
           {(editable || regionsEditable) && <ClickCapture height={height} onMapClick={onMapClick} />}
 
