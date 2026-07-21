@@ -8,10 +8,12 @@ import MapViewer from './MapViewer'
 import RegionEntryPanel from './RegionEntryPanel'
 
 // A map plus its regions: hover a region for its name, click it (or pick it
-// from the dropdown) to open a side panel of everything filed under its
-// linked folder. Shared by MapDetail and WorldMapPage so the region-panel
-// behavior only lives in one place.
-export default function MapWithRegions({ map }) {
+// from the dropdown) to either open a side panel of everything filed under
+// its linked folder, or — if it's linked to another map instead — navigate
+// there via onNavigateToMap. A region is one or the other, never both.
+// Shared by MapDetail and WorldMapPage so this behavior only lives in one
+// place.
+export default function MapWithRegions({ map, onNavigateToMap }) {
   const { campaignId } = useCampaignContext()
   const { markers: allMarkers } = useMapMarkers(map.id)
   const { regions: allRegions } = useMapRegions(map.id)
@@ -39,13 +41,23 @@ export default function MapWithRegions({ map }) {
   }, [])
 
   const selectedRegion = regions.find((r) => r.id === selectedRegionId) ?? null
+  const linkedMapRegions = regions.filter((r) => r.linked_map_id)
+  const folderRegions = regions.filter((r) => !r.linked_map_id)
+
+  function activateRegion(region) {
+    if (region.linked_map_id) onNavigateToMap?.(region.linked_map_id)
+    else setSelectedRegionId(region.id)
+  }
 
   return (
     <div className="map-detail-layout">
       <div className="map-detail-main">
-        <p className="view-subtitle">Click a marker to jump to its entry, or a region to browse it.</p>
+        <p className="view-subtitle">
+          Click a marker to jump to its entry, a region to browse it, or a linked region to zoom
+          into its map.
+        </p>
 
-        {regions.length > 0 && (
+        {folderRegions.length > 0 && (
           <div className="map-picker">
             <label>
               Jump to a region
@@ -54,7 +66,7 @@ export default function MapWithRegions({ map }) {
                 onChange={(e) => setSelectedRegionId(e.target.value || null)}
               >
                 <option value="">Choose a region...</option>
-                {[...regions]
+                {[...folderRegions]
                   .sort((a, b) => a.name.localeCompare(b.name))
                   .map((r) => (
                     <option key={r.id} value={r.id}>
@@ -66,6 +78,18 @@ export default function MapWithRegions({ map }) {
           </div>
         )}
 
+        {linkedMapRegions.length > 0 && (
+          <div className="map-region-links">
+            {[...linkedMapRegions]
+              .sort((a, b) => a.name.localeCompare(b.name))
+              .map((r) => (
+                <button key={r.id} type="button" onClick={() => onNavigateToMap?.(r.linked_map_id)}>
+                  Zoom to {r.name} →
+                </button>
+              ))}
+          </div>
+        )}
+
         <MapViewer
           imageUrl={getMapImageUrl(map.image_path)}
           width={map.image_width}
@@ -73,7 +97,7 @@ export default function MapWithRegions({ map }) {
           markers={markers}
           regions={regions}
           selectedRegionId={selectedRegionId}
-          onRegionClick={(region) => setSelectedRegionId(region.id)}
+          onRegionClick={activateRegion}
         />
       </div>
 

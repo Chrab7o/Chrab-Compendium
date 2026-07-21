@@ -6,7 +6,15 @@ import { flattenFolders } from '../../lib/folders'
 import { getMapImageUrl } from '../../lib/mapStorage'
 import MapViewer from '../MapViewer'
 
-const emptyForm = { id: null, name: '', category: '', folder_id: '', visibility: 'public', campaign_id: '' }
+const emptyForm = {
+  id: null,
+  name: '',
+  category: '',
+  folder_id: '',
+  visibility: 'public',
+  campaign_id: '',
+  linked_map_id: '',
+}
 
 export default function MapRegionEditor({ maps, folders, campaigns }) {
   const { categories } = useCategories()
@@ -20,6 +28,15 @@ export default function MapRegionEditor({ maps, folders, campaigns }) {
   const map = maps.find((m) => m.id === mapId)
   const { regions, reload } = useMapRegions(mapId)
   const mapCampaigns = campaigns.filter((c) => c.world_id === map?.world_id)
+  // Other maps in the same world a region could zoom into — a map with no
+  // world isn't part of any world-navigation flow, so nothing to link to.
+  const otherWorldMaps = map?.world_id
+    ? maps.filter((m) => m.world_id === map.world_id && m.id !== map.id)
+    : []
+  // A region either browses a folder or zooms into another map, never
+  // both — derived from which of the two fields is actually set, not its
+  // own stored value.
+  const linkType = form?.linked_map_id ? 'map' : form?.folder_id ? 'folder' : 'none'
 
   useEffect(() => {
     if (form && !form.category && categories.length > 0) {
@@ -84,6 +101,7 @@ export default function MapRegionEditor({ maps, folders, campaigns }) {
       visibility: region.visibility,
       points: region.points,
       campaign_id: region.campaign_id ?? '',
+      linked_map_id: region.linked_map_id ?? '',
     })
     setError(null)
   }
@@ -104,6 +122,7 @@ export default function MapRegionEditor({ maps, folders, campaigns }) {
       folder_id: form.folder_id || null,
       visibility: form.visibility,
       campaign_id: form.campaign_id || null,
+      linked_map_id: form.linked_map_id || null,
     }
     const { error: saveError } = form.id
       ? await supabase.from('map_regions').update(payload).eq('id', form.id)
@@ -199,34 +218,72 @@ export default function MapRegionEditor({ maps, folders, campaigns }) {
                   required
                 />
               </label>
+              <label>
+                Region links to
+                <select
+                  value={linkType}
+                  onChange={(e) => {
+                    const next = e.target.value
+                    if (next === 'folder') setForm({ ...form, linked_map_id: '' })
+                    else if (next === 'map') {
+                      setForm({ ...form, folder_id: '', linked_map_id: otherWorldMaps[0]?.id ?? '' })
+                    } else setForm({ ...form, folder_id: '', linked_map_id: '' })
+                  }}
+                >
+                  <option value="none">None</option>
+                  <option value="folder">Folder (browse entries)</option>
+                  <option value="map" disabled={otherWorldMaps.length === 0}>
+                    Another map (zoom in){otherWorldMaps.length === 0 ? ' — no other maps in this world' : ''}
+                  </option>
+                </select>
+              </label>
               <div className="dm-form-row">
-                <label>
-                  Category
-                  <select
-                    value={form.category}
-                    onChange={(e) => setForm({ ...form, category: e.target.value, folder_id: '' })}
-                  >
-                    {categories.map((c) => (
-                      <option key={c.value} value={c.value}>
-                        {c.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  Folder
-                  <select
-                    value={form.folder_id}
-                    onChange={(e) => setForm({ ...form, folder_id: e.target.value })}
-                  >
-                    <option value="">(no folder link)</option>
-                    {flattenFolders(folders, form.category).map((f) => (
-                      <option key={f.id} value={f.id}>
-                        {f.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                {linkType === 'folder' && (
+                  <>
+                    <label>
+                      Category
+                      <select
+                        value={form.category}
+                        onChange={(e) => setForm({ ...form, category: e.target.value, folder_id: '' })}
+                      >
+                        {categories.map((c) => (
+                          <option key={c.value} value={c.value}>
+                            {c.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label>
+                      Folder
+                      <select
+                        value={form.folder_id}
+                        onChange={(e) => setForm({ ...form, folder_id: e.target.value })}
+                      >
+                        <option value="">(no folder link)</option>
+                        {flattenFolders(folders, form.category).map((f) => (
+                          <option key={f.id} value={f.id}>
+                            {f.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </>
+                )}
+                {linkType === 'map' && (
+                  <label>
+                    Zoom to map
+                    <select
+                      value={form.linked_map_id}
+                      onChange={(e) => setForm({ ...form, linked_map_id: e.target.value })}
+                    >
+                      {otherWorldMaps.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
                 <label>
                   Visibility
                   <select

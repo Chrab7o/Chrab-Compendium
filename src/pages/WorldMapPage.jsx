@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 import { useMaps } from '../hooks/useMaps'
+import { useMapMarkers } from '../hooks/useMapMarkers'
+import { useMapRegions } from '../hooks/useMapRegions'
 import { useCampaignContext } from '../contexts/CampaignContext'
 import { getWorldHeroImageUrl } from '../lib/worldStorage'
 import MapWithRegions from '../components/MapWithRegions'
@@ -55,15 +57,34 @@ export default function WorldMapPage() {
   const { maps, loading: mapsLoading } = useMaps({ worldId: world?.id })
 
   useEffect(() => {
+    // Sorted by name, same as the old "Map" dropdown's default — lands on
+    // the world's primary/overview map first; getting to any other map
+    // (e.g. a continent within it) now happens by clicking a linked region
+    // on the current map instead of picking from a flat list.
     if (maps.length > 0 && !maps.some((m) => m.id === mapId)) {
-      setMapId(maps[0].id)
+      setMapId([...maps].sort((a, b) => a.name.localeCompare(b.name))[0].id)
     }
   }, [maps, mapId])
 
+  const activeMap = maps.find((m) => m.id === mapId)
+
+  // For the "nothing for this timeline" fallback message: the full,
+  // unfiltered marker/region lists for the active map, so we know both
+  // whether the current timeline has anything here, and which other
+  // world campaigns do.
+  const { markers: activeMapMarkers } = useMapMarkers(activeMap?.id)
+  const { regions: activeMapRegions } = useMapRegions(activeMap?.id)
+  const hasContentForTimeline =
+    activeMapMarkers.some((m) => !m.campaign_id || m.campaign_id === effectiveCampaignId) ||
+    activeMapRegions.some((r) => !r.campaign_id || r.campaign_id === effectiveCampaignId)
+  const campaignsWithContentHere = worldCampaigns.filter(
+    (c) =>
+      activeMapMarkers.some((m) => m.campaign_id === c.id) ||
+      activeMapRegions.some((r) => r.campaign_id === c.id)
+  )
+
   if (loading) return <p className="page status-message">Loading...</p>
   if (!world) return <p className="page status-message error">Couldn't find that world.</p>
-
-  const activeMap = maps.find((m) => m.id === mapId)
 
   return (
     <section className="page-wide single-map-page">
@@ -108,22 +129,30 @@ export default function WorldMapPage() {
         <p className="status-message">No maps have been added for this world yet.</p>
       )}
 
-      {maps.length > 1 && (
-        <div className="map-picker">
-          <label>
-            Map
-            <select value={mapId} onChange={(e) => setMapId(e.target.value)}>
-              {maps.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name}
-                </option>
+      {activeMap && effectiveCampaignId && !hasContentForTimeline && (
+        <p className="status-message">
+          Nothing for {worldCampaigns.find((c) => c.id === effectiveCampaignId)?.name} on this map
+          yet.
+          {campaignsWithContentHere.length > 0 && (
+            <>
+              {' '}
+              Try:{' '}
+              {campaignsWithContentHere.map((c, i) => (
+                <span key={c.id}>
+                  {i > 0 && ', '}
+                  <button type="button" className="link-button" onClick={() => setCampaignId(c.id)}>
+                    {c.name}
+                  </button>
+                </span>
               ))}
-            </select>
-          </label>
-        </div>
+            </>
+          )}
+        </p>
       )}
 
-      {activeMap && <MapWithRegions key={activeMap.id} map={activeMap} />}
+      {activeMap && (
+        <MapWithRegions key={activeMap.id} map={activeMap} onNavigateToMap={setMapId} />
+      )}
 
       <p className="home-guidance">
         <Link to="/">&larr; Back to Worlds</Link>

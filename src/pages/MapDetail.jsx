@@ -1,12 +1,20 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 import MapWithRegions from '../components/MapWithRegions'
 
 export default function MapDetail() {
   const { slug } = useParams()
+  const navigate = useNavigate()
   const [map, setMap] = useState(null)
   const [loading, setLoading] = useState(true)
+
+  // A linked region gives us the target map's id, but this page is routed
+  // by slug — look it up and navigate there.
+  async function handleNavigateToMap(targetMapId) {
+    const { data } = await supabase.from('maps').select('slug').eq('id', targetMapId).single()
+    if (data) navigate(`/map/${data.slug}`)
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -37,7 +45,7 @@ export default function MapDetail() {
       <div className="view-header">
         <h1>{map.name}</h1>
       </div>
-      <MapWithRegions map={map} />
+      <MapWithRegions map={map} onNavigateToMap={handleNavigateToMap} />
     </section>
   )
 }
