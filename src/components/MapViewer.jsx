@@ -88,6 +88,7 @@ export default function MapViewer({
   const bounds = useMemo(() => [[0, 0], [height, width]], [height, width])
   const viewportRef = useRef(null)
   const [boxSize, setBoxSize] = useState(null)
+  const [hoveredRegionId, setHoveredRegionId] = useState(null)
 
   // Sizes .map-container to the largest box that fits the map's own aspect
   // ratio inside the available viewport (same idea as object-fit: contain,
@@ -152,8 +153,16 @@ export default function MapViewer({
             <Polygon
               key={region.id}
               positions={region.points.map(toLatLng)}
-              pathOptions={regionPathOptions(region, { selected: region.id === selectedRegionId })}
-              eventHandlers={{ click: () => onRegionClick?.(region) }}
+              pathOptions={regionPathOptions(region, {
+                selected: region.id === selectedRegionId,
+                hovered: region.id === hoveredRegionId,
+                alwaysVisible: regionsEditable,
+              })}
+              eventHandlers={{
+                click: () => onRegionClick?.(region),
+                mouseover: () => setHoveredRegionId(region.id),
+                mouseout: () => setHoveredRegionId(null),
+              }}
             >
               <Tooltip sticky>{region.name}</Tooltip>
             </Polygon>
