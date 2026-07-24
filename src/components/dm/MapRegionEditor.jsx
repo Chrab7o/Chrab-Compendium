@@ -15,9 +15,12 @@ const emptyForm = {
   campaign_id: '',
   linked_map_id: '',
   linkType: 'none',
+  // Per-timeline exceptions on top of folder_id (the default) - keyed by
+  // campaign_id, value is the override folder_id. See region_folder_links.
+  folderOverrides: {},
 }
 
-export default function MapRegionEditor({ maps, folders, campaigns }) {
+export default function MapRegionEditor({ maps, folders, campaigns, regionFolderLinks = [], onChange }) {
   const { categories } = useCategories()
   const [mapId, setMapId] = useState('')
   const [drawing, setDrawing] = useState(false)
@@ -107,6 +110,11 @@ export default function MapRegionEditor({ maps, folders, campaigns }) {
       campaign_id: region.campaign_id ?? '',
       linked_map_id: region.linked_map_id ?? '',
       linkType: region.linked_map_id ? 'map' : region.folder_id ? 'folder' : 'none',
+      folderOverrides: Object.fromEntries(
+        regionFolderLinks
+          .filter((l) => l.region_id === region.id)
+          .map((l) => [l.campaign_id, l.folder_id])
+      ),
     })
     setError(null)
   }
@@ -129,16 +137,40 @@ export default function MapRegionEditor({ maps, folders, campaigns }) {
       campaign_id: form.campaign_id || null,
       linked_map_id: linkType === 'map' ? form.linked_map_id || null : null,
     }
-    const { error: saveError } = form.id
-      ? await supabase.from('map_regions').update(payload).eq('id', form.id)
-      : await supabase.from('map_regions').insert(payload)
-    setSaving(false)
+    const { data: saved, error: saveError } = form.id
+      ? await supabase.from('map_regions').update(payload).eq('id', form.id).select().single()
+      : await supabase.from('map_regions').insert(payload).select().single()
     if (saveError) {
+      setSaving(false)
       setError(saveError.message)
       return
     }
+
+    // Per-timeline overrides only make sense while the region actually
+    // browses a folder - clearing out any stale rows here too if the DM
+    // switched away from "Folder" or removed one.
+    const desired =
+      linkType === 'folder'
+        ? Object.entries(form.folderOverrides).filter(([, folderId]) => folderId)
+        : []
+    const { error: clearError } = await supabase
+      .from('region_folder_links')
+      .delete()
+      .eq('region_id', saved.id)
+    if (!clearError && desired.length > 0) {
+      await supabase.from('region_folder_links').insert(
+        desired.map(([campaignId, folderId]) => ({
+          region_id: saved.id,
+          campaign_id: campaignId,
+          folder_id: folderId,
+        }))
+      )
+    }
+
+    setSaving(false)
     setForm(null)
     reload()
+    onChange?.()
   }
 
   async function handleDelete() {
@@ -319,6 +351,37 @@ export default function MapRegionEditor({ maps, folders, campaigns }) {
                   </select>
                 </label>
               </div>
+
+              {linkType === 'folder' && mapCampaigns.length > 0 && (
+                <div className="dm-form-row region-folder-overrides">
+                  <p className="map-edit-hint">
+                    Same shape, different destination per timeline — pick a folder here to
+                    override the default above for that one timeline only.
+                  </p>
+                  {mapCampaigns.map((c) => (
+                    <label key={c.id}>
+                      {c.name}
+                      <select
+                        value={form.folderOverrides[c.id] ?? ''}
+                        onChange={(e) =>
+                          setForm({
+                            ...form,
+                            folderOverrides: { ...form.folderOverrides, [c.id]: e.target.value },
+                          })
+                        }
+                      >
+                        <option value="">(use default)</option>
+                        {flattenFolders(folders, form.category).map((f) => (
+                          <option key={f.id} value={f.id}>
+                            {f.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  ))}
+                </div>
+              )}
+
               {error && <p className="status-message error">{error}</p>}
               <div className="dm-form-actions">
                 <button type="submit" disabled={saving}>

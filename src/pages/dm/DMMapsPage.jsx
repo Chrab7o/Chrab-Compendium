@@ -12,18 +12,22 @@ export default function DMMapsPage() {
   const [maps, setMaps] = useState([])
   const [entries, setEntries] = useState([])
   const [folders, setFolders] = useState([])
+  const [regionFolderLinks, setRegionFolderLinks] = useState([])
   const [loading, setLoading] = useState(true)
 
   const load = useCallback(async () => {
     setLoading(true)
-    const [{ data: mapData }, { data: entryData }, { data: folderData }] = await Promise.all([
-      supabase.from('maps').select('*').order('name', { ascending: true }),
-      supabase.from('entries').select('id, title').order('title', { ascending: true }),
-      supabase.from('folders').select('*'),
-    ])
+    const [{ data: mapData }, { data: entryData }, { data: folderData }, { data: linkData }] =
+      await Promise.all([
+        supabase.from('maps').select('*').order('name', { ascending: true }),
+        supabase.from('entries').select('id, title').order('title', { ascending: true }),
+        supabase.from('folders').select('*'),
+        supabase.from('region_folder_links').select('*'),
+      ])
     setMaps(mapData ?? [])
     setEntries(entryData ?? [])
     setFolders(folderData ?? [])
+    setRegionFolderLinks(linkData ?? [])
     setLoading(false)
   }, [])
 
@@ -47,7 +51,13 @@ export default function DMMapsPage() {
         }}
       />
       <MapMarkerEditor maps={maps} entries={entries} campaigns={campaigns} />
-      <MapRegionEditor maps={maps} folders={folders} campaigns={campaigns} />
+      <MapRegionEditor
+        maps={maps}
+        folders={folders}
+        campaigns={campaigns}
+        regionFolderLinks={regionFolderLinks}
+        onChange={load}
+      />
     </section>
   )
 }

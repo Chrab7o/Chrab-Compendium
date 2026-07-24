@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { useMapMarkers } from '../hooks/useMapMarkers'
 import { useMapRegions } from '../hooks/useMapRegions'
+import { useRegionFolderLinks } from '../hooks/useRegionFolderLinks'
 import { useCampaignContext } from '../contexts/CampaignContext'
+import { effectiveRegionFolderId } from '../lib/folders'
 import { getMapImageUrl } from '../lib/mapStorage'
 import MapViewer from './MapViewer'
 import RegionEntryPanel from './RegionEntryPanel'
@@ -17,6 +19,7 @@ export default function MapWithRegions({ map, onNavigateToMap }) {
   const { campaignId } = useCampaignContext()
   const { markers: allMarkers } = useMapMarkers(map.id)
   const { regions: allRegions } = useMapRegions(map.id)
+  const { links: folderLinks } = useRegionFolderLinks(allRegions.map((r) => r.id))
   // A map is shared across every campaign/era in its world now — markers
   // and regions are what's actually timeline-specific. General (no
   // campaign_id) ones always show; a campaign-tagged one only shows when
@@ -103,7 +106,10 @@ export default function MapWithRegions({ map, onNavigateToMap }) {
 
       {selectedRegion && (
         <RegionEntryPanel
-          region={selectedRegion}
+          region={{
+            ...selectedRegion,
+            folder_id: effectiveRegionFolderId(selectedRegion, folderLinks, campaignId),
+          }}
           folders={folders}
           entries={entries}
           placements={placements}

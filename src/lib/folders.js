@@ -120,6 +120,20 @@ export function effectiveEntryCampaignId(folders, entry) {
   return entry.folder_id ? effectiveFolderCampaignId(folders, entry.folder_id) : null
 }
 
+// A region's shape is often shared across every timeline on a map (same
+// outline, different era) while what it browses to differs - region.folder_id
+// is the default, and region_folder_links holds the per-campaign exceptions
+// on top of it. A specific campaign's override always wins; falls back to
+// the default when there isn't one for the active timeline (or no timeline
+// is selected at all).
+export function effectiveRegionFolderId(region, links, campaignId) {
+  if (campaignId) {
+    const override = links.find((l) => l.region_id === region.id && l.campaign_id === campaignId)
+    if (override) return override.folder_id
+  }
+  return region.folder_id
+}
+
 // The current session's active scope, as a set of campaign ids to match
 // against (or null for "no scope, show everything"). A specific campaign
 // always wins; with just a world picked (no campaign chosen yet), it's
