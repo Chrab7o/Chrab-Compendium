@@ -39,29 +39,59 @@ const vertexIcon = L.divIcon({
 // whatever the CURRENT intended view is (the selected region's bounds, or
 // the whole image when nothing's selected) so a resize re-fits to that
 // instead of always yanking back to the full image.
-function InvalidateOnResize({ width, height, focusRef }) {
+//
+// Sharing focusRef fixed *which* bounds each effect targets, but not this:
+// the same panel-opening resize also fires this effect while RegionFocus's
+// flyToBounds is mid-animation, and an instant (non-animated) fitBounds
+// here would snap straight to the end position and fire 'moveend' early,
+// cutting the fly short. isRepositioningRef (true for the duration of that
+// animation) tells this effect to hold off on the resize-refit until it's
+// done - invalidateSize() still runs unconditionally since Leaflet always
+// needs to know the container's real current size.
+function InvalidateOnResize({ width, height, focusRef, isRepositioningRef }) {
   const map = useMap()
 
   useEffect(() => {
     map.invalidateSize()
-    map.fitBounds(focusRef.current, { animate: false })
+    if (!isRepositioningRef.current) {
+      map.fitBounds(focusRef.current, { animate: false })
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [map, width, height])
 
   return null
 }
 
+const FLY_DURATION_MS = 500
+
 // Pans/zooms to a region's bounds when it becomes the selected one, whether
 // that selection came from clicking the shape itself or the side dropdown -
 // the only thing that should trigger an animated fly; resizes just re-fit
-// instantly to whatever focusRef says is current (see above).
-function RegionFocus({ region, height, bounds, focusRef }) {
+// instantly to whatever focusRef says is current (see above). While the fly
+// is in flight, region outlines are hidden (see onRepositioningChange) -
+// panning/zooming redraws the SVG overlay a frame behind the base image, so
+// a highlighted outline visibly drifts out of place mid-flight; better to
+// have it fade back in once the view has actually settled.
+//
+// Timed with a plain setTimeout rather than the map's own 'moveend' event:
+// invalidateSize() (called from InvalidateOnResize, which the side panel
+// opening triggers at essentially the same moment) can itself synchronously
+// fire 'moveend' when the container's pixel size changes, which would end
+// up ending the "hidden" window within a few milliseconds instead of after
+// the actual fly animation - moveend doesn't reliably mean "the fly finished".
+function RegionFocus({ region, height, bounds, focusRef, onRepositioningChange }) {
   const map = useMap()
 
   useEffect(() => {
     focusRef.current = region ? region.points.map((p) => [height - p.y, p.x]) : bounds
     if (!region) return
-    map.flyToBounds(focusRef.current, { padding: [40, 40], duration: 0.5 })
+    onRepositioningChange?.(true)
+    map.flyToBounds(focusRef.current, { padding: [40, 40], duration: FLY_DURATION_MS / 1000 })
+    const timer = setTimeout(() => onRepositioningChange?.(false), FLY_DURATION_MS)
+    return () => {
+      clearTimeout(timer)
+      onRepositioningChange?.(false)
+    }
     // Only re-run when the selected region actually changes, not on every
     // render (map/height/bounds are stable for the lifetime of this
     // component, and focusRef is a ref so it never needs to be a dep).
@@ -97,6 +127,16 @@ export default function MapViewer({
   const viewportRef = useRef(null)
   const [boxSize, setBoxSize] = useState(null)
   const [hoveredRegionId, setHoveredRegionId] = useState(null)
+  const [isRepositioning, setIsRepositioning] = useState(false)
+  // Mirrors isRepositioning for InvalidateOnResize to read synchronously -
+  // it deliberately doesn't depend on isRepositioning (that would refire it
+  // on every hide/show toggle, not just real resizes), so it needs a ref
+  // rather than the state value itself.
+  const isRepositioningRef = useRef(false)
+  function updateRepositioning(value) {
+    isRepositioningRef.current = value
+    setIsRepositioning(value)
+  }
   // What the map should be framing right now - the whole image, or (while a
   // region is selected) that region's bounds instead. A ref, not state,
   // since updating it should never itself trigger a re-render - only the
@@ -182,7 +222,12 @@ export default function MapViewer({
           zoomDelta={0.5}
           style={{ height: '100%', width: '100%', background: '#3a2a18' }}
         >
-          <InvalidateOnResize width={boxSize.width} height={boxSize.height} focusRef={focusRef} />
+          <InvalidateOnResize
+            width={boxSize.width}
+            height={boxSize.height}
+            focusRef={focusRef}
+            isRepositioningRef={isRepositioningRef}
+          />
           <ImageOverlay url={imageUrl} bounds={bounds} />
           {(editable || regionsEditable) && <ClickCapture height={height} onMapClick={onMapClick} />}
 
@@ -194,6 +239,7 @@ export default function MapViewer({
                 selected: region.id === selectedRegionId,
                 hovered: region.id === hoveredRegionId,
                 alwaysVisible: regionsEditable,
+                hidden: isRepositioning,
               })}
               eventHandlers={{
                 click: () => onRegionClick?.(region),
@@ -238,7 +284,13 @@ export default function MapViewer({
             </Marker>
           ))}
 
-          <RegionFocus region={selectedRegion} height={height} bounds={bounds} focusRef={focusRef} />
+          <RegionFocus
+            region={selectedRegion}
+            height={height}
+            bounds={bounds}
+            focusRef={focusRef}
+            onRepositioningChange={updateRepositioning}
+          />
         </MapContainer>
       </div>
       )}

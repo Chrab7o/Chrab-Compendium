@@ -1237,6 +1237,13 @@ button:disabled {
   margin-bottom: 1rem;
 }
 
+/* Smooths the show/hide of a region's outline (hover, selection, and while
+   the map is mid-fly to a new view - see regionPathOptions' `hidden` and
+   RegionFocus in MapViewer.jsx) into a fade instead of an abrupt pop. */
+.map-region-shape {
+  transition: opacity 0.2s ease, fill-opacity 0.2s ease;
+}
+
 .map-region-vertex {
   display: block;
   width: 10px;
