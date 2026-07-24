@@ -29,34 +29,42 @@ const vertexIcon = L.divIcon({
 // "uncentered." boxSize already tracks the real current size (measured via
 // ResizeObserver below), so just telling Leaflet to recheck whenever it
 // changes is the fix, rather than remounting the whole map.
-function InvalidateOnResize({ width, height, bounds }) {
+//
+// This and RegionFocus below used to be two independent effects that could
+// both fire from the same click: selecting a region opens the side panel,
+// which shrinks .map-viewport, which changes boxSize, which fired this
+// effect's fitBounds(whole image) at the same moment RegionFocus's
+// flyToBounds(that region) was animating in - two different effects
+// fighting over the same view, which read as a snap/glitch. focusRef holds
+// whatever the CURRENT intended view is (the selected region's bounds, or
+// the whole image when nothing's selected) so a resize re-fits to that
+// instead of always yanking back to the full image.
+function InvalidateOnResize({ width, height, focusRef }) {
   const map = useMap()
 
   useEffect(() => {
     map.invalidateSize()
-    // invalidateSize alone only tells Leaflet to recheck the container's
-    // pixel dimensions — it doesn't re-fit the current zoom/pan to match a
-    // container that's changed shape, which is exactly what happens when
-    // switching timelines toggles the "nothing here yet" message on/off
-    // and resizes .map-viewport. Re-fitting keeps the map filling its box
-    // correctly instead of appearing skewed/clipped.
-    map.fitBounds(bounds)
-  }, [map, width, height, bounds])
+    map.fitBounds(focusRef.current, { animate: false })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [map, width, height])
 
   return null
 }
 
 // Pans/zooms to a region's bounds when it becomes the selected one, whether
-// that selection came from clicking the shape itself or the side dropdown.
-function RegionFocus({ region, height }) {
+// that selection came from clicking the shape itself or the side dropdown -
+// the only thing that should trigger an animated fly; resizes just re-fit
+// instantly to whatever focusRef says is current (see above).
+function RegionFocus({ region, height, bounds, focusRef }) {
   const map = useMap()
 
   useEffect(() => {
+    focusRef.current = region ? region.points.map((p) => [height - p.y, p.x]) : bounds
     if (!region) return
-    const latlngs = region.points.map((p) => [height - p.y, p.x])
-    map.flyToBounds(latlngs, { padding: [40, 40], duration: 0.5 })
+    map.flyToBounds(focusRef.current, { padding: [40, 40], duration: 0.5 })
     // Only re-run when the selected region actually changes, not on every
-    // render (map/height are stable for the lifetime of this component).
+    // render (map/height/bounds are stable for the lifetime of this
+    // component, and focusRef is a ref so it never needs to be a dep).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [region?.id])
 
@@ -89,6 +97,11 @@ export default function MapViewer({
   const viewportRef = useRef(null)
   const [boxSize, setBoxSize] = useState(null)
   const [hoveredRegionId, setHoveredRegionId] = useState(null)
+  // What the map should be framing right now - the whole image, or (while a
+  // region is selected) that region's bounds instead. A ref, not state,
+  // since updating it should never itself trigger a re-render - only the
+  // effects in RegionFocus/InvalidateOnResize that read it should react.
+  const focusRef = useRef(bounds)
 
   // Sizes .map-container to the largest box that fits the map's own aspect
   // ratio inside the available viewport (same idea as object-fit: contain,
@@ -99,22 +112,46 @@ export default function MapViewer({
   useEffect(() => {
     const el = viewportRef.current
     if (!el) return
+    let rafId = null
+
     function recompute() {
+      rafId = null
       const vpWidth = el.clientWidth
       const vpHeight = el.clientHeight
       if (!vpWidth || !vpHeight) return
       const imageRatio = width / height
       const viewportRatio = vpWidth / vpHeight
-      setBoxSize(
+      const next =
         imageRatio > viewportRatio
           ? { width: vpWidth, height: vpWidth / imageRatio }
           : { width: vpHeight * imageRatio, height: vpHeight }
-      )
+      setBoxSize((prev) => {
+        // Sub-pixel jitter isn't a real resize - skipping it avoids an
+        // extra render (and the invalidateSize/fitBounds that would follow
+        // from it) on every tiny wobble while the window is being dragged.
+        if (prev && Math.abs(prev.width - next.width) < 1 && Math.abs(prev.height - next.height) < 1) {
+          return prev
+        }
+        return next
+      })
     }
-    recompute()
-    const observer = new ResizeObserver(recompute)
+
+    // ResizeObserver can fire multiple times per frame during a live
+    // window drag; coalescing to one recompute per frame keeps the map
+    // from thrashing through several invalidateSize/fitBounds passes for
+    // what's really one continuous resize gesture.
+    function scheduleRecompute() {
+      if (rafId != null) return
+      rafId = requestAnimationFrame(recompute)
+    }
+
+    scheduleRecompute()
+    const observer = new ResizeObserver(scheduleRecompute)
     observer.observe(el)
-    return () => observer.disconnect()
+    return () => {
+      observer.disconnect()
+      if (rafId != null) cancelAnimationFrame(rafId)
+    }
   }, [width, height])
 
   function handleMarkerClick(marker) {
@@ -145,7 +182,7 @@ export default function MapViewer({
           zoomDelta={0.5}
           style={{ height: '100%', width: '100%', background: '#3a2a18' }}
         >
-          <InvalidateOnResize width={boxSize.width} height={boxSize.height} bounds={bounds} />
+          <InvalidateOnResize width={boxSize.width} height={boxSize.height} focusRef={focusRef} />
           <ImageOverlay url={imageUrl} bounds={bounds} />
           {(editable || regionsEditable) && <ClickCapture height={height} onMapClick={onMapClick} />}
 
@@ -201,7 +238,7 @@ export default function MapViewer({
             </Marker>
           ))}
 
-          {selectedRegion && <RegionFocus region={selectedRegion} height={height} />}
+          <RegionFocus region={selectedRegion} height={height} bounds={bounds} focusRef={focusRef} />
         </MapContainer>
       </div>
       )}
