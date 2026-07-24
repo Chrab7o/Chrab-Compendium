@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useMaps } from '../hooks/useMaps'
 import { useCampaignContext } from '../contexts/CampaignContext'
+import { getMapImageUrl } from '../lib/mapStorage'
 
 export default function MapsView() {
   const { world, worldId } = useCampaignContext()
@@ -16,10 +17,21 @@ export default function MapsView() {
       {loading && <p className="status-message">Loading...</p>}
       {!loading && maps.length === 0 && <p className="status-message">No maps yet.</p>}
 
-      <div className="entry-grid">
+      <div className="map-row-list">
         {maps.map((map) => (
-          <Link key={map.id} to={`/map/${map.slug}`} className="entry-card">
-            <h3>{map.name}</h3>
+          <Link
+            key={map.id}
+            to={`/map/${map.slug}`}
+            className="map-row"
+            style={
+              map.image_path
+                ? { backgroundImage: `url(${getMapImageUrl(map.image_path)})` }
+                : undefined
+            }
+          >
+            <div className="map-row-overlay">
+              <h3>{map.name}</h3>
+            </div>
           </Link>
         ))}
       </div>

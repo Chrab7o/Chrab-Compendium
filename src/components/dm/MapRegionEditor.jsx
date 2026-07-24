@@ -14,6 +14,7 @@ const emptyForm = {
   visibility: 'public',
   campaign_id: '',
   linked_map_id: '',
+  linkType: 'none',
 }
 
 export default function MapRegionEditor({ maps, folders, campaigns }) {
@@ -34,9 +35,12 @@ export default function MapRegionEditor({ maps, folders, campaigns }) {
     ? maps.filter((m) => m.world_id === map.world_id && m.id !== map.id)
     : []
   // A region either browses a folder or zooms into another map, never
-  // both — derived from which of the two fields is actually set, not its
-  // own stored value.
-  const linkType = form?.linked_map_id ? 'map' : form?.folder_id ? 'folder' : 'none'
+  // both. This has to be its own explicit field rather than derived from
+  // whether folder_id/linked_map_id are set - otherwise picking "Folder"
+  // for a region that doesn't have one yet (folder_id still empty) would
+  // immediately re-derive back to "none" and the folder picker would never
+  // appear at all.
+  const linkType = form?.linkType ?? 'none'
 
   useEffect(() => {
     if (form && !form.category && categories.length > 0) {
@@ -102,6 +106,7 @@ export default function MapRegionEditor({ maps, folders, campaigns }) {
       points: region.points,
       campaign_id: region.campaign_id ?? '',
       linked_map_id: region.linked_map_id ?? '',
+      linkType: region.linked_map_id ? 'map' : region.folder_id ? 'folder' : 'none',
     })
     setError(null)
   }
@@ -119,10 +124,10 @@ export default function MapRegionEditor({ maps, folders, campaigns }) {
       map_id: mapId,
       name: form.name,
       points: form.points,
-      folder_id: form.folder_id || null,
+      folder_id: linkType === 'folder' ? form.folder_id || null : null,
       visibility: form.visibility,
       campaign_id: form.campaign_id || null,
-      linked_map_id: form.linked_map_id || null,
+      linked_map_id: linkType === 'map' ? form.linked_map_id || null : null,
     }
     const { error: saveError } = form.id
       ? await supabase.from('map_regions').update(payload).eq('id', form.id)
@@ -224,10 +229,15 @@ export default function MapRegionEditor({ maps, folders, campaigns }) {
                   value={linkType}
                   onChange={(e) => {
                     const next = e.target.value
-                    if (next === 'folder') setForm({ ...form, linked_map_id: '' })
+                    if (next === 'folder') setForm({ ...form, linkType: next, linked_map_id: '' })
                     else if (next === 'map') {
-                      setForm({ ...form, folder_id: '', linked_map_id: otherWorldMaps[0]?.id ?? '' })
-                    } else setForm({ ...form, folder_id: '', linked_map_id: '' })
+                      setForm({
+                        ...form,
+                        linkType: next,
+                        folder_id: '',
+                        linked_map_id: otherWorldMaps[0]?.id ?? '',
+                      })
+                    } else setForm({ ...form, linkType: next, folder_id: '', linked_map_id: '' })
                   }}
                 >
                   <option value="none">None</option>

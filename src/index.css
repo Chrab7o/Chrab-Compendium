@@ -2071,6 +2071,51 @@ button.tree-label:hover {
   font-size: 0.9rem;
 }
 
+/* Maps list: one full-width row per map, same banner idea as .world-card
+   (image + bottom-fade overlay for the name) but stacked rows instead of a
+   grid, so each preview reads at a size worth actually looking at. */
+.map-row-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.map-row {
+  position: relative;
+  display: block;
+  height: 180px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background-color: var(--surface-2);
+  background-size: cover;
+  background-position: center;
+  overflow: hidden;
+  text-decoration: none;
+  color: var(--text);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow var(--transition), transform var(--transition);
+}
+
+.map-row:hover {
+  box-shadow: var(--shadow-md), var(--shadow-glow-accent);
+  transform: translateY(-3px);
+}
+
+.map-row-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 1.25rem;
+  background: linear-gradient(180deg, transparent 40%, rgba(35, 20, 10, 0.78) 100%);
+}
+
+.map-row-overlay h3 {
+  margin: 0;
+  color: #f6ecd2;
+}
+
 /* .page-wide now stretches to fill the full viewport height (so short
    pages like this one don't leave dead space below the box) — but that
    left .map-viewport's own fixed 70vh height stranded in a much taller
