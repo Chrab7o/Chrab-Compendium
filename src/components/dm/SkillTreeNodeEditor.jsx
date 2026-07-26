@@ -250,6 +250,7 @@ export default function SkillTreeNodeEditor({ trees }) {
             cost: n.cost ?? 1,
             sort_order: n.sortOrder ?? 0,
             require_all_prereqs: n.requireAllPrereqs ?? true,
+            craftable: n.craftable ?? false,
           })
           .select()
           .single()

@@ -3,11 +3,24 @@
 // button expects (see src/lib/skillTrees.js's treeToExportJson shape).
 //
 // Conventions this assumes about the diagram, based on a real exported tree:
-// - Each node's label is either plain text ("Start Here") or stacked <div>
-//   lines: the first line is the name, the last line is the cost IF it
-//   looks like "<number>xp" (case-insensitive), and anything in between is
-//   the description. No recognizable cost line just means cost 0 (used for
-//   hub/branch nodes with nothing spent on them yet).
+// - Each node's label is a mix of plain text and <div>/<br> line breaks
+//   (pasting rich HTML from elsewhere doesn't always land wrapped in a
+//   fresh <div> per line, and earlier versions of this script silently
+//   dropped any text that wasn't inside a <div> - including, critically,
+//   a bare node name before the first <div>, or a bare sentence wedged
+//   between two <div>s). textLines() now treats <div>/<br> as line breaks
+//   over the whole label rather than only reading text found inside
+//   <div>...</div>, so nothing outside a div goes missing.
+// - The first line is the name. A line reading exactly "Requires <n>xp"
+//   is the unlock cost - extracted into `cost` and removed from the
+//   description. A line that mentions "<n>xp" but has more to it (e.g.
+//   "Requires 4800xp and 4 Potions learned") still sets `cost`, but stays
+//   in the description too since the extra requirement isn't otherwise
+//   captured anywhere in the schema. A parenthetical "(Requires DC ##
+//   ... to craft)" line marks the node `craftable: true` and is removed
+//   entirely - the DC/hour-of-work crafting minigame this diagram
+//   originally described has been replaced by a flat crafting XP cost,
+//   noted once at the tree level rather than repeated per node.
 // - Arrows point FROM a prerequisite TO the node it unlocks. A node with no
 //   incoming arrow becomes a root (there can be more than one). Self-loop
 //   arrows (source === target — happens by accident while editing in
@@ -65,24 +78,57 @@ function extractCells(xml) {
 
 function textLines(value) {
   if (!value) return []
-  if (!value.includes('<div')) return [value.trim()].filter(Boolean)
-  const divs = [...value.matchAll(/<div[^>]*>([\s\S]*?)<\/div>/g)].map((m) =>
-    m[1].replace(/<[^>]+>/g, '').trim()
-  )
-  return divs.filter(Boolean)
+  // <div> and <br> are the only line-break signals draw.io labels use -
+  // converting both to newlines over the WHOLE label (rather than only
+  // reading text found inside <div>...</div>) means bare text before the
+  // first div, or wedged between two divs, is captured too instead of
+  // silently vanishing.
+  const withBreaks = value.replace(/<\/?div[^>]*>|<br\s*\/?>/gi, '\n')
+  const plain = withBreaks.replace(/<[^>]+>/g, '')
+  return plain
+    .split('\n')
+    .map((l) => l.trim())
+    .filter(Boolean)
 }
+
+// A line that's *only* "Requires <n>xp" - the unlock cost, nothing else
+// worth keeping in the description.
+const CLEAN_XP_LINE_RE = /^requires\s*(\d+)\s*xp\s*$/i
+// A line that mentions "<n>xp" but has more to it (e.g. "...and 4 Potions
+// learned") - still the cost, but the extra requirement has nowhere else
+// to live, so the line itself stays in the description too.
+const LOOSE_XP_LINE_RE = /^requires\b.*?(\d+)\s*xp\b/i
+// The old DC-check-and-hours-of-work crafting minigame, being replaced by
+// a flat crafting XP cost - drop the line, mark the node as craftable.
+const CRAFT_DC_LINE_RE = /^\(requires\s+dc\s+\d+.*\)$/i
 
 function parseNode(value) {
   const lines = textLines(value)
-  if (lines.length === 0) return { name: '(untitled)', description: '', cost: 0 }
+  if (lines.length === 0) return { name: '(untitled)', description: '', cost: 0, craftable: false }
   const name = lines[0]
-  if (lines.length === 1) return { name, description: '', cost: 0 }
-  const last = lines[lines.length - 1]
-  const costMatch = last.match(/^(\d+)\s*xp$/i)
-  if (costMatch) {
-    return { name, description: lines.slice(1, -1).join('\n'), cost: Number(costMatch[1]) }
+
+  let cost = 0
+  let craftable = false
+  const kept = []
+  for (const line of lines.slice(1)) {
+    if (CRAFT_DC_LINE_RE.test(line)) {
+      craftable = true
+      continue
+    }
+    const cleanMatch = line.match(CLEAN_XP_LINE_RE)
+    if (cleanMatch) {
+      cost = Number(cleanMatch[1])
+      continue
+    }
+    const looseMatch = line.match(LOOSE_XP_LINE_RE)
+    if (looseMatch) {
+      cost = Number(looseMatch[1])
+      kept.push(line)
+      continue
+    }
+    kept.push(line)
   }
-  return { name, description: lines.slice(1).join('\n'), cost: 0 }
+  return { name, description: kept.join('\n'), cost, craftable }
 }
 
 const xml = readFileSync(inputPath, 'utf8')
@@ -109,7 +155,7 @@ for (const e of edges) {
 const nodes = vertices
   .filter((v) => touchedIds.has(v.id))
   .map((v) => {
-    const { name, description, cost } = parseNode(v.value)
+    const { name, description, cost, craftable } = parseNode(v.value)
     return {
       localId: v.id,
       parentLocalId: parentByChild.get(v.id) ?? null,
@@ -118,17 +164,25 @@ const nodes = vertices
       name,
       description,
       cost,
+      craftable,
       sortOrder: 0,
     }
   })
 
 const treeName = path.basename(inputPath).replace(/\.(drawio\.xml|drawio|xml)$/i, '')
-writeFileSync(outputPath, JSON.stringify({ name: treeName, description: '', nodes }, null, 2))
+const craftableCount = nodes.filter((n) => n.craftable).length
+// The old per-node "(Requires DC ## ...)" crafting text is stripped out by
+// parseNode above (see its comment) and replaced by this one flat rule,
+// noted once at the tree level instead of repeated on every craftable node.
+const treeDescription =
+  craftableCount > 0 ? 'Crafting a craftable item from this tree costs a flat 20xp, regardless of what it is.' : ''
+writeFileSync(outputPath, JSON.stringify({ name: treeName, description: treeDescription, nodes }, null, 2))
 
 const multiPrereqNodes = nodes.filter((n) => n.extraPrereqLocalIds.length > 0)
 console.log(`Wrote ${nodes.length} nodes to ${outputPath}`)
 console.log(`${nodes.filter((n) => !n.parentLocalId).length} root node(s) (no incoming arrow).`)
 console.log(`${vertices.length - nodes.length} shape(s) skipped as decoration (no arrows touching them).`)
+console.log(`${craftableCount} node(s) marked craftable (had a "(Requires DC ...)" crafting line).`)
 if (multiPrereqNodes.length > 0) {
   console.log(
     `${multiPrereqNodes.length} node(s) have more than one incoming arrow — defaulted to requiring ALL of them. ` +

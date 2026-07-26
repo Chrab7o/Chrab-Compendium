@@ -84,6 +84,7 @@ export function treeToExportJson(tree, nodes, prereqRows = []) {
       name: n.name,
       description: n.description ?? '',
       cost: n.cost,
+      craftable: n.craftable ?? false,
       sortOrder: n.sort_order,
     })),
   }
