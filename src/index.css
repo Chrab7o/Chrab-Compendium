@@ -530,6 +530,15 @@ button.nav-dropdown-toggle:hover {
   animation: card-enter 0.25s ease both;
 }
 
+/* The Skill Tree tab's wider .page-wide card - same sepia tone as the
+   diagram box inside it (.skill-tree-diagram uses var(--bg) too) instead
+   of the standard cream --surface every other tab uses, so the whole tab
+   reads as one consistent sepia surface rather than a cream card with a
+   tan box nested inside it. */
+.page-wide.character-hub-skills {
+  background: var(--bg);
+}
+
 .link-button {
   background: none;
   border: none;
@@ -1453,6 +1462,16 @@ button:disabled {
   border-color: var(--accent);
 }
 
+/* Embedded in CharacterHub's uncapped .page-wide (see CharacterSheet.jsx),
+   so it needs its own reading-column width cap - otherwise full-width
+   children like the skills list stretch edge-to-edge instead of staying
+   legible. Harmless when standalone too (nested inside .page's own
+   1000px cap, where min() just resolves to 100%). */
+.character-sheet {
+  width: min(1000px, 100%);
+  margin: 0 auto;
+}
+
 .character-sheet h2 {
   color: var(--accent-strong);
   margin-top: 2rem;
@@ -1865,24 +1884,26 @@ button.tree-label:hover {
 }
 
 .skill-tree-diagram {
-  overflow: auto;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   padding: 1rem;
   background: var(--bg);
   margin-bottom: 1rem;
-  max-height: 80vh;
   box-shadow: var(--shadow-sm);
 }
 
-/* Centers the diagram when it's narrower than the container. Deliberately
-   plain block + margin:auto, not flex/grid justify-content:center — those
-   clip an overflowing child's start with no way to scroll back to it,
-   while auto margins just resolve to 0 (i.e. left-align) once the diagram
-   is wider than the container, keeping it fully scrollable either way. */
+/* Scales the whole picture to fit the available width (see the viewBox +
+   maxWidth combo in SkillTreeDiagram.jsx) rather than overflowing into a
+   horizontal scrollbar - a wide tree just renders with smaller squares
+   instead. height:auto preserves the diagram's own aspect ratio as it
+   scales, so a tall tree just makes the page taller (normal vertical
+   scroll) rather than needing its own scroll box. margin:auto centers it
+   on the rare case a small tree is narrower than the container. */
 .skill-tree-diagram svg {
   display: block;
   margin: 0 auto;
+  width: 100%;
+  height: auto;
 }
 
 .skill-tree-diagram-edge {
@@ -1899,6 +1920,34 @@ button.tree-label:hover {
 .skill-tree-diagram-node.unlocked {
   fill: var(--accent-2);
   stroke: var(--accent-2-strong);
+}
+
+.skill-tree-diagram-node-group.clickable {
+  cursor: pointer;
+}
+
+.skill-tree-diagram-node-group.clickable:hover .skill-tree-diagram-node,
+.skill-tree-diagram-node-group:focus-visible .skill-tree-diagram-node {
+  stroke: var(--accent-strong);
+  stroke-width: 2.5;
+}
+
+.skill-tree-diagram-node-group:focus-visible {
+  outline: none;
+}
+
+.skill-tree-diagram-node.selected {
+  stroke: var(--accent-strong);
+  stroke-width: 3;
+}
+
+/* Diagram + its node-detail panel, stacked - same reasoning as
+   .map-detail-layout: a side panel would resize the diagram the moment one
+   opened, so the panel goes below instead. */
+.skill-tree-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
 }
 
 .skill-tree-diagram-label {

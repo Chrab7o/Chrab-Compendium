@@ -23,6 +23,11 @@ import {
 export default function CharacterSheet({ characterId: characterIdProp }) {
   const { id: routeId } = useParams()
   const id = characterIdProp ?? routeId
+  // Embedded (CharacterHub's Character Sheet tab) already sits inside its
+  // own `.page-wide` - wrapping this in `.page` too would nest one card's
+  // background/shadow/width-cap inside another. Only the standalone
+  // /character/:id route (no prop, id comes from the route) needs its own.
+  const isEmbedded = characterIdProp !== undefined
   const [character, setCharacter] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -64,7 +69,7 @@ export default function CharacterSheet({ characterId: characterIdProp }) {
   const currency = getCurrency(actor)
 
   return (
-    <article className="page character-sheet">
+    <article className={isEmbedded ? 'character-sheet' : 'page character-sheet'}>
       <div className="view-header">
         <h1>{character.name}</h1>
         <p className="view-subtitle">

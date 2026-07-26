@@ -1,52 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
-import { childNodes, pointsSpent, canUnlock, fullPrereqIds } from '../lib/skillTrees'
+import { pointsSpent, canUnlock, fullPrereqIds } from '../lib/skillTrees'
 import SkillTreeDiagram from './SkillTreeDiagram'
-
-function SkillNodeView({ node, depth, ctx }) {
-  const children = childNodes(ctx.nodes, node.id)
-  const unlocked = ctx.unlockedIds.has(node.id)
-  const unlockable =
-    ctx.editable &&
-    !unlocked &&
-    canUnlock(node, ctx.nodes, ctx.unlockedIds, ctx.pointsAvailable, ctx.extrasByNode)
-  const prereqs = fullPrereqIds(node, ctx.extrasByNode)
-  const extraPrereqs = prereqs.filter((id) => id !== node.parent_node_id)
-
-  return (
-    <div>
-      <div className="tree-row skill-node-row" style={{ paddingLeft: `${depth}rem` }}>
-        <span className={`tree-label${unlocked ? ' selected' : ''}`}>
-          {node.name} <span className="dm-list-meta">({node.cost} pt{node.cost === 1 ? '' : 's'})</span>
-          {extraPrereqs.length > 0 && (
-            <span className="dm-list-meta">
-              {' '}
-              — requires {node.require_all_prereqs ? 'all of' : 'any of'}:{' '}
-              {prereqs.map((id) => ctx.nodesById.get(id)?.name ?? '?').join(', ')}
-            </span>
-          )}
-        </span>
-        {unlocked ? (
-          <span className="badge badge-campaign">Unlocked</span>
-        ) : (
-          ctx.editable && (
-            <button type="button" disabled={!unlockable} onClick={() => ctx.onUnlock(node)}>
-              Unlock
-            </button>
-          )
-        )}
-      </div>
-      {node.description && (
-        <p className="status-message skill-node-description" style={{ paddingLeft: `${depth + 1.5}rem` }}>
-          {node.description}
-        </p>
-      )}
-      {children.map((child) => (
-        <SkillNodeView key={child.id} node={child} depth={depth + 1} ctx={ctx} />
-      ))}
-    </div>
-  )
-}
 
 // Shared by the player's own Skill Tree page and the DM's read-only preview
 // of a specific character's progress — driven entirely by `characterId`
@@ -63,7 +18,7 @@ export default function SkillTreeProgress({ characterId, editable }) {
   const [pointsAvailable, setPointsAvailable] = useState(0)
   const [unlockedIds, setUnlockedIds] = useState(new Set())
   const [error, setError] = useState(null)
-  const [showDiagram, setShowDiagram] = useState(false)
+  const [selectedNodeId, setSelectedNodeId] = useState(null)
 
   useEffect(() => {
     let cancelled = false
@@ -125,6 +80,17 @@ export default function SkillTreeProgress({ characterId, editable }) {
     loadTreeState()
   }, [loadTreeState])
 
+  // A stale selection from a previous tree shouldn't carry over - node ids
+  // are UUIDs so a collision is essentially impossible, but even a
+  // momentary mismatch is worth avoiding.
+  useEffect(() => {
+    setSelectedNodeId(null)
+  }, [treeId])
+
+  function handleNodeClick(node) {
+    setSelectedNodeId((current) => (current === node.id ? null : node.id))
+  }
+
   async function handleUnlock(node) {
     setError(null)
     const { error: rpcError } = await supabase.rpc('unlock_skill_node', {
@@ -144,13 +110,23 @@ export default function SkillTreeProgress({ characterId, editable }) {
   }
 
   const spent = pointsSpent(nodes, unlockedIds)
-  const roots = childNodes(nodes, null)
   const nodesById = new Map(nodes.map((n) => [n.id, n]))
   const extrasByNode = new Map()
   for (const row of prereqRows) {
     if (!extrasByNode.has(row.node_id)) extrasByNode.set(row.node_id, [])
     extrasByNode.get(row.node_id).push(row.prereq_node_id)
   }
+
+  const selectedNode = nodes.find((n) => n.id === selectedNodeId)
+  const selectedUnlocked = selectedNode && unlockedIds.has(selectedNode.id)
+  const selectedUnlockable =
+    selectedNode &&
+    editable &&
+    !selectedUnlocked &&
+    canUnlock(selectedNode, nodes, unlockedIds, pointsAvailable, extrasByNode)
+  const selectedPrereqNames = selectedNode
+    ? fullPrereqIds(selectedNode, extrasByNode).map((id) => nodesById.get(id)?.name ?? '?')
+    : []
 
   return (
     <div>
@@ -167,36 +143,48 @@ export default function SkillTreeProgress({ characterId, editable }) {
         <p className="view-subtitle">
           {spent} / {pointsAvailable} points spent
         </p>
-        <button type="button" className="secondary" onClick={() => setShowDiagram((v) => !v)}>
-          {showDiagram ? 'Show list' : 'Show diagram'}
-        </button>
       </div>
 
       {error && <p className="status-message error">{error}</p>}
 
-      {showDiagram ? (
-        <SkillTreeDiagram nodes={nodes} extrasByNode={extrasByNode} unlockedIds={unlockedIds} />
-      ) : (
-        <div className="tree-outline">
-          {roots.map((node) => (
-            <SkillNodeView
-              key={node.id}
-              node={node}
-              depth={0}
-              ctx={{
-                nodes,
-                nodesById,
-                unlockedIds,
-                pointsAvailable,
-                extrasByNode,
-                editable,
-                onUnlock: handleUnlock,
-              }}
-            />
-          ))}
-          {roots.length === 0 && <p className="status-message">This tree has no nodes yet.</p>}
-        </div>
-      )}
+      <div className="skill-tree-layout">
+        <SkillTreeDiagram
+          nodes={nodes}
+          extrasByNode={extrasByNode}
+          unlockedIds={unlockedIds}
+          selectedNodeId={selectedNodeId}
+          onNodeClick={handleNodeClick}
+        />
+
+        {selectedNode && (
+          <aside className="region-panel skill-node-panel">
+            <div className="region-panel-header">
+              <h2>{selectedNode.name}</h2>
+              <button type="button" className="secondary" onClick={() => setSelectedNodeId(null)}>
+                Close
+              </button>
+            </div>
+            <p className="dm-list-meta">
+              {selectedNode.cost} pt{selectedNode.cost === 1 ? '' : 's'}
+            </p>
+            {selectedPrereqNames.length > 0 && (
+              <p className="dm-list-meta">
+                Requires {selectedNode.require_all_prereqs ? 'all of' : 'any of'}: {selectedPrereqNames.join(', ')}
+              </p>
+            )}
+            {selectedNode.description && <p>{selectedNode.description}</p>}
+            {selectedUnlocked ? (
+              <span className="badge badge-campaign">Unlocked</span>
+            ) : (
+              editable && (
+                <button type="button" disabled={!selectedUnlockable} onClick={() => handleUnlock(selectedNode)}>
+                  Unlock
+                </button>
+              )
+            )}
+          </aside>
+        )}
+      </div>
     </div>
   )
 }

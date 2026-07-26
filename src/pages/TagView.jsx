@@ -8,7 +8,10 @@ import EntryCard from '../components/EntryCard'
 // same tag-filtered, session-scoped list with a different tag/title. Not a
 // folder/category browse: an entry shows up here purely because it carries
 // the matching tag, regardless of where it otherwise lives.
-export default function TagView({ tag, title }) {
+// `embedded` skips the standalone-route .page wrapper (background/width
+// cap/padding) — CharacterHub's Session Notes tab already sits inside its
+// own .page, and nesting two would double up the card look.
+export default function TagView({ tag, title, embedded }) {
   const { campaigns, campaign, campaignId, world, worldId } = useCampaignContext()
   const [entries, setEntries] = useState([])
   const [folders, setFolders] = useState([])
@@ -40,7 +43,7 @@ export default function TagView({ tag, title }) {
   const scopeName = campaign?.name ?? world?.name
 
   return (
-    <section className="page">
+    <section className={embedded ? undefined : 'page'}>
       <div className="view-header">
         <h1>{scopeName ? `${scopeName} ${title}` : title}</h1>
       </div>

@@ -66,7 +66,8 @@ export default function SkillTreeNodeEditor({ trees }) {
   const [form, setForm] = useState(null)
   const [error, setError] = useState(null)
   const [saving, setSaving] = useState(false)
-  const [showDiagram, setShowDiagram] = useState(false)
+  const [showDiagram, setShowDiagram] = useState(true)
+  const [selectedNodeId, setSelectedNodeId] = useState(null)
 
   const tree = trees.find((t) => t.id === treeId)
   const nodesById = new Map(nodes.map((n) => [n.id, n]))
@@ -119,7 +120,16 @@ export default function SkillTreeNodeEditor({ trees }) {
       ...node,
       extraPrereqIds: extrasByNode.get(node.id) ?? [],
     })
+    setSelectedNodeId(node.id)
     setError(null)
+  }
+
+  // Clicking a node in the diagram - toggles the read-only detail panel,
+  // closing whatever form was open (switching focus via the diagram should
+  // show that node, not leave a stale edit form for a different one).
+  function handleNodeClick(node) {
+    setSelectedNodeId((current) => (current === node.id ? null : node.id))
+    setForm(null)
   }
 
   function toggleExtraPrereq(candidateId) {
@@ -192,6 +202,7 @@ export default function SkillTreeNodeEditor({ trees }) {
       return
     }
     setForm(null)
+    setSelectedNodeId(null)
     loadNodes()
   }
 
@@ -256,6 +267,7 @@ export default function SkillTreeNodeEditor({ trees }) {
     }
   }
 
+  const selectedNode = nodes.find((n) => n.id === selectedNodeId)
   const roots = childNodes(nodes, null)
   const prereqCandidates = form
     ? nodes.filter(
@@ -276,6 +288,7 @@ export default function SkillTreeNodeEditor({ trees }) {
             onChange={(e) => {
               setTreeId(e.target.value)
               setForm(null)
+              setSelectedNodeId(null)
             }}
           >
             <option value="">Choose a tree...</option>
@@ -306,88 +319,126 @@ export default function SkillTreeNodeEditor({ trees }) {
             </button>
           </div>
 
-          {showDiagram ? (
-            <SkillTreeDiagram nodes={nodes} extrasByNode={extrasByNode} />
-          ) : (
-            <div className="tree-outline">
-              {roots.map((node) => (
-                <SkillNodeRow
-                  key={node.id}
-                  node={node}
-                  depth={0}
-                  ctx={{ nodes, expanded, extrasByNode, toggle, startAddChild, startEdit, handleDelete }}
-                />
-              ))}
-              {roots.length === 0 && <p className="status-message">No nodes yet.</p>}
-            </div>
-          )}
+          <div className="skill-tree-layout">
+            {showDiagram ? (
+              <SkillTreeDiagram
+                nodes={nodes}
+                extrasByNode={extrasByNode}
+                selectedNodeId={selectedNodeId}
+                onNodeClick={handleNodeClick}
+              />
+            ) : (
+              <div className="tree-outline">
+                {roots.map((node) => (
+                  <SkillNodeRow
+                    key={node.id}
+                    node={node}
+                    depth={0}
+                    ctx={{ nodes, expanded, extrasByNode, toggle, startAddChild, startEdit, handleDelete }}
+                  />
+                ))}
+                {roots.length === 0 && <p className="status-message">No nodes yet.</p>}
+              </div>
+            )}
 
-          {form && (
-            <form onSubmit={handleSubmit} className="dm-form">
-              <label>
-                Name
-                <input
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  required
-                  autoFocus
-                />
-              </label>
-              <label>
-                Description
-                <textarea
-                  value={form.description}
-                  onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  rows={2}
-                />
-              </label>
-              <label>
-                Cost (points)
-                <input
-                  type="number"
-                  min="0"
-                  value={form.cost}
-                  onChange={(e) => setForm({ ...form, cost: e.target.value })}
-                />
-              </label>
+            {selectedNode && !form && (
+              <aside className="region-panel skill-node-panel">
+                <div className="region-panel-header">
+                  <h2>{selectedNode.name}</h2>
+                  <button type="button" className="secondary" onClick={() => setSelectedNodeId(null)}>
+                    Close
+                  </button>
+                </div>
+                <p className="dm-list-meta">
+                  {selectedNode.cost} pt{selectedNode.cost === 1 ? '' : 's'}
+                </p>
+                {selectedNode.description && <p>{selectedNode.description}</p>}
+                <div className="dm-form-actions">
+                  <button type="button" onClick={() => startAddChild(selectedNode.id)}>
+                    + Child
+                  </button>
+                  <button type="button" onClick={() => startEdit(selectedNode)}>
+                    Edit
+                  </button>
+                  <button type="button" className="danger" onClick={() => handleDelete(selectedNode)}>
+                    Delete
+                  </button>
+                </div>
+              </aside>
+            )}
 
-              {prereqCandidates.length > 0 && (
-                <>
-                  <fieldset className="tag-checklist">
-                    <legend>Additional prerequisites (besides its parent above)</legend>
-                    {prereqCandidates.map((n) => (
-                      <label key={n.id} className="tag-checklist-item">
+            {form && (
+              <aside className="region-panel skill-node-panel">
+                <div className="region-panel-header">
+                  <h2>{form.id ? 'Edit node' : 'Add node'}</h2>
+                  <button type="button" className="secondary" onClick={() => setForm(null)}>
+                    Cancel
+                  </button>
+                </div>
+                <form onSubmit={handleSubmit} className="dm-form">
+                  <label>
+                    Name
+                    <input
+                      value={form.name}
+                      onChange={(e) => setForm({ ...form, name: e.target.value })}
+                      required
+                      autoFocus
+                    />
+                  </label>
+                  <label>
+                    Description
+                    <textarea
+                      value={form.description}
+                      onChange={(e) => setForm({ ...form, description: e.target.value })}
+                      rows={2}
+                    />
+                  </label>
+                  <label>
+                    Cost (points)
+                    <input
+                      type="number"
+                      min="0"
+                      value={form.cost}
+                      onChange={(e) => setForm({ ...form, cost: e.target.value })}
+                    />
+                  </label>
+
+                  {prereqCandidates.length > 0 && (
+                    <>
+                      <fieldset className="tag-checklist">
+                        <legend>Additional prerequisites (besides its parent above)</legend>
+                        {prereqCandidates.map((n) => (
+                          <label key={n.id} className="tag-checklist-item">
+                            <input
+                              type="checkbox"
+                              checked={form.extraPrereqIds.includes(n.id)}
+                              onChange={() => toggleExtraPrereq(n.id)}
+                            />
+                            {n.name}
+                          </label>
+                        ))}
+                      </fieldset>
+                      <label className="tag-checklist-item">
                         <input
                           type="checkbox"
-                          checked={form.extraPrereqIds.includes(n.id)}
-                          onChange={() => toggleExtraPrereq(n.id)}
+                          checked={form.require_all_prereqs}
+                          onChange={(e) => setForm({ ...form, require_all_prereqs: e.target.checked })}
                         />
-                        {n.name}
+                        Require ALL prerequisites (unchecked = any one is enough)
                       </label>
-                    ))}
-                  </fieldset>
-                  <label className="tag-checklist-item">
-                    <input
-                      type="checkbox"
-                      checked={form.require_all_prereqs}
-                      onChange={(e) => setForm({ ...form, require_all_prereqs: e.target.checked })}
-                    />
-                    Require ALL prerequisites (unchecked = any one is enough)
-                  </label>
-                </>
-              )}
+                    </>
+                  )}
 
-              {error && <p className="status-message error">{error}</p>}
-              <div className="dm-form-actions">
-                <button type="submit" disabled={saving}>
-                  {form.id ? 'Save node' : 'Add node'}
-                </button>
-                <button type="button" className="secondary" onClick={() => setForm(null)}>
-                  Cancel
-                </button>
-              </div>
-            </form>
-          )}
+                  {error && <p className="status-message error">{error}</p>}
+                  <div className="dm-form-actions">
+                    <button type="submit" disabled={saving}>
+                      {form.id ? 'Save node' : 'Add node'}
+                    </button>
+                  </div>
+                </form>
+              </aside>
+            )}
+          </div>
           {error && !form && <p className="status-message error">{error}</p>}
         </>
       )}

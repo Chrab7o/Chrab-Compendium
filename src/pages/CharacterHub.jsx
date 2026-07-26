@@ -42,8 +42,14 @@ export default function CharacterHub() {
     )
   }
 
+  // Every other tab stays in the same narrow reading column as the rest of
+  // the site; the Skill Tree is the one exception - its diagram is
+  // genuinely wide content (like the DM's own map/skill-tree tools), so
+  // capping it to that column just leaves it small with dead space below.
+  const isSkillsTab = tab === 'skills'
+
   return (
-    <section className="page-wide character-hub">
+    <section className={isSkillsTab ? 'page-wide character-hub character-hub-skills' : 'page character-hub'}>
       <nav className="character-hub-tabs">
         {TABS.map((t) => (
           <button
@@ -61,7 +67,7 @@ export default function CharacterHub() {
         {tab === 'sheet' && <CharacterSheet characterId={characterId} />}
         {tab === 'skills' && <SkillTreeProgress characterId={characterId} editable />}
         {tab === 'notes' && <NotesPanel />}
-        {tab === 'session-notes' && <TagView tag="session-note" title="Session Notes" />}
+        {tab === 'session-notes' && <TagView tag="session-note" title="Session Notes" embedded />}
         {tab === 'account' && <AccountPanel />}
       </div>
     </section>
