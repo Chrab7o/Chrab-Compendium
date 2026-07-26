@@ -9,7 +9,7 @@ import TagView from './TagView'
 
 const TABS = [
   { key: 'sheet', label: 'Character Sheet' },
-  { key: 'skills', label: 'Skill Tree' },
+  { key: 'skills', label: 'Feature Tree' },
   { key: 'notes', label: 'My Notes' },
   { key: 'session-notes', label: 'Session Notes' },
   { key: 'account', label: 'Account' },
@@ -43,7 +43,7 @@ export default function CharacterHub() {
   }
 
   // Every other tab stays in the same narrow reading column as the rest of
-  // the site; the Skill Tree is the one exception - its diagram is
+  // the site; the Feature Tree is the one exception - its diagram is
   // genuinely wide content (like the DM's own map/skill-tree tools), so
   // capping it to that column just leaves it small with dead space below.
   const isSkillsTab = tab === 'skills'

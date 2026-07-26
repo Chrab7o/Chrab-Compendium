@@ -10,8 +10,11 @@ const emptyForm = {
   description: '',
   cost: 1,
   require_all_prereqs: true,
+  craftable: false,
   extraPrereqIds: [],
 }
+
+const TREE_TYPE_LABELS = { feature: 'Feature Tree', archetype: 'Archetype Tree' }
 
 function SkillNodeRow({ node, depth, ctx }) {
   const children = childNodes(ctx.nodes, node.id)
@@ -31,6 +34,7 @@ function SkillNodeRow({ node, depth, ctx }) {
         </button>
         <span className="tree-label">
           {node.name} <span className="dm-list-meta">({node.cost} pt{node.cost === 1 ? '' : 's'})</span>
+          {node.craftable && <span className="badge badge-campaign">Craftable</span>}
           {extraCount > 0 && (
             <span className="dm-list-meta">
               {' '}
@@ -153,6 +157,7 @@ export default function SkillTreeNodeEditor({ trees }) {
       description: form.description,
       cost: Number(form.cost) || 1,
       require_all_prereqs: form.require_all_prereqs,
+      craftable: form.craftable,
     }
 
     let nodeId = form.id
@@ -279,7 +284,7 @@ export default function SkillTreeNodeEditor({ trees }) {
 
   return (
     <div className="dm-panel">
-      <h2>Skill Tree Nodes</h2>
+      <h2>{TREE_TYPE_LABELS[tree?.tree_type] ?? TREE_TYPE_LABELS.feature} Nodes</h2>
       <div className="map-picker">
         <label>
           Tree to edit
@@ -351,6 +356,7 @@ export default function SkillTreeNodeEditor({ trees }) {
                 </div>
                 <p className="dm-list-meta">
                   {selectedNode.cost} pt{selectedNode.cost === 1 ? '' : 's'}
+                  {selectedNode.craftable && <span className="badge badge-campaign">Craftable</span>}
                 </p>
                 {selectedNode.description && <p>{selectedNode.description}</p>}
                 <div className="dm-form-actions">
@@ -402,6 +408,17 @@ export default function SkillTreeNodeEditor({ trees }) {
                       onChange={(e) => setForm({ ...form, cost: e.target.value })}
                     />
                   </label>
+
+                  {tree?.tree_type !== 'archetype' && (
+                    <label className="tag-checklist-item">
+                      <input
+                        type="checkbox"
+                        checked={form.craftable}
+                        onChange={(e) => setForm({ ...form, craftable: e.target.checked })}
+                      />
+                      Craftable (this node is a craftable recipe/item, not just a feature)
+                    </label>
+                  )}
 
                   {prereqCandidates.length > 0 && (
                     <>

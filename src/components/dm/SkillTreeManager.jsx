@@ -1,7 +1,12 @@
 import { useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 
-const emptyForm = { id: null, name: '', description: '', campaign_id: '', restrictedToIds: [] }
+const emptyForm = { id: null, name: '', description: '', campaign_id: '', tree_type: 'feature', restrictedToIds: [] }
+
+// Which "system" a tree belongs to - the homebrew D&D trees today are all
+// Feature Trees; Archetype Trees are for an eventual separate Battle Core
+// system. No behavior differs between them yet, just the label shown.
+const TREE_TYPE_LABELS = { feature: 'Feature Tree', archetype: 'Archetype Tree' }
 
 export default function SkillTreeManager({ trees, campaigns, characters, visibleToRows, onChange }) {
   const [form, setForm] = useState(emptyForm)
@@ -18,6 +23,7 @@ export default function SkillTreeManager({ trees, campaigns, characters, visible
       name: tree.name,
       description: tree.description ?? '',
       campaign_id: tree.campaign_id ?? '',
+      tree_type: tree.tree_type ?? 'feature',
       restrictedToIds: restrictedIdsFor(tree.id),
     })
     setError(null)
@@ -46,6 +52,7 @@ export default function SkillTreeManager({ trees, campaigns, characters, visible
       name: form.name,
       description: form.description,
       campaign_id: form.campaign_id || null,
+      tree_type: form.tree_type,
     }
 
     let treeId = form.id
@@ -115,6 +122,16 @@ export default function SkillTreeManager({ trees, campaigns, characters, visible
           />
         </label>
         <label>
+          Type
+          <select
+            value={form.tree_type}
+            onChange={(e) => setForm({ ...form, tree_type: e.target.value })}
+          >
+            <option value="feature">Feature Tree</option>
+            <option value="archetype">Archetype Tree</option>
+          </select>
+        </label>
+        <label>
           Campaign
           <select
             value={form.campaign_id}
@@ -164,6 +181,7 @@ export default function SkillTreeManager({ trees, campaigns, characters, visible
           return (
             <li key={tree.id}>
               <span>{tree.name}</span>
+              <span className="dm-list-meta">{TREE_TYPE_LABELS[tree.tree_type] ?? TREE_TYPE_LABELS.feature}</span>
               <span className="dm-list-meta">
                 {campaigns.find((c) => c.id === tree.campaign_id)?.name ?? 'General'}
               </span>

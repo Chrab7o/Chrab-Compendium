@@ -166,6 +166,7 @@ export default function SkillTreeProgress({ characterId, editable }) {
             </div>
             <p className="dm-list-meta">
               {selectedNode.cost} pt{selectedNode.cost === 1 ? '' : 's'}
+              {selectedNode.craftable && <span className="badge badge-campaign">Craftable</span>}
             </p>
             {selectedPrereqNames.length > 0 && (
               <p className="dm-list-meta">
