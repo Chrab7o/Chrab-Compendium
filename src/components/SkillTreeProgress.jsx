@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
+import { useAuth } from '../contexts/AuthContext'
 import { pointsSpent, canUnlock, canCraft, fullPrereqIds, minPrereqsRequired } from '../lib/skillTrees'
 import SkillTreeDiagram from './SkillTreeDiagram'
 
@@ -9,6 +10,7 @@ import SkillTreeDiagram from './SkillTreeDiagram'
 // picker) so both call sites see the same thing regardless of which
 // campaign the viewer currently has selected in nav.
 export default function SkillTreeProgress({ characterId, editable }) {
+  const { isDM } = useAuth()
   // undefined = not fetched yet (show a real loading state); [] only once
   // we've actually confirmed there's nothing scoped to this character.
   const [trees, setTrees] = useState(undefined)
@@ -135,6 +137,19 @@ export default function SkillTreeProgress({ characterId, editable }) {
     loadTreeState()
   }
 
+  async function handleUndo(node) {
+    setError(null)
+    const { error: rpcError } = await supabase.rpc('dm_undo_skill_unlock', {
+      p_character_id: characterId,
+      p_node_id: node.id,
+    })
+    if (rpcError) {
+      setError(rpcError.message)
+      return
+    }
+    loadTreeState()
+  }
+
   if (trees === undefined) return <p className="status-message">Loading...</p>
   if (trees.length === 0) {
     return <p className="status-message">No skill trees are set up for this character's campaign yet.</p>
@@ -156,11 +171,9 @@ export default function SkillTreeProgress({ characterId, editable }) {
     selectedNode &&
     editable &&
     !selectedUnlocked &&
-    canUnlock(selectedNode, typePoolNodes, unlockedIds, pointsAvailable, extrasByNode, craftSpend)
+    canUnlock(selectedNode, unlockedIds, pointsAvailable, extrasByNode)
   const selectedCraftable =
-    selectedNode &&
-    editable &&
-    canCraft(selectedNode, typePoolNodes, unlockedIds, pointsAvailable, craftSpend, craftCost)
+    selectedNode && editable && canCraft(selectedNode, unlockedIds, pointsAvailable, craftCost)
   const selectedPrereqNames = selectedNode
     ? fullPrereqIds(selectedNode, extrasByNode).map((id) => nodesById.get(id)?.name ?? '?')
     : []
@@ -178,7 +191,7 @@ export default function SkillTreeProgress({ characterId, editable }) {
           </select>
         )}
         <p className="view-subtitle">
-          {spent} / {pointsAvailable} points spent
+          {pointsAvailable} points remaining <span className="dm-list-meta">({spent} XP spent)</span>
         </p>
       </div>
 
@@ -221,6 +234,11 @@ export default function SkillTreeProgress({ characterId, editable }) {
                 {selectedNode.craftable && editable && (
                   <button type="button" disabled={!selectedCraftable} onClick={() => handleCraft(selectedNode)}>
                     Craft ({craftCost} pts)
+                  </button>
+                )}
+                {isDM && (
+                  <button type="button" className="danger" onClick={() => handleUndo(selectedNode)}>
+                    Undo unlock
                   </button>
                 )}
               </div>

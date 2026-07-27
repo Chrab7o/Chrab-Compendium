@@ -15,9 +15,10 @@ export function isNodeUnlocked(node, unlockedNodeIds) {
   return unlockedNodeIds.has(node.id)
 }
 
-// Total points committed so far — computed from unlocks rather than stored,
-// same "computed not cascade-written" approach used for folder visibility
-// and campaign inheritance.
+// Total points committed so far, for display only (e.g. "140 XP spent") -
+// character_skill_points.points_available itself already counts down as
+// points are spent, so this is never used to figure out what's left; it's
+// just a running history total computed from the unlock log.
 export function pointsSpent(nodes, unlockedNodeIds) {
   return nodes.filter((n) => unlockedNodeIds.has(n.id)).reduce((sum, n) => sum + n.cost, 0)
 }
@@ -37,30 +38,28 @@ export function minPrereqsRequired(node, prereqCount) {
 }
 
 // A node is unlockable if it isn't already, enough of its prerequisites are
-// satisfied, and there's enough of the budget left to afford it. Mirrors
-// the same checks unlock_skill_node() enforces server-side — this is just
-// for disabling the button client-side; the RPC is what actually guards it.
-// craftSpend is XP already committed to crafting (see canCraft below) —
-// it comes out of the same shared per-type pool, so it counts against what's
-// left for a new unlock too.
-export function canUnlock(node, nodes, unlockedNodeIds, pointsAvailable, extraPrereqsByNode, craftSpend = 0) {
+// satisfied, and its cost fits in what's left. Mirrors the same checks
+// unlock_skill_node() enforces server-side — this is just for disabling the
+// button client-side; the RPC is what actually guards it. pointsAvailable is
+// a live balance that already counts down as points are spent (not a fixed
+// budget to subtract history from), so the cost alone is what matters here.
+export function canUnlock(node, unlockedNodeIds, pointsAvailable, extraPrereqsByNode) {
   if (unlockedNodeIds.has(node.id)) return false
   const prereqs = fullPrereqIds(node, extraPrereqsByNode)
   if (prereqs.length > 0) {
     const unlockedCount = prereqs.filter((id) => unlockedNodeIds.has(id)).length
     if (unlockedCount < minPrereqsRequired(node, prereqs.length)) return false
   }
-  return pointsSpent(nodes, unlockedNodeIds) + craftSpend + node.cost <= pointsAvailable
+  return node.cost <= pointsAvailable
 }
 
 // A craftable node can be crafted once it's unlocked (you have to know the
-// recipe first) and there's enough of the shared pool left to cover the
-// tree's flat craft_cost, on top of whatever's already been spent unlocking
-// nodes and crafting earlier items. Mirrors craft_skill_item()'s checks.
-export function canCraft(node, nodes, unlockedNodeIds, pointsAvailable, craftSpend, craftCost) {
+// recipe first) and the tree's flat craft_cost fits in what's left. Mirrors
+// craft_skill_item()'s checks.
+export function canCraft(node, unlockedNodeIds, pointsAvailable, craftCost) {
   if (!node.craftable) return false
   if (!unlockedNodeIds.has(node.id)) return false
-  return pointsSpent(nodes, unlockedNodeIds) + craftSpend + craftCost <= pointsAvailable
+  return craftCost <= pointsAvailable
 }
 
 // Would adding candidatePrereqId as a prerequisite of nodeId create a cycle?

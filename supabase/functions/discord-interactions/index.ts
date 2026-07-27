@@ -49,8 +49,10 @@ async function buildShowAllMessage() {
 
   const lines = rows.map((r) => {
     const label = TREE_TYPE_LABELS[r.tree_type] ?? r.tree_type
-    const remaining = r.points_available - r.points_spent
-    return `**${r.character_name}** — ${label}: ${r.points_spent}/${r.points_available} XP spent (${remaining} remaining)`
+    // points_available is a live balance that already counts down as it's
+    // spent (see 20260206000000_points_countdown_and_undo.sql) - it's not a
+    // total to subtract points_spent from.
+    return `**${r.character_name}** — ${label}: ${r.points_available} remaining (${r.points_spent} XP spent so far)`
   })
   return lines.join('\n')
 }

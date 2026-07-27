@@ -105,8 +105,9 @@ export default function CharacterManager({ campaigns, onChange }) {
     else load()
   }
 
-  // The points box is a lifetime total, not a remaining balance, so "grant
-  // more" has to add to whatever's already there rather than overwrite it -
+  // The points box holds the current remaining balance directly, so
+  // granting more XP still means adding to whatever's already there (not
+  // just typing the award amount, which would overwrite instead of add) -
   // this is exactly that addition, one XP-award click at a time instead of
   // the DM doing the math by hand.
   function grantXp(characterId, treeType, currentAvailable) {
@@ -123,13 +124,15 @@ export default function CharacterManager({ campaigns, onChange }) {
     else load()
   }
 
-  // points_available is a fixed budget the DM sets here and never changes
-  // on its own — "spent" is computed live from unlock/craft history, same
-  // as the player's own Skill Tree tab (SkillTreeProgress.jsx) and the
-  // service-role-only character_skill_pool_summary view the Discord bot
-  // uses. This page has no access to that view (locked to service_role),
-  // but the DM already has full RLS access to the underlying tables, so
-  // it's recomputed here the same way instead.
+  // points_available is a live balance now (unlock_skill_node/craft_skill_item
+  // decrement it directly, dm_undo_skill_unlock refunds it) - the box above
+  // already shows what's left. This is a separate, purely historical "spent
+  // so far" total computed from the unlock/craft log, same as the player's
+  // own Skill Tree tab (SkillTreeProgress.jsx) and the service-role-only
+  // character_skill_pool_summary view the Discord bot uses. This page has no
+  // access to that view (locked to service_role), but the DM already has
+  // full RLS access to the underlying tables, so it's recomputed here the
+  // same way instead.
   function pointsSpentFor(characterId, treeType) {
     const nodeInfoById = new Map(
       nodes.map((n) => [n.id, { cost: n.cost, treeType: skillTrees.find((t) => t.id === n.tree_id)?.tree_type }])
@@ -239,9 +242,7 @@ export default function CharacterManager({ campaigns, onChange }) {
                           initialValue={available}
                           onSave={(points) => setPoints(c.id, treeType, points)}
                         />
-                        <span className="dm-list-meta">
-                          {spent} spent · {available - spent} remaining
-                        </span>
+                        <span className="dm-list-meta">{spent} XP spent so far</span>
                         <button
                           type="button"
                           className="secondary"
