@@ -35,11 +35,12 @@
   --border: #8b6f47;
   --text: #2b1d12;
   --text-muted: #6b5636;
-  /* Bolder, cooler desk backdrop (deep teal) — deliberately its own token
-     rather than retinting --bg, since --bg also doubles as a readable
-     sepia *surface* elsewhere (.character-hub-skills, .skill-tree-diagram)
-     with dark ink text on top; teal there would kill that contrast. */
-  --backdrop: #1f4a4a;
+  /* Bolder, cooler desk backdrop (dreamy purple night sky) — deliberately
+     its own token rather than retinting --bg, since --bg also doubles as
+     a readable sepia *surface* elsewhere (.character-hub-skills,
+     .skill-tree-diagram) with dark ink text on top; purple there would
+     kill that contrast. */
+  --backdrop: #2a1a4a;
 
   --accent: #7a1f2b;
   --accent-strong: #a32d3d;
@@ -115,10 +116,22 @@
 body {
   margin: 0;
   min-height: 100vh;
-  /* Bold cool desk backdrop — the textured "worn parchment" look lives on
-     .page/.page-wide instead, so the surrounding desk reads as plain
-     background and the page itself is the parchment sheet on top of it. */
+  /* Dreamy purple cloudy-sky backdrop — the textured "worn parchment"
+     look lives on .page/.page-wide instead, so the desk reads as its own
+     atmosphere and the page floats on top of it. Two layers: a composited
+     PNG of real CC0 cloud textures (opengameart.org/content/clouds-with-
+     transparency, tinted lavender/violet; a single unique canvas, not a
+     repeating tile - same reason as the nav starfield) over a genuine CSS
+     gradient, so the gradient itself can never show a tiling seam.
+     background-attachment: fixed keeps the sky steady while the page
+     scrolls over it. */
   background-color: var(--backdrop);
+  background-image: url('/backgrounds/dream-clouds.webp'),
+    linear-gradient(160deg, #2a1a4a 0%, #4a2f6e 55%, #7a5a9e 100%);
+  background-size: cover, cover;
+  background-position: center, center;
+  background-repeat: no-repeat, no-repeat;
+  background-attachment: fixed, fixed;
   color: var(--text);
   font-size: var(--text-base);
 }
@@ -519,17 +532,20 @@ button.nav-dropdown-toggle:hover {
   width: 100%;
 }
 
+/* Matches the starfield nav's navy family (flat, no stars of its own —
+   this is a secondary bar, not the main hero strip) instead of the old
+   plain cream, so DM pages don't jump from navy nav to a cream subnav. */
 .dm-subnav {
   display: flex;
   flex-wrap: wrap;
   gap: 1.25rem;
   padding: 1rem 2rem;
-  background: var(--surface);
+  background: #14264d;
   border-bottom: 1px solid var(--border);
 }
 
 .dm-subnav a {
-  color: var(--text-muted);
+  color: #9fb0d8;
   text-decoration: none;
   font-size: 0.95rem;
   padding-bottom: 2px;
@@ -538,8 +554,8 @@ button.nav-dropdown-toggle:hover {
 
 .dm-subnav a.active,
 .dm-subnav a:hover {
-  color: var(--accent-strong);
-  border-bottom-color: var(--accent);
+  color: #fefaf0;
+  border-bottom-color: var(--accent-strong);
 }
 
 .character-hub-tabs {
