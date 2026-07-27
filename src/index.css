@@ -110,18 +110,10 @@
 body {
   margin: 0;
   min-height: 100vh;
-  /* A real photographed texture, tiled large (roughly 2-4 tiles visible
-     per screen) rather than small — fewer seam crossings on screen at
-     once reads as a couple of big textured panels instead of an obvious
-     repeating wallpaper grid. Works because this particular source is
-     soft, low-contrast mottling with no strong lines to clash at the
-     seam; a busier source (visible cracks/veins) wouldn't hold up here. */
+  /* Flat sepia desk color — the textured "worn parchment" look lives on
+     .page/.page-wide instead, so the surrounding desk reads as plain
+     background and the page itself is the parchment sheet on top of it. */
   background-color: var(--bg);
-  background-image: url('/backgrounds/parchment-bg.jpg');
-  background-size: 2200px auto;
-  background-position: center;
-  background-repeat: repeat;
-  background-attachment: fixed;
   color: var(--text);
   font-size: var(--text-base);
 }
@@ -602,7 +594,17 @@ button.link-button:hover {
   flex: 1;
   margin: 0 auto;
   padding: 2.5rem;
-  background: var(--surface);
+  background-color: var(--surface);
+  /* A real illustrated parchment sheet (mottled staining hand-drawn as
+     vector paths originally), not a tileable texture — shown once, scaled
+     to cover, same way Homebrewery renders a single parchment background
+     per page. Pre-rasterized to PNG (the source SVG has two enormous
+     paths and took ~4s to parse/paint live on every page load — baking it
+     down once removes that cost entirely, same pixels either way). */
+  background-image: url('/backgrounds/parchment-page.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   box-shadow: var(--shadow-md);
 }
 
@@ -613,7 +615,11 @@ button.link-button:hover {
   flex: 1;
   margin: 0 1.5rem;
   padding: 2.5rem;
-  background: var(--surface);
+  background-color: var(--surface);
+  background-image: url('/backgrounds/parchment-page.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   box-shadow: var(--shadow-md);
 }
 
