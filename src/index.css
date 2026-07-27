@@ -1937,6 +1937,12 @@ button.tree-label:hover {
   width: 4rem;
 }
 
+.skill-point-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
 .skill-point-input-row {
   display: flex;
   align-items: center;

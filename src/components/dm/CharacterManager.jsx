@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabaseClient'
 import { useImpersonation } from '../../contexts/ImpersonationContext'
 
 const TREE_TYPE_LABELS = { feature: 'Feature Tree', archetype: 'Archetype Tree' }
+const XP_GRANT_AMOUNT = 20
 
 function SkillPointInput({ treeType, initialValue, onSave }) {
   const [value, setValue] = useState(initialValue)
@@ -55,6 +56,9 @@ export default function CharacterManager({ campaigns, onChange }) {
   const [skillTrees, setSkillTrees] = useState([])
   const [skillPoints, setSkillPoints] = useState([])
   const [visibleToRows, setVisibleToRows] = useState([])
+  const [nodes, setNodes] = useState([])
+  const [unlocks, setUnlocks] = useState([])
+  const [crafts, setCrafts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
@@ -66,18 +70,27 @@ export default function CharacterManager({ campaigns, onChange }) {
       { data: treeData },
       { data: pointsData },
       { data: visibleToData },
+      { data: nodeData },
+      { data: unlockData },
+      { data: craftData },
     ] = await Promise.all([
       supabase.from('characters').select('*').order('name', { ascending: true }),
       supabase.from('profiles').select('id, display_name').eq('role', 'player'),
       supabase.from('skill_trees').select('*'),
       supabase.from('character_skill_points').select('*'),
       supabase.from('skill_tree_visible_to').select('*'),
+      supabase.from('skill_tree_nodes').select('id, tree_id, cost'),
+      supabase.from('character_skill_unlocks').select('character_id, node_id'),
+      supabase.from('character_skill_crafts').select('character_id, node_id, cost'),
     ])
     setCharacters(characterData ?? [])
     setPlayers(playerData ?? [])
     setSkillTrees(treeData ?? [])
     setSkillPoints(pointsData ?? [])
     setVisibleToRows(visibleToData ?? [])
+    setNodes(nodeData ?? [])
+    setUnlocks(unlockData ?? [])
+    setCrafts(craftData ?? [])
     setLoading(false)
   }
 
@@ -92,6 +105,14 @@ export default function CharacterManager({ campaigns, onChange }) {
     else load()
   }
 
+  // The points box is a lifetime total, not a remaining balance, so "grant
+  // more" has to add to whatever's already there rather than overwrite it -
+  // this is exactly that addition, one XP-award click at a time instead of
+  // the DM doing the math by hand.
+  function grantXp(characterId, treeType, currentAvailable) {
+    setPoints(characterId, treeType, currentAvailable + XP_GRANT_AMOUNT)
+  }
+
   useEffect(() => {
     load()
   }, [])
@@ -100,6 +121,26 @@ export default function CharacterManager({ campaigns, onChange }) {
     const { error: updateError } = await supabase.from('characters').update(patch).eq('id', id)
     if (updateError) setError(updateError.message)
     else load()
+  }
+
+  // points_available is a fixed budget the DM sets here and never changes
+  // on its own — "spent" is computed live from unlock/craft history, same
+  // as the player's own Skill Tree tab (SkillTreeProgress.jsx) and the
+  // service-role-only character_skill_pool_summary view the Discord bot
+  // uses. This page has no access to that view (locked to service_role),
+  // but the DM already has full RLS access to the underlying tables, so
+  // it's recomputed here the same way instead.
+  function pointsSpentFor(characterId, treeType) {
+    const nodeInfoById = new Map(
+      nodes.map((n) => [n.id, { cost: n.cost, treeType: skillTrees.find((t) => t.id === n.tree_id)?.tree_type }])
+    )
+    const unlockSpent = unlocks
+      .filter((u) => u.character_id === characterId && nodeInfoById.get(u.node_id)?.treeType === treeType)
+      .reduce((sum, u) => sum + (nodeInfoById.get(u.node_id)?.cost ?? 0), 0)
+    const craftSpent = crafts
+      .filter((cr) => cr.character_id === characterId && nodeInfoById.get(cr.node_id)?.treeType === treeType)
+      .reduce((sum, cr) => sum + cr.cost, 0)
+    return unlockSpent + craftSpent
   }
 
   function viewAs(character) {
@@ -189,13 +230,26 @@ export default function CharacterManager({ campaigns, onChange }) {
                 <div className="character-skill-points">
                   {applicableTreeTypes.map((treeType) => {
                     const row = skillPoints.find((p) => p.character_id === c.id && p.tree_type === treeType)
+                    const available = row?.points_available ?? 0
+                    const spent = pointsSpentFor(c.id, treeType)
                     return (
-                      <SkillPointInput
-                        key={treeType}
-                        treeType={treeType}
-                        initialValue={row?.points_available ?? 0}
-                        onSave={(points) => setPoints(c.id, treeType, points)}
-                      />
+                      <div key={treeType} className="skill-point-input-group">
+                        <SkillPointInput
+                          treeType={treeType}
+                          initialValue={available}
+                          onSave={(points) => setPoints(c.id, treeType, points)}
+                        />
+                        <span className="dm-list-meta">
+                          {spent} spent · {available - spent} remaining
+                        </span>
+                        <button
+                          type="button"
+                          className="secondary"
+                          onClick={() => grantXp(c.id, treeType, available)}
+                        >
+                          +{XP_GRANT_AMOUNT} XP
+                        </button>
+                      </div>
                     )
                   })}
                 </div>
