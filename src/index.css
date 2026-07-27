@@ -795,6 +795,12 @@ button:disabled {
   gap: 1rem;
 }
 
+/* Search results and the homebrew index read better as a single scannable
+   column than a multi-column grid. */
+.entry-grid.entry-grid-list {
+  grid-template-columns: 1fr;
+}
+
 .entry-card {
   display: block;
   position: relative;
