@@ -791,14 +791,8 @@ button:disabled {
 
 .entry-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 1rem;
-}
-
-/* Search results and the homebrew index read better as a single scannable
-   column than a multi-column grid. */
-.entry-grid.entry-grid-list {
   grid-template-columns: 1fr;
+  gap: 1rem;
 }
 
 .entry-card {

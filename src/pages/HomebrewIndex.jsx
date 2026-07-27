@@ -46,7 +46,7 @@ export default function HomebrewIndex() {
         <>
           {loading && <p className="status-message">Loading...</p>}
           {!loading && classes.length === 0 && <p className="status-message">No classes published yet.</p>}
-          <div className="entry-grid entry-grid-list">
+          <div className="entry-grid">
             {classes.map((cls) => (
               <Link key={cls.id} to={`/homebrew/classes/${cls.slug}`} className="entry-card">
                 <div className="entry-card-header">
@@ -62,7 +62,7 @@ export default function HomebrewIndex() {
         <>
           {loading && <p className="status-message">Loading...</p>}
           {!loading && subclasses.length === 0 && <p className="status-message">No standalone subclasses published yet.</p>}
-          <div className="entry-grid entry-grid-list">
+          <div className="entry-grid">
             {subclasses.map((sc) => (
               <Link key={sc.id} to={`/homebrew/subclasses/${sc.slug}`} className="entry-card">
                 <div className="entry-card-header">

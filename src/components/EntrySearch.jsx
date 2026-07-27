@@ -145,7 +145,7 @@ export default function EntrySearch() {
       )}
 
       {!loading && hasFilters && results.length > 0 && (
-        <div className="entry-grid entry-grid-list">
+        <div className="entry-grid">
           {results.map((entry) => (
             <EntryCard
               key={entry.__placementId ? `placement-${entry.__placementId}` : entry.id}
