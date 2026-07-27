@@ -225,13 +225,17 @@ h3 {
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
   padding: 2.25rem 2.5rem;
-  /* Experimental: starry-night nav instead of the plain cream strip —
-     procedural tile (gradient + scattered stars + a few streak lines),
-     repeated horizontally since the nav is a full-width single row. */
-  background-color: #0a1130;
-  background-image: url('/backgrounds/nav-starfield.svg');
-  background-repeat: repeat-x;
-  background-size: 480px 100%;
+  /* Experimental: starry-night nav instead of the plain cream strip. Two
+     layers: the tiled SVG (stars + streaks only, transparent background)
+     repeats horizontally, and the sky gradient is a genuine CSS gradient
+     underneath rather than baked into the SVG. A gradient can't have a
+     tiling seam - it's one continuous paint - whereas baking it into the
+     repeated tile meant each repeat got rasterized independently, and at
+     non-integer display scaling (125%/150% Windows scaling etc.) that
+     produced visible banding at every tile boundary. */
+  background-image: url('/backgrounds/nav-starfield.svg'), linear-gradient(180deg, #182a52, #0a1130);
+  background-repeat: repeat-x, no-repeat;
+  background-size: 480px 100%, 100% 100%;
   border-bottom: 1px solid var(--border);
   gap: 1rem;
 }
