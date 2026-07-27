@@ -9,7 +9,7 @@ const emptyForm = {
   name: '',
   description: '',
   cost: 1,
-  require_all_prereqs: true,
+  min_prereqs: null,
   craftable: false,
   extraPrereqIds: [],
 }
@@ -20,6 +20,8 @@ function SkillNodeRow({ node, depth, ctx }) {
   const children = childNodes(ctx.nodes, node.id)
   const isExpanded = ctx.expanded.has(node.id)
   const extraCount = (ctx.extrasByNode.get(node.id) ?? []).length
+  const totalPrereqs = (node.parent_node_id ? 1 : 0) + extraCount
+  const minRequired = node.min_prereqs ?? totalPrereqs
 
   return (
     <div>
@@ -38,7 +40,7 @@ function SkillNodeRow({ node, depth, ctx }) {
           {extraCount > 0 && (
             <span className="dm-list-meta">
               {' '}
-              + {extraCount} more prereq{extraCount === 1 ? '' : 's'} ({node.require_all_prereqs ? 'all' : 'any'})
+              + {extraCount} more prereq{extraCount === 1 ? '' : 's'} (needs {minRequired} of {totalPrereqs})
             </span>
           )}
         </span>
@@ -156,7 +158,7 @@ export default function SkillTreeNodeEditor({ trees }) {
       name: form.name,
       description: form.description,
       cost: Number(form.cost) || 1,
-      require_all_prereqs: form.require_all_prereqs,
+      min_prereqs: form.min_prereqs,
       craftable: form.craftable,
     }
 
@@ -249,7 +251,7 @@ export default function SkillTreeNodeEditor({ trees }) {
             description: n.description ?? '',
             cost: n.cost ?? 1,
             sort_order: n.sortOrder ?? 0,
-            require_all_prereqs: n.requireAllPrereqs ?? true,
+            min_prereqs: n.minPrereqs ?? null,
             craftable: n.craftable ?? false,
           })
           .select()
@@ -275,6 +277,7 @@ export default function SkillTreeNodeEditor({ trees }) {
 
   const selectedNode = nodes.find((n) => n.id === selectedNodeId)
   const roots = childNodes(nodes, null)
+  const totalFormPrereqs = form ? (form.parent_node_id ? 1 : 0) + form.extraPrereqIds.length : 0
   const prereqCandidates = form
     ? nodes.filter(
         (n) =>
@@ -436,13 +439,21 @@ export default function SkillTreeNodeEditor({ trees }) {
                           </label>
                         ))}
                       </fieldset>
-                      <label className="tag-checklist-item">
+                      <label>
+                        Minimum required (of {totalFormPrereqs} total prerequisites)
                         <input
-                          type="checkbox"
-                          checked={form.require_all_prereqs}
-                          onChange={(e) => setForm({ ...form, require_all_prereqs: e.target.checked })}
+                          type="number"
+                          min="1"
+                          max={totalFormPrereqs}
+                          placeholder="All"
+                          value={form.min_prereqs ?? ''}
+                          onChange={(e) =>
+                            setForm({
+                              ...form,
+                              min_prereqs: e.target.value === '' ? null : Number(e.target.value),
+                            })
+                          }
                         />
-                        Require ALL prerequisites (unchecked = any one is enough)
                       </label>
                     </>
                   )}

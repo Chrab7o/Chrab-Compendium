@@ -26,18 +26,26 @@ export function fullPrereqIds(node, extraPrereqsByNode) {
   return [node.parent_node_id, ...(extraPrereqsByNode.get(node.id) ?? [])].filter(Boolean)
 }
 
-// A node is unlockable if it isn't already, its prerequisites are satisfied
-// (all of them if require_all_prereqs, otherwise just one), and there's
-// enough of the budget left to afford it. Mirrors the same checks
-// unlock_skill_node() enforces server-side — this is just for disabling the
-// button client-side; the RPC is what actually guards it.
+// How many of a node's full prerequisite set actually need to be unlocked -
+// node.min_prereqs is null/undefined for "all of them" (the common case,
+// and dynamic: it tracks however many prereqs the node currently has rather
+// than a stale count baked in when it was set), or a specific number for
+// "any N of them" (e.g. Intermediate Alchemical Knowledge needing 4 of its
+// 8 basic-tier potions, not all 8).
+export function minPrereqsRequired(node, prereqCount) {
+  return node.min_prereqs ?? prereqCount
+}
+
+// A node is unlockable if it isn't already, enough of its prerequisites are
+// satisfied, and there's enough of the budget left to afford it. Mirrors
+// the same checks unlock_skill_node() enforces server-side — this is just
+// for disabling the button client-side; the RPC is what actually guards it.
 export function canUnlock(node, nodes, unlockedNodeIds, pointsAvailable, extraPrereqsByNode) {
   if (unlockedNodeIds.has(node.id)) return false
   const prereqs = fullPrereqIds(node, extraPrereqsByNode)
   if (prereqs.length > 0) {
     const unlockedCount = prereqs.filter((id) => unlockedNodeIds.has(id)).length
-    const satisfied = node.require_all_prereqs ? unlockedCount === prereqs.length : unlockedCount > 0
-    if (!satisfied) return false
+    if (unlockedCount < minPrereqsRequired(node, prereqs.length)) return false
   }
   return pointsSpent(nodes, unlockedNodeIds) + node.cost <= pointsAvailable
 }
@@ -80,7 +88,7 @@ export function treeToExportJson(tree, nodes, prereqRows = []) {
       localId: idMap.get(n.id),
       parentLocalId: n.parent_node_id ? idMap.get(n.parent_node_id) : null,
       extraPrereqLocalIds: (extrasByNode.get(n.id) ?? []).map((id) => idMap.get(id)).filter(Boolean),
-      requireAllPrereqs: n.require_all_prereqs ?? true,
+      minPrereqs: n.min_prereqs ?? null,
       name: n.name,
       description: n.description ?? '',
       cost: n.cost,

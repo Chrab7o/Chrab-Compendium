@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
-import { pointsSpent, canUnlock, fullPrereqIds } from '../lib/skillTrees'
+import { pointsSpent, canUnlock, fullPrereqIds, minPrereqsRequired } from '../lib/skillTrees'
 import SkillTreeDiagram from './SkillTreeDiagram'
 
 // Shared by the player's own Skill Tree page and the DM's read-only preview
@@ -170,7 +170,11 @@ export default function SkillTreeProgress({ characterId, editable }) {
             </p>
             {selectedPrereqNames.length > 0 && (
               <p className="dm-list-meta">
-                Requires {selectedNode.require_all_prereqs ? 'all of' : 'any of'}: {selectedPrereqNames.join(', ')}
+                {(() => {
+                  const min = minPrereqsRequired(selectedNode, selectedPrereqNames.length)
+                  return `Requires ${min >= selectedPrereqNames.length ? 'all of' : `${min} of`}`
+                })()}
+                : {selectedPrereqNames.join(', ')}
               </p>
             )}
             {selectedNode.description && <p>{selectedNode.description}</p>}

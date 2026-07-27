@@ -11,9 +11,11 @@
 //   between two <div>s). textLines() now treats <div>/<br> as line breaks
 //   over the whole label rather than only reading text found inside
 //   <div>...</div>, so nothing outside a div goes missing.
-// - The first line is the name. A line reading exactly "Requires <n>xp"
-//   is the unlock cost - extracted into `cost` and removed from the
-//   description. A line that mentions "<n>xp" but has more to it (e.g.
+// - The first line is the name. A line reading exactly "Requires <n>xp" -
+//   or, in trees that skip the word "Requires", just a bare "<n>xp" line
+//   on its own - is the unlock cost, extracted into `cost` and removed
+//   from the description. A line that mentions "<n>xp" but has more to it
+//   (e.g.
 //   "Requires 4800xp and 4 Potions learned") still sets `cost`, but stays
 //   in the description too since the extra requirement isn't otherwise
 //   captured anywhere in the schema. A parenthetical "(Requires DC ##
@@ -29,9 +31,9 @@
 //   label) is decoration, not a node, and is skipped automatically.
 // - A node with more than one incoming arrow gets the first as its
 //   structural parent (drives outline nesting) and the rest as extra
-//   prerequisites, defaulted to "require ALL of them" since arrows can't
-//   express either/or — flip that per-node in DM Dashboard -> Skill Trees
-//   afterward for any that should only need one.
+//   prerequisites, defaulted to requiring ALL of them since arrows can't
+//   express a minimum count — set that per-node in DM Dashboard -> Skill
+//   Trees afterward for any that should only need some of them.
 import { readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 
@@ -92,8 +94,10 @@ function textLines(value) {
 }
 
 // A line that's *only* "Requires <n>xp" - the unlock cost, nothing else
-// worth keeping in the description.
-const CLEAN_XP_LINE_RE = /^requires\s*(\d+)\s*xp\s*$/i
+// worth keeping in the description. "Requires" is optional - some trees
+// write "Requires 300xp", others just end a node's text with a bare
+// "300xp" line and nothing else.
+const CLEAN_XP_LINE_RE = /^(?:requires\s*)?(\d+)\s*xp\s*$/i
 // A line that mentions "<n>xp" but has more to it (e.g. "...and 4 Potions
 // learned") - still the cost, but the extra requirement has nowhere else
 // to live, so the line itself stays in the description too.
@@ -160,7 +164,7 @@ const nodes = vertices
       localId: v.id,
       parentLocalId: parentByChild.get(v.id) ?? null,
       extraPrereqLocalIds: extraPrereqsByChild.get(v.id) ?? [],
-      requireAllPrereqs: true,
+      minPrereqs: null,
       name,
       description,
       cost,
@@ -186,8 +190,8 @@ console.log(`${craftableCount} node(s) marked craftable (had a "(Requires DC ...
 if (multiPrereqNodes.length > 0) {
   console.log(
     `${multiPrereqNodes.length} node(s) have more than one incoming arrow — defaulted to requiring ALL of them. ` +
-      `Arrows can't express "any one is enough", so review these in DM Dashboard -> Skill Trees and flip ` +
-      `"Require ALL prerequisites" off for any that should be an either/or:`
+      `Arrows can't express a minimum count, so review these in DM Dashboard -> Skill Trees and set ` +
+      `"Minimum required" for any that should only need some of them:`
   )
   for (const n of multiPrereqNodes) console.log(`  - ${n.name}`)
 }
