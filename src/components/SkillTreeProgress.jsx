@@ -35,7 +35,7 @@ export default function SkillTreeProgress({ characterId, editable }) {
     // message before the second request had a chance to come back.
     Promise.all([
       supabase.from('characters').select('campaign_id').eq('id', characterId).single(),
-      supabase.from('skill_trees').select('*'),
+      supabase.rpc('visible_skill_trees', { p_character_id: characterId }),
     ]).then(([{ data: character }, { data: treeData }]) => {
       if (cancelled) return
       const campaignId = character?.campaign_id ?? null
