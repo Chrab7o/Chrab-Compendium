@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="160" viewBox="0 0 480 160">
+  <defs>
+    <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#182a52"/>
+      <stop offset="100%" stop-color="#0a1130"/>
+    </linearGradient>
+    <linearGradient id="streakGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#ffffff" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="480" height="160" fill="url(#skyGrad)"/>
+  <circle cx="71.4" cy="54.6" r="1.28" fill="#ffffff" opacity="0.90"/>
+<circle cx="59.1" cy="96.7" r="0.88" fill="#ffffff" opacity="0.45"/>
+<circle cx="347.8" cy="118.8" r="1.10" fill="#ffffff" opacity="0.44"/>
+<circle cx="452.9" cy="65.1" r="0.76" fill="#ffffff" opacity="0.70"/>
+<circle cx="429.4" cy="72.7" r="0.68" fill="#ffffff" opacity="0.66"/>
+<circle cx="300.7" cy="31.7" r="0.98" fill="#ffffff" opacity="0.83"/>
+<circle cx="120.0" cy="18.3" r="0.34" fill="#ffffff" opacity="0.48"/>
+<circle cx="221.3" cy="154.4" r="1.56" fill="#ffffff" opacity="0.31"/>
+<circle cx="260.3" cy="125.8" r="0.46" fill="#ffffff" opacity="0.43"/>
+<circle cx="184.6" cy="45.6" r="0.71" fill="#ffffff" opacity="0.39"/>
+<circle cx="164.5" cy="40.2" r="0.32" fill="#ffffff" opacity="0.72"/>
+<circle cx="77.5" cy="113.9" r="0.70" fill="#ffffff" opacity="0.70"/>
+<circle cx="23.9" cy="44.0" r="1.23" fill="#ffffff" opacity="0.26"/>
+<circle cx="259.4" cy="134.8" r="1.34" fill="#ffffff" opacity="0.78"/>
+<circle cx="402.0" cy="9.4" r="0.77" fill="#ffffff" opacity="0.27"/>
+<circle cx="300.9" cy="90.9" r="1.14" fill="#ffffff" opacity="0.74"/>
+<circle cx="445.0" cy="129.7" r="1.53" fill="#ffffff" opacity="0.82"/>
+<circle cx="223.1" cy="56.6" r="1.01" fill="#ffffff" opacity="0.30"/>
+<circle cx="226.4" cy="140.3" r="1.29" fill="#ffffff" opacity="0.80"/>
+<circle cx="10.1" cy="114.3" r="0.92" fill="#ffffff" opacity="0.38"/>
+<circle cx="264.7" cy="138.4" r="0.71" fill="#ffffff" opacity="0.91"/>
+<circle cx="424.8" cy="106.7" r="1.18" fill="#ffffff" opacity="0.66"/>
+<circle cx="388.9" cy="36.4" r="1.12" fill="#ffffff" opacity="0.37"/>
+<circle cx="322.8" cy="116.9" r="0.98" fill="#ffffff" opacity="0.67"/>
+<circle cx="297.7" cy="126.3" r="0.97" fill="#ffffff" opacity="0.88"/>
+<circle cx="262.7" cy="105.4" r="1.39" fill="#ffffff" opacity="0.43"/>
+<circle cx="266.8" cy="17.6" r="1.15" fill="#ffffff" opacity="0.48"/>
+<circle cx="442.3" cy="149.4" r="0.74" fill="#ffffff" opacity="0.40"/>
+<circle cx="33.2" cy="77.4" r="0.92" fill="#ffffff" opacity="0.61"/>
+<circle cx="424.8" cy="13.3" r="1.14" fill="#ffffff" opacity="0.51"/>
+<circle cx="94.7" cy="81.1" r="0.33" fill="#ffffff" opacity="0.55"/>
+<circle cx="217.2" cy="132.4" r="1.40" fill="#ffffff" opacity="0.87"/>
+<circle cx="401.2" cy="139.1" r="1.52" fill="#ffffff" opacity="0.57"/>
+<circle cx="248.5" cy="46.2" r="1.59" fill="#ffffff" opacity="0.30"/>
+<circle cx="213.5" cy="94.8" r="0.88" fill="#ffffff" opacity="0.72"/>
+<circle cx="250.6" cy="70.1" r="0.80" fill="#ffffff" opacity="0.29"/>
+<circle cx="337.4" cy="19.9" r="1.55" fill="#ffffff" opacity="0.65"/>
+<circle cx="164.5" cy="98.6" r="1.59" fill="#ffffff" opacity="0.68"/>
+<circle cx="217.9" cy="78.5" r="0.35" fill="#ffffff" opacity="0.35"/>
+<circle cx="397.4" cy="125.6" r="0.36" fill="#ffffff" opacity="0.55"/>
+<circle cx="18.8" cy="37.5" r="0.44" fill="#ffffff" opacity="0.51"/>
+<circle cx="302.7" cy="80.9" r="0.65" fill="#ffffff" opacity="0.28"/>
+<circle cx="390.2" cy="6.9" r="0.61" fill="#ffffff" opacity="0.53"/>
+<circle cx="233.3" cy="16.8" r="0.84" fill="#ffffff" opacity="0.93"/>
+<circle cx="231.1" cy="115.4" r="1.41" fill="#ffffff" opacity="0.29"/>
+<circle cx="80.8" cy="128.9" r="0.69" fill="#ffffff" opacity="0.53"/>
+<circle cx="344.2" cy="113.9" r="0.69" fill="#ffffff" opacity="0.68"/>
+<circle cx="442.9" cy="13.1" r="0.89" fill="#ffffff" opacity="0.63"/>
+<circle cx="244.9" cy="53.4" r="0.59" fill="#ffffff" opacity="0.87"/>
+<circle cx="145.6" cy="94.2" r="0.39" fill="#ffffff" opacity="0.72"/>
+<circle cx="83.6" cy="121.1" r="1.22" fill="#ffffff" opacity="0.88"/>
+<circle cx="243.6" cy="91.9" r="1.48" fill="#ffffff" opacity="0.53"/>
+<circle cx="22.4" cy="95.4" r="0.39" fill="#ffffff" opacity="0.93"/>
+<circle cx="103.2" cy="45.7" r="0.41" fill="#ffffff" opacity="0.48"/>
+<circle cx="382.1" cy="152.0" r="0.63" fill="#ffffff" opacity="0.41"/>
+<circle cx="122.7" cy="127.5" r="0.83" fill="#ffffff" opacity="0.32"/>
+<circle cx="88.5" cy="34.6" r="1.15" fill="#ffffff" opacity="0.50"/>
+<circle cx="101.0" cy="125.1" r="0.34" fill="#ffffff" opacity="0.32"/>
+<circle cx="15.3" cy="148.0" r="0.79" fill="#ffffff" opacity="0.32"/>
+<circle cx="332.8" cy="136.2" r="0.38" fill="#ffffff" opacity="0.76"/>
+<circle cx="303.1" cy="127.7" r="1.05" fill="#ffffff" opacity="0.32"/>
+<circle cx="340.1" cy="62.4" r="0.36" fill="#ffffff" opacity="0.58"/>
+<circle cx="14.3" cy="56.6" r="1.20" fill="#ffffff" opacity="0.57"/>
+<circle cx="142.0" cy="45.8" r="0.40" fill="#ffffff" opacity="0.47"/>
+<circle cx="329.1" cy="47.0" r="1.43" fill="#ffffff" opacity="0.64"/>
+<circle cx="261.8" cy="104.6" r="0.99" fill="#ffffff" opacity="0.73"/>
+<circle cx="172.3" cy="91.4" r="0.46" fill="#ffffff" opacity="0.64"/>
+<circle cx="291.1" cy="125.1" r="0.84" fill="#ffffff" opacity="0.29"/>
+<circle cx="439.8" cy="136.1" r="1.20" fill="#ffffff" opacity="0.80"/>
+<circle cx="269.8" cy="147.7" r="1.09" fill="#ffffff" opacity="0.50"/>
+
+  <line x1="176.5" y1="115.4" x2="241.5" y2="145.9" stroke="url(#streakGrad)" stroke-width="0.70" opacity="0.30" stroke-linecap="round"/>
+<line x1="286.3" y1="114.2" x2="339.4" y2="129.4" stroke="url(#streakGrad)" stroke-width="1.24" opacity="0.59" stroke-linecap="round"/>
+<line x1="31.9" y1="30.7" x2="91.7" y2="53.6" stroke="url(#streakGrad)" stroke-width="0.95" opacity="0.57" stroke-linecap="round"/>
+<line x1="125.4" y1="111.5" x2="200.1" y2="139.5" stroke="url(#streakGrad)" stroke-width="0.69" opacity="0.34" stroke-linecap="round"/>
+<line x1="170.8" y1="44.1" x2="258.6" y2="67.4" stroke="url(#streakGrad)" stroke-width="0.71" opacity="0.47" stroke-linecap="round"/>
+<line x1="158.8" y1="79.8" x2="270.2" y2="116.7" stroke="url(#streakGrad)" stroke-width="1.35" opacity="0.43" stroke-linecap="round"/>
+<line x1="319.9" y1="53.5" x2="403.5" y2="75.4" stroke="url(#streakGrad)" stroke-width="0.68" opacity="0.47" stroke-linecap="round"/>
+
+</svg>

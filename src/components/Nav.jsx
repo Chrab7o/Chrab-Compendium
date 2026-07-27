@@ -112,7 +112,7 @@ export default function Nav() {
             </div>
           )}
           {(isDM || isPlayer) && (
-            <button className="link-button" onClick={signOut}>
+            <button type="button" className="secondary nav-signout" onClick={signOut}>
               Sign out
             </button>
           )}
