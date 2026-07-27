@@ -1,0 +1,283 @@
+```metadata
+title: Transmogrifier
+description: ''
+tags: []
+systems: []
+renderer: V3
+theme: 5ePHB
+
+```
+
+
+
+# Transmogrifier
+:
+
+## Background
+The Transmogrifier is a person who through unatural or magical means has gained the ability to morph their bodies into different forms. 
+
+## Playstyle
+The Transmogrifier class revolves around a short range attack pattern with multiple movement options.
+
+
+
+## Creating a Transmogrifier
+When creating a Mutant consider the origion you want for your character. Has your character gained their power by choice? Did they make a deal with a powerful creature, or were they cursed. Then consider how your charcter feels about their abilities. Does your character see them as a curse or a boon. 
+
+{{
+## Class Transmogrifier
+
+As a Mutant, you gain the following class features
+
+#### Hit Points
+**Hit Dice:**                    :: 1d10 per Transmogrifier level
+**Hit Points at 1st Level:**     :: 10 + your Constitution modifier
+**Hit Points at Higher Levels:** :: 1d10(or 6) + your Constitution modifier per Transmogrifier level after 1st
+
+#### Proficiencies
+**Armor:**   :: Light, Medium
+**Weapons:** :: Simple Weapons
+
+
+**Saving Throws:** :: Strength, Constituion
+**Skills:**        :: Choose two from  Acrobatics, Animal Handling, Athletics, History, Insight, Intimidation, Persuasion, Perception, or Survival.
+}}
+
+
+#### Equipment
+You start with the following equipment, in addition to the equipment granted by your background:
+-   (a) a dagger
+-    (a) a scholar's pack or (b) an explorer's pack
+
+
+
+
+
+{{classTable,frame,decoration
+##### The Transmogrifier
+| Level | Proficiency Bonus | Features |
+|:-----:|:-----------------:|:---------|
+|  1st  |  +2  | Transmogrifier Origin,Unarmored Defense |
+|  2nd  |  +2  |  Grapple Claw      |
+|  3rd  |  +2  | Martial Organic Weapon Forms     |
+|  4th  |  +2  | Ability Score Increase      |
+|  5th  |  +3  | Multi Attack,Detatch    |
+|  6th  |  +3  | Adaptive Movement  |
+|  7th  |  +3  | Amorphis Mouth     |
+|  8th  |  +3  | Ability Score Increase      |
+|  9th  |  +4  | Alter Self |
+| 10th  |  +4  | Unwavering Heart|
+| 11th  |  +4  | Expanded Grapple Claw       |
+| 12th  |  +4  | Ability Score Increase     |
+| 13th  |  +5  | Free Movement |
+| 14th  |  +5  | Seemless Alteration    |
+| 15th  |  +5  | Lunge  |
+| 16th  |  +5  | Ability Score Increase    |
+| 17th  |  +6  | Wings of Metamorphasis |
+| 18th  |  +6  | Ability Score Increase       |
+| 19th  |  +6  | Multi Attack |
+| 20th  |  +6  | Transcendental   |
+}}
+
+
+
+
+
+
+\page
+
+
+
+
+
+
+
+
+
+
+
+
+
+### Level 1 Transmogrifier Origin
+At level 1 you have become a Transmogrifier and must select an origin of your abilities. Your origin will determine the asthetic of your transformations. 
+#### Abyssal Origin
+With the Abyssal Origin your features will manifest in eldrich forms such as tendrils.
+
+#### Fey Origin
+With the gey Origin your features will manifest as beastial features.
+
+#### Undead Origin
+With the Undead Origin your features will manifest as skeletal alterations and extensions
+
+#### Monsterous Origin
+With the Monsterous Origin your features will manifest as fleshy mutations
+
+### Level 1 Organic Weapon
+A need to survive has taught you to create natural weapons by altering your arms or legs.
+
+As an action transform an appendge into a weaponized form. This weapon counts as a natrual weapon for you, cannot be removed via disarming features, and can appear however you like. However your Organic Weapon must functionally have one of the following forms.
+
+As you level up you will unlock better weapon forms.
+
+##### Martial Organic Weapon Forms
+|Forms | Damage | Properties|
+|:------------------|:-----:|:-----------------:|
+| Short Blade Form                 | 1d4 slashing     | Finesse, Light             |
+| Light Hammer Form               | 1d4 bludgeoning     | light             |
+| Claw Form                 | 1d4 slashing     | Finesse, Light             |
+
+### Level 1 Unarmored Defense
+When not wearing armor gain an ac equal to 10 + dex + con
+
+
+
+
+
+
+
+
+### Level 2 Grapple Claw
+As you get used to your new body you find it difficult to deal with ranged attackers that you cannot reach. In an effort to close the gap you figure out how to great a grapple claw out of your arms. As a bonus action pick a creature within 30ft that you can see and launch a claw at them. The grappled target can make a strength saving throw to break the claw. The Dc for this check is equal to 8+ profiency + your strength modifier. On a failure you are pulled within 5ft of the target. There must be atleast 5ft of open space between you and the target otherwise you will be stopped. Effects that alter your movement on the field will still push or pull you as you move past them. Hitting a wall will result in you taking 1d6 bludgeoning damage.
+
+
+
+
+\page
+
+
+
+
+### Level 3 Martial Organic Weapon Forms
+At level 3 you have learned to morph your body into more intricate weapons. You have unlocked additonal weapon forms.
+##### Martial Organic Weapon Forms
+|Forms | Damage | Properties|
+|:------------------|:-----:|:-----------------:|
+| Short Blade Form                 | 1d4 slashing     | Finesse, Light             |
+| Hammer Form               | 1d8 bludgeoning     | Versatile (1d10)               |
+| Lance Form               | 1d10 piercing    | Heavy, reach two-handed             |
+| Curved Blade From            | 1d6 slashing     |  	Finesse, light              |
+| Duelist Form             | 1d8 piercing    | Finesse                |
+| Great Weapon Form           | 1d12 slashing     | Heavy, two-handed             |
+| Whip Blade | 1d4 slashing | Finesse, reach, light |
+| Claw Form                 | 1d4 slashing     | Finesse, Light             |
+
+
+
+
+### Level 4 Ability Score Increase
+You gain the Ability Score Improvement feat or another feat of your choice for which you qualify. You gain this feature again at Necromancer levels 8, 12, and 16
+
+
+
+### Level 5 Multi Attack
+At level 5 you gain the ability to make a second attack when using the attack action on your turn.
+
+### Level 5 Detatch
+Remove one a part of your body to control it remotley. If the detached body part can transform into a weapon you can attack using it. Detached body parts are extensions of you and use your own action economy. If you are without legs and use your hands to move you can only use half your movement. If you are without and arms or legs, and must resort to hoping you have a movement of 5ft.  For the purpose of damage any detached body parts can be attacked, but area of effect attacks will not damage you multiple times.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+### Level 6 Adaptive Movement
+You have learned to alter the shape of your feet to move more freely. While not wearing footwear you are not effected by difficult terrain. 
+\page
+
+## Level 7 Amorphis Mouth
+You have learned to Mimic the voices of the people around you. When someone whos face you can see speaks in a language you dont understand you can morph your mouth to translate your speach into the mimiced language. You do not learn the language outright and cannot understand what is being said to you.
+
+
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+### Level 8 Ability Score Increase
+You gain the Ability Score Improvement feat or another feat of your choice for which you qualify. You gain this feature again at Necromancer levels 8, 12, and 16, 18
+
+
+### Level 9 Alter Self
+Though hours of practice you learn to not only morph your body for a utilitarian purpose, but to morph the appearce aswell. As an action you can change the appearance of your body to appear as someone else it takes a mintue to complete the transformation. You do not adopt the clothing of the creature you imitate, and changing into a creature that would not support your clothing will cause your clothing/ armor to break.
+
+
+
+### Level 10 Unwavering Heart
+As your grasp over Transmogrification grows, your heart has had to evovle to keep up. As an action overcharge your heart granting you hp per turn equal to your profiency bonus. This effect lasts for a minute. This effect recharges on a long rest.
+
+{{
+### Level 11 Expanded Grapple Claw 
+Your grapple claw range has expanded to 60ft.
+
+### Level 12 Ability Score Increase
+You gain the Ability Score Improvement feat or another feat of your choice for which you qualify. You gain this feature again at Necromancer levels 8, 12, and 16
+}}
+
+
+
+### Level 13 Free Movement
+Your body has evolved to allow you to scale all types of terrain with ease. When not wearing gloves and footware gain a climbing, and swimming speed equal to your movement. Additonally gain a tunneling speed of 10. You can only tunnel through dirt.
+
+
+### Level 14 Seemless Alteration
+You've gotten faster at altering your appearance. It now only costs the time of one action to alter your appearance. You've also learned how to make skin imitate clothing allowing your clothing to change to match your desired look.
+\page
+### Level 15 Lunge 
+Sometimes enemies can resist your grapple claw, but still need to close the gap. 
+As an attack action target a creature you and reach within your movement and lunge at them. Closing the distance and making an attack against them. You can only perfrom the attack portion of lunge on weapons without reach or two hand.
+
+
+### Level 16 Ability Score Increase
+You gain the Ability Score Improvement feat or another feat of your choice for which you qualify. You gain this feature again at Necromancer levels 8, 12, and 16
+
+### Level 17 Wings of Metamorphasis
+You gain the ability to strentch your body to form Wings. As an action grow a pair of wings giving you a flying speed of 50 for the next mintue. You can use this feature a number of times equal to your profiency bonus per long rest.
+
+{{
+### Level 18 Ability Score Increase
+You gain the Ability Score Improvement feat or another feat of your choice for which you qualify. You gain this feature again at Necromancer levels 8, 12, and 16
+}}
+
+
+{{
+### Level 19 Multi Attack
+When taking the attack action you can make another bonus attack.
+}}
+
+
+{{
+### Level 20 Transcendental
+Your body has mutated to a point where it is beyond normal understanding. 
+You no longer need to eat, breath, or sleep. You body automatically heals diseases. On death your body will regenerate back to 1 hp over the course of a week.
+}}
+
+
+

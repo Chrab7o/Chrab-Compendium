@@ -1,0 +1,670 @@
+{
+	"_meta": {
+		"sources": [
+			{
+				"json": "Chrab:Desperado",
+				"full": "Desperado Class",
+				"abbreviation": "DES",
+				"authors": [
+					"Chrab"
+				],
+				"url": "https://www.reddit.com/r/UnearthedArcana/comments/ca5whu/new_gunsmith_class_finalised_version_the/",
+				"version": "2019.07.07"
+			},
+			{
+				"json": "Chrab:Desperado",
+				"abbreviation": "DES",
+				"full": "Desperado Class",
+				"authors": [
+					"Chrab"
+				],
+				"version": "2019.07.07",
+				"targetSchema": "1.0.0"
+			}
+		],
+		"dateAdded": "1592017807",
+		"dateLastModified": "1672240086",
+		"_dateLastModifiedHash": "b7b8c0efa4"
+	},
+	"class": [
+		{
+			"name": "Desperado",
+			"source": "Chrab:Desperado",
+			"hd": {
+				"number": "1",
+				"faces": "10"
+			},
+			"proficiency": [
+				"dex",
+				"con"
+			],
+			"startingProficiencies": {
+				"armor": [
+					"light",
+					"medium",
+					"heavy"
+				],
+				"weapons": [
+					"simple weapons",
+					"firearms"
+				],
+				"tools": [],
+				"skills": [
+					{
+						"choose": {
+							"from": [
+								"acrobatics",
+								"athletics",
+								"deception",
+								"intimidation",
+								"insight",
+								"investigation",
+								"perception",
+								"Persuasion"
+							],
+							"count": 4
+						}
+					}
+				]
+			},
+			"startingEquipment": {
+				"additionalFromBackground": true,
+				"default": [
+					"(a) a pistol",
+					"(a) a shotgun or (B) A reolver or (C) A lever action rifle or (D) long range rifle",
+					"(b) a dungeoneer's pack, or (c) an explorer's pack",
+					"(a) Leather armor (b) chain shirt ( c ) chain mail"
+				],
+				"goldAlternative": "{@dice 4d4x10|4d4 x 10|Starting Gold}",
+				"defaultData": [
+					{
+						"a": [
+							"scale mail|phb"
+						],
+						"b": [
+							"leather armor|phb"
+						]
+					},
+					{
+						"a": [
+							"dungeoneer's pack|phb"
+						],
+						"b": [
+							"explorer's pack|phb"
+						]
+					},
+					{
+						"_": [
+							"pistol|Chrab:Desperado",
+							{
+								"item": "pistol bullet|Chrab:Desperado",
+								"quantity": 20
+							}
+						]
+					},
+					{
+						"_": [
+							"tinker's tools|phb"
+						]
+					}
+				]
+			},
+			"multiclassing": {
+				"requirements": {
+					"dex": 13
+				},
+				"proficienciesGained": {
+					"armor": [
+						"light",
+						"medium"
+					],
+					"tools": [],
+					"weapons": [
+						"simple",
+						"Firearms"
+					]
+				}
+			},
+			"classTableGroups": [
+				{
+					"colLabels": [
+						"Desperado Bonus"
+					],
+					"rows": [
+						[
+							"1d6"
+						],
+						[
+							"1d6"
+						],
+						[
+							"1d6"
+						],
+						[
+							"1d6"
+						],
+						[
+							"1d6"
+						],
+						[
+							"1d6"
+						],
+						[
+							"2d6"
+						],
+						[
+							"2d6"
+						],
+						[
+							"2d6"
+						],
+						[
+							"2d6"
+						],
+						[
+							"3d6"
+						],
+						[
+							"3d6"
+						],
+						[
+							"3d6"
+						],
+						[
+							"3d6"
+						],
+						[
+							"3d6"
+						],
+						[
+							"4d6"
+						],
+						[
+							"4d6"
+						],
+						[
+							"4d6"
+						],
+						[
+							"4d6"
+						],
+						[
+							"5d6"
+						]
+					]
+				}
+			],
+			"classFeatures": [
+				"Gun Expert|Desperado Class|Chrab:Desperado|1",
+				"Desperado Specialty|Desperado Class|Chrab:Desperado|2",
+				"Quick Reload|Desperado Class|Chrab:Desperado|3",
+				"ability score improvement or feat|Desperado Class|Chrab:Desperado|4",
+				"Multiattack|Desperado Class|Chrab:Desperado|5",
+				"Specialty Upgrade|Desperado Class|Chrab:Desperado|6",
+				"Scrappy|Desperado Class|Chrab:Desperado|7",
+				"Ability score increase|Desperado Class|Chrab:Desperado|8",
+				"Follow Up|Desperado Class|Chrab:Desperado|9",
+				"Rapid Reload|Desperado Class|Chrab:Desperado|10",
+				"Specialty Upgrade|Desperado Class|Chrab:Desperado|6",
+				"Ability score increase|Desperado Class|Chrab:Desperado|12",
+				"Expertise |Desperado Class|Chrab:Desperado|13",
+				"Remember your Prey|Desperado Class|Chrab:Desperado|14",
+				"Super Scrapper|Desperado Class|Chrab:Desperado|15",
+				"Ability score increase |Desperado Class|Chrab:Desperado|16",
+				"Nimble Dodge|Desperado Class|Chrab:Desperado|17",
+				"GO GO GO|Desperado Class|Chrab:Desperado|18",
+				"Ability score increase|Desperado Class|Chrab:Desperado|19",
+				"Final Specialty Upgrade|Desperado Class|Chrab:Desperado|20"
+			],
+			"subclassTitle": "mid ranged specialist"
+		}
+	],
+	"classFeature": [
+		{
+			"name": "Gun Expert",
+			"source": "Chrab:Desperado",
+			"className": "Desperado Class",
+			"classSource": "Chrab:Desperado",
+			"level": 1,
+			"entries": [
+				"Gain Firearm proficiency you can add your proficiency bonus do damage made with firearms"
+			]
+		},
+		{
+			"name": "Desperado Specialty",
+			"source": "Chrab:Desperado",
+			"className": "Desperado Class",
+			"classSource": "Chrab:Desperado",
+			"level": 2,
+			"entries": [
+				"You've had some time to find your preferred type of gun, select a speciality that suits the range of your choice. This choice can be changed on level up if you feel like a different combat style suits you better.",
+				{
+					"type": "entries",
+					"name": "Short Range Specialist",
+					"entries": [
+						"You prefer to use short range weapons, starting at level 2 gain 1d6 damage from firearms with less than 15 range, pistols will always gain this damage bonus. As you gain levels this bonus will increase."
+					]
+				},
+				{
+					"type": "entries",
+					"name": "Mid Range Specialist",
+					"entries": [
+						"You prefer to use mid range weapons, starting at level 2 gain 1d6 bonus damage from firearms with less than 60 range but only when attacking from at least 20 ft away,pistols will always gain this damage bonus. As you gain levels this bonus will increase"
+					]
+				},
+				{
+					"type": "entries",
+					"name": "Long Range Specialist",
+					"entries": [
+						"You prefer to use long range weapons, starting at level 2 gain 1d6 bonus damage from firearms when firing from at least 60 range,pistols will always gain this damage bonus. As you gain levels this bonus will increase"
+					]
+				}
+			]
+		},
+		{
+			"name": "Quick Reload",
+			"source": "Chrab:Desperado",
+			"className": "Desperado Class",
+			"classSource": "Chrab:Desperado",
+			"level": 3,
+			"entries": [
+				"Quick Reload: At level 3 you can reload one bullet by using your bonus action"
+			]
+		},
+		{
+			"name": "ability score improvement or feat",
+			"source": "Chrab:Desperado",
+			"className": "Desperado Class",
+			"classSource": "Chrab:Desperado",
+			"level": 4,
+			"entries": [
+				"When you reach 4th level, you can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1. As normal, you can't increase an ability score above 20 using this feature.",
+				"If your DM allows the use of feats, you may instead take a {@5etools feat|feats.html}."
+			]
+		},
+		{
+			"name": "Multiattack",
+			"source": "Chrab:Desperado",
+			"className": "Desperado Class",
+			"classSource": "Chrab:Desperado",
+			"level": 5,
+			"entries": [
+				"Beginning at 5th level, you can attack twice, instead of once, whenever you take the {@action Attack} action on your turn."
+			]
+		},
+		{
+			"name": "Specialty Upgrade",
+			"source": "Chrab:Desperado",
+			"className": "Desperado Class",
+			"classSource": "Chrab:Desperado",
+			"level": 6,
+			"entries": [
+				"At 6th level, you gain a feature granted by your Shooting Style.",
+				{
+					"type": "entries",
+					"name": "Short Range Specialist Upgrade",
+					"entries": [
+						"Quick Step: You can now dash 10 ft in any direction after firing a shot without taking opportunity attacks."
+					]
+				},
+				{
+					"type": "entries",
+					"name": "Mid Range Specialist Upgrade",
+					"entries": [
+						"Run and Gun: When you use the dash action you can still attack"
+					]
+				},
+				{
+					"type": "entries",
+					"name": "Long Range Specialist Upgrade",
+					"entries": [
+						"Hold Position: Sacrifice your next turns movement to get in snipping position adding double your dex modifier on attack and damage"
+					]
+				}
+			]
+		},
+		{
+			"name": "Scrappy",
+			"source": "Chrab:Desperado",
+			"className": "Desperado Class",
+			"classSource": "Chrab:Desperado",
+			"level": 7,
+			"entries": [
+				"By now you've gotten good at using guns, but guns don't help you in groups. At level 3 gain the ability to improvise as an bonus use some scraps to make an improvised weapon, roll 1d4 to determine what you manage to put together",
+				{
+					"type": "entries",
+					"name": "1 Molotov",
+					"entries": [
+						"You throw a Molotov up to 30 feet infront of you or up to 60 feet with a successful dc 15 slight of hand check. All creatures within a 15 ft radius of the blast must make a dex saving throw equal to 10 plus your dex modifier, dealing 3d4 fire damage to enemies -> half on a failed save the fire will linger until your next turn burning creatures who run through it."
+					]
+				},
+				{
+					"type": "entries",
+					"name": "2 Smoke Bomb",
+					"entries": [
+						"You throw a Smoke Bomb up to 30 feet infront of you or up to 60 feet with a successful dc 15 slight of hand check. The smoke cloud lasts for 1 minute and all creatures who step in it must make a con saving throw equal to 10 plus your dex modifier, on a failed save creatures are blinded while they are in the cloud"
+					]
+				},
+				{
+					"type": "entries",
+					"name": "3 Fire Cracker",
+					"entries": [
+						"You toss a fire cracker up to 30 feet infront of you or up to 60 feet with a successful dc 15 slight of hand check. All creatures unware of the fire cracker must make a wisdom saving throw equal to 10 + your dex or get distracted by the firecracker. This effect remains for the 1 minute duration of the firecracker creatures who fail the save can repeat the save every turn"
+					]
+				},
+				{
+					"type": "entries",
+					"name": "4 Frag Grenade",
+					"entries": [
+						"You toss a frag grenade up to 30 feet infront of you or up to 60 feet with a successful dc 15 slight of hand check. Creatures within 25 feet of the landing location take 5d4 force damage on a failed dex save equal to 10 + your dex modifier, they take half damage on a failed save."
+					]
+				}
+			]
+		},
+		{
+			"name": "Ability score increase",
+			"source": "Chrab:Desperado",
+			"className": "Desperado Class",
+			"classSource": "Chrab:Desperado",
+			"level": 8,
+			"entries": [
+				"When you reach 8th level, you can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1. As normal, you can't increase an ability score above 20 using this feature.",
+				"If your DM allows the use of feats, you may instead take a {@5etools feat|feats.html}."
+			]
+		},
+		{
+			"name": "Follow Up",
+			"source": "Chrab:Desperado",
+			"className": "Desperado Class",
+			"classSource": "Chrab:Desperado",
+			"level": 9,
+			"entries": [
+				"You can use your reaction to follow up on an allies attack in range to make an additional attack, this attack does not benefit from the bonus features based on your specialty"
+			]
+		},
+		{
+			"name": "Rapid Reload",
+			"source": "Chrab:Desperado",
+			"className": "Desperado Class",
+			"classSource": "Chrab:Desperado",
+			"level": 10,
+			"entries": [
+				"You can reload your entire clip with a bonus action"
+			]
+		},
+		{
+			"name": "Specialty Upgrade",
+			"source": "Chrab:Desperado",
+			"className": "Desperado Class",
+			"classSource": "Chrab:Desperado",
+			"level": 11,
+			"entries": [
+				"At 6th level, you gain a feature granted by your Shooting Style.",
+				{
+					"type": "entries",
+					"name": "Short Range Upgrade",
+					"entries": [
+						"Evasive Maneuvers: When Quickstep is used gain 2 ac until your next turn"
+					]
+				},
+				{
+					"type": "entries",
+					"name": "Mid Range Upgrade",
+					"entries": [
+						"Get Out Of The Way: you can nimbly dodge out of the way of certain area effects, such as a red dragon's fiery breath or an Ice Storm spell. When you are subjected to an effect that allows you to make a Dexterity saving throw to take only half damage, you instead take no damage if you succeed on the saving throw, and only half damage if you fail."
+					]
+				},
+				{
+					"type": "entries",
+					"name": "Long Range Upgrade",
+					"entries": [
+						"Might As Well Go Down Swinging: If your poise gets interrupted take a retaliatory shot at the attacker"
+					]
+				}
+			]
+		},
+		{
+			"name": "Ability score increase",
+			"source": "Chrab:Desperado",
+			"className": "Desperado Class",
+			"classSource": "Chrab:Desperado",
+			"level": 12,
+			"entries": [
+				"When you reach 12th level, you can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1. As normal, you can't increase an ability score above 20 using this feature.",
+				"If your DM allows the use of feats, you may instead take a {@5etools feat|feats.html}."
+			]
+		},
+		{
+			"name": "Expertise ",
+			"source": "Chrab:Desperado",
+			"className": "Desperado Class",
+			"classSource": "Chrab:Desperado",
+			"level": 13,
+			"entries": [
+				"You gain expertise in a skill of your choice."
+			]
+		},
+		{
+			"name": "Remember your Prey",
+			"source": "Chrab:Desperado",
+			"className": "Desperado Class",
+			"classSource": "Chrab:Desperado",
+			"level": 14,
+			"entries": [
+				"Blindness does not affect your ability to hit your target."
+			]
+		},
+		{
+			"name": "Super Scrapper",
+			"source": "Chrab:Desperado",
+			"className": "Desperado Class",
+			"classSource": "Chrab:Desperado",
+			"level": 15,
+			"entries": [
+				"You can now pick which item you wish to craft"
+			]
+		},
+		{
+			"name": "Ability score increase ",
+			"source": "Chrab:Desperado",
+			"className": "Desperado Class",
+			"classSource": "Chrab:Desperado",
+			"level": 16,
+			"entries": [
+				"When you reach 16th level, you can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1. As normal, you can't increase an ability score above 20 using this feature.",
+				"If your DM allows the use of feats, you may instead take a {@5etools feat|feats.html}."
+			]
+		},
+		{
+			"name": "Nimble Dodge",
+			"source": "Chrab:Desperado",
+			"className": "Desperado Class",
+			"classSource": "Chrab:Desperado",
+			"level": 17,
+			"entries": [
+				"You have advantage on Dex saves"
+			]
+		},
+		{
+			"name": "GO GO GO",
+			"source": "Chrab:Desperado",
+			"className": "Desperado Class",
+			"classSource": "Chrab:Desperado",
+			"level": 18,
+			"entries": [
+				"You Ignore the loading condition on all firearms."
+			]
+		},
+		{
+			"name": "Ability score increase",
+			"source": "Chrab:Desperado",
+			"className": "Desperado Class",
+			"classSource": "Chrab:Desperado",
+			"level": 19,
+			"entries": [
+				"When you reach 19th level, you can increase one ability score of your choice by 2, or you can increase two ability scores of your choice by 1. As normal, you can't increase an ability score above 20 using this feature.",
+				"If your DM allows the use of feats, you may instead take a {@5etools feat|feats.html}."
+			]
+		},
+		{
+			"name": "Final Specialty Upgrade",
+			"source": "Chrab:Desperado",
+			"className": "Desperado Class",
+			"classSource": "Chrab:Desperado",
+			"level": 20,
+			"entries": [
+				"You and your firearm are one",
+				{
+					"type": "entries",
+					"name": "Short Range Upgrade",
+					"entries": [
+						"Big Boom: when shooting an enemy at melee range 5ft double your dex modifier"
+					]
+				},
+				{
+					"type": "entries",
+					"name": "Mid Range Upgrade",
+					"entries": [
+						"Unload: Once per long rest you can unload your entire clip to double your bonus damage dice."
+					]
+				},
+				{
+					"type": "entries",
+					"name": "Long Range Upgrade",
+					"entries": [
+						"Post up for a minute  and fire your shot, If the target has less than 100 health they die. Otherwise crit."
+					]
+				}
+			]
+		}
+	],
+	"subclassFeature": [
+		{
+			"name": "short range specialist",
+			"source": "Chrab:Desperado",
+			"className": "Desperado Class",
+			"classSource": "Chrab:Desperado",
+			"subclassShortName": "short range specialist",
+			"subclassSource": "Chrab:Desperado",
+			"level": 3,
+			"entries": [
+				"A gunsmith's lethality with ranged weapons is nigh unmatched except by the most skilled of archers, but a marksman's unwavering accuracy is unmatched by all. What they lack in raw power they more than make up for with their ability to consistently hit their target, and there are few targets a marksman cannot hit.",
+				{
+					"type": "refSubclassFeature",
+					"subclassFeature": "Expanded Arsenal|Desperado Class|Chrab:Desperado|short range specialist|Chrab:Desperado|3"
+				}
+			]
+		},
+		{
+			"name": "Expanded Arsenal",
+			"entries": [
+				"When you choose this shooting style at 3rd level, you gain access to a new Desperado Classing option, Sniper Rifles. The rules for crafting and using rifles are listed at the end of this class description along with the rest of the gunsmithing options."
+			],
+			"source": "Chrab:Desperado",
+			"className": "Desperado Class",
+			"classSource": "Chrab:Desperado",
+			"subclassShortName": "short range specialist",
+			"subclassSource": "Chrab:Desperado",
+			"level": 3,
+			"header": 1
+		},
+		{
+			"name": "short range specialist's Eye",
+			"source": "Chrab:Desperado",
+			"className": "Desperado Class",
+			"classSource": "Chrab:Desperado",
+			"subclassShortName": "short range specialist",
+			"subclassSource": "Chrab:Desperado",
+			"level": 6,
+			"header": 2,
+			"entries": [
+				"Beginning at 6th level, you train yourself to ensure your eye never leaves your target. You can cast the {@spell hunter's mark|phb} spell once at 1st-level and regain the ability to do so after a short or long rest.",
+				"Additionally, the benefits of your {@optfeature Deadeye Shot|Chrab:Desperadoing} now extend to every firearm attack you make that turn."
+			]
+		},
+		{
+			"name": "Steady Breathing",
+			"source": "Chrab:Desperado",
+			"className": "Desperado Class",
+			"classSource": "Chrab:Desperado",
+			"subclassShortName": "short range specialist",
+			"subclassSource": "Chrab:Desperado",
+			"level": 10,
+			"header": 2,
+			"entries": [
+				"At 10th level your steady breathing helps you ignore the distractions of the battlefield, allowing you to zone in on your target. As a bonus action, you can expend one Grit point to ignore disadvantage on firearm attacks against one creature of your choice until the end of your turn.",
+				"Alternatively, you can expend one Grit point in the same fashion to end one of the following conditions affecting you: {@condition Blinded}, {@condition Deafened}, {@condition Frightened} or {@condition Stunned}."
+			]
+		},
+		{
+			"name": "Unrelenting Aim",
+			"source": "Chrab:Desperado",
+			"className": "Desperado Class",
+			"classSource": "Chrab:Desperado",
+			"subclassShortName": "short range specialist",
+			"subclassSource": "Chrab:Desperado",
+			"level": 14,
+			"header": 2,
+			"entries": [
+				"By 14th level staying on target has become second nature to you. Whenever you make a firearm attack, you can treat a {@dice d20} roll of 7 or lower as an 8, unless the roll would cause your firearm to misfire."
+			]
+		},
+		{
+			"name": "Vicious Intent",
+			"source": "Chrab:Desperado",
+			"className": "Desperado Class",
+			"classSource": "Chrab:Desperado",
+			"subclassShortName": "short range specialist",
+			"subclassSource": "Chrab:Desperado",
+			"level": 17,
+			"header": 2,
+			"entries": [
+				"At 17th level, your firearm attacks score a critical hit on a roll of 19-20, and you regain a Grit point on a roll of 19 or 20 on a d20 attack roll with a firearm."
+			]
+		}
+	],
+	"subclass": [
+		{
+			"name": "short range specialist",
+			"shortName": "short range specialist",
+			"source": "Chrab:Desperado",
+			"subclassFeatures": [
+				"short range specialist|Desperado Class|Chrab:Desperado|short range specialist|Chrab:Desperado|3",
+				"short range specialist's Eye|Desperado Class|Chrab:Desperado|short range specialist|Chrab:Desperado|6",
+				"Steady Breathing|Desperado Class|Chrab:Desperado|short range specialist|Chrab:Desperado|10",
+				"Unrelenting Aim|Desperado Class|Chrab:Desperado|short range specialist|Chrab:Desperado|14",
+				"Vicious Intent|Desperado Class|Chrab:Desperado|short range specialist|Chrab:Desperado|17"
+			],
+			"className": "Desperado",
+			"classSource": "Chrab:Desperado"
+		},
+		{
+			"name": "mid range specialist",
+			"shortName": "mid range specialist",
+			"source": "Chrab:Desperado",
+			"subclassFeatures": [
+				"mid range specialist|Desperado Class|Chrab:Desperado|mid range specialist|Chrab:Desperado|3",
+				"mid range specialist's Eye|Desperado Class|Chrab:Desperado|mid range specialist|Chrab:Desperado|6",
+				"Steady Breathing|Desperado Class|Chrab:Desperado|mid range specialist|Chrab:Desperado|10",
+				"Unrelenting Aim|Desperado Class|Chrab:Desperado|mid range specialist|Chrab:Desperado|14",
+				"Vicious Intent|Desperado Class|Chrab:Desperado|mid range specialist|Chrab:Desperado|17"
+			],
+			"className": "Desperado",
+			"classSource": "Chrab:Desperado"
+		},
+		{
+			"name": "long range specialist",
+			"shortName": "long range specialist",
+			"source": "Chrab:Desperado",
+			"subclassFeatures": [
+				"long range specialist|Desperado Class|Chrab:Desperado|long range specialist|Chrab:Desperado|3",
+				"long range specialist's Eye|Desperado Class|Chrab:Desperado|long range specialist|Chrab:Desperado|6",
+				"Steady Breathing|Desperado Class|Chrab:Desperado|long range specialist|Chrab:Desperado|10",
+				"Unrelenting Aim|Desperado Class|Chrab:Desperado|long range specialist|Chrab:Desperado|14",
+				"Vicious Intent|Desperado Class|Chrab:Desperado|long range specialist|Chrab:Desperado|17"
+			],
+			"className": "Desperado",
+			"classSource": "Chrab:Desperado"
+		}
+	]
+}

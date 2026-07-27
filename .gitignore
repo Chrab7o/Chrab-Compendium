@@ -8,3 +8,4 @@ backups.txt
 *.drawio
 *.drawio.xml
 *.skilltree.json
+*.class.json

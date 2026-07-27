@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
-import { pointsSpent, canUnlock, fullPrereqIds, minPrereqsRequired } from '../lib/skillTrees'
+import { pointsSpent, canUnlock, canCraft, fullPrereqIds, minPrereqsRequired } from '../lib/skillTrees'
 import SkillTreeDiagram from './SkillTreeDiagram'
 
 // Shared by the player's own Skill Tree page and the DM's read-only preview
@@ -14,9 +14,15 @@ export default function SkillTreeProgress({ characterId, editable }) {
   const [trees, setTrees] = useState(undefined)
   const [treeId, setTreeId] = useState('')
   const [nodes, setNodes] = useState([])
+  // Every node across every tree that shares the selected tree's tree_type —
+  // points are pooled per type, not per tree, so "spent" and the unlock cap
+  // both need to account for nodes unlocked in sibling trees too, not just
+  // the one currently on screen.
+  const [typePoolNodes, setTypePoolNodes] = useState([])
   const [prereqRows, setPrereqRows] = useState([])
   const [pointsAvailable, setPointsAvailable] = useState(0)
   const [unlockedIds, setUnlockedIds] = useState(new Set())
+  const [craftSpend, setCraftSpend] = useState(0)
   const [error, setError] = useState(null)
   const [selectedNodeId, setSelectedNodeId] = useState(null)
 
@@ -47,25 +53,37 @@ export default function SkillTreeProgress({ characterId, editable }) {
   const loadTreeState = useCallback(async () => {
     if (!treeId) {
       setNodes([])
+      setTypePoolNodes([])
       setPrereqRows([])
       setUnlockedIds(new Set())
       setPointsAvailable(0)
+      setCraftSpend(0)
       return
     }
-    const [{ data: nodeData }, { data: pointsRow }, { data: unlockRows }] = await Promise.all([
-      supabase.from('skill_tree_nodes').select('*').eq('tree_id', treeId),
-      supabase
-        .from('character_skill_trees')
-        .select('points_available')
-        .eq('character_id', characterId)
-        .eq('tree_id', treeId)
-        .maybeSingle(),
-      supabase.from('character_skill_unlocks').select('node_id').eq('character_id', characterId),
-    ])
+    const treeType = trees?.find((t) => t.id === treeId)?.tree_type ?? 'feature'
+    const siblingTreeIds = (trees ?? []).filter((t) => t.tree_type === treeType).map((t) => t.id)
+
+    const [{ data: nodeData }, { data: poolNodeData }, { data: pointsRow }, { data: unlockRows }, { data: craftRows }] =
+      await Promise.all([
+        supabase.from('skill_tree_nodes').select('*').eq('tree_id', treeId),
+        supabase.from('skill_tree_nodes').select('*').in('tree_id', siblingTreeIds),
+        supabase
+          .from('character_skill_points')
+          .select('points_available')
+          .eq('character_id', characterId)
+          .eq('tree_type', treeType)
+          .maybeSingle(),
+        supabase.from('character_skill_unlocks').select('node_id').eq('character_id', characterId),
+        supabase.from('character_skill_crafts').select('node_id, cost').eq('character_id', characterId),
+      ])
     setNodes(nodeData ?? [])
+    setTypePoolNodes(poolNodeData ?? [])
     setPointsAvailable(pointsRow?.points_available ?? 0)
-    const nodeIds = new Set((nodeData ?? []).map((n) => n.id))
-    setUnlockedIds(new Set((unlockRows ?? []).map((u) => u.node_id).filter((id) => nodeIds.has(id))))
+    const poolNodeIds = new Set((poolNodeData ?? []).map((n) => n.id))
+    setUnlockedIds(new Set((unlockRows ?? []).map((u) => u.node_id).filter((id) => poolNodeIds.has(id))))
+    setCraftSpend(
+      (craftRows ?? []).filter((r) => poolNodeIds.has(r.node_id)).reduce((sum, r) => sum + r.cost, 0)
+    )
 
     const ids = (nodeData ?? []).map((n) => n.id)
     if (ids.length > 0) {
@@ -74,7 +92,7 @@ export default function SkillTreeProgress({ characterId, editable }) {
     } else {
       setPrereqRows([])
     }
-  }, [treeId, characterId])
+  }, [treeId, characterId, trees])
 
   useEffect(() => {
     loadTreeState()
@@ -104,12 +122,27 @@ export default function SkillTreeProgress({ characterId, editable }) {
     loadTreeState()
   }
 
+  async function handleCraft(node) {
+    setError(null)
+    const { error: rpcError } = await supabase.rpc('craft_skill_item', {
+      p_character_id: characterId,
+      p_node_id: node.id,
+    })
+    if (rpcError) {
+      setError(rpcError.message)
+      return
+    }
+    loadTreeState()
+  }
+
   if (trees === undefined) return <p className="status-message">Loading...</p>
   if (trees.length === 0) {
     return <p className="status-message">No skill trees are set up for this character's campaign yet.</p>
   }
 
-  const spent = pointsSpent(nodes, unlockedIds)
+  const currentTree = trees.find((t) => t.id === treeId)
+  const craftCost = currentTree?.craft_cost ?? 20
+  const spent = pointsSpent(typePoolNodes, unlockedIds) + craftSpend
   const nodesById = new Map(nodes.map((n) => [n.id, n]))
   const extrasByNode = new Map()
   for (const row of prereqRows) {
@@ -123,7 +156,11 @@ export default function SkillTreeProgress({ characterId, editable }) {
     selectedNode &&
     editable &&
     !selectedUnlocked &&
-    canUnlock(selectedNode, nodes, unlockedIds, pointsAvailable, extrasByNode)
+    canUnlock(selectedNode, typePoolNodes, unlockedIds, pointsAvailable, extrasByNode, craftSpend)
+  const selectedCraftable =
+    selectedNode &&
+    editable &&
+    canCraft(selectedNode, typePoolNodes, unlockedIds, pointsAvailable, craftSpend, craftCost)
   const selectedPrereqNames = selectedNode
     ? fullPrereqIds(selectedNode, extrasByNode).map((id) => nodesById.get(id)?.name ?? '?')
     : []
@@ -179,7 +216,14 @@ export default function SkillTreeProgress({ characterId, editable }) {
             )}
             {selectedNode.description && <p>{selectedNode.description}</p>}
             {selectedUnlocked ? (
-              <span className="badge badge-campaign">Unlocked</span>
+              <div className="skill-node-panel-actions">
+                <span className="badge badge-campaign">Unlocked</span>
+                {selectedNode.craftable && editable && (
+                  <button type="button" disabled={!selectedCraftable} onClick={() => handleCraft(selectedNode)}>
+                    Craft ({craftCost} pts)
+                  </button>
+                )}
+              </div>
             ) : (
               editable && (
                 <button type="button" disabled={!selectedUnlockable} onClick={() => handleUnlock(selectedNode)}>

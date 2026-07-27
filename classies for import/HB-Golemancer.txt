@@ -1,0 +1,624 @@
+```metadata
+title: Golemancer
+description: ''
+tags: []
+renderer: V3
+theme: 5ePHB
+
+```
+
+{{
+# Golemancer
+## DISCLAIMER 
+Hi unlike Oracle I have no idea how balanced I think this class will be. I encourage you to try it, but I might have to make changes mid campaign to make it more balanced.
+## Background
+The Golemancer has the power to speak life into organic objects. Golemancers are one with nature similar to druids, but instead of their magic manifesting in pure magical prowess they prefer to imbue their magic into the world and make new life.
+
+## Playstyle
+The Golemancer specializes in making golems from earth and clay. At the start of the day the Golemancer will make a number of golems allowed to the amount of Breath Of Life they possess. The more complex the golem is the more Breath of Life it will require to bring that Golem to the world of the living. The Golemancer can then unleash those golems to do tasks or fight on the Golemancer's behalf, until dismissed or destroyed.
+
+## Alignment
+Golemancers are often good natured people. Many do not use the golems to fight but rather as helpers for smaller villages. Those who use golems to fight often do so for noble causes such as defense of their homes and loved ones. Some evil aligned golemaners do exist however. Their evil disposition is present in the way the golems manifest themselves by being more cold and stoic, when  compared to the more kind and loving good natured golems.
+
+## Creating an Golemancer
+When creating a Golemancer consider where you want your character to come from. Many Golemancers grow up around druids, or nature, and come from areas where organic objects are in abundance. Consider whether your character chooses the life of adventure or was forced into it by an external circumstance. Lastly, determine what your golemancers ultimate goal is at the journey's end. 
+}}
+{{
+## Class Golemancer
+
+As a Golemancer, you gain the following class features
+
+#### Hit Points
+**Hit Dice:**                    :: 1d8 per Golemancer level
+**Hit Points at 1st Level:**     :: 8 + your Constitution modifier
+**Hit Points at Higher Levels:** :: 1d8 (or 5) + your Constitution modifier per notary level after 1st
+
+#### Proficiencies
+**Armor:**   :: Clothing, light armor, shields
+**Weapons:** :: simple weapons
+**Tools:**   :: Potter's tools
+
+**Saving Throws:** :: Wisdom, Intelligence
+**Skills:**        :: Choose two from Insight, Perception, Religion, Arcana, deception, medicine, survival
+
+
+
+#### Equipment
+You start with the following equipment, in addition to the equipment granted by your background:
+- (*a*) Quarterstaff, leather armor, clay vessel
+}}
+
+{{classTable,frame,decoration
+##### Golemancer
+| Level | Proficiency Bonus | Features  | Core Limit | 
+|:-----:|:-----------------:|:--------- |:---------------------:|
+|  1st  |  +2  | Mold Golems, Summon Golem| 1|
+|  2nd  |  +2  | Natures Ally,Blessings of the earth| 1|2
+|  3rd  |  +2  | Golemancer Tradition | 2 |3
+|  4th  |  +2  | Ability Score Improvement| 2 |3
+|  5th  |  +3  | Golem Core Upgrade| 2 |3
+|  6th  |  +3  | Tradition upgrade    |          2            |3
+|  7th  |  +3  |  Friend of nature, Golem friend|          3            |3
+|  8th  |  +3  | Ability Score Improvement   |          3            |4
+|  9th  |  +4  | -     |         3           |3
+| 10th  |  +4  | Golemancy Adept   |    4 |4
+| 11th  |  +4  |Tradition upgrade |  4 |4
+| 12th  |  +4  | Ability Score Increase |  4 |5
+| 14th  |  +5  | Tradition upgrade   |    5    |5
+| 15th  |  +5  | -   |  5 |5
+| 16th  |  +5  | Ability Score Improvement  |  5  |6
+| 17th  |  +6  | - |    5  |6
+| 18th  |  +6  | Core Upgrades   |         6|6
+| 19th  |  +6  | One With Earth    |  6   |6
+| 20th  |  +6  | Golemancy Master |  6 |7
+}}
+
+
+
+
+\page
+
+
+
+
+
+
+
+
+
+
+
+
+
+### Level 1 Mold Golems
+At the end of each long rest you spend some time forming Golem cores. Each Golem core represents a respective archetype. You can make a number for cores equal to your core limit. Your cores level up alongside you becoming stronger as you do.
+
+### Level 1 Summon Golem
+As an action mold some clay around a Golem core and summon a golem. The golem acts on your initiative and communicates in Common. You can instruct it to use movement, action, and bonus action etc where applicable. Your Golem can receive both buffs and debuffs provided they do not alter the golems form (no polymorph,enlarge reduce etc)  You can only have one active golem at a time at this level. You can use an action to dismiss a golem if it is within 5 ft of you. Your golem must stay within 500 ft of you or else they will deconstruct.
+#### Golem Core List
+https://homebrewery.naturalcrit.com/share/bBnSCIpDxCsU
+
+### Level 2 Natures Ally
+You have expertise in nature checks.
+
+
+
+
+### Level 2 Blessings of the earth. 
+You have gained the ability to bless soil. When growing an item in dirt you can keep the soil hydrated and the plant growing even if it's arid and dark. 
+
+
+### Level 3 Golemancer Tradition
+All Golemancers choose a path to hone their skills for a specific purpose
+Pick one of the following subclasses. You will gain new Golemancer Path features at levels 6, 11, and 14
+\page
+{{
+#### Tradition of the Fusion Cores
+Golemancers following the tradition of the fusion cores have practiced long and hard how to fuse cores together to create new cores.
+
+
+##### Level 3 Core of the Barbarian, Paladin, and Ranger
+{{monster,frame
+##  Barbarian Core
+*medium, loyal, just a medium guy*
+
+___
+**Armor Class** :: 13
+**Hit Points**  :: 10 (+6 per Golemancer Level)
+**Speed**       :: 30 ft.
+___
+|  STR  |  DEX  |  CON  |  INT  |  WIS  |  CHA  |
+|:-----:|:-----:|:-----:|:-----:|:-----:|:-----:|
+|16 |12 |14 |7 |5 |9 |
+___
+**Skills** :: Athletics +4
+**Condition Immunities** :: none
+**Senses**               :: passive Perception 12
+**Languages**            :: Common (sorta)
+**Challenge**            :: idk
+___
+***Helpful Guy*** Is excited to help you and loves to lift things
+:
+***Immutable Form*** The Golems form cannot be changed in anyway
+
+***Unarmored Defense*** Golem has a flat AC of 13
+
+***Raging Rock*** Golem is permanently in a rage
+
+***Level 11 Cleave*** All attacks deal damage to adjacent enemies within 5 ft of the original target.
+
+***Level 11 Powerful attack*** Attacks have advantage
+
+
+### Actions
+
+***Clobber*** *Melee Weapon Attack:* +6 to hit, reach 5 ft., one target. *Hit:* 1d6+3 bludgeoning damage. 
+:
+
+
+}}
+
+}}
+
+{{monster,frame
+##  Ranger Core
+*medium, loyal, just a medium guy*
+* 
+
+___
+**Armor Class** :: 14
+**Hit Points**  :: 6 (+4 per Golemancer Level)
+**Speed**       :: 30 ft.
+___
+|  STR  |  DEX  |  CON  |  INT  |  WIS  |  CHA  |
+|:-----:|:-----:|:-----:|:-----:|:-----:|:-----:|
+|10 |16 |14 |7 |5 |9 |
+___
+**Skills** :: stealth, slight of hand +4
+**Condition Immunities** :: none
+**Senses**               :: passive Perception 12
+**Languages**            :: Common (sorta)
+**Challenge**            :: idk
+___
+***Helpful Guy*** Is excited to help you and loves to lift things
+:
+***Immutable Form*** The Golems form cannot be changed in anyway
+:
+***Unarmored Defense*** Golem has a flat AC of 14
+:
+***Stone Dog*** The Ranger Golem has a golem dog who gives the ranger advantage once every other turn.
+:
+### Actions
+
+***Shoot*** *Ranged Weapon Attack* +6 to hit, reach 80/320 *hit* 1d6+3 piercing damage
+:
+***Level 11 Stone Dog Rush*** Send out stone dog to do his own attack as a bonus action +6 to hit reach 5ft *hit* 1d4+3 piercing damage, marks an enemy giving the golem advantage on the next attack and dealing an additional 1d6 damage.
+}}
+
+
+\page
+{{monster,frame
+##  Paladin Core
+*medium, loyal, just a medium guy*
+* 
+
+___
+**Armor Class** :: 15
+**Hit Points**  :: 8 (+5 per Golemancer Level)
+**Speed**       :: 30 ft.
+___
+|  STR  |  DEX  |  CON  |  INT  |  WIS  |  CHA  |
+|:-----:|:-----:|:-----:|:-----:|:-----:|:-----:|
+|16 | 9|11 |12 |13 |16 |
+___
+**Skills** :: Perception +3
+**Condition Immunities** :: none
+**Senses**               :: passive Perception 12
+**Languages**            :: Common (sorta)
+**Challenge**            :: idk
+___
+***Helpful Guy*** Is excited to help you and loves to lift things
+:
+***Immutable Form*** The Golems form cannot be changed in anyway
+
+***Unarmored Defense*** Golem has a flat AC of 16
+
+
+
+### Actions
+
+***Slice*** *Melee Weapon Attack:* *reach 5ft* +3 to hit, reach 5 ft., one target. *Hit:* 1d6+3 Slashing damage. 
+:
+***Cure Wounds*** *Touch Healing* reach 5ft, one target. *Hit* 1d8 + 1 healing *can be used at will, but has a 2 turn cool down*
+:
+***Divine Smite*** On a Melee attack, a hit deals an additional 2d8 damage. Once per 3 (lv11 one turn cooldown)  turns.
+
+***Level 11 Multiattack*** When using the attack action this creature can attack again.
+
+
+
+
+
+}}
+
+
+
+
+
+#### Tradition of Earthen Fortitude 
+Golemancers following the tradition of Earthen Fortitude can add clay to their bodies to augment themselves.
+
+##### Level 3 Organic Core
+As an action apply the organic core to yourself gaining the following benefits for the next minute
+***Core Armor*** : Gain and ac of 16
+***Clay Fists*** : As an action, make an enhanced unarmed attack. +prof +wis to hit on hit deal 1d6+wisdom bludgeoning damage.
+***Sturdy Form*** : Cannot be moved against your will.
+
+
+#### Tradition of the Steadfast Companion
+Golemancers following the tradition of the Steadfast Companion gain the Steadfast Companion Core. 
+
+##### Level 3 Steadfast Companion.
+This golem is unique in that it stays with you at all times, and does not count against your standard golem summoning limit. When this Golem is destroyed you can rebuild him an hour later once the core has recharged. This Golem starts with 12 in all stats, a speed of 25, a plus 2 proficiency, and gains a flat 6 hp every level up +  its con. At every level you may put two points into the stat of your choice including this one. The Golem is proficient  in every weapon and armor type. Your golem follows the standard action, bonus action, action economy. Your Golem starts with 2 features of level 3 or lower from any class. You will gain more as you level up. You can feed the golem a spell scroll to teach it a spell. It can only learn up to level 2 spells at level 3 and it can only consume one spell per day. All spell levels have their own cool down, and you cannot cast ANY spells while that cool down is in effect. Level 1 and 2 spells have a 1 turn cool down after being cast. You will be assigned a cool down status that will denote how many turns until you can cast a spell of that level again..
+
+
+### Level 4 Ability Score Increase
+You gain the Ability Score Improvement feat or another feat of your choice for which you qualify. You gain this feature again at Golemancer levels 8, 12, and 16
+
+
+
+### Level 5 Golem Core Upgrade
+Your original 5 cores level up to gain new features
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+\page
+### Level 6 Tradition upgrade
+
+
+
+#### Fusion Cores
+
+##### Level 6 Gambler Core, Chef Core, Berserker Core
+{{monster,frame
+##  Gambler Core
+*medium, loyal, just a medium guy*
+* 
+
+___
+**Armor Class** :: 1d20
+**Hit Points**  :: 8 (+5 per Golemancer Level
+**Speed**       :: 6d6 speed ft.
+___
+|  STR  |  DEX  |  CON  |  INT  |  WIS  |  CHA  |
+|:-----:|:-----:|:-----:|:-----:|:-----:|:-----:|
+|10 | 10|10 |10 |10 |10 |
+___
+**Skills** :: 
+**Condition Immunities** :: none
+**Senses**               :: passive Perception 12
+**Languages**            :: Common (sorta)
+**Challenge**            :: idk
+___
+***Helpful Guy*** Is excited to help you and loves to lift things
+:
+***Immutable Form*** The Golems form cannot be changed in anyway
+
+***Random Defense*** Golem has a Random 1d20 AC
+
+***Random Speed*** Golem has a Random Speed of 6d6 AC
+
+
+### Actions
+
+***Magic Die*** This Golem has magic dice, roll a d6 (lv8 d8) (lv10 d10) (lvl14 d12) (lvl20 d20) take the result and roll that many d6 (lv8 d8) (lv10 d10) (lvl14 d12) (lvl20 d20). Pick a creature you can see within 30ft they must roll a dc 13 (lv11 DC16) intelligence saving throw. They take equal to the damage rolled on a failed save, and half on a success. 
+
+
+
+
+}}
+\page
+{{monster,frame
+##  Berserker Core
+*medium, loyal, just a medium guy*
+* 
+
+___
+**Armor Class** :: 13
+**Hit Points**  :: 10 (+6 per Golemancer Level)
+**Speed**       :: 30 ft.
+___
+|  STR  |  DEX  |  CON  |  INT  |  WIS  |  CHA  |
+|:-----:|:-----:|:-----:|:-----:|:-----:|:-----:|
+|20 |12 |14 |7 |5 |9 |
+___
+**Skills** :: Athletics +4
+**Condition Immunities** :: none
+**Senses**               :: passive Perception 12
+**Languages**            :: Common (sorta)
+**Challenge**            :: idk
+___
+***Angry Guy*** Is excited to kill and loves to lift things
+:
+***Immutable Form*** The Golems form cannot be changed in anyway
+
+***Unarmored Defense*** Golem has a flat AC of 13
+
+***Raging Rock*** Golem is permanently in a rage
+
+***Unchained*** This golem cannot be controlled and will try to attack every turn
+
+***Reckless*** These Golems' attacks have advantage but enemies also have advantage on it.
+
+
+
+### Actions
+
+***Decimate*** *Melee Weapon Attack:* +8 to hit, reach 5 ft., one target. *Hit:* 3d6+5 bludgeoning damage. 
+:
+***Multiattack*** Attacks Twice *3 times at level 11*
+
+
+
+}}
+{{monster,frame
+##  Chef Core
+*medium, loyal, just a medium guy (idk what this guy is for tbh)*
+* 
+
+___
+**Armor Class** :: 13
+**Hit Points**  :: 6 (+4 per Golemancer Level)
+**Speed**       :: 30 ft.
+___
+|  STR  |  DEX  |  CON  |  INT  |  WIS  |  CHA  |
+|:-----:|:-----:|:-----:|:-----:|:-----:|:-----:|
+|8 |10 |10 |20  |12 |14 |
+___
+**Skills** :: Arcana +3
+**Condition Immunities** :: none
+**Senses**               :: passive Perception 12
+**Languages**            :: Common (sorta)
+**Challenge**            :: idk
+___
+***Helpful Guy*** Is excited to help you and loves to lift things
+:
+***Immutable Form*** The Golems form cannot be changed in anyway
+
+***Unarmored Defense*** Golem has a flat AC of 13
+
+
+
+### Actions
+
+***Cook*** The Chef golem cooks a magical meal,as an action roll a 1d8 and creates the following meal. The meal will expire if not consumed within an hour of being made. You can use this ability once every other turn. 
+##### Character Advancement
+| Table Number | Effect |
+|:------------------|:-----:|
+| 1                 | Blazing Curry makes attacks do fire damage for the next minute   2                 |  Icecream: makes attacks do cold damage for the next minute
+| 3               | Pop Rocks: makes attacks do thunder damage for the next minute   |4                | Eel Rolls: Makes attacks do lightning damage for the next minute
+| 5               | Suspicious Stew: Makes attacks deal poison damage for the next minute     |
+| 6             | Grandma's Home made soup: Makes attacks deal psychic damage for the next minute.     |
+| 7             | Almighty Loaf: Makes attacks deal radiant damage for the next minute     |
+| 8            | Bone Broth: makes attacks deal necrotic damage for the next minute     |
+
+***Burning Food*** The golem tosses a burning hot meal at the target. On hit does 1d10 + 5 fire damage.
+
+
+***Level 11 A Delectable Meal*** As an action cook a meal and give it to a creature this meal gives them 10hp and an extra 2d8 temp hp. This action has a 2 turn cool down and cannot be used twice on the same creature in one combat / one hour.
+}}
+
+
+
+
+
+\page
+#### Earthen Fortitude  
+
+##### Level 6 Built tough
+When in partial golem form gain an extra set of arms allowing you to make a second attack. 
+
+#### Level 6 Bulldoze 
+When in partial golem form you can use one of your attacks to charge an enemy move up to your movement in any direction. If you come in contact with another creature make a contested athletics check. If you succeed, deal damage to the creature equal to your golem strike and push the creature back up to 15ft away from you.
+
+#### Steadfast Companion
+
+
+##### Level 6 Steadfast Companion feature
+Pick 2 Unique features from a second class to give to your companion up to level 6. Your dm reserves the right to veto the feature you pick (This is surely OP and I just haven't matched it out yet). If you pick a feature that comes with additional features you gain those as well. (for example if you pick metamagic you will pick to meta magic features to include with it) 
+
+Additionally your companion can learn level 3 spells, level 3 spells have an automatic 2 turn cool down.
+{{note
+##### Some important notes
+Certain features will have quirks 
+***Twinned Spell*** will only work under the 2014 rule set
+:
+***Quickened Spell*** This feature will work, but will put you under a 2 turn cool down instead of one. 
+
+
+}}
+
+
+
+
+
+
+### Level 7 Friend of nature
+You can now speak to plants and animals!
+
+### Level 7 Golem friend  
+You can have one helper golem follow you around for free! So small it can fit in your backpack :)
+
+
+
+
+
+
+
+
+
+
+
+
+### Level 8 Ability Score Increase
+You gain the Ability Score Improvement feat or another feat of your choice for which you qualify. You gain this feature again at Golemancer levels 8, 12, and 16
+}}
+
+
+{{
+
+
+### Level 10 Golemancy Adept
+You can now have two golems active at the same time. 
+}}
+
+{{
+
+### Level 11 Tradition upgrade
+
+#### Fusion Cores
+
+#### Level 11 Fusion Core Upgrades
+Check Sheets for Upgrades
+
+#### Earthen Fortitude  
+
+##### Level 11 Enhanced Leap
+You can jump 4 times your normal jump height.
+
+#### Level 11 Meteoric Slam
+After leaping into the air, slam down with blinding speed and force to deal damage. While falling you can choose to turn to stone slamming into the ground. Your stone form will impact a 2x2 cube forcing creatures in the impact zone to make a dc 14 dexterity saving throw. On a failed save they will take damage equal to 2 times the fall damage you would have taken. On a successful save they take half as much. The damage type is force damage.
+
+
+
+#### Steadfast Companion
+
+
+##### Level 11 Steadfast Companion feature
+Pick 2 Unique features from a second class to give to your companion up to level 11. Your dm reserves the right to veto the feature you pick (This is surely OP and I just haven't figured out the op combos yet). If you pick a feature that comes with additional features you gain those as well. (for example if you pick metamagic you will pick to meta magic features to include with it) 
+
+Additionally your companion can learn level 6 spells, level 4 spells have an automatic 2 turn cool down after being cast. Level 5 and 6 spells have a 3 turn cool down after being cast. You will be assigned a cool down status that will denote how many turns until you can cast a spell of that level again.
+
+### Level 12 Ability Score Increase
+You gain the Ability Score Improvement feat or another feat of your choice for which you qualify. You gain this feature again at Golemancer levels 8, 12, and 16
+}}
+
+
+\page
+### Level 14 Tradition upgrade
+#### Fusion Cores
+{{monster,frame
+##  Red Mage Core
+*medium, loyal, just a medium guy*
+* 
+
+___
+**Armor Class** :: 13
+**Hit Points**  :: 8 (+6 per Golemancer Level)
+**Speed**       :: 30 ft.
+___
+|  STR  |  DEX  |  CON  |  INT  |  WIS  |  CHA  |
+|:-----:|:-----:|:-----:|:-----:|:-----:|:-----:|
+|9 |14 |15 |20 |12 |11 |
+___
+**Skills** :: Arcana +4
+**Condition Immunities** :: none
+**Senses**               :: Darkvision 60ft
+**Languages**            :: Common (sorta)
+**Challenge**            :: idk
+___
+***Helpful Guy*** Is excited to help you and loves to lift things
+:
+***Immutable Form*** The Golems form cannot be changed in anyway
+
+***Unarmored Defense*** Golem has a flat AC of 13
+
+***Dual Cast*** Can cast two action spells per turn.
+
+***Spell Slinger*** When unlocking this feature pick 18 spells of your choice from any school/class up to level 7
+
+***Spell Slots*** You have the spell slot selection of a level 14 Wizard.
+
+
+
+##### Character Advancement
+| Spell Level | Spell Slots |
+|:------------------|:-----:|
+| 1                 | 4     |
+| 2               | 3     |
+| 3               | 3     |
+| 4             | 3     |
+| 5             | 2     |
+| 6            | 1     |
+| 7            | 1     |
+
+
+
+### Actions
+
+***Cast*** Cast Two Action Spells
+:
+***Bonus Action Cast*** Cast A Bonus Action Spell
+:
+
+
+}}
+
+
+
+
+#### Earthen Fortitude  
+
+##### Level 14 Full Earthen Form
+After going into half earthen form, spend another action to go into full earthen form.
+In full Earthen form pick from one of the Cores and adopt their properties. 
+
+#### Steadfast Companion
+
+
+##### Level 14 Steadfast Companion feature
+Pick 2 Unique features from another d&d class to give to your companion up to level 14. Your dm reserves the right to veto the feature you pick (This is surely OP and I just haven't mathed it out yet). If you pick a feature that comes with additional features you gain those as well. (for example if you pick metamagic you will pick to meta magic features to include with it) 
+
+Additionally your companion can learn level 7 spells, level 7 spells have a 4 turn cool down after being cast. You will be assigned a cool down status that will denote how many turns until you can cast a spell of that level again..
+
+{{
+
+### Level 16 Ability Score Increase
+You gain the Ability Score Improvement feat or another feat of your choice for which you qualify. You gain this feature again at Golemancer levels 8, 12, and 16
+}}
+
+
+
+{{
+### Level 18 Core Upgrades
+Your original cores gain upgrades
+}}
+
+
+
+### Level 19 One With Earth
+You can cast Move Earth a number of times equal to your wisdom modifier
+
+
+
+
+### Level 20 Golemancy Master
+You can have 3 active golems at the same time.
+
+
+
+
+
+
+

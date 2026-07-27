@@ -1,0 +1,388 @@
+```metadata
+title: ORacle
+description: ''
+tags: []
+systems: []
+renderer: V3
+theme: 5ePHB
+
+```
+
+{{
+# The Oracle
+
+
+## Background
+The oracle specialises in both predicting the future, they also aim to tip the scales in their favor. Oracle's main mechanics revolve around Manifestations and Portents. Portents function similarly to Divination Wizard Portent Dice, and Manifestations are predictions made on creatures that if fate agrees will make powerful effects come true. 
+
+## Playstyle
+The Oracle emphasizes utility and high variance damage. You will either feel very weak or very useful, not for a player that values consistency. 
+
+## Alignment
+Oracles can be of any alignment, but most Oracles of both good and evil persuasions hold themselves in high regard to a sense of principles.
+
+## Creating an Oracle
+When creating an Oracle consider what stage of power you want to be in. Within the world of Alva anyone can be born with the gift of foresight. You can play someone who just became aware of their powers, or a person of high social standing who has been cast or moved from their post for a given reason.
+}}
+
+## Class Features
+
+As an Oracle, you gain the following class features
+
+#### Hit Points
+**Hit Dice:**                    :: 1d6 per Oracle level
+**Hit Points at 1st Level:**     :: 10 + your Constitution modifier
+**Hit Points at Higher Levels:** :: 1d6 (or 4) + your Constitution modifier per notary level after 1st
+
+#### Proficiencies
+**Armor:**   :: clothing
+**Weapons:** :: daggers, darts, slings, quarterstaffs, and light crossbows
+**Tools:**   :: None
+
+**Saving Throws:** :: Wisdom, Intelligence
+**Skills:**        :: Choose two from Insight, Perception, Religion, Arcana
+
+
+
+#### Equipment
+You start with the following equipment, in addition to the equipment granted by your background:
+- (*a*) dagger,Quarterstaff, robes, seeing orb (arcane focus) 
+- (*b*) dagger,Quarterstaff, robes, Book of Prophecy (arcane focus)
+- (*c*)  55GP
+
+
+{{classTable,frame,decoration
+##### Oracle
+| Level | Proficiency Bonus | Features  | Manifestation Dice   | Portent Dice |
+|:-----:|:-----------------:|:--------- |:---------------------:|:------|
+|  1st  |  +2  | Minor Premonitions, Portent Rolls| 1d10|-
+|  2nd  |  +2  | Manifestations,Predictive Sight | 1d10|2
+|  3rd  |  +2  | Oracle Path | 1d10 |2
+|  4th  |  +2  | Ability Score Improvement| 1d10 |3
+|  5th  |  +3  | Blessing / curse| 1d8 |3
+|  6th  |  +3  | Oracle Path Upgrade    |          1d8            |3
+|  7th  |  +3  |  Enhanced Predictive Sight, Oracles’s knowledge|          1d8            |3
+|  8th  |  +3  | Ability Score Improvement   |          1d8            |4
+|  9th  |  +4  | Anticipatory defense     |          1d8            |4
+| 10th  |  +4  | Divine    |    1d6 |4
+| 11th  |  +4  | -  |  1d6 |4
+| 12th  |  +4  | Ability Score Increase |  1d6  |5
+| 14th  |  +5  | Oracle Path feature   |    1d6    |5
+| 15th  |  +5  | -   |  1d4 |5
+| 16th  |  +5  | Ability Score Improvement  |   1d4  |6
+| 17th  |  +6  | - |    1d4   |6
+| 18th  |  +6  | Anticipation   |         1d4|6
+| 19th  |  +6  | Major Premonitions    |   1d4   |6
+| 20th  |  +6  | Commune with the fates |   1d4 |7
+}}
+
+
+### Level 1 Casting
+While Oracles are not traditional casters for the purposes of abilities, wisdom will be their spell casting modifier. 
+
+#### Spellcasting Ability
+{{text-align:center
+**Spell save DC**:: = 10 + your proficiency bonus + your Wisdom modifier
+
+**Spell attack modifier**:: = your proficiency bonus + your Wisdom modifier
+}}
+\page
+
+{{
+### Level 1 Minor Premonitions
+You know the following cantrips
+- Resistance
+- Guidance 
+- Manifest Ruin
+
+
+{{note
+##### Resistance
+
+- Resistance
+- PHB'24
+- p312
+- Abjuration Cantrip
+- Casting Time: Action
+- Range: Touch
+- Components: V, S
+- Duration: Concentration, up to 1 minute
+
+You touch a willing creature and choose a damage type: Acid, Bludgeoning, Cold, Fire, Lightning, Necrotic, Piercing, Poison, Radiant, Slashing, or Thunder. When the creature takes damage of the chosen type before the spell ends, the creature reduces the total damage taken by 1d4. A creature can benefit from this spell only once per turn.
+}}
+
+{{note
+##### Guidance
+
+- Guidance
+- PB'14
+- p248
+- Divination Cantrip
+- Casting Time: Action
+- Range: Touch
+- Components: V, S
+- Duration: Concentration, up to 1 minute
+
+You touch one willing creature. Once before the spell ends, the target can roll a d4 and add the number rolled to one ability check of its choice. It can roll the die before or after making the ability check. The spell then ends.
+}}
+
+{{note
+##### Manifest Ruin
+- Manifest Ruin
+- Divination Cantrip
+- Casting Time: Action
+- Range: 60
+- Components: V, S
+
+Choose a creature within 60 and project images of their demise. The target must make a wisdom saving throw against your save DC. On a failed save the target takes 1d6 psychic damage. If the target succeeds there is no effect. This cantrip gains 1d6 of damage at 5th 11th and 17th level. Before rolling your damage, predict a dice roll value of the dice you roll. If correct you deal an additional 1d4 Psychic damage.
+}}
+
+
+
+
+
+
+
+}}
+
+
+
+
+### Level 1 Manifestations
+As an oracle you can manifest blessings on your allies. As a Bonus Action, you can bless another creature within 60 feet of yourself who can see or hear you. That creature gains one of your Manifestation dice. A creature can have only one Manifestation die at a time. Your Manifestation die is a d10 becomes a d8 at level 5 , a d6 at level 10 and a d4 at level 15. 
+
+Once within the next hour when the creature heals, or does damage, the creature can pick 3 possible results: roll the Manifestation die if the die lands on one of the 3 chosen results and add an extra 2d4 to your total. If the creature misses the predicted roll add 1d4 instead. 
+
+Number of Uses. You can confer a Manifestation die a number of times equal to your Wisdom modifier (minimum of once), and you regain all expended uses when you finish a Long Rest.
+
+At Higher Levels. When your Manifestation die levels up your bonus effect die goes up with it. d6 at level 5, d8 at level 10 and d10 at level 15. All manifestations require vocal components
+
+
+### Level 2 Portent Rolls
+At the end of a Long rest roll a number of d20 in accordance to the portent dice table. You can replace any attack roll, saving throw, or ability check made by you or a creature that you can see with one of these foretelling rolls. You must choose to do so before the roll, and you can replace a roll in this way only once per turn.
+
+Each foretelling roll can be used only once. When you finish a long rest, you lose any unused foretelling rolls. 
+
+
+
+
+### Level 2 Predictive Sight
+As an oracle you have learned to anticipate threats right before they strike. 
+As an action, empower your sight. For the next minute enemies cannot get advantage on you. In a situation where a creature would get advantage and disadvantage agaisnt you it does not cancel out, and the creature would just have disadvantage.
+
+
+### Level 3 Oracle Path
+All Oracles choose a path to hone their skills for a specific purpose
+Pick one of the following subclasses. You will gain new Oracle Path features at levels 6, 10, and 14
+
+
+#### Foresight Spellblade
+Foresight Spellblades are oracles who prefer to take on a more damage dealing playstyle. 
+
+##### Level 3 Spellblade training
+You gain proficiency in Simple weapons, hand crossbows, longswords, rapiers, shortswords, light and medium armor.
+
+
+
+##### Level 3 Preemptive strikes
+You are able to predict the way an enemy moves when you strike them allowing you to add your wisdom modifier to attack and damage rolls instead of str / dex 
+\page
+#### Tactician 
+The Tactician fully embraces the support playstyle choosing to support the battlefield by analysing all possible outcomes.
+
+##### Level 3 Analyze
+Analyze your targets to get an upper hand. As an action pick a number of creatures within 30 feet of you equal to your wisdom modifier that you can see. Pick one of the following pieces of information to learn from all of them. AC, HP, Number of weaknesses, Number of Resistances, speed. Pick a value and the dm will tell you if the correct value is higher, lower, or exact. For HP you can ask in percentages. You pick one number for all selected creatures. You can use this feature a number of times equal to your proficiency bonus 
+
+#### Portent Divinator
+The Portent Divinator focuses on using their portent abilities to the fullest.
+
+##### Extra Portents
+Gain an extra portent dice
+
+##### Portent Revolution
+When you receive your portent dice each day, you can reroll. You must use the new roll
+
+
+### Level 4 Ability Score Increase
+You gain the Ability Score Improvement feat or another feat of your choice for which you qualify. You gain this feature again at Oracle levels 8, 11, and 16. 
+
+
+
+{{
+### Level 5 Blessing / curse
+You have learned to convert the magical energy required for probability to create randomization. 
+
+As an action pick a creature within 60 ft you can see and whether to apply a blessing or a curse on them. Then roll on the curse / blessing table. All blessings and curses last until the end of your next turn, and while they have no saving throw can be resisted using legendary resistance/ immunity. All blessings and curses require verbal and somatic components. Creatures can only have one blessing or curse at the same time. You can use this feature a number of times equal to your wisdom modifier
+
+
+
+##### Blessing / Curse table
+{{
+| Blessing | DC | Effect |
+|:----------------|:--:|:--:|
+| Heal     | 1  | Heal for 4d4 hp|
+| Shield            | 2 | +2 ac|
+| temp heal          | 3 | gain 2d8 temp hp|
+| Speed Boost         | 4 | gain +10 speed|
+| haste         | 5 | gain an extra action |
+| flight          | 6 | gain flight equal to your movement  |
+| Keen Strength          | 7 | gain advantage on dex and str checks and saving throws |
+| keen mind          | 8 | gain advantage on int, and wis checks and saving throws|
+| Striking Charm          | 9 | gain advantage on charisma checks and saving throws |
+| Spell boon          | 10 | gain +1 to save dc and spell casting modifier|
+| attack boon          | 11 | gain +2 to attack roll and damage|
+| Spell boon          | 12 | gain +1 to save dc and spell casting modifier|
+
+
+
+| Curse | DC | Effect |
+|:----------------|:--:|:--:|
+| Harm     | 1  | damage for 4d4 psychic damage|
+| Armor breaker            | 2 | -2 ac|
+| Blight          | 3 | reduce 2d8 max hp|
+| Slow         | 4 | lose +10 speed|
+| Atrophy         | 5 | Creature can make action or bonus action not both and cannot make reactions|
+| Ground          | 6 | Creature cannot move or dodge  |
+| silence           | 7 | cannot cast spells that use a vocal component  |
+| blind         | 8 | cannot cast spells with a visual component and disadvantage on attacks|
+| Charmed          | 9 | will not attack you or allies |
+| Slumber          | 10 | creature falls asleep|
+| frighten          | 11 | creature is frightened|
+| paralysed          | 12 |  creature is paralysed |
+}}
+
+
+}}
+
+
+
+
+
+\page
+
+### Level 6 Oracle Path Upgrade
+
+
+
+#### Foresight Spellblade
+
+##### Level 6 Self Manifestation
+You can now cast manifestations on yourself.
+
+##### Level 6 Extra Attack
+When taking the attack action you can take an extra attack
+
+#### Tactician 
+
+##### Level 6 Predictive Positioning 
+As a bonus action move a creature other than yourself that you can see within 60 ft somewhere else. You can perform this feature a number of times equal to your wisdom modifier. You can apply a blessing when using predictive positioning for free. 
+
+#### Portent Divinator
+
+
+##### Level 6 Exploding Portents
+At the start of the day you can turn an unwanted portent into an exploding die. An exploding die will explode if it hits the highest possible number on the die. When a creature within 30ft has a die hit its maximum value you can expend this die to make it explode and have the user roll an additional die. 
+
+
+
+
+
+### Level 7 Enhanced Predictive Sight
+Using predictive sight gives you true sight for the duration
+
+### Level 7 Oracles's knowledge 
+You gain proficiency in history and arcana if you don't have it already. If you do already have proficiency pick another skill within wisdom or intelligence categories
+
+
+
+
+
+
+
+
+
+
+
+
+
+### Level 8 Ability Score Increase
+You gain the Ability Score Improvement feat or another feat of your choice for which you qualify. You gain this feature again at Oracle levels 8, 11, and 16
+}}
+
+
+{{
+
+### Level 9 Anticipatory defense 
+When not wearing armor your senses are heightened and you have a base AC of 13
+### Level 10 Divine
+At the end of a long rest peer into your divination orb or similar item. Ask the dm a question, and the Dm will respond with a hot to cold answer 
+}}
+
+{{
+
+### Level 12 Ability Score Increase
+You gain the Ability Score Improvement feat or another feat of your choice for which you qualify. You gain this feature again at Oracle levels 8, 11, and 16
+}}
+
+
+{{
+
+### Level 14 Oracle Path feature
+#### Foresight Spellblade
+
+##### Level 14 Quick Blessing
+You can now cast blessing / curse as a bonus action
+
+#### Tactician 
+
+##### Level 14 Rally
+Once per long rest you can cast a blessing on all allies within a 30ft radius around you at once. All allies will roll for their blessings separately.  
+
+#### Portent Divinator
+
+
+##### Level 14 Predictive blessings
+When applying a blessing or curse you can expend a portent to choose the effect.
+}}
+
+{{
+
+### Level 16 Ability Score Increase
+You gain the Ability Score Improvement feat or another feat of your choice for which you qualify. You gain this feature again at Oracle levels 8, 11, and 16
+}}
+
+
+
+{{
+### Level 18 Anticipation 
+You will always act first in combat, baring lair actions. Functionally you will start combat with the maximum possible initative 
+}}
+
+
+### Level 19 Major Premonitions
+Your cantrips are upgraded in the following ways.
+
+#### Resistance
+Resistance now affects all creatures of your choice in a 30ft radius and reduces all damage by 1d6 per attack within a turn.
+
+#### Guidance
+Guidance now grants a creature a bonus 1d12 on their next ability check
+
+#### Manifest Ruin
+
+
+Choose a creature within 60 and project images of their demise. The target must make a wisdom saving throw against your save DC. On a failed save the target takes 4d6 psychic damage, and no damage on a save.  Before rolling your damage predict your damage roll if correct you deal an additional 3d4 Psychic damage.
+
+
+\page
+### Level 20 Commune with the fates
+At the end of a long rest peer into your divination orb or similar equipment. Ask the dm a question, and the Dm will respond with the truth.
+
+
+
+
+
+
+
+
+

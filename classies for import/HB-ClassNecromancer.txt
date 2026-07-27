@@ -1,0 +1,406 @@
+```metadata
+title: Class Necromancer
+description: ''
+tags: []
+systems: []
+renderer: V3
+theme: 5ePHB
+snippets:
+  - name: brew_snippets
+    subsnippets:
+      - name: example snippet
+        gen: >-
+
+          The text between `\snippet title` lines will become a snippet of name
+          `title` as this example provides.
+
+
+          This snippet is accessible in the brew tab, and will be inherited if
+          the brew is used as a theme.
+
+```
+
+
+
+# Necromancer
+:
+## Disclaimer 
+Hi unlike Oracle I have no idea how balanced I think this class will be. I encourage you to try it, but I might have to make changes mid campaign to make it more balanced.
+## Background
+
+
+## Playstyle
+?
+
+## Alignment
+?
+
+## Creating a Necromancer
+?
+
+{{
+## Class Necromancer
+
+As a Necromancer, you gain the following class features
+
+#### Hit Points
+**Hit Dice:**                    :: 1d12 per Necromancer level
+**Hit Points at 1st Level:**     :: 1d12 + your Constitution modifier
+**Hit Points at Higher Levels:** :: 1d12 (or 7) + your Constitution modifier per notary level after 1st
+
+#### Proficiencies
+**Armor:**   :: Clothing
+**Weapons:** :: daggers, darts, slings, quarterstaffs, and light crossbows
+
+
+**Saving Throws:** :: Wisdom, Intelligence
+**Skills:**        :: Choose two from Insight, Perception, Religion, Arcana, deception, medicine, survival, history
+}}
+
+
+#### Equipment
+You start with the following equipment, in addition to the equipment granted by your background:
+-   (a) a quarterstaff or (b) a dagger
+-    (a) a component pouch or (b) an arcane focus
+-    (a) a scholar's pack or (b) an explorer's pack
+-    A Grimoire
+
+
+
+{{classTable,frame,decoration,wide
+##### The Necromancer
+| Level | Proficiency | Features     | Cantrips | --- Spell Slots Per Spell Level ---|||||||||
+|      ^| Bonus      ^|             ^| Known   ^|1st |2nd |3rd |4th |5th |6th |7th |8th |9th |
+|:-----:|:-----------:|:-------------|:--------:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
+|  1st  | +2 | Spellcasting          |    2     | 2  | —  | —  | —  | —  | —  | —  | —  | —  |
+|  2nd  | +2 | Summon Undead   |    2     | 3  | —  | —  | —  | —  | —  | —  | —  | —  |
+|  3rd  | +2 | Necromancer's Focus     |    2     | 4  | 2  | —  | —  | —  | —  | —  | —  | —  |
+|  4th  | +2 | Ability Score Increase |    3     | 4  | 3  | —  | —  | —  | —  | —  | —  | —  |
+|  5th  | +3 | Drain Life   |    3     | 4  | 3  | 2  | —  | —  | —  | —  | —  | —  |
+|  6th  | +3 |Necromancer's Focus   |    3     | 4  | 3  | 3  | —  | —  | —  | —  | —  | —  |
+|  7th  | +3 | -  |    3     | 4  | 3  | 3  | 1  | —  | —  | —  | —  | —  |
+|  8th  | +3 | Ability Score Increase  |    3     | 4  | 3  | 3  | 2  | —  | —  | —  | —  | —  |
+|  9th  | +4 | -   |    3     | 4  | 3  | 3  | 2  | 1  | —  | —  | —  | —  |
+| 10th  | +4 | Statistical Occultism |    3     | 4  | 3  | 3  | 2  | 1  | —  | —  | —  | —  |
+| 11th  | +4 | -     |    4     | 4  | 3  | 3  | 2  | 1  | 1  | —  | —  | —  |
+| 12th  | +4 |Ability Score Increase |    4     | 4  | 3  | 3  | 2  | 1  | 1  | —  | —  | —  |
+| 13th  | +5 | -       |    4     | 4  | 3  | 3  | 2  | 1  | 1  | 1  | —  | —  |
+| 14th  | +5 | Necromancer's Focus       |    4     | 4  | 3  | 3  | 2  | 1  | 1  | 1  | —  | —  |
+| 15th  | +5 |  -       |    4     | 4  | 3  | 3  | 2  | 1  | 1  | 1  | 1  | —  |
+| 16th  | +5 | Ability Score Increase         |    4     | 4  | 3  | 3  | 2  | 1  | 1  | 1  | 1  | —  |
+| 17th  | +6 | -         |    4     | 4  | 3  | 3  | 2  | 1  | 1  | 1  | 1  | 1  |
+| 18th  | +6 | Portal to the Nether Realm      |    4     | 4  | 3  | 3  | 3  | 1  | 1  | 1  | 1  | 1  |
+| 19th  | +6 |Mass Drain |    4     | 4  | 3  | 3  | 3  | 2  | 2  | 1  | 1  | 1  |
+| 20th  | +6 | Soul Conversion   |    4     | 4  | 3  | 3  | 3  | 2  | 2  | 2  | 1  | 1  |
+}}
+
+
+
+
+
+\page
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+### Level 1 Spellcasting
+As a practice of Necromancy, you have a grimoire containing spells and incantations from the world beyond 
+#### Cantrips
+
+At 1st level, you know 2 cantrips of your choice from the Necromancy spell list. You learn additional Necromancy cantrips of your choice at higher levels, as shown in the Cantrips Known column of the Necromancy table.
+#### Spell book
+
+At 1st level, you have a spell book containing three 1st-level Necromancer spells of your choice. Your spell book is the repository of the wizard spells you know, except your cantrips, which are fixed in your mind.
+##### Preparing and Casting Spells
+:
+The Necromancer table shows how many spell slots you have to cast your wizard spells of 1st level and higher. To cast one of these spells, you must expend a slot of the spell's level or higher. You regain all expended spell slots when you finish a long rest.
+:
+You prepare the list of Necromancer spells that are available for you to cast. To do so, choose a number of Necromancer spells from your spell book equal to your Intelligence modifier + your wizard level (minimum of one spell). The spells must be of a level for which you have spell slots.
+:
+For example, if you're a 3rd-level Necromancer, you have four 1st-level and two 2nd-level spell slots. With an Intelligence of 16, your list of prepared spells can include six spells of 1st or 2nd level, in any combination, chosen from your spell book. If you prepare the 1st-level spell magic missile, you can cast it using a 1st-level or a 2nd-level slot. Casting the spell doesn't remove it from your list of prepared spells.
+:
+You can change your list of prepared spells when you finish a long rest. Preparing a new list of Necromancer spells requires time spent studying your spell book and memorizing the incantations and gestures you must make to cast the spell: at least 1 minute per spell level for each spell on your list.
+#### Spellcasting Ability
+
+Intelligence is your spellcasting ability for your Necromancer spells, since you learn your Necromancer spells through communion with the dead of old. You use your Intelligence whenever a spell refers to your spellcasting ability. In addition, you use your Intelligence modifier when setting the saving throw DC for a wizard spell you cast and when making an attack roll with one.
+- Spell save DC = 8 + Intelligence modifier + Proficiency Bonus
+- Spell attack modifier = Intelligence modifier + Proficiency Bonus
+#### Ritual Casting
+
+You can cast a Necromancer spell as a ritual if that spell has the ritual tag and you have the spell in your spell book. You don't need to have the spell prepared.
+Spellcasting Focus
+:
+You can use an organ bag as a spellcasting focus for your Necromancer spells.
+#### Learning Spells of 1st Level and Higher
+:
+Each time you gain a Necromancer level, you can add two Necromancer spells of your choice to your spell book. Each of these spells must be of a level for which you have spell slots, as shown on the Necromancer table. On your adventures, you might find other spells that you can add to your grimoire (see "Your Spell book").
+
+#### Necromancer Spell List
+https://homebrewery.naturalcrit.com/share/APJhxdJ-4WZf
+
+### Level 2 Summon Undead
+As a Necromancer you have gained the ability to raise undead creatures to serve your bidding. 
+
+As an action raise undead of challenge rating 1/4 or lower. You must pay half the creature your summons’s health in unmitigated max health damage to yourself. When the summon is destroyed or dismissed you regain the max hp lost, but not the hp itself. You must remain within 60ft of you summon for them to remain active. If you go unconscious while having active summons the summons disappears. Summons act on your initiative.
+
+You can summon higher challenge rating undead as you level up according to the following table
+
+##### Summon Challenge Rating Table
+| Necromancer Level | Max Summon |
+|:------------------|:-----:|
+| 5                 | 1/2     |
+| 9               | 1     |
+
+
+
+
+
+\page
+
+
+
+
+### Level 3 Necromancer's Focus
+All Necromancers choose a path to hone their connection to the dead.
+Pick one of the following subclasses. You will gain new Necromancer Focus feature at levels 6, 10, and 14
+
+
+#### Nether Summon Focus
+Necromancers choosing the Nether Summon focus have a deeper connection to the levels of the nether world allowing them to summon stronger undead earlier.
+
+##### Summon Challenge Rating Table
+| Necromancer Level | Max Summon |
+|:------------------|:-----:|
+| 3                 | 1/2     |
+| 5               | 1     |
+| 7               | 2     |
+| 9             | 3     |
+| 11             | 4     |
+| 14            | 5     |
+| 16            | 6     |
+
+#### Reanimated Champion 
+Necromancers choosing the focus of reanimated champion have a deep relationship with a lost ally whom they wish to give a second chance at life , or wish to revive multiple dead to aid on their quest.
+:
+When choosing a champion permanently reduce your maximum health by half. Depending on the type of champion you choose it gains the following benefits. If your champion is of cr rating 1 or lower. Your champion takes on the amount of Hp you have given up. Your champion has the same attribute spread you do, but can be in different attributes. Your champion has the weight, speed, height, etc. that they did before death. Additionally, they will pick a class and gain the features of that class at level up as if they were a pc . If your champion of cr 2 or higher. Your champion takes on the amount of Hp you have given up. Your champion has the same attribute spread they had on death. Your champion has the weight, speed, height, etc. that they did before death. They retain whatever class features they had on death, and get no additional features. Champions of Cr 1 and lower will be called Origin Champions
+:
+Both Champion types must remain in the same dimension as you else they will become inanimate until you return.
+:
+Your Champion functions independently from you. They do not need to eat, or sleep. They retain all of their memories before death. If you fall unconscious in battle your champion can still function normally. If your champion loses all of their hp they will fall unconscious, but not die outright. They will reawaken after 8 hours or when healed. If you die outright your champion will die with you. You may dismiss your champion to choose a new one, but you will not recover your max hp. If you choose to revive a champion that is not your ally they must fail a charisma saving throw on their turn or they can act independently of your commands.
+
+##### Origin Champion
+Your Origin champion can select any one of the original dnd classes or homebrew class if it fits their narrative purpose. 
+
+#### Rite of Undeath
+ Necromancers who have performed the rite of undeath have separated soul from body. This rite has turned them undead which comes with both boons and curses. 
+ 
+##### Soul Cage
+In completing the rite, you have received a soul cage. It contains your soul. You may choose to keep your soul on your person, or stow it away somewhere. However, the one who holds your soul holds power over you.
+
+##### Undead
+While undead you cannot die outright. If you fall unconscious you will still perform death saves. If you succeed on all 3 saves you raise up instantly with 1 hp. If you fail all three saves and your body is intact you will revive where you feel in 8 hours. If your body is destroyed a new body will form over the course of a week where your soul is located.
+:
+Normal healing magic will damage you while undead, but you absorb all necrotic damage dealt to you. You have resistance to cold damage, and vulnerability to fire damage. You don’t need to eat, drink, breath etc. You can speak to the dead and undead freely regardless if the undead knows your language. If you are undead your summons will not die if you go unconscious provided you have at least 1 max hp.
+
+You gain additional features as an undead on subsequent subclass level ups.
+
+
+
+
+### Level 4 Ability Score Increase
+You gain the Ability Score Improvement feat or another feat of your choice for which you qualify. You gain this feature again at Necromancer levels 8, 12, and 16
+
+
+\page
+
+### Level 5 Drain Life
+At level 5 you gain access to new spell drain. This spell does not count against your total prepared spell list.
+
+#### Drain
+*1th-level necromancy*
+
+**Casting Time:** :: 1 action
+**Range:**        :: 30 feet
+**Components:**   :: S, V, M ()
+**Duration:**     :: Until Broken
+
+Pick a living creature and perform a spell attack against them. On hit a soul chain between you and the creature. Drain and deal 3d8 necrotic damage from them and add it to your hp bar. If your already at your hp maximum add the remainder to your temp hp You cannot gain more temp hp than half your maximum. On subsequent turns gain drain an additional 2d8 hp provided the soul chain remains intact. The soul chain will break if the chained creature dies, moves further than 30ft from you, is affected by dispel magic, or uses their action to perform an intelligence saving throw against your save dc to dispel the chain. You can only have one active link at a time.
+
+You can use a higher-level spell slot to add an additional 1d8 to the initial attack. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+### Level 6 Necromancer's Focus
+All Necromancers choose a path to hone their connection to the dead.
+Pick one of the following subclasses. You will gain new Necromancer Focus feature at levels 6, 10, and 14
+
+
+#### Nether Summon Focus
+Your summons active range extends to 120ft, and you can see through their eyes at will.
+
+##### Summon Challenge Rating Table
+| Necromancer Level | Max Summon |
+|:------------------|:-----:|
+| 3                 | 1/2     |
+| 5               | 1     |
+| 7               | 2     |
+| 9             | 3     |
+| 11             | 4     |
+| 14            | 5     |
+| 16            | 6     |
+
+#### Reanimated Champion 
+You develop a telepathic bond with your champion, and can mentally communicate with them anywhere within the same dimension.
+
+
+{{
+#### Rite of Undeath
+As an undead you gain a cantrip Minor Life Drain
+#####  Minor Life Drain
+*Cantrip*
+
+**Casting Time:** :: 1 action
+**Range:**        :: 30ft
+**Components:**   :: V, S, M 
+**Duration:**     :: instant
+
+Pick a living creature and perform a spell attack against them. On hit Drain and deal 1d6 necrotic damage from them and add it to your hp bar. If your already at your hp maximum add the remainder to your temp hp. You cannot gain more temp hp than half your maximum. This cantrip gains an additional 1d6 damage at levels 11 and 17
+}}
+
+
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+### Level 8 Ability Score Increase
+You gain the Ability Score Improvement feat or another feat of your choice for which you qualify. You gain this feature again at Necromancer levels 8, 12, and 16
+
+
+
+\page
+### Level 10 Necromancer's Focus
+All Necromancers choose a path to hone their connection to the dead.
+Pick one of the following subclasses. You will gain new Necromancer Focus feature at levels 6, 10, and 14
+
+{{
+#### Nether Summon Focus
+
+##### Limited Resurrection
+The first time you would go down to 0hp instead all existing summons go down to 1hp and you revive with 1hp. This feature will activate once per day.
+}}
+{{
+
+#### Reanimated Champion 
+
+##### Split Damage
+When you or your champion you can select to split the damage between you and your champion. You can perform this feature a number of times equal to your intelligence modifier per long rest.
+}}
+{{
+#### Rite of Undeath
+
+##### Undead Fortitude
+If damage reduces you to 0 hit points, you must make a Constitution saving throw with a DC of 5+the damage taken up to a dc cap of 30, unless the damage is radiant or from a critical hit. On a success, the you drop to 1 hit point instead.
+}}
+{{
+
+### Level 12 Ability Score Increase
+You gain the Ability Score Improvement feat or another feat of your choice for which you qualify. You gain this feature again at Necromancer levels 8, 12, and 16
+}}
+
+
+
+### Level 14 Necromancer's Focus
+All Necromancers choose a path to hone their connection to the dead.
+Pick one of the following subclasses. You will gain new Necromancer Focus feature at levels 6, 10, and 14
+
+{{
+#### Nether Summon Focus
+
+##### Complete Control
+You have gained a complete connection to your summons. You can maintain your summons from anywhere provided you stay in the same dimension. You can both see and speak through them.
+:
+##### Body Swap
+As an action you can switch places with one of your summonses. You can perform this feature a number of times equal to your intelligence modifier.
+}}
+{{
+#### Reanimated Champion 
+
+##### Life transfusion
+You are no longer strictly required to split half your max hp between you and your champion. On you or your champions turn you may use an action to adjust max hp. Raising the max hp of either yourself, or your champion does not heal you for that amount unless you do it at the end of a long rest. 
+}}
+{{
+#### Rite of Undeath
+
+##### Spectral Visage
+Your undead form takes on an evolutionary stage. You gain a 30ft flight speed, and can hover in the air. As an action you can become incorporeal and pass-through solid objects. This effect lasts until the end of your next turn (so two turns). You can perform this feature a number of times equal to your wisdom modifier.
+}}
+{{
+### Level 16 Ability Score Increase
+You gain the Ability Score Improvement feat or another feat of your choice for which you qualify. You gain this feature again at Necromancer levels 8, 12, and 16
+}}
+
+
+
+{{
+### Level 18 Portal to the Nether Realm
+Attempt to shackle creatures and send them to instant death. As an action open a 40-foot portal to the realm of the dead. All creatures in the area must make a constitution saving throw against your spell save dc. Creatures that fail take 8d8 necrotic damage and half as much on a success. Creatures whose hp is less than or equal to the spells damage are dragged into the nether and die instantly. You can perform this feature a number of times equal to your intelligence modifier.
+}}
+
+\page
+{{
+### Level 19 Mass Drain
+Create a life draining 20ft Miasma in an aura around you for the next minute. Creatures who step or start their turn in your Miasma must make a constitution against your save dc or take 3d10 necrotic damage healing you for the same amount. If you heal more than your available max hp gain temp hp for the remainder. You cannot gain more temp hp than half your maximum. You can use this feature. Once per long rest.
+}}
+
+
+{{
+### Level 20 Soul Conversion
+You have gained the ability to turn even the strongest of creatures into your skeletal thralls. When using Soul Sacrifice, you may add the creature you sacrifice to your pool of summonable Creatures regardless of CR Level.
+}}
+
+
+

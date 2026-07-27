@@ -1,6 +1,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { HashRouter } from 'react-router-dom'
+import { HeroUIProvider } from '@heroui/react'
 import { AuthProvider } from './contexts/AuthContext'
 import { ImpersonationProvider } from './contexts/ImpersonationContext'
 import { CampaignProvider } from './contexts/CampaignContext'
@@ -18,7 +19,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
           <CampaignProvider>
             <CategoryProvider>
               <TagProvider>
-                <App />
+                <HeroUIProvider>
+                  <App />
+                </HeroUIProvider>
               </TagProvider>
             </CategoryProvider>
           </CampaignProvider>

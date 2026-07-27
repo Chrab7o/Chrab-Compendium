@@ -40,14 +40,27 @@ export function minPrereqsRequired(node, prereqCount) {
 // satisfied, and there's enough of the budget left to afford it. Mirrors
 // the same checks unlock_skill_node() enforces server-side — this is just
 // for disabling the button client-side; the RPC is what actually guards it.
-export function canUnlock(node, nodes, unlockedNodeIds, pointsAvailable, extraPrereqsByNode) {
+// craftSpend is XP already committed to crafting (see canCraft below) —
+// it comes out of the same shared per-type pool, so it counts against what's
+// left for a new unlock too.
+export function canUnlock(node, nodes, unlockedNodeIds, pointsAvailable, extraPrereqsByNode, craftSpend = 0) {
   if (unlockedNodeIds.has(node.id)) return false
   const prereqs = fullPrereqIds(node, extraPrereqsByNode)
   if (prereqs.length > 0) {
     const unlockedCount = prereqs.filter((id) => unlockedNodeIds.has(id)).length
     if (unlockedCount < minPrereqsRequired(node, prereqs.length)) return false
   }
-  return pointsSpent(nodes, unlockedNodeIds) + node.cost <= pointsAvailable
+  return pointsSpent(nodes, unlockedNodeIds) + craftSpend + node.cost <= pointsAvailable
+}
+
+// A craftable node can be crafted once it's unlocked (you have to know the
+// recipe first) and there's enough of the shared pool left to cover the
+// tree's flat craft_cost, on top of whatever's already been spent unlocking
+// nodes and crafting earlier items. Mirrors craft_skill_item()'s checks.
+export function canCraft(node, nodes, unlockedNodeIds, pointsAvailable, craftSpend, craftCost) {
+  if (!node.craftable) return false
+  if (!unlockedNodeIds.has(node.id)) return false
+  return pointsSpent(nodes, unlockedNodeIds) + craftSpend + craftCost <= pointsAvailable
 }
 
 // Would adding candidatePrereqId as a prerequisite of nodeId create a cycle?

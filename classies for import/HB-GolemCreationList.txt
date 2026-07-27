@@ -1,0 +1,279 @@
+```metadata
+title: Golem Creation List
+description: ''
+tags: []
+renderer: V3
+theme: 5ePHB
+
+```
+
+# Golem Creation List
+
+## Level 1
+
+{{monster,frame
+## Helper Core
+*small, loyal, just a little guy*
+ 
+
+___
+**Armor Class** :: 5 
+**Hit Points**  :: 2
+**Speed**       :: 30 ft.
+___
+|  STR  |  DEX  |  CON  |  INT  |  WIS  |  CHA  |
+|:-----:|:-----:|:-----:|:-----:|:-----:|:-----:|
+|10 |13 |10 |2 |3 |9 |
+___
+**Skills** :: Athletics +4
+**Condition Immunities** :: none
+**Senses**               :: passive Perception 12
+**Languages**            :: Common (sorta)
+**Challenge**            :: idk
+___
+***Helpful Guy*** Is excited to help you and loves to lift things
+:
+
+***Strong But Tiny*** The helper Golem can lift, push, pull, and carry objects twice its size, but is too tiny to make effective combatants. 
+
+***Tiny But Many*** When this core is used you get 3 little golems for the price of one. Cool!
+
+***Level 5 Tiny Chest*** You can now feed your little buddies items which they will store for you until you ask for them back! If the golem is killed or dismissed while holding items they will fall on the ground.
+
+***Level 18 SUPREME SUPPORT***  When this core is used you get 10 little golems for the price of one. Cool!
+### Actions
+
+***Helping Hand*** Can provide the help action, and do simple tasks!
+:
+***Level 5 Shape Shift*** Helper golems can shape shift into inataimte objects to hide or use as platforms. Each platform is equal to a small stepping stool of 1ft tall. Golems stacked on top of eachother can topple over.
+
+***Level 18 GOLEM WALLL*** Can form into a 15ft wide 20ft high wall
+
+
+}}
+\page
+{{monster,frame
+##  Fighter Core
+*medium, loyal, just a medium guy*
+* 
+
+___
+**Armor Class** :: 13
+**Hit Points**  :: 8 (+6 per Golemancer Level)
+**Speed**       :: 30 ft.
+___
+|  STR  |  DEX  |  CON  |  INT  |  WIS  |  CHA  |
+|:-----:|:-----:|:-----:|:-----:|:-----:|:-----:|
+|16 (lv5 18) (lv18) 20 |12 |14 |7 |5 |9 |
+___
+**Skills** :: Athletics +4
+**Condition Immunities** :: none
+**Senses**               :: passive Perception 12
+**Languages**            :: Common (sorta)
+**Challenge**            :: idk
+___
+***Helpful Guy*** Is excited to help you and loves to lift things
+:
+***Immutable Form*** The Golems form cannot be changed in anyway
+:
+
+***Unarmored Defense*** Golem has a flat AC of 13
+:
+***Level 5 Multiattack*** Can attack twice on the same turn
+
+### Actions
+
+***Clobber*** *Melee Weapon Attack:* +6 to hit, reach 5 ft., one target. *Hit:* 1d6+str bludgeoning damage. 
+:
+***Second Wind*** *Heal 2d4+2 hp can only be used once*
+:
+***Action Surge*** *Perform an extra action can only be used once every 3 turns (lv18 every other turn)*
+:
+***Level 5 Crush***  *Melee Weapon Attack:* +6 to hit, reach 5 ft., one target. *Hit:* 1d12+str bludgeoning damage. 
+
+***Level18 Demolish*** *Melee Weapon Attack:* +6 to hit, reach 5 ft., one target. *Hit:* 2d12+str bludgeoning damage. 
+
+
+}}
+
+{{monster,frame
+##  Rogue Core
+*medium, loyal, just a medium guy*
+* 
+
+___
+**Armor Class** :: 16
+**Hit Points**  :: 6 (+4 per Golemancer Level)
+**Speed**       :: 30 ft.
+___
+|  STR  |  DEX  |  CON  |  INT  |  WIS  |  CHA  |
+|:-----:|:-----:|:-----:|:-----:|:-----:|:-----:|
+|10 |16 (lv5 18) (lv18 20) |14 |7 |5 |9 |
+___
+**Skills** :: stealth, slight of hand +4
+**Condition Immunities** :: none
+**Senses**               :: passive Perception 12
+**Languages**            :: Common (sorta)
+**Challenge**            :: idk
+___
+***Helpful Guy*** Is excited to help you and loves to lift things
+:
+***Immutable Form*** The Golems form cannot be changed in anyway
+:
+***Unarmored Defense*** Golem has a flat AC of 16
+:
+***Sure Fire Strike*** Ability checks and attacks cannot roll below 10
+
+
+
+### Actions
+
+***Slice*** *Melee Weapon Attack:* +6 to hit, reach 5 ft., one target. *Hit:* 1d6+dex slashing damage. 
+:
+***Shoot*** *Ranged Weapon Attack* +6 to hit, reach 80/320 *hit* 1d6+dex pirecing damage
+
+:
+
+***Sneak attack*** deal an additional 1d6 (lv5 2d6)  (lv18 7d6)  damage *if the golem attacks with advantage or has ally within 5ft*
+:
+***Level 5 Dice*** *Melee Weapon Attack:* +6 to hit, reach 5 ft., one target. *Hit:* 1d8+dex slashing damage. 
+:
+***Level 5 Bonus Action Hide, Disengage, Dodge*** 
+
+}}
+\page
+
+{{monster,frame
+##  Wizard Core
+*medium, loyal, just a medium guy*
+___
+**Armor Class** :: 10
+**Hit Points**  :: 6 (+2 per Golemancer Level)
+**Speed**       :: 30 ft.
+___
+|  STR  |  DEX  |  CON  |  INT  |  WIS  |  CHA  |
+|:-----:|:-----:|:-----:|:-----:|:-----:|:-----:|
+|8 |10 |10 |16 (lv5 18) (lv18 20) |12 |14 |
+___
+**Skills** :: Arcana +3
+**Condition Immunities** :: none
+**Senses**               :: passive Perception 12
+**Languages**            :: Common (sorta)
+**Challenge**            :: idk
+___
+***Helpful Guy*** Is excited to help you and loves to lift things
+:
+***Immutable Form*** The Golems form cannot be changed in anyway
+:
+***Unarmored Defense*** Golem has a flat AC of 12
+
+### Actions
+
+***Fire Bolt*** *Ranged Magic Attack:* *reach 120ft* +6 to hit, reach 5 ft., one target. *Hit:* 1d10 fire damage. 
+:
+
+
+***Magic Missle*** *reach 120ft* You create three glowing darts of magical force. Each dart strikes a creature of your choice that you can see within range. A dart deals 1d4 + 1 Force damage to its target. The darts all strike simultaneously, and you can direct them to hit one creature or several. Has a 1 turn cooldown. At level 5 it always casts at level 2
+:
+
+:
+***Level 5 Lightning Bolt*** Casting Time: Action
+Range: Self
+Components: V, S, M (a bit of fur and a crystal rod)
+Duration: Instantaneous
+
+A stroke of lightning forming a 100-foot-long, 5-foot-wide Line blasts out from you in a direction you choose. Each creature in the Line makes a Dexterity saving throw, taking 8d6 Lightning damage on a failed save or half as much damage on a successful one.
+
+
+Has a two turn cooldown.
+
+
+***Level 18 Disintregrate*** Casting Time: Action
+Range: 60 feet
+You launch a green ray at a target you can see within range. The target can be a creature, a nonmagical object, or a creation of magical force, such as the wall created by Wall of Force.
+
+A creature targeted by this spell makes a Dexterity saving throw. On a failed save, the target takes 10d6 + 40 Force damage. If this damage reduces it to 0 Hit Points, it and everything nonmagical it is wearing and carrying are disintegrated into gray dust. The target can be revived only by a True Resurrection or a Wish spell.
+
+
+Has a 3 turn cooldown.
+
+***Level 18 Chain Lightning*** Casting Time: Action
+Range: 150 feet
+You launch a lightning bolt toward a target you can see within range. Three bolts then leap from that target to as many as three other targets of your choice, each of which must be within 30 feet of the first target. A target can be a creature or an object and can be targeted by only one of the bolts.
+
+Each target makes a Dexterity saving throw, taking 10d8 Lightning damage on a failed save or half as much damage on a successful one.
+
+Has a 3 turn cooldown.
+
+}}
+
+
+{{monster,frame
+##  Cleric Core
+*medium, loyal, just a medium guy*
+* 
+
+___
+**Armor Class** :: 16
+**Hit Points**  :: 8 (+3 per Golemancer Level)
+**Speed**       :: 30 ft.
+___
+|  STR  |  DEX  |  CON  |  INT  |  WIS  |  CHA  |
+|:-----:|:-----:|:-----:|:-----:|:-----:|:-----:|
+|12 | 9|11 |12 |16 (lv5 18) |14 |
+___
+**Skills** :: Perception +3
+**Condition Immunities** :: none
+**Senses**               :: passive Perception 12
+**Languages**            :: Common (sorta)
+**Challenge**            :: idk
+___
+***Helpful Guy*** Is excited to help you and loves to lift things
+:
+***Immutable Form*** The Golems form cannot be changed in anyway
+
+***Unarmored Defense*** Golem has a flat AC of 16
+
+***Level 5 Healing Might*** Golem adds an extra 1d8 to all healing
+
+
+### Actions
+
+***Wack*** *Melee Weapon Attack:* *reach 5ft* +3 to hit, reach 5 ft., one target. *Hit:* 1d6 fire damage. 
+:
+***Cure Wounds*** *Touch Healing* reach 5ft, one target. *Hit* 1d8 + 3 healing *can be used at will, buy has a 1 turn cool down*
+:
+***Level 5 Healing Word*** Casting Time: Bonus action
+Range: 60 feet
+Components: V
+Duration: Instantaneous
+
+A creature of your choice that you can see within range regains Hit Points equal to 2d4 
+
+Can be used every 2 turns. 
+
+:
+***Level 18 Mass Cure Wounds*** Casting Time: Action
+Range: 60 feet
+Components: V, S
+Duration: Instantaneous
+
+A wave of healing energy washes out from a point you can see within range. Choose up to six creatures in a 30-foot-radius Sphere centered on that point. Each target regains Hit Points equal to 5d8 plus your spellcasting ability modifier.
+
+Can be used every 3 turns
+
+
+***Level 18 Harm*** Casting Time: Action
+Range: 60 feet
+Components: V, S
+Duration: Instantaneous
+
+You unleash virulent magic on a creature you can see within range. The target makes a Constitution saving throw. On a failed save, it takes 14d6 Necrotic damage, and its Hit Point maximum is reduced by an amount equal to the Necrotic damage it took. On a successful save, it takes half as much damage only. This spell can't reduce a target's Hit Point maximum below 1.
+
+Can be used every 4 turns
+
+
+}}
+
+
+

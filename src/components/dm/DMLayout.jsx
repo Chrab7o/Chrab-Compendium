@@ -10,6 +10,7 @@ const LINKS = [
   { to: '/dm/maps', label: 'Maps' },
   { to: '/dm/characters', label: 'Characters' },
   { to: '/dm/skill-trees', label: 'Skill Trees' },
+  { to: '/dm/homebrew', label: 'Homebrew' },
   { to: '/dm/notes', label: 'Player Notes' },
   { to: '/dm/import', label: 'Import' },
 ]

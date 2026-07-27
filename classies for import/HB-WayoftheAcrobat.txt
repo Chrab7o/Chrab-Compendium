@@ -1,0 +1,50 @@
+```metadata
+title: Way of the Acrobat
+description: ''
+tags: []
+systems: []
+renderer: V3
+theme: 5ePHB
+
+```
+
+{{
+# Monk Way of the Acrobat
+
+## Background
+Monks following the Way of the Acrobat have learned how to use staves to perform incredible feats of movement 
+
+
+
+}}
+{{
+
+### Level 3 Quarterstaff Master
+A Monk of the Acrobat is taught that a trusty quarterstaff is just as important as good hands. It is the key to creating the blade and giving it speed. When attacking with a staff you can add your monk die to the damage roll. 
+
+
+### Level 3 Launch
+With the right motion you can use your quarterstaff to propell yourself. As a bonus action and expend 1 ki point to launch yourself feet first a number of feet equal to your movement in a straight line in any direction. Hitting a creature or object deals 1d4 in damage for every 10 feet you move. While in motion you do not trigger opportunity attacks.
+}}
+
+
+### Level 6 Rotating Spin
+As an attack action spend 1 ki to spin around your staff attacking all creatures of your choice within 5 feet of you, or spend 2 ki to make it 10 feet. All creatures caught in the attack must make a dexterity saving throw against you monk dc. On a failure creatures take 4d of whatever your monk die currently is damage, and half on a failed save.
+
+### Level 6 Balanced Steps
+You have advantage on any checks / saving throws that would render you prone on failure.
+
+
+### Level 11 Blade Whirl
+As an attack action spend 4 ki to rip around your staff like a razor blade. Start with a Rotating Spin upgraded to a 6d of your current monk dice. Then maintaining your momentum spin out slamming into as many targets as you can reach within your movement rolling an attack roll for each and dealing damage equal to double your monk dice + dex or strength. You can hit the same target multiple times provided you move atleast 10 feet before coming into contact with them again.
+
+### Level 11 Immmovable Object
+Just as you can throw yourself through the air, you can force yourself to stay still. You can no longer be moved against your will. 
+
+{{
+
+
+### Level 17 Perfectly Balanced As All Things Should Be
+You have perfected your abilitiy to balance movement and momentum. Using Blade Whirl refreshes your movement allowing you to bounce more times. 
+}}
+

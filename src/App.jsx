@@ -21,6 +21,12 @@ import DMWorldsPage from './pages/dm/DMWorldsPage'
 import DMMapsPage from './pages/dm/DMMapsPage'
 import DMCharactersPage from './pages/dm/DMCharactersPage'
 import DMSkillTreesPage from './pages/dm/DMSkillTreesPage'
+import DMHomebrewPage from './pages/dm/DMHomebrewPage'
+import ClassWizard from './components/dm/homebrew/ClassWizard'
+import StandaloneSubclassEditor from './components/dm/homebrew/StandaloneSubclassEditor'
+import HomebrewIndex from './pages/HomebrewIndex'
+import HomebrewClassDetail from './pages/HomebrewClassDetail'
+import HomebrewSubclassDetail from './pages/HomebrewSubclassDetail'
 import DMNotesPage from './pages/dm/DMNotesPage'
 import DMLayout from './components/dm/DMLayout'
 import RequireDM from './components/RequireDM'
@@ -41,6 +47,9 @@ export default function App() {
           <Route path="/world/:slug" element={<WorldMapPage />} />
           <Route path="/locations" element={<TagView tag="location" title="Locations" />} />
           <Route path="/people" element={<TagView tag="person" title="People" />} />
+          <Route path="/homebrew" element={<HomebrewIndex />} />
+          <Route path="/homebrew/classes/:slug" element={<HomebrewClassDetail />} />
+          <Route path="/homebrew/subclasses/:slug" element={<HomebrewSubclassDetail />} />
           <Route path="/session-notes" element={<TagView tag="session-note" title="Session Notes" />} />
           <Route path="/search" element={<SearchPage />} />
           <Route path="/login" element={<Login />} />
@@ -77,6 +86,11 @@ export default function App() {
             <Route path="maps" element={<DMMapsPage />} />
             <Route path="characters" element={<DMCharactersPage />} />
             <Route path="skill-trees" element={<DMSkillTreesPage />} />
+            <Route path="homebrew" element={<DMHomebrewPage />} />
+            <Route path="homebrew/classes/new" element={<ClassWizard />} />
+            <Route path="homebrew/classes/:id/edit" element={<ClassWizard />} />
+            <Route path="homebrew/subclasses/new" element={<StandaloneSubclassEditor />} />
+            <Route path="homebrew/subclasses/:id/edit" element={<StandaloneSubclassEditor />} />
             <Route path="notes" element={<DMNotesPage />} />
             <Route path="import" element={<ImportPage />} />
             <Route path="entries/new" element={<EntryEditorPage />} />

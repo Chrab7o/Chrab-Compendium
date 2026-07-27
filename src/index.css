@@ -1,3 +1,26 @@
+/* Tailwind utilities only, no Preflight - Preflight's reset (margin:0 on
+   everything, unstyled headings/lists, etc.) would fight this file's own
+   hand-tuned base styles below. Utility classes are only pulled in where a
+   Tailwind-based component (Hero UI, Kokonut UI) needs them; nothing here
+   changes how existing plain-CSS pages render.
+
+   Explicit layer order (later = higher cascade priority, per the CSS spec -
+   NOT source order): everything below lives in `base`, so a Tailwind
+   utility class always wins over one of this file's bare element selectors
+   (e.g. `button { ... }`) on a HeroUI/Kokonut component, regardless of
+   which appears first in the file. Without this, an unlayered rule here
+   would beat ALL layered styles including Tailwind's, since unlayered CSS
+   always outranks layered CSS - confirmed live: HeroUI's Button variants
+   all rendered identically (this file's plain `button` rule winning) until
+   this layer was added. */
+@layer theme, base, utilities;
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities);
+@plugin './hero.js';
+@source '../node_modules/@heroui/theme/dist/**/*.{js,jsx,mjs}';
+
+@layer base {
+
 :root {
   color-scheme: light;
   /* "Marginalia" identity: a full pivot away from the dark "Ashfall"
@@ -1950,6 +1973,12 @@ button.tree-label:hover {
   gap: 1.5rem;
 }
 
+.skill-node-panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
 .skill-tree-diagram-label {
   fill: var(--text);
   font-size: 13px;
@@ -2310,3 +2339,306 @@ button.chip:hover {
   border-color: var(--accent-2);
   color: var(--on-accent-2);
 }
+
+/* Homebrew builder: wizard shell, repeatable rows, chip-adders, and the
+   read-only class detail layout. */
+
+.wizard-shell {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-frame);
+  padding: 1.5rem 1.5rem 1.5rem 1.8rem;
+}
+
+.wizard-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.wizard-step {
+  font-family: inherit;
+  cursor: pointer;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: var(--text-sm);
+}
+
+.wizard-step:hover {
+  background: var(--surface);
+  color: var(--text);
+}
+
+.wizard-step.active {
+  background: linear-gradient(135deg, var(--accent-strong), var(--accent));
+  color: var(--on-accent);
+  border-color: var(--accent);
+  box-shadow: var(--shadow-sm);
+}
+
+.wizard-step-content {
+  margin-bottom: 1.5rem;
+}
+
+.repeatable-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.repeatable-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+
+.repeatable-row-controls {
+  display: flex;
+  gap: 0.4rem;
+  align-self: flex-end;
+}
+
+.chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.5rem 0;
+}
+
+.chip-list .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: default;
+}
+
+.chip-list .chip button {
+  background: none;
+  border: none;
+  box-shadow: none;
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.chip-add {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.chip-add input {
+  max-width: 12rem;
+}
+
+.class-table-column {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.9rem;
+  margin-bottom: 1rem;
+  background: var(--surface-2);
+}
+
+.class-table-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+}
+
+.class-table-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  width: 3.2rem;
+}
+
+.class-table-cell input {
+  width: 100%;
+  text-align: center;
+  padding: 0.3rem;
+}
+
+.class-subclass-block {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 1rem;
+  margin-bottom: 1.25rem;
+  background: var(--surface-2);
+}
+
+.homebrew-stat-block {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+
+.homebrew-stat-block strong {
+  color: var(--accent-strong);
+  margin-right: 0.35rem;
+}
+
+.homebrew-proficiencies {
+  margin-bottom: 1.5rem;
+}
+
+.homebrew-proficiencies p {
+  margin: 0.35rem 0;
+  white-space: pre-line;
+}
+
+.homebrew-level-table-wrap {
+  overflow-x: auto;
+  margin-bottom: 1.5rem;
+}
+
+.homebrew-level-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.homebrew-level-table th,
+.homebrew-level-table td {
+  border: 1px solid var(--border);
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  font-size: var(--text-sm);
+}
+
+.homebrew-level-table th {
+  background: var(--surface-2);
+  color: var(--accent-strong);
+}
+
+.homebrew-feature {
+  margin-bottom: 1rem;
+}
+
+.homebrew-feature h3,
+.homebrew-feature h4,
+.homebrew-feature h5 {
+  margin-bottom: 0.25rem;
+}
+
+/* Level section divider - a red heading with a fading accent underline,
+   marking where a new level's worth of features begins. */
+.homebrew-level-heading {
+  position: relative;
+  color: var(--accent-strong);
+  margin: 2.5rem 0 1.25rem;
+  padding-bottom: 0.6rem;
+}
+
+.homebrew-level-heading::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, var(--accent-strong), transparent);
+}
+
+.homebrew-subclass-level-group {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.25rem;
+  background: var(--surface-2);
+}
+
+.homebrew-group-label {
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-size: var(--text-xs);
+  letter-spacing: 0.05em;
+  margin-bottom: 0.75rem;
+}
+
+/* Each subclass gets its own bordered blurb inside the shared level-group
+   box, so Vanguard/Harbinger/Magus (or whatever archetypes a class has)
+   read as visually distinct options rather than one long block. */
+.homebrew-subclass-feature-block {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.9rem 1.1rem;
+  margin-bottom: 1rem;
+  background: var(--surface);
+}
+
+.homebrew-subclass-feature-block:last-child {
+  margin-bottom: 0;
+}
+
+.homebrew-subclass-feature-block > h4 {
+  color: var(--accent-strong);
+}
+
+/* A named choice group (e.g. "Dark Arts") - one outer box labeling the
+   group, with each option inside getting its own smaller bordered card so
+   it reads as "pick some of these" rather than a flat feature list. */
+.homebrew-choice-group {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.25rem;
+  background: var(--surface-2);
+}
+
+.homebrew-choice-feature {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.75rem;
+  background: var(--surface);
+}
+
+.homebrew-choice-feature:last-child {
+  margin-bottom: 0;
+}
+
+.homebrew-choice-feature > h5 {
+  color: var(--accent-strong);
+}
+
+/* Tables embedded inside a markdown feature description (e.g. a fighting
+   style list or a spell-by-level chart) - same look as the level-progress
+   table above, so any table anywhere on this page reads consistently. */
+.homebrew-markdown table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.75rem 0;
+}
+
+.homebrew-markdown th,
+.homebrew-markdown td {
+  border: 1px solid var(--border);
+  padding: 0.5rem 0.75rem;
+  text-align: left;
+  font-size: var(--text-sm);
+}
+
+.homebrew-markdown th {
+  background: var(--surface-2);
+  color: var(--accent-strong);
+}
+
+} /* end @layer base */

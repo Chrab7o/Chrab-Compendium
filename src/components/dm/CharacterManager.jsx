@@ -3,7 +3,9 @@ import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabaseClient'
 import { useImpersonation } from '../../contexts/ImpersonationContext'
 
-function SkillPointInput({ treeName, initialValue, onSave }) {
+const TREE_TYPE_LABELS = { feature: 'Feature Tree', archetype: 'Archetype Tree' }
+
+function SkillPointInput({ treeType, initialValue, onSave }) {
   const [value, setValue] = useState(initialValue)
   const [saved, setSaved] = useState(false)
 
@@ -21,7 +23,7 @@ function SkillPointInput({ treeName, initialValue, onSave }) {
 
   return (
     <label className="skill-point-input">
-      {treeName} points
+      {TREE_TYPE_LABELS[treeType] ?? treeType} points
       <span className="skill-point-input-row">
         <input
           type="number"
@@ -68,7 +70,7 @@ export default function CharacterManager({ campaigns, onChange }) {
       supabase.from('characters').select('*').order('name', { ascending: true }),
       supabase.from('profiles').select('id, display_name').eq('role', 'player'),
       supabase.from('skill_trees').select('*'),
-      supabase.from('character_skill_trees').select('*'),
+      supabase.from('character_skill_points').select('*'),
       supabase.from('skill_tree_visible_to').select('*'),
     ])
     setCharacters(characterData ?? [])
@@ -79,10 +81,13 @@ export default function CharacterManager({ campaigns, onChange }) {
     setLoading(false)
   }
 
-  async function setPoints(characterId, treeId, points) {
+  async function setPoints(characterId, treeType, points) {
     const { error: upsertError } = await supabase
-      .from('character_skill_trees')
-      .upsert({ character_id: characterId, tree_id: treeId, points_available: points }, { onConflict: 'character_id,tree_id' })
+      .from('character_skill_points')
+      .upsert(
+        { character_id: characterId, tree_type: treeType, points_available: points },
+        { onConflict: 'character_id,tree_type' }
+      )
     if (upsertError) setError(upsertError.message)
     else load()
   }
@@ -137,6 +142,9 @@ export default function CharacterManager({ campaigns, onChange }) {
             if (!restrictedTreeIds.has(t.id)) return true
             return visibleToRows.some((v) => v.tree_id === t.id && v.character_id === c.id)
           })
+          // Points are pooled per tree_type, not per tree — one input per
+          // type this character actually has a tree for, not one per tree.
+          const applicableTreeTypes = [...new Set(applicableTrees.map((t) => t.tree_type))]
           return (
             <li key={c.id}>
               <span>{c.name}</span>
@@ -177,16 +185,16 @@ export default function CharacterManager({ campaigns, onChange }) {
                   Delete
                 </button>
               </div>
-              {applicableTrees.length > 0 && (
+              {applicableTreeTypes.length > 0 && (
                 <div className="character-skill-points">
-                  {applicableTrees.map((t) => {
-                    const row = skillPoints.find((p) => p.character_id === c.id && p.tree_id === t.id)
+                  {applicableTreeTypes.map((treeType) => {
+                    const row = skillPoints.find((p) => p.character_id === c.id && p.tree_type === treeType)
                     return (
                       <SkillPointInput
-                        key={t.id}
-                        treeName={t.name}
+                        key={treeType}
+                        treeType={treeType}
                         initialValue={row?.points_available ?? 0}
-                        onSave={(points) => setPoints(c.id, t.id, points)}
+                        onSave={(points) => setPoints(c.id, treeType, points)}
                       />
                     )
                   })}
