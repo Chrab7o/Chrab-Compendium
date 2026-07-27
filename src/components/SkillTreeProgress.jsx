@@ -155,8 +155,6 @@ export default function SkillTreeProgress({ characterId, editable }) {
     return <p className="status-message">No skill trees are set up for this character's campaign yet.</p>
   }
 
-  const currentTree = trees.find((t) => t.id === treeId)
-  const craftCost = currentTree?.craft_cost ?? 20
   const spent = pointsSpent(typePoolNodes, unlockedIds) + craftSpend
   const nodesById = new Map(nodes.map((n) => [n.id, n]))
   const extrasByNode = new Map()
@@ -173,7 +171,7 @@ export default function SkillTreeProgress({ characterId, editable }) {
     !selectedUnlocked &&
     canUnlock(selectedNode, unlockedIds, pointsAvailable, extrasByNode)
   const selectedCraftable =
-    selectedNode && editable && canCraft(selectedNode, unlockedIds, pointsAvailable, craftCost)
+    selectedNode && editable && canCraft(selectedNode, unlockedIds, pointsAvailable, selectedNode.craft_cost)
   const selectedPrereqNames = selectedNode
     ? fullPrereqIds(selectedNode, extrasByNode).map((id) => nodesById.get(id)?.name ?? '?')
     : []
@@ -233,7 +231,7 @@ export default function SkillTreeProgress({ characterId, editable }) {
                 <span className="badge badge-campaign">Unlocked</span>
                 {selectedNode.craftable && editable && (
                   <button type="button" disabled={!selectedCraftable} onClick={() => handleCraft(selectedNode)}>
-                    Craft ({craftCost} pts)
+                    Craft ({selectedNode.craft_cost} pts)
                   </button>
                 )}
                 {isDM && (

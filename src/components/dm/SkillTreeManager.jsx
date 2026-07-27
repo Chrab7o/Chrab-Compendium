@@ -7,7 +7,6 @@ const emptyForm = {
   description: '',
   campaign_id: '',
   tree_type: 'feature',
-  craft_cost: 20,
   restrictedToIds: [],
 }
 
@@ -32,7 +31,6 @@ export default function SkillTreeManager({ trees, campaigns, characters, visible
       description: tree.description ?? '',
       campaign_id: tree.campaign_id ?? '',
       tree_type: tree.tree_type ?? 'feature',
-      craft_cost: tree.craft_cost ?? 20,
       restrictedToIds: restrictedIdsFor(tree.id),
     })
     setError(null)
@@ -62,7 +60,6 @@ export default function SkillTreeManager({ trees, campaigns, characters, visible
       description: form.description,
       campaign_id: form.campaign_id || null,
       tree_type: form.tree_type,
-      craft_cost: Number(form.craft_cost) || 0,
     }
 
     let treeId = form.id
@@ -141,17 +138,6 @@ export default function SkillTreeManager({ trees, campaigns, characters, visible
             <option value="archetype">Archetype Tree</option>
           </select>
         </label>
-        {form.tree_type !== 'archetype' && (
-          <label>
-            Craft cost (XP per craft, for any craftable node in this tree)
-            <input
-              type="number"
-              min="0"
-              value={form.craft_cost}
-              onChange={(e) => setForm({ ...form, craft_cost: e.target.value })}
-            />
-          </label>
-        )}
         <label>
           Campaign
           <select

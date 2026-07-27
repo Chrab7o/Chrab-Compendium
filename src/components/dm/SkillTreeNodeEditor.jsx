@@ -11,6 +11,7 @@ const emptyForm = {
   cost: 1,
   min_prereqs: null,
   craftable: false,
+  craft_cost: 20,
   extraPrereqIds: [],
 }
 
@@ -36,7 +37,12 @@ function SkillNodeRow({ node, depth, ctx }) {
         </button>
         <span className="tree-label">
           {node.name} <span className="dm-list-meta">({node.cost} pt{node.cost === 1 ? '' : 's'})</span>
-          {node.craftable && <span className="badge badge-campaign">Craftable</span>}
+          {node.craftable && (
+            <>
+              <span className="badge badge-campaign">Craftable</span>
+              <span className="dm-list-meta"> ({node.craft_cost} XP to craft)</span>
+            </>
+          )}
           {extraCount > 0 && (
             <span className="dm-list-meta">
               {' '}
@@ -160,6 +166,7 @@ export default function SkillTreeNodeEditor({ trees }) {
       cost: Number(form.cost) || 1,
       min_prereqs: form.min_prereqs,
       craftable: form.craftable,
+      craft_cost: Number(form.craft_cost) || 0,
     }
 
     let nodeId = form.id
@@ -253,6 +260,7 @@ export default function SkillTreeNodeEditor({ trees }) {
             sort_order: n.sortOrder ?? 0,
             min_prereqs: n.minPrereqs ?? null,
             craftable: n.craftable ?? false,
+            craft_cost: n.craftCost ?? 20,
           })
           .select()
           .single()
@@ -360,7 +368,12 @@ export default function SkillTreeNodeEditor({ trees }) {
                 </div>
                 <p className="dm-list-meta">
                   {selectedNode.cost} pt{selectedNode.cost === 1 ? '' : 's'}
-                  {selectedNode.craftable && <span className="badge badge-campaign">Craftable</span>}
+                  {selectedNode.craftable && (
+                    <>
+                      <span className="badge badge-campaign">Craftable</span>
+                      {' '}({selectedNode.craft_cost} XP to craft)
+                    </>
+                  )}
                 </p>
                 {selectedNode.description && <p>{selectedNode.description}</p>}
                 <div className="dm-form-actions">
@@ -414,14 +427,27 @@ export default function SkillTreeNodeEditor({ trees }) {
                   </label>
 
                   {tree?.tree_type !== 'archetype' && (
-                    <label className="tag-checklist-item">
-                      <input
-                        type="checkbox"
-                        checked={form.craftable}
-                        onChange={(e) => setForm({ ...form, craftable: e.target.checked })}
-                      />
-                      Craftable (this node is a craftable recipe/item, not just a feature)
-                    </label>
+                    <>
+                      <label className="tag-checklist-item">
+                        <input
+                          type="checkbox"
+                          checked={form.craftable}
+                          onChange={(e) => setForm({ ...form, craftable: e.target.checked })}
+                        />
+                        Craftable (this node is a craftable recipe/item, not just a feature)
+                      </label>
+                      {form.craftable && (
+                        <label>
+                          Craft cost (XP each time this is crafted)
+                          <input
+                            type="number"
+                            min="0"
+                            value={form.craft_cost}
+                            onChange={(e) => setForm({ ...form, craft_cost: e.target.value })}
+                          />
+                        </label>
+                      )}
+                    </>
                   )}
 
                   {prereqCandidates.length > 0 && (

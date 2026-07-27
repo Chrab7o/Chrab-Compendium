@@ -54,7 +54,7 @@ export function canUnlock(node, unlockedNodeIds, pointsAvailable, extraPrereqsBy
 }
 
 // A craftable node can be crafted once it's unlocked (you have to know the
-// recipe first) and the tree's flat craft_cost fits in what's left. Mirrors
+// recipe first) and its own craft cost fits in what's left. Mirrors
 // craft_skill_item()'s checks.
 export function canCraft(node, unlockedNodeIds, pointsAvailable, craftCost) {
   if (!node.craftable) return false
@@ -105,6 +105,7 @@ export function treeToExportJson(tree, nodes, prereqRows = []) {
       description: n.description ?? '',
       cost: n.cost,
       craftable: n.craftable ?? false,
+      craftCost: n.craft_cost ?? 20,
       sortOrder: n.sort_order,
     })),
   }

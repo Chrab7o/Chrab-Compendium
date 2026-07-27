@@ -169,6 +169,7 @@ const nodes = vertices
       description,
       cost,
       craftable,
+      craftCost: 20,
       sortOrder: 0,
     }
   })
@@ -176,17 +177,19 @@ const nodes = vertices
 const treeName = path.basename(inputPath).replace(/\.(drawio\.xml|drawio|xml)$/i, '')
 const craftableCount = nodes.filter((n) => n.craftable).length
 // The old per-node "(Requires DC ## ...)" crafting text is stripped out by
-// parseNode above (see its comment) and replaced by this one flat rule,
-// noted once at the tree level instead of repeated on every craftable node.
-const treeDescription =
-  craftableCount > 0 ? 'Crafting a craftable item from this tree costs a flat 20xp, regardless of what it is.' : ''
-writeFileSync(outputPath, JSON.stringify({ name: treeName, description: treeDescription, nodes }, null, 2))
+// parseNode above (see its comment) - craft cost now lives on each node
+// (craftCost, defaulted to 20 above), not noted at the tree level, since
+// different craftable nodes can cost different amounts to craft.
+writeFileSync(outputPath, JSON.stringify({ name: treeName, description: '', nodes }, null, 2))
 
 const multiPrereqNodes = nodes.filter((n) => n.extraPrereqLocalIds.length > 0)
 console.log(`Wrote ${nodes.length} nodes to ${outputPath}`)
 console.log(`${nodes.filter((n) => !n.parentLocalId).length} root node(s) (no incoming arrow).`)
 console.log(`${vertices.length - nodes.length} shape(s) skipped as decoration (no arrows touching them).`)
-console.log(`${craftableCount} node(s) marked craftable (had a "(Requires DC ...)" crafting line).`)
+console.log(
+  `${craftableCount} node(s) marked craftable (had a "(Requires DC ...)" crafting line), defaulted to 20 XP ` +
+    `to craft - adjust per-node in DM Dashboard -> Skill Trees if they should differ.`
+)
 if (multiPrereqNodes.length > 0) {
   console.log(
     `${multiPrereqNodes.length} node(s) have more than one incoming arrow — defaulted to requiring ALL of them. ` +
