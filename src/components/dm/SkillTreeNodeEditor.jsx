@@ -413,7 +413,7 @@ export default function SkillTreeNodeEditor({ trees }) {
                     <textarea
                       value={form.description}
                       onChange={(e) => setForm({ ...form, description: e.target.value })}
-                      rows={2}
+                      rows={5}
                     />
                   </label>
                   <label>

@@ -142,7 +142,7 @@ export default function StandaloneSubclassEditor() {
           <textarea
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
-            rows={3}
+            rows={5}
           />
         </label>
 

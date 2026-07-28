@@ -100,7 +100,7 @@ export default function WorldManager({ worlds, onChange }) {
         <label>
           Description
           <textarea
-            rows={3}
+            rows={5}
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
           />

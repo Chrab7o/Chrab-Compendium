@@ -125,7 +125,7 @@ export default function SkillTreeManager({ trees, campaigns, characters, visible
           <textarea
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
-            rows={2}
+            rows={5}
           />
         </label>
         <label>

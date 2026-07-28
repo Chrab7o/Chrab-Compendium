@@ -90,7 +90,7 @@ export default function RepeatableRows({
           </label>
           <label>
             Description
-            <textarea rows={2} value={row.description} onChange={(e) => updateRow(i, { description: e.target.value })} />
+            <textarea rows={4} value={row.description} onChange={(e) => updateRow(i, { description: e.target.value })} />
           </label>
           {withChoiceGroup && (
             <div className="dm-form-row">

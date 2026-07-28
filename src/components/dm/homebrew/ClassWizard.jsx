@@ -415,7 +415,7 @@ export default function ClassWizard() {
               <textarea
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
-                rows={3}
+                rows={5}
               />
             </label>
             <div className="dm-form-row">
@@ -551,7 +551,7 @@ export default function ClassWizard() {
               <textarea
                 value={form.starting_equipment}
                 onChange={(e) => setForm({ ...form, starting_equipment: e.target.value })}
-                rows={3}
+                rows={5}
               />
             </label>
             <div className="dm-form-row">
@@ -661,7 +661,7 @@ export default function ClassWizard() {
                   <textarea
                     value={subclass.description}
                     onChange={(e) => updateSubclass(i, { description: e.target.value })}
-                    rows={2}
+                    rows={4}
                   />
                 </label>
                 <RepeatableRows

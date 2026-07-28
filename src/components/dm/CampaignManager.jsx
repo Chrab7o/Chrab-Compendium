@@ -97,7 +97,7 @@ export default function CampaignManager({ campaigns, worlds, onChange }) {
           <textarea
             value={form.description ?? ''}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
-            rows={2}
+            rows={5}
           />
         </label>
         {error && <p className="status-message error">{error}</p>}
