@@ -24,7 +24,7 @@ export default function CloudBackdrop() {
       <motion.div
         className="cloud-backdrop-row"
         animate={{ x: ['-100vw', '0vw'] }}
-        transition={{ duration: 56, repeat: Infinity, repeatType: 'loop', ease: 'linear' }}
+        transition={{ duration: 250, repeat: Infinity, repeatType: 'loop', ease: 'linear' }}
       >
         <div className="cloud-backdrop-tile" />
         <div className="cloud-backdrop-tile" />

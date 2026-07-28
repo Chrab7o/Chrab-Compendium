@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { useCampaignContext } from '../contexts/CampaignContext'
 import { useImpersonation } from '../contexts/ImpersonationContext'
 import { MenuIcon, CloseIcon } from './Icons'
+import NavStarfield from './NavStarfield'
 
 export default function Nav() {
   const navigate = useNavigate()
@@ -36,6 +37,7 @@ export default function Nav() {
         </div>
       )}
       <header className="nav">
+      <NavStarfield />
       <Link to="/" className="nav-brand">
         Chrab's TTRPG Compendium
       </Link>

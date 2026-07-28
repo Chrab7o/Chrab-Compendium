@@ -279,27 +279,53 @@ h3 {
 
 .nav {
   position: relative;
+  /* Own stacking context, so NavStarfield's z-index: -1 below is scoped to
+     compare only against .nav's own children (brand, hamburger, etc.)
+     instead of some ancestor's - same reason #root has this for
+     CloudBackdrop, see index.css's #root rule for the fuller explanation. */
+  isolation: isolate;
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
   padding: 2.25rem 2.5rem;
-  /* Experimental: starry-night nav instead of the plain cream strip. Two
-     layers: the starfield SVG (stars + streaks only, transparent
-     background, 1920px wide with every position unique) stretched to
-     fill the nav's actual width with no repeat - a repeating tile showed
-     the same handful of star/streak patterns over and over across a wide
-     screen, which read as a mechanical loop rather than a random sky. The
-     sky gradient is a separate genuine CSS gradient underneath (not baked
-     into the SVG), since a gradient can't have a tiling seam - it's one
-     continuous paint - whereas baking it into a repeated tile meant each
-     repeat got rasterized independently, and at non-integer display
-     scaling (125%/150% Windows scaling etc.) that produced visible
-     banding at every tile boundary. */
-  background-image: url('/backgrounds/nav-starfield.svg'), linear-gradient(180deg, #182a52, #0a1130);
-  background-repeat: no-repeat, no-repeat;
-  background-size: 100% 100%, 100% 100%;
+  /* Starry-night nav instead of the plain cream strip. The animated
+     starfield (stars + streaks, drifting diagonally - see
+     NavStarfield.jsx) is a separate absolutely-positioned layer behind
+     this; this gradient is the sky color underneath it. */
+  background-image: linear-gradient(180deg, #182a52, #0a1130);
   border-bottom: 1px solid var(--border);
   gap: 1rem;
+}
+
+/* Clips NavStarfield's oversized, drifting inner layer to .nav's own
+   box - without this, the overhang needed for seamless diagonal motion
+   would spill out and be visible past the nav's edges. */
+.nav-starfield-viewport {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* Overhangs .nav by exactly one tile on the top and left (see the fixed
+   TILE_W/TILE_H in NavStarfield.jsx) - the layer drifts down and to the
+   right, so the margin it needs is on the top-left (fresh content slides
+   in from there as it moves) not the bottom-right. Getting this backwards
+   is exactly what caused an earlier version to visibly run out of stars
+   at the bottom before resetting: with the overhang on the wrong sides,
+   translating downward moved the layer's own top edge below the
+   viewport's top edge, exposing empty space above it that the layer
+   never actually covered. */
+.nav-starfield-layer {
+  position: absolute;
+  top: -170px;
+  left: -640px;
+  width: calc(100% + 640px);
+  height: calc(100% + 170px);
+  background-image: url('/backgrounds/nav-starfield-tile.svg');
+  background-size: 640px 170px;
+  background-repeat: repeat;
 }
 
 .impersonation-banner {
