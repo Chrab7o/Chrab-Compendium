@@ -15,7 +15,7 @@ export default function Home() {
       <div className="view-header">
         <h1>Chrab's TTRPG Compendium</h1>
         <p className="view-subtitle">
-          World lore, characters, maps, and secrets — everything for the table, in one place.
+          Everything you could ever need! All in one place!
         </p>
       </div>
 
@@ -47,9 +47,7 @@ export default function Home() {
       )}
 
       <p className="home-guidance">
-        Use <strong>Maps</strong>, <strong>Locations</strong>, <strong>People</strong>, and{' '}
-        <strong>Search</strong> up top to browse everything — pick a world above, then choose
-        your campaign from its page.
+        Use the navigation bar above to explore the worlds, campaigns, and categories of content available in this compendium. You can also use the search function to find specific items or topics of interest.
       </p>
     </section>
   )
