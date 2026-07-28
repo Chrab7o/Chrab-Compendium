@@ -148,19 +148,37 @@ body {
   isolation: isolate;
 }
 
-/* Fixed behind everything else in #root. background-size: cover already
-   renders it larger than the viewport, so CloudBackdrop.jsx's slow drift
-   has margin to pan within
-   without ever revealing an edge. */
+/* Fixed behind everything else in #root, viewport-sized with overflow
+   hidden - .cloud-backdrop-row inside is the thing that actually moves.
+   dream-clouds-tile.webp (unlike the old dream-clouds.webp) was composited
+   with wraparound placement so its left and right edges match, making it
+   safe to repeat horizontally with no visible seam. */
 .cloud-backdrop {
   position: fixed;
   inset: 0;
   z-index: -1;
-  background-image: url('/backgrounds/dream-clouds.webp');
-  background-size: cover;
-  background-position-y: 50%;
-  background-repeat: no-repeat;
+  overflow: hidden;
   pointer-events: none;
+}
+
+/* Two tiles side by side, each exactly one viewport-width - translating
+   this row left by exactly 100vw (one tile) via transform and then
+   resetting to 0 is invisible, since tile two is now sitting exactly where
+   tile one started and they're identical images. That's what CloudBackdrop.
+   jsx's repeatType: 'loop' (not 'mirror') relies on for true one-direction,
+   never-turns-around motion. */
+.cloud-backdrop-row {
+  display: flex;
+  width: 200vw;
+  height: 100%;
+}
+
+.cloud-backdrop-tile {
+  flex: 0 0 100vw;
+  height: 100%;
+  background-image: url('/backgrounds/dream-clouds-tile.webp');
+  background-size: 100vw 100%;
+  background-repeat: no-repeat;
 }
 
 h1,
