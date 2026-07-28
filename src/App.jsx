@@ -32,73 +32,77 @@ import DMLayout from './components/dm/DMLayout'
 import RequireDM from './components/RequireDM'
 import RequireAuth from './components/RequireAuth'
 import NewEntryFab from './components/dm/NewEntryFab'
+import CloudBackdrop from './components/CloudBackdrop'
 
 export default function App() {
   return (
-    <div className="app-shell">
-      <Nav />
-      <main className="app-main">
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/general" element={<Navigate to="/" replace />} />
-          <Route path="/entry/:id" element={<EntryDetail />} />
-          <Route path="/maps" element={<MapsView />} />
-          <Route path="/map/:slug" element={<MapDetail />} />
-          <Route path="/world/:slug" element={<WorldMapPage />} />
-          <Route path="/locations" element={<TagView tag="location" title="Locations" />} />
-          <Route path="/people" element={<TagView tag="person" title="People" />} />
-          <Route path="/homebrew" element={<HomebrewIndex />} />
-          <Route path="/homebrew/classes/:slug" element={<HomebrewClassDetail />} />
-          <Route path="/homebrew/subclasses/:slug" element={<HomebrewSubclassDetail />} />
-          <Route path="/session-notes" element={<TagView tag="session-note" title="Session Notes" />} />
-          <Route path="/search" element={<SearchPage />} />
-          <Route path="/login" element={<Login />} />
-          <Route
-            path="/character"
-            element={
-              <RequireAuth>
-                <CharacterHub />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/character/:id"
-            element={
-              <RequireAuth>
-                <CharacterSheet />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/dm"
-            element={
-              <RequireDM>
-                <DMLayout />
-              </RequireDM>
-            }
-          >
-            <Route index element={<DMHome />} />
-            <Route path="organize" element={<DMOrganizePage />} />
-            <Route path="worlds" element={<DMWorldsPage />} />
-            <Route path="categories" element={<DMCategoriesPage />} />
-            <Route path="tags" element={<DMTagsPage />} />
-            <Route path="campaigns" element={<DMCampaignsPage />} />
-            <Route path="maps" element={<DMMapsPage />} />
-            <Route path="characters" element={<DMCharactersPage />} />
-            <Route path="skill-trees" element={<DMSkillTreesPage />} />
-            <Route path="homebrew" element={<DMHomebrewPage />} />
-            <Route path="homebrew/classes/new" element={<ClassWizard />} />
-            <Route path="homebrew/classes/:id/edit" element={<ClassWizard />} />
-            <Route path="homebrew/subclasses/new" element={<StandaloneSubclassEditor />} />
-            <Route path="homebrew/subclasses/:id/edit" element={<StandaloneSubclassEditor />} />
-            <Route path="notes" element={<DMNotesPage />} />
-            <Route path="import" element={<ImportPage />} />
-            <Route path="entries/new" element={<EntryEditorPage />} />
-            <Route path="entries/:id/edit" element={<EntryEditorPage />} />
-          </Route>
-        </Routes>
-      </main>
-      <NewEntryFab />
-    </div>
+    <>
+      <CloudBackdrop />
+      <div className="app-shell">
+        <Nav />
+        <main className="app-main">
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/general" element={<Navigate to="/" replace />} />
+            <Route path="/entry/:id" element={<EntryDetail />} />
+            <Route path="/maps" element={<MapsView />} />
+            <Route path="/map/:slug" element={<MapDetail />} />
+            <Route path="/world/:slug" element={<WorldMapPage />} />
+            <Route path="/locations" element={<TagView tag="location" title="Locations" />} />
+            <Route path="/people" element={<TagView tag="person" title="People" />} />
+            <Route path="/homebrew" element={<HomebrewIndex />} />
+            <Route path="/homebrew/classes/:slug" element={<HomebrewClassDetail />} />
+            <Route path="/homebrew/subclasses/:slug" element={<HomebrewSubclassDetail />} />
+            <Route path="/session-notes" element={<TagView tag="session-note" title="Session Notes" />} />
+            <Route path="/search" element={<SearchPage />} />
+            <Route path="/login" element={<Login />} />
+            <Route
+              path="/character"
+              element={
+                <RequireAuth>
+                  <CharacterHub />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/character/:id"
+              element={
+                <RequireAuth>
+                  <CharacterSheet />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/dm"
+              element={
+                <RequireDM>
+                  <DMLayout />
+                </RequireDM>
+              }
+            >
+              <Route index element={<DMHome />} />
+              <Route path="organize" element={<DMOrganizePage />} />
+              <Route path="worlds" element={<DMWorldsPage />} />
+              <Route path="categories" element={<DMCategoriesPage />} />
+              <Route path="tags" element={<DMTagsPage />} />
+              <Route path="campaigns" element={<DMCampaignsPage />} />
+              <Route path="maps" element={<DMMapsPage />} />
+              <Route path="characters" element={<DMCharactersPage />} />
+              <Route path="skill-trees" element={<DMSkillTreesPage />} />
+              <Route path="homebrew" element={<DMHomebrewPage />} />
+              <Route path="homebrew/classes/new" element={<ClassWizard />} />
+              <Route path="homebrew/classes/:id/edit" element={<ClassWizard />} />
+              <Route path="homebrew/subclasses/new" element={<StandaloneSubclassEditor />} />
+              <Route path="homebrew/subclasses/:id/edit" element={<StandaloneSubclassEditor />} />
+              <Route path="notes" element={<DMNotesPage />} />
+              <Route path="import" element={<ImportPage />} />
+              <Route path="entries/new" element={<EntryEditorPage />} />
+              <Route path="entries/:id/edit" element={<EntryEditorPage />} />
+            </Route>
+          </Routes>
+        </main>
+        <NewEntryFab />
+      </div>
+    </>
   )
 }

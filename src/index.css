@@ -118,22 +118,48 @@ body {
   min-height: 100vh;
   /* Dreamy purple cloudy-sky backdrop — the textured "worn parchment"
      look lives on .page/.page-wide instead, so the desk reads as its own
-     atmosphere and the page floats on top of it. Two layers: a composited
-     PNG of real CC0 cloud textures (opengameart.org/content/clouds-with-
-     transparency, tinted lavender/violet; a single unique canvas, not a
-     repeating tile - same reason as the nav starfield) over a genuine CSS
-     gradient, so the gradient itself can never show a tiling seam.
-     background-attachment: fixed keeps the sky steady while the page
-     scrolls over it. */
+     atmosphere and the page floats on top of it. The cloud image itself
+     lives on .cloud-backdrop (a separate fixed, animated element - see
+     CloudBackdrop.jsx) so Motion can drift it; this gradient stays right
+     on body since it never needs to animate, and a genuine CSS gradient
+     can never show a tiling seam the way a baked-in one could.
+     background-attachment: fixed keeps it steady while the page scrolls
+     over it. */
   background-color: var(--backdrop);
-  background-image: url('/backgrounds/dream-clouds.webp'),
-    linear-gradient(160deg, #2a1a4a 0%, #4a2f6e 55%, #7a5a9e 100%);
-  background-size: cover, cover;
-  background-position: center, center;
-  background-repeat: no-repeat, no-repeat;
-  background-attachment: fixed, fixed;
+  background-image: linear-gradient(160deg, #2a1a4a 0%, #4a2f6e 55%, #7a5a9e 100%);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
   color: var(--text);
   font-size: var(--text-base);
+}
+
+/* body's own background paints as the special browser "canvas" layer,
+   which sits below literally everything in the document regardless of
+   z-index - a negative z-index element can never paint above it as long
+   as it's compared directly against that canvas. isolate gives #root its
+   own stacking context, so .cloud-backdrop's z-index: -1 below is instead
+   compared only against #root's own children (Nav, main, etc.), which is
+   what actually places it between the canvas gradient and everything
+   else. (Confirmed empirically - z-index: -1 without this was invisible,
+   painting behind the canvas entirely.) */
+#root {
+  isolation: isolate;
+}
+
+/* Fixed behind everything else in #root. background-size: cover already
+   renders it larger than the viewport, so CloudBackdrop.jsx's slow drift
+   has margin to pan within
+   without ever revealing an edge. */
+.cloud-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-image: url('/backgrounds/dream-clouds.webp');
+  background-size: cover;
+  background-repeat: no-repeat;
+  pointer-events: none;
 }
 
 h1,
