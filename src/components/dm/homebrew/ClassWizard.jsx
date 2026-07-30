@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../../../lib/supabaseClient'
 import { useCampaignContext } from '../../../contexts/CampaignContext'
+import { useDraftAutosave } from '../../../hooks/useDraftAutosave'
 import {
   emptyClassForm,
   classToFormState,
@@ -62,6 +63,18 @@ export default function ClassWizard() {
   const [newSkillOption, setNewSkillOption] = useState('')
   const [newSubclassLevel, setNewSubclassLevel] = useState('')
 
+  // Autosaves to localStorage as the DM works through the wizard, so
+  // closing the tab, a crash, or navigating away mid-edit doesn't lose
+  // everything typed since the last explicit "Save Class" click. Keyed per
+  // class (or "-new" for one that doesn't have an id yet) so drafts for
+  // different classes never overwrite each other. Skipped while the
+  // existing-class fetch is still loading, so the still-empty initial form
+  // never gets written over a real draft before there's been a chance to
+  // offer it back.
+  const draftKey = isNew ? 'chrab-corner-class-draft-new' : `chrab-corner-class-draft-${id}`
+  const { pendingDraft, clearDraft } = useDraftAutosave(draftKey, { form, currentStep }, { skip: loading })
+  const [draftPromptDismissed, setDraftPromptDismissed] = useState(false)
+
   useEffect(() => {
     if (isNew) return
     let cancelled = false
@@ -104,6 +117,20 @@ export default function ClassWizard() {
       cancelled = true
     }
   }, [id, isNew])
+
+  // originalSubclassIds is left alone here (not restored from the draft) -
+  // it's bookkeeping about what actually exists in the database right now,
+  // freshly fetched above, not part of the DM's in-progress edits.
+  function restoreDraft() {
+    setForm(pendingDraft.value.form)
+    setCurrentStep(pendingDraft.value.currentStep)
+    setDraftPromptDismissed(true)
+  }
+
+  function discardDraft() {
+    clearDraft()
+    setDraftPromptDismissed(true)
+  }
 
   function addSkillOption() {
     const value = newSkillOption.trim()
@@ -304,6 +331,7 @@ export default function ClassWizard() {
       }
     }
 
+    clearDraft()
     setSaving(false)
     navigate('/dm/homebrew')
   }
@@ -385,6 +413,20 @@ export default function ClassWizard() {
           )}
         </div>
       </div>
+
+      {pendingDraft && !draftPromptDismissed && (
+        <div className="draft-banner">
+          <span>Unsaved draft found from {new Date(pendingDraft.savedAt).toLocaleString()}.</span>
+          <div className="dm-form-actions">
+            <button type="button" onClick={restoreDraft}>
+              Restore
+            </button>
+            <button type="button" className="secondary" onClick={discardDraft}>
+              Discard
+            </button>
+          </div>
+        </div>
+      )}
 
       <WizardShell
         steps={STEPS}
