@@ -11,6 +11,7 @@ const LINKS = [
   { to: '/dm/characters', label: 'Characters' },
   { to: '/dm/skill-trees', label: 'Skill Trees' },
   { to: '/dm/homebrew', label: 'Homebrew' },
+  { to: '/dm/session-planner', label: 'Session Planner' },
   { to: '/dm/notes', label: 'Player Notes' },
   { to: '/dm/import', label: 'Import' },
 ]

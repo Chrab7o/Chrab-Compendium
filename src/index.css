@@ -2141,6 +2141,141 @@ button.tree-label:hover {
   font-family: inherit;
 }
 
+/* Same structure as .skill-tree-diagram above, own class names since this
+   is a visually distinct tool (session beats, not skill nodes) even though
+   the dagre layout mechanism underneath is the same. */
+.session-plan-diagram {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  background: var(--bg);
+  margin-bottom: 1rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.session-plan-diagram svg {
+  display: block;
+  margin: 0 auto;
+  width: 100%;
+  height: auto;
+}
+
+.session-plan-diagram-edge {
+  stroke: var(--border);
+  stroke-width: 1.5;
+}
+
+.session-plan-diagram-edge-label {
+  fill: var(--text-muted);
+  font-size: 11px;
+  font-style: italic;
+  font-family: inherit;
+}
+
+.session-plan-diagram-node {
+  fill: var(--surface-2);
+  stroke: var(--border);
+  stroke-width: 1.5;
+}
+
+.session-plan-diagram-node-group.clickable {
+  cursor: pointer;
+}
+
+.session-plan-diagram-node-group.clickable:hover .session-plan-diagram-node,
+.session-plan-diagram-node-group:focus-visible .session-plan-diagram-node {
+  stroke: var(--accent-strong);
+  stroke-width: 2.5;
+}
+
+.session-plan-diagram-node-group:focus-visible {
+  outline: none;
+}
+
+.session-plan-diagram-node.selected {
+  stroke: var(--accent-strong);
+  stroke-width: 3;
+}
+
+.session-plan-diagram-label {
+  fill: var(--text);
+  font-size: 13px;
+  font-family: inherit;
+}
+
+.session-plan-diagram-type {
+  fill: var(--text-muted);
+  font-size: 11px;
+  font-family: inherit;
+}
+
+.session-plan-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.entry-picker-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.entry-picker-row input {
+  flex: 1;
+}
+
+.entry-picker-results {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.entry-picker-results button {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  text-align: left;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 0.4rem;
+}
+
+.session-notes-panel {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 1rem 1.25rem;
+  background: var(--surface-2);
+}
+
+.session-notes-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.session-notes-list li {
+  margin-bottom: 0.5rem;
+}
+
+.session-notes-content {
+  color: var(--text-muted);
+  white-space: pre-wrap;
+  margin: 0.4rem 0 0;
+}
+
+.node-entry-link {
+  border-top: 1px solid var(--border);
+  padding-top: 1rem;
+  margin-top: 0.5rem;
+}
+
 .browse-content {
   min-width: 0;
   padding: 1.5rem 2rem;
