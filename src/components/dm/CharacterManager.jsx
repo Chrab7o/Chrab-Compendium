@@ -4,9 +4,9 @@ import { supabase } from '../../lib/supabaseClient'
 import { useImpersonation } from '../../contexts/ImpersonationContext'
 
 const TREE_TYPE_LABELS = { feature: 'Feature Tree', archetype: 'Archetype Tree' }
-const XP_GRANT_AMOUNT = 20
+const DEFAULT_DOWNTIME_XP = 60
 
-function SkillPointInput({ treeType, initialValue, onSave }) {
+function LabeledNumberInput({ label, initialValue, onSave }) {
   const [value, setValue] = useState(initialValue)
   const [saved, setSaved] = useState(false)
 
@@ -24,7 +24,7 @@ function SkillPointInput({ treeType, initialValue, onSave }) {
 
   return (
     <label className="skill-point-input">
-      {TREE_TYPE_LABELS[treeType] ?? treeType} points
+      {label}
       <span className="skill-point-input-row">
         <input
           type="number"
@@ -105,13 +105,66 @@ export default function CharacterManager({ campaigns, onChange }) {
     else load()
   }
 
+  async function setDowntimeXp(characterId, treeType, downtimeXp) {
+    const { error: upsertError } = await supabase
+      .from('character_skill_points')
+      .upsert(
+        { character_id: characterId, tree_type: treeType, downtime_xp: downtimeXp },
+        { onConflict: 'character_id,tree_type' }
+      )
+    if (upsertError) setError(upsertError.message)
+    else load()
+  }
+
   // The points box holds the current remaining balance directly, so
   // granting more XP still means adding to whatever's already there (not
   // just typing the award amount, which would overwrite instead of add) -
   // this is exactly that addition, one XP-award click at a time instead of
-  // the DM doing the math by hand.
-  function grantXp(characterId, treeType, currentAvailable) {
-    setPoints(characterId, treeType, currentAvailable + XP_GRANT_AMOUNT)
+  // the DM doing the math by hand. downtimeXp is that character's own
+  // pre-configured amount (see setDowntimeXp above), not a flat constant
+  // everyone shares - some players sleep less and get more.
+  function grantXp(characterId, treeType, currentAvailable, downtimeXp) {
+    setPoints(characterId, treeType, currentAvailable + downtimeXp)
+  }
+
+  // Same campaign scoping as everywhere else, plus: if a tree is restricted
+  // to specific characters, it only counts as "applicable" here when this
+  // character is one of them - so the DM isn't offered a points box (or a
+  // downtime grant) for a tree this character can't actually see. Points
+  // are pooled per tree_type, not per tree - one entry per type this
+  // character actually has a tree for, not one per tree. Shared between
+  // the per-character render below and the "give everyone" bulk grant.
+  function applicableTreeTypesFor(character) {
+    const restrictedTreeIds = new Set(visibleToRows.map((v) => v.tree_id))
+    const applicableTrees = skillTrees.filter((t) => {
+      const inCampaign = !t.campaign_id || t.campaign_id === character.campaign_id
+      if (!inCampaign) return false
+      if (!restrictedTreeIds.has(t.id)) return true
+      return visibleToRows.some((v) => v.tree_id === t.id && v.character_id === character.id)
+    })
+    return [...new Set(applicableTrees.map((t) => t.tree_type))]
+  }
+
+  // One batched upsert covering every character x tree_type combination,
+  // rather than firing grantXp (and its own reload) once per row - the
+  // whole point of a group assign is not clicking through everyone one at
+  // a time.
+  async function grantDowntimeToAll() {
+    const rows = []
+    for (const c of characters) {
+      for (const treeType of applicableTreeTypesFor(c)) {
+        const row = skillPoints.find((p) => p.character_id === c.id && p.tree_type === treeType)
+        const available = row?.points_available ?? 0
+        const downtimeXp = row?.downtime_xp ?? DEFAULT_DOWNTIME_XP
+        rows.push({ character_id: c.id, tree_type: treeType, points_available: available + downtimeXp })
+      }
+    }
+    if (rows.length === 0) return
+    const { error: upsertError } = await supabase
+      .from('character_skill_points')
+      .upsert(rows, { onConflict: 'character_id,tree_type' })
+    if (upsertError) setError(upsertError.message)
+    else load()
   }
 
   useEffect(() => {
@@ -167,28 +220,19 @@ export default function CharacterManager({ campaigns, onChange }) {
     <div className="dm-panel">
       <div className="dm-panel-header">
         <h2>Characters</h2>
-        <Link to="/dm/import" className="button-link">
-          + Import
-        </Link>
+        <div className="dm-form-actions">
+          <button type="button" onClick={grantDowntimeToAll}>
+            Give Everyone Downtime XP
+          </button>
+          <Link to="/dm/import" className="button-link">
+            + Import
+          </Link>
+        </div>
       </div>
       {error && <p className="status-message error">{error}</p>}
       <ul className="dm-list">
         {characters.map((c) => {
-          // Same campaign scoping as everywhere else, plus: if a tree is
-          // restricted to specific characters, it only counts as
-          // "applicable" here when this character is one of them — so the
-          // DM isn't offered a points box for a tree this character can't
-          // actually see.
-          const restrictedTreeIds = new Set(visibleToRows.map((v) => v.tree_id))
-          const applicableTrees = skillTrees.filter((t) => {
-            const inCampaign = !t.campaign_id || t.campaign_id === c.campaign_id
-            if (!inCampaign) return false
-            if (!restrictedTreeIds.has(t.id)) return true
-            return visibleToRows.some((v) => v.tree_id === t.id && v.character_id === c.id)
-          })
-          // Points are pooled per tree_type, not per tree — one input per
-          // type this character actually has a tree for, not one per tree.
-          const applicableTreeTypes = [...new Set(applicableTrees.map((t) => t.tree_type))]
+          const applicableTreeTypes = applicableTreeTypesFor(c)
           return (
             <li key={c.id}>
               <span>{c.name}</span>
@@ -234,21 +278,27 @@ export default function CharacterManager({ campaigns, onChange }) {
                   {applicableTreeTypes.map((treeType) => {
                     const row = skillPoints.find((p) => p.character_id === c.id && p.tree_type === treeType)
                     const available = row?.points_available ?? 0
+                    const downtimeXp = row?.downtime_xp ?? DEFAULT_DOWNTIME_XP
                     const spent = pointsSpentFor(c.id, treeType)
                     return (
                       <div key={treeType} className="skill-point-input-group">
-                        <SkillPointInput
-                          treeType={treeType}
+                        <LabeledNumberInput
+                          label={`${TREE_TYPE_LABELS[treeType] ?? treeType} points`}
                           initialValue={available}
                           onSave={(points) => setPoints(c.id, treeType, points)}
                         />
                         <span className="dm-list-meta">{spent} XP spent so far</span>
+                        <LabeledNumberInput
+                          label="Downtime XP award"
+                          initialValue={downtimeXp}
+                          onSave={(xp) => setDowntimeXp(c.id, treeType, xp)}
+                        />
                         <button
                           type="button"
                           className="secondary"
-                          onClick={() => grantXp(c.id, treeType, available)}
+                          onClick={() => grantXp(c.id, treeType, available, downtimeXp)}
                         >
-                          +{XP_GRANT_AMOUNT} XP
+                          +{downtimeXp} XP
                         </button>
                       </div>
                     )
