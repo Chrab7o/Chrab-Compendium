@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabaseClient'
 import { useCampaignContext } from '../../contexts/CampaignContext'
-import { ANCHOR_QUESTIONS } from '../../lib/sessionPlanner'
+import { ANCHOR_QUESTION } from '../../lib/sessionPlanner'
 
 const STATUS_LABELS = { planning: 'Planning', ready: 'Ready to run', done: 'Done' }
 
@@ -42,17 +42,12 @@ export default function DMSessionPlannerPage() {
       setError(insertError.message)
       return
     }
-    const { error: nodesError } = await supabase.from('session_plan_nodes').insert(
-      ANCHOR_QUESTIONS.map((question, i) => ({
-        plan_id: planData.id,
-        parent_node_id: null,
-        question,
-        sort_order: i,
-      }))
-    )
+    const { error: nodesError } = await supabase
+      .from('session_plan_nodes')
+      .insert({ plan_id: planData.id, parent_node_id: null, question: ANCHOR_QUESTION, sort_order: 0 })
     setCreating(false)
     if (nodesError) {
-      // Don't leave a plan with missing anchors and no UI left to add them - roll back.
+      // Don't leave a plan with no anchor and no UI left to add one - roll back.
       await supabase.from('session_plans').delete().eq('id', planData.id)
       setError(nodesError.message)
       return
@@ -74,8 +69,8 @@ export default function DMSessionPlannerPage() {
       <div className="view-header">
         <h1>Session Planner</h1>
         <p className="view-subtitle">
-          Every plan starts with three fixed questions. Answer one, list the obstacles in the
-          way, and each obstacle becomes the next question.
+          Every plan starts with one question: where are they? Answer it, list the obstacles in
+          the way, and each obstacle becomes the next question.
         </p>
       </div>
 

@@ -1,10 +1,12 @@
 // Question-driven session planning: every node is a question with an
-// optional answer. A plan always starts with these 3 fixed anchor
-// questions as its root nodes (see DMSessionPlannerPage.jsx, which inserts
-// them at plan-creation time). Naming an obstacle to an answer spawns a new
-// child node whose question is that obstacle text, verbatim - see
-// NodeAnswerForm.jsx.
-export const ANCHOR_QUESTIONS = ['Where do they start?', 'Where are they going?', 'How do they get there?']
+// optional answer. A plan always starts with this one fixed anchor question
+// as its root node (see DMSessionPlannerPage.jsx, which inserts it at
+// plan-creation time) - a separate "where are they going"/"how do they get
+// there" pair turned out to be redundant, since the obstacle chain from a
+// single starting point already traces the path to wherever the party ends
+// up. Naming an obstacle to an answer spawns a new child node whose
+// question is that obstacle text, verbatim - see NodeAnswerForm.jsx.
+export const ANCHOR_QUESTION = 'Where are they?'
 
 export function isAnswered(node) {
   return Boolean(node.answer?.trim())
