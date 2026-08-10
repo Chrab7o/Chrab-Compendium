@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabaseClient'
 import { useCampaignContext } from '../../contexts/CampaignContext'
+import { ANCHOR_QUESTIONS } from '../../lib/sessionPlanner'
 
 const STATUS_LABELS = { planning: 'Planning', ready: 'Ready to run', done: 'Done' }
 
@@ -31,17 +32,32 @@ export default function DMSessionPlannerPage() {
     e.preventDefault()
     if (!name.trim()) return
     setCreating(true)
-    const { data, error: insertError } = await supabase
+    const { data: planData, error: insertError } = await supabase
       .from('session_plans')
       .insert({ name: name.trim(), campaign_id: campaignId || null, session_date: sessionDate || null })
       .select()
       .single()
-    setCreating(false)
     if (insertError) {
+      setCreating(false)
       setError(insertError.message)
       return
     }
-    navigate(`/dm/session-planner/${data.id}`)
+    const { error: nodesError } = await supabase.from('session_plan_nodes').insert(
+      ANCHOR_QUESTIONS.map((question, i) => ({
+        plan_id: planData.id,
+        parent_node_id: null,
+        question,
+        sort_order: i,
+      }))
+    )
+    setCreating(false)
+    if (nodesError) {
+      // Don't leave a plan with missing anchors and no UI left to add them - roll back.
+      await supabase.from('session_plans').delete().eq('id', planData.id)
+      setError(nodesError.message)
+      return
+    }
+    navigate(`/dm/session-planner/${planData.id}`)
   }
 
   async function handleDelete(id) {
@@ -58,8 +74,8 @@ export default function DMSessionPlannerPage() {
       <div className="view-header">
         <h1>Session Planner</h1>
         <p className="view-subtitle">
-          Build the next session one beat at a time — pick a beat type, answer a few guided
-          questions, and it's added to the plan. No freeform canvas to fight with.
+          Every plan starts with three fixed questions. Answer one, list the obstacles in the
+          way, and each obstacle becomes the next question.
         </p>
       </div>
 

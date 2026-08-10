@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabaseClient'
-import { childNodes, descendantCount, nodeTypeInfo } from '../../lib/sessionPlanner'
+import { childNodes, descendantCount, isAnswered } from '../../lib/sessionPlanner'
 import SessionPlanDiagram from '../../components/dm/sessionplanner/SessionPlanDiagram'
-import NodeCreationForm from '../../components/dm/sessionplanner/NodeCreationForm'
+import NodeAnswerForm from '../../components/dm/sessionplanner/NodeAnswerForm'
 import SessionNotesPanel from '../../components/dm/sessionplanner/SessionNotesPanel'
 
 const STATUS_OPTIONS = [
@@ -20,9 +20,7 @@ export default function SessionPlanEditorPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [selectedNodeId, setSelectedNodeId] = useState(null)
-  // null = no form open; 'create' = adding a new beat under formParentId;
-  // 'edit' = editing the currently-selected node in place.
-  const [formMode, setFormMode] = useState(null)
+  const [editing, setEditing] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -51,7 +49,7 @@ export default function SessionPlanEditorPage() {
   }
 
   async function handleDeletePlan() {
-    if (!confirm('Delete this entire session plan? This removes every beat in it.')) return
+    if (!confirm('Delete this entire session plan? This removes every question in it.')) return
     const { error: deleteError } = await supabase.from('session_plans').delete().eq('id', id)
     if (deleteError) setError(deleteError.message)
     else navigate('/dm/session-planner')
@@ -61,8 +59,8 @@ export default function SessionPlanEditorPage() {
     const descendants = descendantCount(node.id, nodes)
     const warning =
       descendants > 0
-        ? `Delete "${node.title}"? This also deletes ${descendants} beat${descendants === 1 ? '' : 's'} under it.`
-        : `Delete "${node.title}"?`
+        ? `Delete "${node.question}"? This also deletes ${descendants} question${descendants === 1 ? '' : 's'} under it.`
+        : `Delete "${node.question}"?`
     if (!confirm(warning)) return
     const { error: deleteError } = await supabase.from('session_plan_nodes').delete().eq('id', node.id)
     if (deleteError) {
@@ -75,15 +73,15 @@ export default function SessionPlanEditorPage() {
 
   function handleNodeClick(node) {
     setSelectedNodeId((current) => (current === node.id ? null : node.id))
-    setFormMode(null)
+    setEditing(false)
   }
 
   function closeForm() {
-    setFormMode(null)
+    setEditing(false)
   }
 
   function afterSave() {
-    setFormMode(null)
+    setEditing(false)
     load()
   }
 
@@ -92,8 +90,6 @@ export default function SessionPlanEditorPage() {
 
   const selectedNode = nodes.find((n) => n.id === selectedNodeId) ?? null
   const childrenOfSelected = selectedNode ? childNodes(nodes, selectedNode.id) : []
-  const nextLabel = childrenOfSelected.length > 0 ? '+ Add another branch' : '+ What happens next?'
-  const rootNodes = childNodes(nodes, null)
 
   return (
     <section className="page-wide">
@@ -118,72 +114,58 @@ export default function SessionPlanEditorPage() {
       <div className="session-plan-layout">
         <SessionPlanDiagram nodes={nodes} selectedNodeId={selectedNodeId} onNodeClick={handleNodeClick} />
 
-        {rootNodes.length === 0 && !formMode && (
-          <div className="dm-form-actions">
-            <button type="button" onClick={() => setFormMode('create')}>
-              + What happens first?
-            </button>
-          </div>
-        )}
-
-        {formMode === 'create' && (
-          <NodeCreationForm
+        {editing && selectedNode && (
+          <NodeAnswerForm
             planId={id}
             campaignId={plan.campaign_id}
-            parentNodeId={selectedNode?.id ?? null}
-            requireBranchLabel={childrenOfSelected.length > 0}
-            nextSortOrder={selectedNode ? childrenOfSelected.length : rootNodes.length}
+            node={selectedNode}
+            existingChildCount={childrenOfSelected.length}
             onSaved={afterSave}
             onCancel={closeForm}
           />
         )}
 
-        {formMode === 'edit' && selectedNode && (
-          <NodeCreationForm
-            planId={id}
-            campaignId={plan.campaign_id}
-            existingNode={selectedNode}
-            onSaved={afterSave}
-            onCancel={closeForm}
-          />
-        )}
-
-        {selectedNode && !formMode && (
+        {selectedNode && !editing && (
           <aside className="region-panel">
             <div className="region-panel-header">
-              <h2>{selectedNode.title}</h2>
+              <h2>{selectedNode.question}</h2>
               <button type="button" className="secondary" onClick={() => setSelectedNodeId(null)}>
                 Close
               </button>
             </div>
-            <p className="dm-list-meta">{nodeTypeInfo(selectedNode.node_type).label}</p>
-            {selectedNode.branch_label && (
-              <p className="dm-list-meta">Branch: {selectedNode.branch_label}</p>
-            )}
-            {nodeTypeInfo(selectedNode.node_type).questions.map((q) =>
-              selectedNode.answers?.[q.key] ? (
-                <p key={q.key}>
-                  <strong>{q.prompt}</strong>
-                  <br />
-                  {selectedNode.answers[q.key]}
-                </p>
-              ) : null
+            {isAnswered(selectedNode) ? (
+              <p>{selectedNode.answer}</p>
+            ) : (
+              <p className="status-message">Not answered yet.</p>
             )}
             {selectedNode.referenced_entry_id && (
               <p>
                 <Link to={`/entry/${selectedNode.referenced_entry_id}`}>View linked entry →</Link>
               </p>
             )}
+            {childrenOfSelected.length > 0 && (
+              <div>
+                <p className="dm-list-meta">Obstacles raised here:</p>
+                <ul className="dm-list">
+                  {childrenOfSelected.map((child) => (
+                    <li key={child.id}>
+                      <button type="button" className="link-button" onClick={() => setSelectedNodeId(child.id)}>
+                        {child.question}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
             <div className="dm-form-actions">
-              <button type="button" onClick={() => setFormMode('create')}>
-                {nextLabel}
-              </button>
-              <button type="button" className="secondary" onClick={() => setFormMode('edit')}>
+              <button type="button" onClick={() => setEditing(true)}>
                 Edit
               </button>
-              <button type="button" className="danger" onClick={() => handleDeleteNode(selectedNode)}>
-                Delete
-              </button>
+              {selectedNode.parent_node_id !== null && (
+                <button type="button" className="danger" onClick={() => handleDeleteNode(selectedNode)}>
+                  Delete
+                </button>
+              )}
             </div>
           </aside>
         )}

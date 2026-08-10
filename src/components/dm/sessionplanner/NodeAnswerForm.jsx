@@ -2,37 +2,23 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabaseClient'
 import { useCategories } from '../../../contexts/CategoryContext'
 import { useDraftAutosave } from '../../../hooks/useDraftAutosave'
-import { NODE_TYPES, nodeTypeInfo } from '../../../lib/sessionPlanner'
 import EntryPicker from './EntryPicker'
 
-function emptyAnswers(nodeType) {
-  return Object.fromEntries(nodeTypeInfo(nodeType).questions.map((q) => [q.key, '']))
-}
-
-// The guided, one-node-at-a-time interview - title, a beat type (locked once
-// created), that type's specific questions as separate labeled fields
-// (narrower prompts instead of one blank textarea is the actual "stay
-// focused" mechanism the DM asked for), then an optional link to an
-// existing wiki entry or a freshly-created placeholder one. Used for both
-// creating a new beat and editing an existing one in place - existingNode
-// present means edit mode.
-export default function NodeCreationForm({
-  planId,
-  campaignId,
-  parentNodeId,
-  requireBranchLabel,
-  existingNode,
-  nextSortOrder,
-  onSaved,
-  onCancel,
-}) {
+// Answer a question, and name the obstacles standing in the way of that
+// answer - each obstacle becomes a brand new child question node, verbatim.
+// Always operates on an already-existing node (the 3 anchor roots are
+// created up front, every other node is born as a child of some obstacle
+// list) - there's no separate "create a blank node" mode. The obstacle
+// inputs always start blank, even when re-editing an already-answered node
+// with existing children: they only ever add *new* children, previously-
+// spawned obstacles are edited by selecting them directly in the tree.
+export default function NodeAnswerForm({ planId, campaignId, node, existingChildCount, onSaved, onCancel }) {
   const { categories } = useCategories()
-  const isEdit = Boolean(existingNode)
+  const isRoot = node.parent_node_id === null
 
-  const [title, setTitle] = useState(existingNode?.title ?? '')
-  const [nodeType, setNodeType] = useState(existingNode?.node_type ?? NODE_TYPES[0].key)
-  const [answers, setAnswers] = useState(existingNode?.answers ?? emptyAnswers(NODE_TYPES[0].key))
-  const [branchLabel, setBranchLabel] = useState(existingNode?.branch_label ?? '')
+  const [questionText, setQuestionText] = useState(node.question)
+  const [answer, setAnswer] = useState(node.answer ?? '')
+  const [obstacles, setObstacles] = useState([''])
   const [referencedEntry, setReferencedEntry] = useState(null)
   const [showEntryPicker, setShowEntryPicker] = useState(false)
   const [newEntryTitle, setNewEntryTitle] = useState('')
@@ -44,40 +30,40 @@ export default function NodeCreationForm({
   // Look up the already-linked entry's title when editing a node that has
   // one - the form only ever stores referenced_entry_id, not its title.
   useEffect(() => {
-    if (!existingNode?.referenced_entry_id) return
+    if (!node.referenced_entry_id) return
     supabase
       .from('entries')
       .select('id, title')
-      .eq('id', existingNode.referenced_entry_id)
+      .eq('id', node.referenced_entry_id)
       .maybeSingle()
       .then(({ data }) => {
         if (data) setReferencedEntry(data)
       })
-  }, [existingNode?.referenced_entry_id])
+  }, [node.referenced_entry_id])
 
-  function changeNodeType(key) {
-    setNodeType(key)
-    setAnswers(emptyAnswers(key))
+  function setObstacleAt(i, value) {
+    setObstacles((rows) => rows.map((r, idx) => (idx === i ? value : r)))
   }
 
-  function setAnswer(key, value) {
-    setAnswers((a) => ({ ...a, [key]: value }))
+  function addObstacleRow() {
+    setObstacles((rows) => [...rows, ''])
   }
 
-  // Protects whatever's mid-typing in this one beat's form - scoped per
-  // node (existing or "about to be created under this parent") so a
-  // crash/accidental navigation doesn't lose a half-answered set of
-  // guided questions. Cleared the moment this node actually saves.
-  const draftKey = `session-plan-node-draft-${planId}-${existingNode?.id ?? parentNodeId ?? 'root'}`
-  const draftValue = { title, nodeType, answers, branchLabel }
+  function removeObstacleRow(i) {
+    setObstacles((rows) => rows.filter((_, idx) => idx !== i))
+  }
+
+  // Protects whatever's mid-typing in this question's form. Cleared the
+  // moment it actually saves.
+  const draftKey = `session-plan-node-draft-${planId}-${node.id}`
+  const draftValue = { questionText, answer, obstacles }
   const { pendingDraft, clearDraft } = useDraftAutosave(draftKey, draftValue)
   const [draftPromptDismissed, setDraftPromptDismissed] = useState(false)
 
   function restoreDraft() {
-    setTitle(pendingDraft.value.title)
-    setNodeType(pendingDraft.value.nodeType)
-    setAnswers(pendingDraft.value.answers)
-    setBranchLabel(pendingDraft.value.branchLabel)
+    setQuestionText(pendingDraft.value.questionText)
+    setAnswer(pendingDraft.value.answer)
+    setObstacles(pendingDraft.value.obstacles)
     setDraftPromptDismissed(true)
   }
 
@@ -112,45 +98,44 @@ export default function NodeCreationForm({
 
   async function handleSave(e) {
     e.preventDefault()
-    if (requireBranchLabel && !branchLabel.trim()) {
-      setError('This beat needs a branch label (e.g. "if they negotiate") since it has a sibling.')
+    if (!isRoot && !questionText.trim()) {
+      setError("Question can't be empty.")
       return
     }
     setSaving(true)
     setError(null)
 
-    if (isEdit) {
-      const { error: updateError } = await supabase
-        .from('session_plan_nodes')
-        .update({ title, branch_label: branchLabel, answers, referenced_entry_id: referencedEntry?.id ?? null })
-        .eq('id', existingNode.id)
+    const updates = { answer: answer.trim() || null, referenced_entry_id: referencedEntry?.id ?? null }
+    if (!isRoot) updates.question = questionText.trim()
+
+    const { error: updateError } = await supabase.from('session_plan_nodes').update(updates).eq('id', node.id)
+    if (updateError) {
       setSaving(false)
-      if (updateError) {
-        setError(updateError.message)
-        return
-      }
-    } else {
-      const { error: insertError } = await supabase.from('session_plan_nodes').insert({
-        plan_id: planId,
-        parent_node_id: parentNodeId,
-        branch_label: branchLabel,
-        node_type: nodeType,
-        title,
-        answers,
-        referenced_entry_id: referencedEntry?.id ?? null,
-        sort_order: nextSortOrder,
-      })
-      setSaving(false)
+      setError(updateError.message)
+      return
+    }
+
+    const newObstacles = obstacles.map((o) => o.trim()).filter(Boolean)
+    if (newObstacles.length > 0) {
+      const { error: insertError } = await supabase.from('session_plan_nodes').insert(
+        newObstacles.map((question, i) => ({
+          plan_id: planId,
+          parent_node_id: node.id,
+          question,
+          sort_order: existingChildCount + i,
+        }))
+      )
       if (insertError) {
+        setSaving(false)
         setError(insertError.message)
         return
       }
     }
+
+    setSaving(false)
     clearDraft()
     onSaved()
   }
-
-  const questions = nodeTypeInfo(nodeType).questions
 
   return (
     <form onSubmit={handleSave} className="dm-form node-creation-form">
@@ -168,37 +153,40 @@ export default function NodeCreationForm({
         </div>
       )}
 
+      {isRoot ? (
+        <p>
+          <strong>{node.question}</strong>
+        </p>
+      ) : (
+        <label>
+          Question (fix wording if needed)
+          <input value={questionText} onChange={(e) => setQuestionText(e.target.value)} required autoFocus />
+        </label>
+      )}
+
       <label>
-        Title
-        <input value={title} onChange={(e) => setTitle(e.target.value)} required autoFocus />
+        Answer
+        <textarea value={answer} onChange={(e) => setAnswer(e.target.value)} rows={3} />
       </label>
 
-      {!isEdit && (
-        <label>
-          Beat type
-          <select value={nodeType} onChange={(e) => changeNodeType(e.target.value)}>
-            {NODE_TYPES.map((t) => (
-              <option key={t.key} value={t.key}>
-                {t.label}
-              </option>
-            ))}
-          </select>
-        </label>
-      )}
-
-      {questions.map((q) => (
-        <label key={q.key}>
-          {q.prompt}
-          <textarea value={answers[q.key] ?? ''} onChange={(e) => setAnswer(q.key, e.target.value)} rows={3} />
-        </label>
-      ))}
-
-      {requireBranchLabel && (
-        <label>
-          Branch label (the condition that leads here, e.g. "if they negotiate")
-          <input value={branchLabel} onChange={(e) => setBranchLabel(e.target.value)} required />
-        </label>
-      )}
+      <div className="dm-form-row">
+        <span>Obstacles (each becomes the next question)</span>
+        {obstacles.map((o, i) => (
+          <div key={i} className="entry-picker-row">
+            <input value={o} onChange={(e) => setObstacleAt(i, e.target.value)} placeholder="An obstacle..." />
+            {obstacles.length > 1 && (
+              <button type="button" className="secondary" onClick={() => removeObstacleRow(i)}>
+                Remove
+              </button>
+            )}
+          </div>
+        ))}
+        <div className="dm-form-actions">
+          <button type="button" className="secondary" onClick={addObstacleRow}>
+            + Add another obstacle
+          </button>
+        </div>
+      </div>
 
       <div className="node-entry-link">
         <p className="dm-list-meta">
@@ -265,7 +253,7 @@ export default function NodeCreationForm({
       {error && <p className="status-message error">{error}</p>}
       <div className="dm-form-actions">
         <button type="submit" disabled={saving}>
-          {saving ? 'Saving...' : isEdit ? 'Save changes' : 'Save beat'}
+          {saving ? 'Saving...' : 'Save'}
         </button>
         <button type="button" className="secondary" onClick={onCancel}>
           Cancel

@@ -1,84 +1,37 @@
-// Guided question sets per beat type - each question has a stable `key` the
-// answer is stored under in session_plan_nodes.answers (jsonb), independent
-// of the prompt wording itself, so editing a prompt below later doesn't
-// orphan previously-saved answers. `title` is always asked separately, up
-// front, for every type - it's the card label, not one of these guided
-// answers.
-export const NODE_TYPES = [
-  {
-    key: 'scene',
-    label: 'Scene',
-    questions: [
-      { key: 'hook', prompt: 'What do the players see or hear first?' },
-      { key: 'goal', prompt: "What's the goal of this scene?" },
-      { key: 'skip_consequence', prompt: 'What happens if they skip or rush it?' },
-    ],
-  },
-  {
-    key: 'encounter',
-    label: 'Encounter',
-    questions: [
-      { key: 'terrain', prompt: 'Where does this happen (terrain/setting)?' },
-      { key: 'escape', prompt: "What's the escape or negotiation option?" },
-      { key: 'distinct', prompt: 'What makes this fight different from the last one?' },
-    ],
-  },
-  {
-    key: 'npc',
-    label: 'NPC Interaction',
-    questions: [
-      { key: 'wants', prompt: 'What does this NPC want?' },
-      { key: 'knows', prompt: "What do they know that the players don't?" },
-      { key: 'attitude', prompt: 'Their attitude going in?' },
-    ],
-  },
-  {
-    key: 'decision',
-    label: 'Decision Point',
-    questions: [
-      { key: 'choices', prompt: 'What are the likely player choices here?' },
-      { key: 'wrong_choice', prompt: "Is there a \"wrong\" choice that's actually fine?" },
-    ],
-  },
-  {
-    key: 'twist',
-    label: 'Twist / Reveal',
-    questions: [
-      { key: 'reveal', prompt: "What's being revealed?" },
-      { key: 'recontextualize', prompt: 'Does it recontextualize something earlier?' },
-      { key: 'foreshadowing', prompt: 'Any foreshadowing already planted?' },
-    ],
-  },
-  {
-    key: 'downtime',
-    label: 'Downtime / Loose End',
-    questions: [
-      { key: 'thread', prompt: 'What past thread does this tie back to?' },
-      { key: 'hook', prompt: "What's the follow-up hook?" },
-    ],
-  },
-  {
-    key: 'note',
-    label: 'Note',
-    questions: [{ key: 'notes', prompt: 'Notes' }],
-  },
-]
+// Question-driven session planning: every node is a question with an
+// optional answer. A plan always starts with these 3 fixed anchor
+// questions as its root nodes (see DMSessionPlannerPage.jsx, which inserts
+// them at plan-creation time). Naming an obstacle to an answer spawns a new
+// child node whose question is that obstacle text, verbatim - see
+// NodeAnswerForm.jsx.
+export const ANCHOR_QUESTIONS = ['Where do they start?', 'Where are they going?', 'How do they get there?']
 
-export function nodeTypeInfo(nodeType) {
-  return NODE_TYPES.find((t) => t.key === nodeType) ?? NODE_TYPES[NODE_TYPES.length - 1]
+export function isAnswered(node) {
+  return Boolean(node.answer?.trim())
+}
+
+// SVG <text> doesn't wrap or ellipsize on its own - unlike the short
+// single-word skill names SkillTreeDiagram was built for, real question/
+// obstacle sentences need an explicit cap so dagre cards stay a sane width.
+// The full untruncated text is still shown in the detail panel and delete
+// confirms; this only affects the diagram card label.
+export function truncateForDiagram(text, maxChars = 40) {
+  const trimmed = text.trim()
+  return trimmed.length > maxChars ? `${trimmed.slice(0, maxChars - 1)}…` : trimmed
 }
 
 // Same single-parent filter+sort shape as skillTrees.js's childNodes -
-// siblings ordered by sort_order, ties broken by title.
+// siblings ordered by sort_order, ties broken by id (stable, always defined).
 export function childNodes(nodes, parentId) {
   return nodes
     .filter((n) => (n.parent_node_id ?? null) === parentId)
-    .sort((a, b) => a.sort_order - b.sort_order || a.title.localeCompare(b.title))
+    .sort((a, b) => a.sort_order - b.sort_order || a.id.localeCompare(b.id))
 }
 
 // Walks the full subtree under nodeId - used to warn "this will also delete
-// N beats under it" before a destructive delete, since parent_node_id
-// cascades and a DM could otherwise fat-finger-delete a whole act.
+// N questions under it" before a destructive delete, since parent_node_id
+// cascades and a DM could otherwise fat-finger-delete a whole line of
+// planning.
 export function descendantCount(nodeId, nodes) {
   let count = 0
   for (const child of childNodes(nodes, nodeId)) {
