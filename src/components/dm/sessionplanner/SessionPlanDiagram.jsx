@@ -14,7 +14,9 @@ const CHAR_WIDTH = 6.5 // same rough auto-sizing estimate SkillTreeDiagram uses
 // new rendering machinery). Unlike skill names, real question sentences can
 // run long, so the label is capped via truncateForDiagram before sizing -
 // the full question is only shown in the detail panel and delete confirms.
-// Edges are unlabeled, matching SkillTreeDiagram.jsx exactly.
+// Edges are unlabeled (matching SkillTreeDiagram.jsx), except for a dashed
+// vs solid style marking whether the child is an obstacle or a plain "then"
+// next step - see is_obstacle in NodeAnswerForm.jsx.
 export default function SessionPlanDiagram({ nodes, selectedNodeId, onNodeClick }) {
   const layout = useMemo(() => {
     const g = new dagre.graphlib.Graph()
@@ -30,15 +32,15 @@ export default function SessionPlanDiagram({ nodes, selectedNodeId, onNodeClick 
     for (const n of nodes) {
       if (!n.parent_node_id || !g.hasNode(n.parent_node_id)) continue
       g.setEdge(n.parent_node_id, n.id)
-      edges.push([n.parent_node_id, n.id])
+      edges.push([n.parent_node_id, n.id, n.is_obstacle])
     }
 
     dagre.layout(g)
 
     const laidOutNodes = nodes.map((n) => ({ ...n, ...g.node(n.id) }))
-    const laidOutEdges = edges.map(([from, to]) => {
+    const laidOutEdges = edges.map(([from, to, isObstacle]) => {
       const edge = g.edge(from, to)
-      return { from, to, points: edge.points }
+      return { from, to, isObstacle, points: edge.points }
     })
     const graphInfo = g.graph()
     return { nodes: laidOutNodes, edges: laidOutEdges, width: graphInfo.width ?? 0, height: graphInfo.height ?? 0 }
@@ -54,7 +56,7 @@ export default function SessionPlanDiagram({ nodes, selectedNodeId, onNodeClick 
         {layout.edges.map((e, i) => (
           <polyline
             key={i}
-            className="session-plan-diagram-edge"
+            className={`session-plan-diagram-edge${e.isObstacle ? '' : ' then'}`}
             points={e.points.map((p) => `${p.x},${p.y}`).join(' ')}
             fill="none"
           />

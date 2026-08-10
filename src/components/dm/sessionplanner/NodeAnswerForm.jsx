@@ -4,21 +4,25 @@ import { useCategories } from '../../../contexts/CategoryContext'
 import { useDraftAutosave } from '../../../hooks/useDraftAutosave'
 import EntryPicker from './EntryPicker'
 
-// Answer a question, and name the obstacles standing in the way of that
-// answer - each obstacle becomes a brand new child question node, verbatim.
-// Always operates on an already-existing node (the 3 anchor roots are
-// created up front, every other node is born as a child of some obstacle
-// list) - there's no separate "create a blank node" mode. The obstacle
-// inputs always start blank, even when re-editing an already-answered node
-// with existing children: they only ever add *new* children, previously-
-// spawned obstacles are edited by selecting them directly in the tree.
+// Answer a question, and say what happens next - each next-step becomes a
+// brand new child question node, verbatim. Not every next step is an
+// obstacle (something standing in the way); some are just the plain next
+// beat, no complication attached. Each row is flagged as one or the other,
+// purely for the diagram/detail-panel's rendering (dashed vs solid edge) -
+// the underlying question/answer mechanics are identical either way.
+// Always operates on an already-existing node (the anchor root is created
+// up front, every other node is born as a next-step of some parent) -
+// there's no separate "create a blank node" mode. The next-step inputs
+// always start blank, even when re-editing an already-answered node with
+// existing children: they only ever add *new* children, previously-spawned
+// ones are edited by selecting them directly in the tree.
 export default function NodeAnswerForm({ planId, campaignId, node, existingChildCount, onSaved, onCancel }) {
   const { categories } = useCategories()
   const isRoot = node.parent_node_id === null
 
   const [questionText, setQuestionText] = useState(node.question)
   const [answer, setAnswer] = useState(node.answer ?? '')
-  const [obstacles, setObstacles] = useState([''])
+  const [nextSteps, setNextSteps] = useState([{ text: '', isObstacle: true }])
   const [referencedEntry, setReferencedEntry] = useState(null)
   const [showEntryPicker, setShowEntryPicker] = useState(false)
   const [newEntryTitle, setNewEntryTitle] = useState('')
@@ -41,29 +45,33 @@ export default function NodeAnswerForm({ planId, campaignId, node, existingChild
       })
   }, [node.referenced_entry_id])
 
-  function setObstacleAt(i, value) {
-    setObstacles((rows) => rows.map((r, idx) => (idx === i ? value : r)))
+  function setNextStepText(i, text) {
+    setNextSteps((rows) => rows.map((r, idx) => (idx === i ? { ...r, text } : r)))
   }
 
-  function addObstacleRow() {
-    setObstacles((rows) => [...rows, ''])
+  function setNextStepIsObstacle(i, isObstacle) {
+    setNextSteps((rows) => rows.map((r, idx) => (idx === i ? { ...r, isObstacle } : r)))
   }
 
-  function removeObstacleRow(i) {
-    setObstacles((rows) => rows.filter((_, idx) => idx !== i))
+  function addNextStepRow() {
+    setNextSteps((rows) => [...rows, { text: '', isObstacle: true }])
+  }
+
+  function removeNextStepRow(i) {
+    setNextSteps((rows) => rows.filter((_, idx) => idx !== i))
   }
 
   // Protects whatever's mid-typing in this question's form. Cleared the
   // moment it actually saves.
   const draftKey = `session-plan-node-draft-${planId}-${node.id}`
-  const draftValue = { questionText, answer, obstacles }
+  const draftValue = { questionText, answer, nextSteps }
   const { pendingDraft, clearDraft } = useDraftAutosave(draftKey, draftValue)
   const [draftPromptDismissed, setDraftPromptDismissed] = useState(false)
 
   function restoreDraft() {
     setQuestionText(pendingDraft.value.questionText)
     setAnswer(pendingDraft.value.answer)
-    setObstacles(pendingDraft.value.obstacles)
+    setNextSteps(pendingDraft.value.nextSteps)
     setDraftPromptDismissed(true)
   }
 
@@ -115,13 +123,14 @@ export default function NodeAnswerForm({ planId, campaignId, node, existingChild
       return
     }
 
-    const newObstacles = obstacles.map((o) => o.trim()).filter(Boolean)
-    if (newObstacles.length > 0) {
+    const newSteps = nextSteps.map((s) => ({ ...s, text: s.text.trim() })).filter((s) => s.text)
+    if (newSteps.length > 0) {
       const { error: insertError } = await supabase.from('session_plan_nodes').insert(
-        newObstacles.map((question, i) => ({
+        newSteps.map((s, i) => ({
           plan_id: planId,
           parent_node_id: node.id,
-          question,
+          question: s.text,
+          is_obstacle: s.isObstacle,
           sort_order: existingChildCount + i,
         }))
       )
@@ -170,20 +179,36 @@ export default function NodeAnswerForm({ planId, campaignId, node, existingChild
       </label>
 
       <div className="dm-form-row">
-        <span>Obstacles (each becomes the next question)</span>
-        {obstacles.map((o, i) => (
+        <span>What happens next (each becomes the next question)</span>
+        {nextSteps.map((step, i) => (
           <div key={i} className="entry-picker-row">
-            <input value={o} onChange={(e) => setObstacleAt(i, e.target.value)} placeholder="An obstacle..." />
-            {obstacles.length > 1 && (
-              <button type="button" className="secondary" onClick={() => removeObstacleRow(i)}>
+            <input
+              value={step.text}
+              onChange={(e) => setNextStepText(i, e.target.value)}
+              placeholder="What happens next..."
+            />
+            <label className="node-next-step-obstacle-toggle">
+              <input
+                type="checkbox"
+                checked={step.isObstacle}
+                onChange={(e) => setNextStepIsObstacle(i, e.target.checked)}
+              />
+              Obstacle
+            </label>
+            {nextSteps.length > 1 && (
+              <button type="button" className="secondary" onClick={() => removeNextStepRow(i)}>
                 Remove
               </button>
             )}
           </div>
         ))}
+        <p className="dm-list-meta">
+          Check "Obstacle" if it's something standing in the way of the answer. Leave it unchecked
+          for a plain next step with no complication.
+        </p>
         <div className="dm-form-actions">
-          <button type="button" className="secondary" onClick={addObstacleRow}>
-            + Add another obstacle
+          <button type="button" className="secondary" onClick={addNextStepRow}>
+            + Add another
           </button>
         </div>
       </div>

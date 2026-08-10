@@ -145,13 +145,14 @@ export default function SessionPlanEditorPage() {
             )}
             {childrenOfSelected.length > 0 && (
               <div>
-                <p className="dm-list-meta">Obstacles raised here:</p>
+                <p className="dm-list-meta">What happens next:</p>
                 <ul className="dm-list">
                   {childrenOfSelected.map((child) => (
                     <li key={child.id}>
                       <button type="button" className="link-button" onClick={() => setSelectedNodeId(child.id)}>
                         {child.question}
                       </button>
+                      <span className="dm-list-meta">{child.is_obstacle ? 'Obstacle' : 'Then'}</span>
                     </li>
                   ))}
                 </ul>

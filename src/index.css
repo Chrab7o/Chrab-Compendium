@@ -2165,6 +2165,10 @@ button.tree-label:hover {
   stroke-width: 1.5;
 }
 
+.session-plan-diagram-edge.then {
+  stroke-dasharray: 5 4;
+}
+
 .session-plan-diagram-node {
   fill: var(--surface-2);
   stroke: var(--border);
@@ -2223,6 +2227,18 @@ button.tree-label:hover {
 
 .entry-picker-row input {
   flex: 1;
+}
+
+.node-next-step-obstacle-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex: none;
+  white-space: nowrap;
+}
+
+.node-next-step-obstacle-toggle input {
+  flex: none;
 }
 
 .entry-picker-results {
