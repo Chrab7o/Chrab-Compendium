@@ -4,18 +4,19 @@ import { useCategories } from '../../../contexts/CategoryContext'
 import { useDraftAutosave } from '../../../hooks/useDraftAutosave'
 import EntryPicker from './EntryPicker'
 
-// Answer a question, and say what happens next - each next-step becomes a
-// brand new child question node, verbatim. Not every next step is an
-// obstacle (something standing in the way); some are just the plain next
-// beat, no complication attached. Each row is flagged as one or the other,
-// purely for the diagram/detail-panel's rendering (dashed vs solid edge) -
-// the underlying question/answer mechanics are identical either way.
-// Always operates on an already-existing node (the anchor root is created
-// up front, every other node is born as a next-step of some parent) -
-// there's no separate "create a blank node" mode. The next-step inputs
-// always start blank, even when re-editing an already-answered node with
-// existing children: they only ever add *new* children, previously-spawned
-// ones are edited by selecting them directly in the tree.
+// Answer a question, and say what leads to it - working backward from the
+// end, each lead-in step becomes a brand new child question node, verbatim.
+// Not every lead-in is an obstacle (something standing between the party
+// and this point); some are just the plain step before it, no complication
+// attached. Each row is flagged as one or the other, purely for the
+// diagram/detail-panel's rendering (dashed vs solid edge) - the underlying
+// question/answer mechanics are identical either way. Always operates on an
+// already-existing node (the anchor root is created up front, every other
+// node is born as a lead-in step of some parent, or a branch - see
+// BranchForm.jsx) - there's no separate "create a blank node" mode here.
+// The lead-in inputs always start blank, even when re-editing an already-
+// answered node with existing children: they only ever add *new* children,
+// previously-spawned ones are edited by selecting them directly in the tree.
 export default function NodeAnswerForm({ planId, campaignId, node, existingChildCount, onSaved, onCancel }) {
   const { categories } = useCategories()
   const isRoot = node.parent_node_id === null
@@ -179,13 +180,13 @@ export default function NodeAnswerForm({ planId, campaignId, node, existingChild
       </label>
 
       <div className="dm-form-row">
-        <span>What happens next (each becomes the next question)</span>
+        <span>What leads to this (each becomes the next question back)</span>
         {nextSteps.map((step, i) => (
           <div key={i} className="entry-picker-row">
             <input
               value={step.text}
               onChange={(e) => setNextStepText(i, e.target.value)}
-              placeholder="What happens next..."
+              placeholder="What happens right before this..."
             />
             <label className="node-next-step-obstacle-toggle">
               <input
@@ -203,8 +204,8 @@ export default function NodeAnswerForm({ planId, campaignId, node, existingChild
           </div>
         ))}
         <p className="dm-list-meta">
-          Check "Obstacle" if it's something standing in the way of the answer. Leave it unchecked
-          for a plain next step with no complication.
+          Check "Obstacle" if it's something standing between the party and this outcome. Leave it
+          unchecked for a plain step that leads here with no complication.
         </p>
         <div className="dm-form-actions">
           <button type="button" className="secondary" onClick={addNextStepRow}>

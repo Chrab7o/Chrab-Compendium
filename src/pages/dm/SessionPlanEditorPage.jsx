@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabaseClient'
 import { childNodes, descendantCount, isAnswered } from '../../lib/sessionPlanner'
 import SessionPlanDiagram from '../../components/dm/sessionplanner/SessionPlanDiagram'
 import NodeAnswerForm from '../../components/dm/sessionplanner/NodeAnswerForm'
+import BranchForm from '../../components/dm/sessionplanner/BranchForm'
 import SessionNotesPanel from '../../components/dm/sessionplanner/SessionNotesPanel'
 
 const STATUS_OPTIONS = [
@@ -20,7 +21,8 @@ export default function SessionPlanEditorPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [selectedNodeId, setSelectedNodeId] = useState(null)
-  const [editing, setEditing] = useState(false)
+  // null = viewing; 'edit' = full answer form; 'branch' = quick add-a-branch form.
+  const [formMode, setFormMode] = useState(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -73,15 +75,15 @@ export default function SessionPlanEditorPage() {
 
   function handleNodeClick(node) {
     setSelectedNodeId((current) => (current === node.id ? null : node.id))
-    setEditing(false)
+    setFormMode(null)
   }
 
   function closeForm() {
-    setEditing(false)
+    setFormMode(null)
   }
 
   function afterSave() {
-    setEditing(false)
+    setFormMode(null)
     load()
   }
 
@@ -114,7 +116,7 @@ export default function SessionPlanEditorPage() {
       <div className="session-plan-layout">
         <SessionPlanDiagram nodes={nodes} selectedNodeId={selectedNodeId} onNodeClick={handleNodeClick} />
 
-        {editing && selectedNode && (
+        {formMode === 'edit' && selectedNode && (
           <NodeAnswerForm
             planId={id}
             campaignId={plan.campaign_id}
@@ -125,7 +127,17 @@ export default function SessionPlanEditorPage() {
           />
         )}
 
-        {selectedNode && !editing && (
+        {formMode === 'branch' && selectedNode && (
+          <BranchForm
+            planId={id}
+            parentNodeId={selectedNode.id}
+            existingChildCount={childrenOfSelected.length}
+            onSaved={afterSave}
+            onCancel={closeForm}
+          />
+        )}
+
+        {selectedNode && !formMode && (
           <aside className="region-panel">
             <div className="region-panel-header">
               <h2>{selectedNode.question}</h2>
@@ -145,7 +157,7 @@ export default function SessionPlanEditorPage() {
             )}
             {childrenOfSelected.length > 0 && (
               <div>
-                <p className="dm-list-meta">What happens next:</p>
+                <p className="dm-list-meta">Leads to this:</p>
                 <ul className="dm-list">
                   {childrenOfSelected.map((child) => (
                     <li key={child.id}>
@@ -159,8 +171,11 @@ export default function SessionPlanEditorPage() {
               </div>
             )}
             <div className="dm-form-actions">
-              <button type="button" onClick={() => setEditing(true)}>
+              <button type="button" onClick={() => setFormMode('edit')}>
                 Edit
+              </button>
+              <button type="button" className="secondary" onClick={() => setFormMode('branch')}>
+                + Branch
               </button>
               {selectedNode.parent_node_id !== null && (
                 <button type="button" className="danger" onClick={() => handleDeleteNode(selectedNode)}>
