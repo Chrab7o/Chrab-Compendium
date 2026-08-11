@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabaseClient'
-import { childNodes, descendantCount, isAnswered } from '../../lib/sessionPlanner'
+import { childNodes, descendantCount, isAnswered, contentTypeInfo } from '../../lib/sessionPlanner'
 import SessionPlanDiagram from '../../components/dm/sessionplanner/SessionPlanDiagram'
 import NodeAnswerForm from '../../components/dm/sessionplanner/NodeAnswerForm'
 import BranchForm from '../../components/dm/sessionplanner/BranchForm'
@@ -145,10 +145,11 @@ export default function SessionPlanEditorPage() {
                 Close
               </button>
             </div>
+            <p className="dm-list-meta">{contentTypeInfo(selectedNode.content_type).label}</p>
             {isAnswered(selectedNode) ? (
               <p>{selectedNode.answer}</p>
             ) : (
-              <p className="status-message">Not answered yet.</p>
+              <p className="status-message">{contentTypeInfo(selectedNode.content_type).emptyBodyLabel}</p>
             )}
             {selectedNode.referenced_entry_id && (
               <p>
@@ -164,7 +165,9 @@ export default function SessionPlanEditorPage() {
                       <button type="button" className="link-button" onClick={() => setSelectedNodeId(child.id)}>
                         {child.question}
                       </button>
-                      <span className="dm-list-meta">{child.is_obstacle ? 'Obstacle' : 'Then'}</span>
+                      <span className="dm-list-meta">
+                        {contentTypeInfo(child.content_type).label} · {child.is_obstacle ? 'Obstacle' : 'Then'}
+                      </span>
                     </li>
                   ))}
                 </ul>

@@ -12,6 +12,27 @@ export function isAnswered(node) {
   return Boolean(node.answer?.trim())
 }
 
+// Prefab content types, layered on top of the question/answer tree rather
+// than replacing it - a node's `question`/`answer` columns are just
+// relabeled per type (titleLabel/bodyLabel) rather than needing their own
+// columns, since every type here is "one title + one free-text block."
+// defaultIsObstacle is only a UI default applied when a DM picks this type
+// for a new child row - the is_obstacle flag itself stays independently
+// editable, since it's a different axis (how this node connects to its
+// parent) from content_type (what kind of content this node holds).
+export const CONTENT_TYPES = [
+  { key: 'question', label: 'Question', titleLabel: 'Question', bodyLabel: 'Answer', emptyBodyLabel: 'Not answered yet.', defaultIsObstacle: true },
+  { key: 'location', label: 'Location', titleLabel: 'Location name', bodyLabel: 'Description', emptyBodyLabel: 'No description yet.', defaultIsObstacle: false },
+  { key: 'event', label: 'Event', titleLabel: 'Event', bodyLabel: 'What happens', emptyBodyLabel: 'No details yet.', defaultIsObstacle: false },
+  { key: 'travel', label: 'Travel', titleLabel: 'Travel', bodyLabel: 'Details', emptyBodyLabel: 'No details yet.', defaultIsObstacle: false },
+  { key: 'obstacle', label: 'Obstacle', titleLabel: 'Obstacle', bodyLabel: 'Details', emptyBodyLabel: 'No details yet.', defaultIsObstacle: true },
+  { key: 'note', label: 'Note', titleLabel: 'Note', bodyLabel: 'Details', emptyBodyLabel: 'No details yet.', defaultIsObstacle: false },
+]
+
+export function contentTypeInfo(contentType) {
+  return CONTENT_TYPES.find((t) => t.key === contentType) ?? CONTENT_TYPES[0]
+}
+
 // SVG <text> doesn't wrap or ellipsize on its own - unlike the short
 // single-word skill names SkillTreeDiagram was built for, real question/
 // obstacle sentences need an explicit cap so dagre cards stay a sane width.

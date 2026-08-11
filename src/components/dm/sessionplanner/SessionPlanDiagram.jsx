@@ -16,7 +16,9 @@ const CHAR_WIDTH = 6.5 // same rough auto-sizing estimate SkillTreeDiagram uses
 // the full question is only shown in the detail panel and delete confirms.
 // Edges are unlabeled (matching SkillTreeDiagram.jsx), except for a dashed
 // vs solid style marking whether the child is an obstacle or a plain "then"
-// next step - see is_obstacle in NodeAnswerForm.jsx.
+// next step - see is_obstacle in NodeAnswerForm.jsx. Card border color marks
+// the node's content_type (Location/Event/Travel/Obstacle/Note vs. the
+// default plain Question) - see the .type-* rules in index.css.
 export default function SessionPlanDiagram({ nodes, selectedNodeId, onNodeClick }) {
   const layout = useMemo(() => {
     const g = new dagre.graphlib.Graph()
@@ -25,8 +27,9 @@ export default function SessionPlanDiagram({ nodes, selectedNodeId, onNodeClick 
 
     for (const n of nodes) {
       const label = truncateForDiagram(n.question)
-      const width = Math.max(NODE_WIDTH, label.length * CHAR_WIDTH + 24)
-      g.setNode(n.id, { label, answered: isAnswered(n), width, height: NODE_HEIGHT })
+      const statusText = isAnswered(n) ? 'Answered' : 'Not answered'
+      const width = Math.max(NODE_WIDTH, Math.max(label.length, statusText.length) * CHAR_WIDTH + 24)
+      g.setNode(n.id, { label, answered: isAnswered(n), contentType: n.content_type, width, height: NODE_HEIGHT })
     }
     const edges = []
     for (const n of nodes) {
@@ -86,7 +89,7 @@ export default function SessionPlanDiagram({ nodes, selectedNodeId, onNodeClick 
                 width={n.width}
                 height={n.height}
                 rx={8}
-                className={`session-plan-diagram-node${selected ? ' selected' : ''}`}
+                className={`session-plan-diagram-node type-${n.contentType}${selected ? ' selected' : ''}`}
               />
               <text x={n.width / 2} y={n.height / 2 - 6} textAnchor="middle" className="session-plan-diagram-label">
                 {n.label}

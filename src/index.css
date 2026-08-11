@@ -2175,6 +2175,30 @@ button.tree-label:hover {
   stroke-width: 1.5;
 }
 
+.session-plan-diagram-node.type-location {
+  stroke: var(--accent-purple-strong);
+  stroke-width: 2.5;
+}
+
+.session-plan-diagram-node.type-event {
+  stroke: var(--accent-2-strong);
+  stroke-width: 2.5;
+}
+
+.session-plan-diagram-node.type-travel {
+  stroke: var(--accent-strong);
+  stroke-width: 2.5;
+}
+
+.session-plan-diagram-node.type-obstacle {
+  stroke: var(--danger);
+  stroke-width: 2.5;
+}
+
+.session-plan-diagram-node.type-note {
+  stroke: var(--text-muted);
+}
+
 .session-plan-diagram-node-group.clickable {
   cursor: pointer;
 }
