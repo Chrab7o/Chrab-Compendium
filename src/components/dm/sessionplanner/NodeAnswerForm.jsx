@@ -5,23 +5,23 @@ import { useDraftAutosave } from '../../../hooks/useDraftAutosave'
 import { CONTENT_TYPES, contentTypeInfo } from '../../../lib/sessionPlanner'
 import EntryPicker from './EntryPicker'
 
-// Fill in a scene's content, and say what leads to it - working backward
-// from the end, each lead-in step becomes a brand new child scene,
+// Fill in a scene's content, and say what happens next - working forward
+// from where the party is, each next step becomes a brand new child scene,
 // verbatim. Every scene shares location/characters/purpose regardless of
 // type; the title/body fields on top of that double as different things
 // depending on its content_type (a plain Question's "answer" vs. an
 // Encounter's "details") - same two columns underneath, just relabeled per
 // type with a type-specific inspiration hint, see CONTENT_TYPES in
-// sessionPlanner.js. Not every lead-in is an obstacle
-// (something standing between the party and this point); some are just the
-// plain step before it, no complication attached. Each row is flagged as
-// one or the other, purely for the diagram/detail-panel's rendering (dashed
-// vs solid edge) - the underlying mechanics are identical either way.
-// Always operates on an already-existing node (the anchor root is created
-// up front, every other node is born as a lead-in step of some parent, or a
+// sessionPlanner.js. Not every next step is an obstacle (something standing
+// between the party and what comes after); some are just the plain step
+// forward, no complication attached. Each row is flagged as one or the
+// other, purely for the diagram/detail-panel's rendering (dashed vs solid
+// edge) - the underlying mechanics are identical either way. Always
+// operates on an already-existing node (the anchor root is created up
+// front, every other node is born as a next step of some parent, or a
 // branch - see BranchForm.jsx) - there's no separate "create a blank node"
-// mode here. The lead-in inputs always start blank, even when re-editing an
-// already-answered node with existing children: they only ever add *new*
+// mode here. The next-step inputs always start blank, even when re-editing
+// an already-answered node with existing children: they only ever add *new*
 // children, previously-spawned ones are edited by selecting them directly
 // in the tree.
 export default function NodeAnswerForm({ planId, campaignId, node, existingChildCount, onSaved, onCancel }) {
@@ -242,13 +242,13 @@ export default function NodeAnswerForm({ planId, campaignId, node, existingChild
       </label>
 
       <div className="dm-form-row">
-        <span>What leads to this (each becomes the next node back)</span>
+        <span>What happens next (each becomes the next scene)</span>
         {nextSteps.map((step, i) => (
           <div key={i} className="entry-picker-row">
             <input
               value={step.text}
               onChange={(e) => setNextStepText(i, e.target.value)}
-              placeholder="What happens right before this..."
+              placeholder="What happens next..."
             />
             <select value={step.contentType} onChange={(e) => setNextStepContentType(i, e.target.value)}>
               {CONTENT_TYPES.map((t) => (
@@ -273,8 +273,8 @@ export default function NodeAnswerForm({ planId, campaignId, node, existingChild
           </div>
         ))}
         <p className="dm-list-meta">
-          Check "Obstacle" if it's something standing between the party and this outcome. Leave it
-          unchecked for a plain step that leads here with no complication.
+          Check "Obstacle" if it's something standing in the way of what comes next. Leave it
+          unchecked for a plain step forward with no complication.
         </p>
         <div className="dm-form-actions">
           <button type="button" className="secondary" onClick={addNextStepRow}>

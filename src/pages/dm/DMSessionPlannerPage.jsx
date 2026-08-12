@@ -69,9 +69,8 @@ export default function DMSessionPlannerPage() {
       <div className="view-header">
         <h1>Session Planner</h1>
         <p className="view-subtitle">
-          Every plan starts at the end: where do they end up? Answer it, then work backward — an
-          obstacle standing in the way, or just the step before it — and it becomes the next
-          question.
+          Every plan starts with where the party is now. Answer it, then say what happens next —
+          an obstacle in the way, or just the next scene — and it becomes the next question.
         </p>
       </div>
 

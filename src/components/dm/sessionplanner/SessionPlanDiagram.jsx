@@ -17,12 +17,17 @@ const CHAR_WIDTH = 6.5 // same rough auto-sizing estimate SkillTreeDiagram uses
 // Edges are unlabeled (matching SkillTreeDiagram.jsx), except for a dashed
 // vs solid style marking whether the child is an obstacle or a plain "then"
 // next step - see is_obstacle in NodeAnswerForm.jsx. Card border color marks
-// the node's content_type (Location/Event/Travel/Obstacle/Note vs. the
-// default plain Question) - see the .type-* rules in index.css.
+// the node's content_type - see the .type-* rules in index.css. Laid out
+// left-to-right (rankdir: 'LR') rather than top-to-bottom, matching the
+// forward-in-time reading of the plan (start on the left, later scenes to
+// the right) - rendered at its natural pixel size (not scaled to fit the
+// container) since a long session's scene chain can run wide; the
+// container scrolls horizontally instead of shrinking text down, see
+// .session-plan-diagram in index.css.
 export default function SessionPlanDiagram({ nodes, selectedNodeId, onNodeClick }) {
   const layout = useMemo(() => {
     const g = new dagre.graphlib.Graph()
-    g.setGraph({ rankdir: 'TB', nodesep: 24, ranksep: 90 })
+    g.setGraph({ rankdir: 'LR', nodesep: 24, ranksep: 90 })
     g.setDefaultEdgeLabel(() => ({}))
 
     for (const n of nodes) {
@@ -55,7 +60,7 @@ export default function SessionPlanDiagram({ nodes, selectedNodeId, onNodeClick 
 
   return (
     <div className="session-plan-diagram">
-      <svg viewBox={`0 0 ${layout.width} ${layout.height}`} style={{ maxWidth: layout.width }}>
+      <svg viewBox={`0 0 ${layout.width} ${layout.height}`} width={layout.width} height={layout.height}>
         {layout.edges.map((e, i) => (
           <polyline
             key={i}

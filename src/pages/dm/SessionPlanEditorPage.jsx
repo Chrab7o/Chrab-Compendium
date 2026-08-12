@@ -169,7 +169,7 @@ export default function SessionPlanEditorPage() {
             )}
             {childrenOfSelected.length > 0 && (
               <div>
-                <p className="dm-list-meta">Leads to this:</p>
+                <p className="dm-list-meta">What happens next:</p>
                 <ul className="dm-list">
                   {childrenOfSelected.map((child) => (
                     <li key={child.id}>

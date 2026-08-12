@@ -1,12 +1,12 @@
-// Question-driven session planning, worked backward from the end: every
-// node is a question with an optional answer. A plan always starts with
-// this one fixed anchor question as its root node (see
+// Question-driven session planning, worked forward from where the party
+// currently is: every node is a question with an optional answer. A plan
+// always starts with this one fixed anchor question as its root node (see
 // DMSessionPlannerPage.jsx, which inserts it at plan-creation time) -
-// planning starts from where the party ends up, then each child node names
-// what has to happen (an obstacle, or a plain lead-in step) to arrive at
-// its parent, working backward toward wherever the party currently is. See
+// planning starts from wherever the party is right now (the end goal isn't
+// always known up front), then each child node names what happens next (an
+// obstacle, or a plain lead-in step) working forward from its parent. See
 // NodeAnswerForm.jsx and BranchForm.jsx for how child nodes get created.
-export const ANCHOR_QUESTION = 'Where do they end up?'
+export const ANCHOR_QUESTION = 'Where do they start?'
 
 export function isAnswered(node) {
   return Boolean(node.answer?.trim())

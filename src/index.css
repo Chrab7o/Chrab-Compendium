@@ -2151,13 +2151,12 @@ button.tree-label:hover {
   background: var(--bg);
   margin-bottom: 1rem;
   box-shadow: var(--shadow-sm);
+  overflow-x: auto;
 }
 
 .session-plan-diagram svg {
   display: block;
   margin: 0 auto;
-  width: 100%;
-  height: auto;
 }
 
 .session-plan-diagram-edge {
