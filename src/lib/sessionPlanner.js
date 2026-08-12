@@ -12,21 +12,89 @@ export function isAnswered(node) {
   return Boolean(node.answer?.trim())
 }
 
-// Prefab content types, layered on top of the question/answer tree rather
-// than replacing it - a node's `question`/`answer` columns are just
-// relabeled per type (titleLabel/bodyLabel) rather than needing their own
-// columns, since every type here is "one title + one free-text block."
-// defaultIsObstacle is only a UI default applied when a DM picks this type
-// for a new child row - the is_obstacle flag itself stays independently
-// editable, since it's a different axis (how this node connects to its
-// parent) from content_type (what kind of content this node holds).
+// Every node is a scene: at minimum it has a location, characters, and a
+// purpose (see the `location`/`characters`/`purpose` columns, shown on
+// every node regardless of type - nobody's forced to fill them in). Beyond
+// that shared shape, a scene type just relabels the question/answer columns
+// (titleLabel/bodyLabel) and supplies a `hint` - inspiration placeholder
+// text shown in the Details box - rather than needing type-specific columns
+// of its own. defaultIsObstacle is only a UI default applied when a DM
+// picks this type for a new child row - the is_obstacle flag itself stays
+// independently editable, since it's a different axis (how this node
+// connects to its parent) from content_type (what kind of scene it is).
 export const CONTENT_TYPES = [
-  { key: 'question', label: 'Question', titleLabel: 'Question', bodyLabel: 'Answer', emptyBodyLabel: 'Not answered yet.', defaultIsObstacle: true },
-  { key: 'location', label: 'Location', titleLabel: 'Location name', bodyLabel: 'Description', emptyBodyLabel: 'No description yet.', defaultIsObstacle: false },
-  { key: 'event', label: 'Event', titleLabel: 'Event', bodyLabel: 'What happens', emptyBodyLabel: 'No details yet.', defaultIsObstacle: false },
-  { key: 'travel', label: 'Travel', titleLabel: 'Travel', bodyLabel: 'Details', emptyBodyLabel: 'No details yet.', defaultIsObstacle: false },
-  { key: 'obstacle', label: 'Obstacle', titleLabel: 'Obstacle', bodyLabel: 'Details', emptyBodyLabel: 'No details yet.', defaultIsObstacle: true },
-  { key: 'note', label: 'Note', titleLabel: 'Note', bodyLabel: 'Details', emptyBodyLabel: 'No details yet.', defaultIsObstacle: false },
+  {
+    key: 'question',
+    label: 'Question',
+    titleLabel: 'Question',
+    bodyLabel: 'Answer',
+    emptyBodyLabel: 'Not answered yet.',
+    hint: '',
+    defaultIsObstacle: true,
+  },
+  {
+    key: 'encounter',
+    label: 'Encounter',
+    titleLabel: 'Encounter',
+    bodyLabel: 'Details',
+    emptyBodyLabel: 'No details yet.',
+    hint: 'Consider: the threat, the terrain, an escape or negotiation option, what makes this fight distinct.',
+    defaultIsObstacle: true,
+  },
+  {
+    key: 'conversation',
+    label: 'Conversation',
+    titleLabel: 'Conversation',
+    bodyLabel: 'Details',
+    emptyBodyLabel: 'No details yet.',
+    hint: "Consider: what this person wants, what they're hiding, their attitude going in.",
+    defaultIsObstacle: false,
+  },
+  {
+    key: 'puzzle',
+    label: 'Puzzle',
+    titleLabel: 'Puzzle',
+    bodyLabel: 'Details',
+    emptyBodyLabel: 'No details yet.',
+    hint: 'Consider: the mechanism, the solution, what happens on failure.',
+    defaultIsObstacle: true,
+  },
+  {
+    key: 'decision',
+    label: 'Decision',
+    titleLabel: 'Decision',
+    bodyLabel: 'Details',
+    emptyBodyLabel: 'No details yet.',
+    hint: "Consider: the likely choices, whether a \"wrong\" choice is actually fine.",
+    defaultIsObstacle: false,
+  },
+  {
+    key: 'downtime',
+    label: 'Downtime',
+    titleLabel: 'Downtime',
+    bodyLabel: 'Details',
+    emptyBodyLabel: 'No details yet.',
+    hint: 'Consider: what past thread this ties to, the follow-up hook.',
+    defaultIsObstacle: false,
+  },
+  {
+    key: 'travel',
+    label: 'Travel',
+    titleLabel: 'Travel',
+    bodyLabel: 'Details',
+    emptyBodyLabel: 'No details yet.',
+    hint: "Consider: checks required, pacing, what's encountered along the way.",
+    defaultIsObstacle: false,
+  },
+  {
+    key: 'note',
+    label: 'Note',
+    titleLabel: 'Note',
+    bodyLabel: 'Details',
+    emptyBodyLabel: 'No details yet.',
+    hint: '',
+    defaultIsObstacle: false,
+  },
 ]
 
 export function contentTypeInfo(contentType) {

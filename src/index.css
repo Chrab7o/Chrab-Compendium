@@ -2175,27 +2175,28 @@ button.tree-label:hover {
   stroke-width: 1.5;
 }
 
-.session-plan-diagram-node.type-location {
-  stroke: var(--accent-purple-strong);
-  stroke-width: 2.5;
-}
-
-.session-plan-diagram-node.type-event {
-  stroke: var(--accent-2-strong);
-  stroke-width: 2.5;
-}
-
-.session-plan-diagram-node.type-travel {
-  stroke: var(--accent-strong);
-  stroke-width: 2.5;
-}
-
-.session-plan-diagram-node.type-obstacle {
+.session-plan-diagram-node.type-encounter {
   stroke: var(--danger);
   stroke-width: 2.5;
 }
 
-.session-plan-diagram-node.type-note {
+.session-plan-diagram-node.type-conversation {
+  stroke: var(--accent-2-strong);
+  stroke-width: 2.5;
+}
+
+.session-plan-diagram-node.type-puzzle {
+  stroke: var(--accent-purple-strong);
+  stroke-width: 2.5;
+}
+
+.session-plan-diagram-node.type-decision {
+  stroke: var(--accent-strong);
+  stroke-width: 2.5;
+}
+
+.session-plan-diagram-node.type-downtime,
+.session-plan-diagram-node.type-travel {
   stroke: var(--text-muted);
 }
 

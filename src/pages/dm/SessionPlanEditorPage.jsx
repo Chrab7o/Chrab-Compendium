@@ -146,6 +146,17 @@ export default function SessionPlanEditorPage() {
               </button>
             </div>
             <p className="dm-list-meta">{contentTypeInfo(selectedNode.content_type).label}</p>
+            {(selectedNode.location || selectedNode.characters || selectedNode.purpose) && (
+              <p className="dm-list-meta">
+                {[
+                  selectedNode.location && `Location: ${selectedNode.location}`,
+                  selectedNode.characters && `Characters: ${selectedNode.characters}`,
+                  selectedNode.purpose && `Purpose: ${selectedNode.purpose}`,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </p>
+            )}
             {isAnswered(selectedNode) ? (
               <p>{selectedNode.answer}</p>
             ) : (

@@ -5,12 +5,14 @@ import { useDraftAutosave } from '../../../hooks/useDraftAutosave'
 import { CONTENT_TYPES, contentTypeInfo } from '../../../lib/sessionPlanner'
 import EntryPicker from './EntryPicker'
 
-// Fill in a node's content, and say what leads to it - working backward
-// from the end, each lead-in step becomes a brand new child node, verbatim.
-// A node's title/body fields double as different things depending on its
-// content_type (a plain Question's "answer" vs. a Location's
-// "description") - same two columns underneath, just relabeled per type,
-// see CONTENT_TYPES in sessionPlanner.js. Not every lead-in is an obstacle
+// Fill in a scene's content, and say what leads to it - working backward
+// from the end, each lead-in step becomes a brand new child scene,
+// verbatim. Every scene shares location/characters/purpose regardless of
+// type; the title/body fields on top of that double as different things
+// depending on its content_type (a plain Question's "answer" vs. an
+// Encounter's "details") - same two columns underneath, just relabeled per
+// type with a type-specific inspiration hint, see CONTENT_TYPES in
+// sessionPlanner.js. Not every lead-in is an obstacle
 // (something standing between the party and this point); some are just the
 // plain step before it, no complication attached. Each row is flagged as
 // one or the other, purely for the diagram/detail-panel's rendering (dashed
@@ -28,6 +30,9 @@ export default function NodeAnswerForm({ planId, campaignId, node, existingChild
 
   const [contentType, setContentType] = useState(node.content_type ?? 'question')
   const [questionText, setQuestionText] = useState(node.question)
+  const [location, setLocation] = useState(node.location ?? '')
+  const [characters, setCharacters] = useState(node.characters ?? '')
+  const [purpose, setPurpose] = useState(node.purpose ?? '')
   const [answer, setAnswer] = useState(node.answer ?? '')
   const [nextSteps, setNextSteps] = useState([{ text: '', contentType: 'question', isObstacle: true }])
   const [referencedEntry, setReferencedEntry] = useState(null)
@@ -79,13 +84,16 @@ export default function NodeAnswerForm({ planId, campaignId, node, existingChild
   // Protects whatever's mid-typing in this node's form. Cleared the moment
   // it actually saves.
   const draftKey = `session-plan-node-draft-${planId}-${node.id}`
-  const draftValue = { contentType, questionText, answer, nextSteps }
+  const draftValue = { contentType, questionText, location, characters, purpose, answer, nextSteps }
   const { pendingDraft, clearDraft } = useDraftAutosave(draftKey, draftValue)
   const [draftPromptDismissed, setDraftPromptDismissed] = useState(false)
 
   function restoreDraft() {
     setContentType(pendingDraft.value.contentType)
     setQuestionText(pendingDraft.value.questionText)
+    setLocation(pendingDraft.value.location ?? '')
+    setCharacters(pendingDraft.value.characters ?? '')
+    setPurpose(pendingDraft.value.purpose ?? '')
     setAnswer(pendingDraft.value.answer)
     setNextSteps(pendingDraft.value.nextSteps)
     setDraftPromptDismissed(true)
@@ -129,11 +137,15 @@ export default function NodeAnswerForm({ planId, campaignId, node, existingChild
     setSaving(true)
     setError(null)
 
-    const updates = { answer: answer.trim() || null, referenced_entry_id: referencedEntry?.id ?? null }
-    if (!isRoot) {
-      updates.question = questionText.trim()
-      updates.content_type = contentType
+    const updates = {
+      answer: answer.trim() || null,
+      location: location.trim() || null,
+      characters: characters.trim() || null,
+      purpose: purpose.trim() || null,
+      content_type: contentType,
+      referenced_entry_id: referencedEntry?.id ?? null,
     }
+    if (!isRoot) updates.question = questionText.trim()
 
     const { error: updateError } = await supabase.from('session_plan_nodes').update(updates).eq('id', node.id)
     if (updateError) {
@@ -182,32 +194,51 @@ export default function NodeAnswerForm({ planId, campaignId, node, existingChild
         </div>
       )}
 
+      <label>
+        Type
+        <select value={contentType} onChange={(e) => setContentType(e.target.value)}>
+          {CONTENT_TYPES.map((t) => (
+            <option key={t.key} value={t.key}>
+              {t.label}
+            </option>
+          ))}
+        </select>
+      </label>
+
       {isRoot ? (
         <p>
           <strong>{node.question}</strong>
         </p>
       ) : (
-        <>
-          <label>
-            Type
-            <select value={contentType} onChange={(e) => setContentType(e.target.value)}>
-              {CONTENT_TYPES.map((t) => (
-                <option key={t.key} value={t.key}>
-                  {t.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            {typeInfo.titleLabel} (fix wording if needed)
-            <input value={questionText} onChange={(e) => setQuestionText(e.target.value)} required autoFocus />
-          </label>
-        </>
+        <label>
+          {typeInfo.titleLabel} (fix wording if needed)
+          <input value={questionText} onChange={(e) => setQuestionText(e.target.value)} required autoFocus />
+        </label>
       )}
+
+      <div className="dm-form-row">
+        <label>
+          Location
+          <input value={location} onChange={(e) => setLocation(e.target.value)} />
+        </label>
+        <label>
+          Characters
+          <input value={characters} onChange={(e) => setCharacters(e.target.value)} />
+        </label>
+        <label>
+          Purpose
+          <input value={purpose} onChange={(e) => setPurpose(e.target.value)} />
+        </label>
+      </div>
 
       <label>
         {typeInfo.bodyLabel}
-        <textarea value={answer} onChange={(e) => setAnswer(e.target.value)} rows={3} />
+        <textarea
+          value={answer}
+          onChange={(e) => setAnswer(e.target.value)}
+          rows={3}
+          placeholder={typeInfo.hint}
+        />
       </label>
 
       <div className="dm-form-row">
