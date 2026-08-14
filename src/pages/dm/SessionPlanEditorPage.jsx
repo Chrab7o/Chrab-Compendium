@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabaseClient'
-import { childNodes, descendantCount, isAnswered, contentTypeInfo } from '../../lib/sessionPlanner'
+import { childConnections, isAnswered, contentTypeInfo } from '../../lib/sessionPlanner'
 import SessionPlanDiagram from '../../components/dm/sessionplanner/SessionPlanDiagram'
 import NodeAnswerForm from '../../components/dm/sessionplanner/NodeAnswerForm'
 import BranchForm from '../../components/dm/sessionplanner/BranchForm'
@@ -18,6 +18,7 @@ export default function SessionPlanEditorPage() {
   const navigate = useNavigate()
   const [plan, setPlan] = useState(null)
   const [nodes, setNodes] = useState([])
+  const [edges, setEdges] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [selectedNodeId, setSelectedNodeId] = useState(null)
@@ -26,9 +27,10 @@ export default function SessionPlanEditorPage() {
 
   const load = useCallback(async () => {
     setLoading(true)
-    const [{ data: planData, error: planError }, { data: nodeData }] = await Promise.all([
+    const [{ data: planData, error: planError }, { data: nodeData }, { data: edgeData }] = await Promise.all([
       supabase.from('session_plans').select('*').eq('id', id).single(),
       supabase.from('session_plan_nodes').select('*').eq('plan_id', id),
+      supabase.from('session_plan_edges').select('*').eq('plan_id', id),
     ])
     if (planError) {
       setError(planError.message)
@@ -37,6 +39,7 @@ export default function SessionPlanEditorPage() {
     }
     setPlan(planData)
     setNodes(nodeData ?? [])
+    setEdges(edgeData ?? [])
     setLoading(false)
   }, [id])
 
@@ -51,17 +54,17 @@ export default function SessionPlanEditorPage() {
   }
 
   async function handleDeletePlan() {
-    if (!confirm('Delete this entire session plan? This removes every question in it.')) return
+    if (!confirm('Delete this entire session plan? This removes every scene in it.')) return
     const { error: deleteError } = await supabase.from('session_plans').delete().eq('id', id)
     if (deleteError) setError(deleteError.message)
     else navigate('/dm/session-planner')
   }
 
   async function handleDeleteNode(node) {
-    const descendants = descendantCount(node.id, nodes)
+    const connectionCount = childConnections(nodes, edges, node.id).length
     const warning =
-      descendants > 0
-        ? `Delete "${node.question}"? This also deletes ${descendants} question${descendants === 1 ? '' : 's'} under it.`
+      connectionCount > 0
+        ? `Delete "${node.question}"? This removes its ${connectionCount} outgoing connection${connectionCount === 1 ? '' : 's'} too - scenes on the other end stay, unless this was their only path in, in which case they're left disconnected rather than deleted.`
         : `Delete "${node.question}"?`
     if (!confirm(warning)) return
     const { error: deleteError } = await supabase.from('session_plan_nodes').delete().eq('id', node.id)
@@ -71,6 +74,13 @@ export default function SessionPlanEditorPage() {
     }
     setSelectedNodeId(null)
     load()
+  }
+
+  async function handleUnlink(edge) {
+    if (!confirm('Remove this connection? The scene itself stays, just disconnected from here.')) return
+    const { error: deleteError } = await supabase.from('session_plan_edges').delete().eq('id', edge.id)
+    if (deleteError) setError(deleteError.message)
+    else load()
   }
 
   function handleNodeClick(node) {
@@ -91,7 +101,8 @@ export default function SessionPlanEditorPage() {
   if (!plan) return <p className="status-message error">{error ?? 'Plan not found.'}</p>
 
   const selectedNode = nodes.find((n) => n.id === selectedNodeId) ?? null
-  const childrenOfSelected = selectedNode ? childNodes(nodes, selectedNode.id) : []
+  const isRootSelected = selectedNode ? selectedNode.id === plan.root_node_id : false
+  const childrenOfSelected = selectedNode ? childConnections(nodes, edges, selectedNode.id) : []
 
   return (
     <section className="page-wide">
@@ -114,13 +125,16 @@ export default function SessionPlanEditorPage() {
       {error && <p className="status-message error">{error}</p>}
 
       <div className="session-plan-layout">
-        <SessionPlanDiagram nodes={nodes} selectedNodeId={selectedNodeId} onNodeClick={handleNodeClick} />
+        <SessionPlanDiagram nodes={nodes} edges={edges} selectedNodeId={selectedNodeId} onNodeClick={handleNodeClick} />
 
         {formMode === 'edit' && selectedNode && (
           <NodeAnswerForm
             planId={id}
             campaignId={plan.campaign_id}
             node={selectedNode}
+            nodes={nodes}
+            edges={edges}
+            isRoot={isRootSelected}
             existingChildCount={childrenOfSelected.length}
             onSaved={afterSave}
             onCancel={closeForm}
@@ -131,6 +145,8 @@ export default function SessionPlanEditorPage() {
           <BranchForm
             planId={id}
             parentNodeId={selectedNode.id}
+            nodes={nodes}
+            edges={edges}
             existingChildCount={childrenOfSelected.length}
             onSaved={afterSave}
             onCancel={closeForm}
@@ -171,14 +187,17 @@ export default function SessionPlanEditorPage() {
               <div>
                 <p className="dm-list-meta">What happens next:</p>
                 <ul className="dm-list">
-                  {childrenOfSelected.map((child) => (
-                    <li key={child.id}>
+                  {childrenOfSelected.map(({ edge, node: child }) => (
+                    <li key={edge.id}>
                       <button type="button" className="link-button" onClick={() => setSelectedNodeId(child.id)}>
                         {child.question}
                       </button>
                       <span className="dm-list-meta">
-                        {contentTypeInfo(child.content_type).label} · {child.is_obstacle ? 'Obstacle' : 'Then'}
+                        {contentTypeInfo(child.content_type).label} · {edge.is_obstacle ? 'Obstacle' : 'Then'}
                       </span>
+                      <button type="button" className="link-button" onClick={() => handleUnlink(edge)}>
+                        Unlink
+                      </button>
                     </li>
                   ))}
                 </ul>
@@ -191,7 +210,7 @@ export default function SessionPlanEditorPage() {
               <button type="button" className="secondary" onClick={() => setFormMode('branch')}>
                 + Branch
               </button>
-              {selectedNode.parent_node_id !== null && (
+              {!isRootSelected && (
                 <button type="button" className="danger" onClick={() => handleDeleteNode(selectedNode)}>
                   Delete
                 </button>

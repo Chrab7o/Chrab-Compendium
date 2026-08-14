@@ -42,21 +42,33 @@ export default function DMSessionPlannerPage() {
       setError(insertError.message)
       return
     }
-    const { error: nodesError } = await supabase
+    const { data: rootNode, error: nodeError } = await supabase
       .from('session_plan_nodes')
-      .insert({ plan_id: planData.id, parent_node_id: null, question: ANCHOR_QUESTION, sort_order: 0 })
-    setCreating(false)
-    if (nodesError) {
+      .insert({ plan_id: planData.id, question: ANCHOR_QUESTION })
+      .select()
+      .single()
+    if (nodeError) {
       // Don't leave a plan with no anchor and no UI left to add one - roll back.
+      setCreating(false)
       await supabase.from('session_plans').delete().eq('id', planData.id)
-      setError(nodesError.message)
+      setError(nodeError.message)
+      return
+    }
+    const { error: rootLinkError } = await supabase
+      .from('session_plans')
+      .update({ root_node_id: rootNode.id })
+      .eq('id', planData.id)
+    setCreating(false)
+    if (rootLinkError) {
+      await supabase.from('session_plans').delete().eq('id', planData.id)
+      setError(rootLinkError.message)
       return
     }
     navigate(`/dm/session-planner/${planData.id}`)
   }
 
   async function handleDelete(id) {
-    if (!confirm('Delete this session plan? This removes every beat in it.')) return
+    if (!confirm('Delete this session plan? This removes every scene in it.')) return
     const { error: deleteError } = await supabase.from('session_plans').delete().eq('id', id)
     if (deleteError) setError(deleteError.message)
     else load()

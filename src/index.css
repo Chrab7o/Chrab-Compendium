@@ -2265,6 +2265,14 @@ button.tree-label:hover {
   flex: none;
 }
 
+.node-next-step-row {
+  margin-bottom: 0.75rem;
+}
+
+.node-next-step-row .entry-picker-row {
+  margin-bottom: 0.5rem;
+}
+
 .entry-picker-results {
   list-style: none;
   margin: 0;

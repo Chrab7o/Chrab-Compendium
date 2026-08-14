@@ -2,31 +2,48 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabaseClient'
 import { useCategories } from '../../../contexts/CategoryContext'
 import { useDraftAutosave } from '../../../hooks/useDraftAutosave'
-import { CONTENT_TYPES, contentTypeInfo } from '../../../lib/sessionPlanner'
+import { CONTENT_TYPES, contentTypeInfo, wouldCreateCycle } from '../../../lib/sessionPlanner'
 import EntryPicker from './EntryPicker'
+import NodePicker from './NodePicker'
+
+function emptyNextStep() {
+  return { mode: 'new', text: '', contentType: 'question', existingNodeId: null, isObstacle: true }
+}
 
 // Fill in a scene's content, and say what happens next - working forward
-// from where the party is, each next step becomes a brand new child scene,
-// verbatim. Every scene shares location/characters/purpose regardless of
-// type; the title/body fields on top of that double as different things
-// depending on its content_type (a plain Question's "answer" vs. an
-// Encounter's "details") - same two columns underneath, just relabeled per
-// type with a type-specific inspiration hint, see CONTENT_TYPES in
-// sessionPlanner.js. Not every next step is an obstacle (something standing
-// between the party and what comes after); some are just the plain step
-// forward, no complication attached. Each row is flagged as one or the
-// other, purely for the diagram/detail-panel's rendering (dashed vs solid
-// edge) - the underlying mechanics are identical either way. Always
-// operates on an already-existing node (the anchor root is created up
-// front, every other node is born as a next step of some parent, or a
+// from where the party is, each next step becomes a connection (a
+// session_plan_edges row) to another scene. That scene is usually a brand
+// new one (typed in, created alongside the edge), but a next step can
+// instead link to an *existing* scene elsewhere in the plan - the way two
+// different obstacles end up leading to the same next scene, since the
+// plan is a DAG (see childConnections/wouldCreateCycle in
+// sessionPlanner.js), not a strict tree. Every scene shares
+// location/characters/purpose regardless of type; the title/body fields on
+// top of that double as different things depending on its content_type (a
+// plain Question's "answer" vs. an Encounter's "details") - same two
+// columns underneath, just relabeled per type with a type-specific
+// inspiration hint, see CONTENT_TYPES in sessionPlanner.js. Not every next
+// step is an obstacle (something standing between the party and what comes
+// after); some are just the plain step forward, no complication attached.
+// Always operates on an already-existing node (the anchor root is created
+// up front, every other node is born as a next step of some parent, or a
 // branch - see BranchForm.jsx) - there's no separate "create a blank node"
 // mode here. The next-step inputs always start blank, even when re-editing
-// an already-answered node with existing children: they only ever add *new*
-// children, previously-spawned ones are edited by selecting them directly
-// in the tree.
-export default function NodeAnswerForm({ planId, campaignId, node, existingChildCount, onSaved, onCancel }) {
+// an already-answered node with existing children: they only ever add
+// *new* connections, previously-made ones are edited/removed directly from
+// the tree (see SessionPlanEditorPage's Unlink action).
+export default function NodeAnswerForm({
+  planId,
+  campaignId,
+  node,
+  nodes,
+  edges,
+  isRoot,
+  existingChildCount,
+  onSaved,
+  onCancel,
+}) {
   const { categories } = useCategories()
-  const isRoot = node.parent_node_id === null
 
   const [contentType, setContentType] = useState(node.content_type ?? 'question')
   const [questionText, setQuestionText] = useState(node.question)
@@ -34,7 +51,8 @@ export default function NodeAnswerForm({ planId, campaignId, node, existingChild
   const [characters, setCharacters] = useState(node.characters ?? '')
   const [purpose, setPurpose] = useState(node.purpose ?? '')
   const [answer, setAnswer] = useState(node.answer ?? '')
-  const [nextSteps, setNextSteps] = useState([{ text: '', contentType: 'question', isObstacle: true }])
+  const [nextSteps, setNextSteps] = useState([emptyNextStep()])
+  const [pickingForRow, setPickingForRow] = useState(null)
   const [referencedEntry, setReferencedEntry] = useState(null)
   const [showEntryPicker, setShowEntryPicker] = useState(false)
   const [newEntryTitle, setNewEntryTitle] = useState('')
@@ -59,26 +77,38 @@ export default function NodeAnswerForm({ planId, campaignId, node, existingChild
       })
   }, [node.referenced_entry_id])
 
+  function updateStep(i, patch) {
+    setNextSteps((rows) => rows.map((r, idx) => (idx === i ? { ...r, ...patch } : r)))
+  }
+
   function setNextStepText(i, text) {
-    setNextSteps((rows) => rows.map((r, idx) => (idx === i ? { ...r, text } : r)))
+    updateStep(i, { text })
   }
 
   function setNextStepContentType(i, type) {
-    setNextSteps((rows) =>
-      rows.map((r, idx) => (idx === i ? { ...r, contentType: type, isObstacle: contentTypeInfo(type).defaultIsObstacle } : r))
-    )
+    updateStep(i, { contentType: type, isObstacle: contentTypeInfo(type).defaultIsObstacle })
   }
 
   function setNextStepIsObstacle(i, isObstacle) {
-    setNextSteps((rows) => rows.map((r, idx) => (idx === i ? { ...r, isObstacle } : r)))
+    updateStep(i, { isObstacle })
+  }
+
+  function setNextStepMode(i, mode) {
+    updateStep(i, { mode, text: '', existingNodeId: null })
+  }
+
+  function chooseExistingForRow(i, existingNode) {
+    updateStep(i, { existingNodeId: existingNode.id })
+    setPickingForRow(null)
   }
 
   function addNextStepRow() {
-    setNextSteps((rows) => [...rows, { text: '', contentType: 'question', isObstacle: true }])
+    setNextSteps((rows) => [...rows, emptyNextStep()])
   }
 
   function removeNextStepRow(i) {
     setNextSteps((rows) => rows.filter((_, idx) => idx !== i))
+    if (pickingForRow === i) setPickingForRow(null)
   }
 
   // Protects whatever's mid-typing in this node's form. Cleared the moment
@@ -95,7 +125,7 @@ export default function NodeAnswerForm({ planId, campaignId, node, existingChild
     setCharacters(pendingDraft.value.characters ?? '')
     setPurpose(pendingDraft.value.purpose ?? '')
     setAnswer(pendingDraft.value.answer)
-    setNextSteps(pendingDraft.value.nextSteps)
+    setNextSteps(pendingDraft.value.nextSteps ?? [emptyNextStep()])
     setDraftPromptDismissed(true)
   }
 
@@ -134,6 +164,16 @@ export default function NodeAnswerForm({ planId, campaignId, node, existingChild
       setError(`${typeInfo.titleLabel} can't be empty.`)
       return
     }
+
+    const activeSteps = nextSteps.filter((s) => (s.mode === 'new' ? s.text.trim() : s.existingNodeId))
+    for (const step of activeSteps) {
+      if (step.mode === 'existing' && wouldCreateCycle(edges, node.id, step.existingNodeId)) {
+        const target = nodes.find((n) => n.id === step.existingNodeId)
+        setError(`Linking to "${target?.question ?? 'that scene'}" would create a loop - it already leads back to this scene.`)
+        return
+      }
+    }
+
     setSaving(true)
     setError(null)
 
@@ -154,21 +194,34 @@ export default function NodeAnswerForm({ planId, campaignId, node, existingChild
       return
     }
 
-    const newSteps = nextSteps.map((s) => ({ ...s, text: s.text.trim() })).filter((s) => s.text)
-    if (newSteps.length > 0) {
-      const { error: insertError } = await supabase.from('session_plan_nodes').insert(
-        newSteps.map((s, i) => ({
-          plan_id: planId,
-          parent_node_id: node.id,
-          question: s.text,
-          content_type: s.contentType,
-          is_obstacle: s.isObstacle,
-          sort_order: existingChildCount + i,
-        }))
-      )
-      if (insertError) {
+    const newRows = activeSteps.filter((s) => s.mode === 'new')
+    let newNodeIds = []
+    if (newRows.length > 0) {
+      const { data: inserted, error: insertNodesError } = await supabase
+        .from('session_plan_nodes')
+        .insert(newRows.map((s) => ({ plan_id: planId, question: s.text.trim(), content_type: s.contentType })))
+        .select()
+      if (insertNodesError) {
         setSaving(false)
-        setError(insertError.message)
+        setError(insertNodesError.message)
+        return
+      }
+      newNodeIds = inserted.map((n) => n.id)
+    }
+
+    let newRowCursor = 0
+    const edgeRows = activeSteps.map((s, i) => ({
+      plan_id: planId,
+      from_node_id: node.id,
+      to_node_id: s.mode === 'new' ? newNodeIds[newRowCursor++] : s.existingNodeId,
+      is_obstacle: s.isObstacle,
+      sort_order: existingChildCount + i,
+    }))
+    if (edgeRows.length > 0) {
+      const { error: edgeError } = await supabase.from('session_plan_edges').insert(edgeRows)
+      if (edgeError) {
+        setSaving(false)
+        setError(edgeError.message)
         return
       }
     }
@@ -242,39 +295,64 @@ export default function NodeAnswerForm({ planId, campaignId, node, existingChild
       </label>
 
       <div className="dm-form-row">
-        <span>What happens next (each becomes the next scene)</span>
+        <span>What happens next (each becomes a connection to another scene)</span>
         {nextSteps.map((step, i) => (
-          <div key={i} className="entry-picker-row">
-            <input
-              value={step.text}
-              onChange={(e) => setNextStepText(i, e.target.value)}
-              placeholder="What happens next..."
-            />
-            <select value={step.contentType} onChange={(e) => setNextStepContentType(i, e.target.value)}>
-              {CONTENT_TYPES.map((t) => (
-                <option key={t.key} value={t.key}>
-                  {t.label}
-                </option>
-              ))}
-            </select>
-            <label className="node-next-step-obstacle-toggle">
-              <input
-                type="checkbox"
-                checked={step.isObstacle}
-                onChange={(e) => setNextStepIsObstacle(i, e.target.checked)}
+          <div key={i} className="node-next-step-row">
+            <div className="entry-picker-row">
+              <select value={step.mode} onChange={(e) => setNextStepMode(i, e.target.value)}>
+                <option value="new">New scene</option>
+                <option value="existing">Existing scene</option>
+              </select>
+              {step.mode === 'new' ? (
+                <>
+                  <input
+                    value={step.text}
+                    onChange={(e) => setNextStepText(i, e.target.value)}
+                    placeholder="What happens next..."
+                  />
+                  <select value={step.contentType} onChange={(e) => setNextStepContentType(i, e.target.value)}>
+                    {CONTENT_TYPES.map((t) => (
+                      <option key={t.key} value={t.key}>
+                        {t.label}
+                      </option>
+                    ))}
+                  </select>
+                </>
+              ) : (
+                <button type="button" className="secondary" onClick={() => setPickingForRow(i)}>
+                  {step.existingNodeId
+                    ? nodes.find((n) => n.id === step.existingNodeId)?.question ?? 'Choose a scene...'
+                    : 'Choose a scene...'}
+                </button>
+              )}
+              <label className="node-next-step-obstacle-toggle">
+                <input
+                  type="checkbox"
+                  checked={step.isObstacle}
+                  onChange={(e) => setNextStepIsObstacle(i, e.target.checked)}
+                />
+                Obstacle
+              </label>
+              {nextSteps.length > 1 && (
+                <button type="button" className="secondary" onClick={() => removeNextStepRow(i)}>
+                  Remove
+                </button>
+              )}
+            </div>
+            {step.mode === 'existing' && pickingForRow === i && (
+              <NodePicker
+                nodes={nodes}
+                excludeNodeId={node.id}
+                onSelect={(picked) => chooseExistingForRow(i, picked)}
+                onCancel={() => setPickingForRow(null)}
               />
-              Obstacle
-            </label>
-            {nextSteps.length > 1 && (
-              <button type="button" className="secondary" onClick={() => removeNextStepRow(i)}>
-                Remove
-              </button>
             )}
           </div>
         ))}
         <p className="dm-list-meta">
           Check "Obstacle" if it's something standing in the way of what comes next. Leave it
-          unchecked for a plain step forward with no complication.
+          unchecked for a plain step forward with no complication. Pick "Existing scene" to connect
+          to a scene that's already elsewhere in this plan, instead of creating a new one.
         </p>
         <div className="dm-form-actions">
           <button type="button" className="secondary" onClick={addNextStepRow}>

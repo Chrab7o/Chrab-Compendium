@@ -111,22 +111,46 @@ export function truncateForDiagram(text, maxChars = 40) {
   return trimmed.length > maxChars ? `${trimmed.slice(0, maxChars - 1)}…` : trimmed
 }
 
-// Same single-parent filter+sort shape as skillTrees.js's childNodes -
-// siblings ordered by sort_order, ties broken by id (stable, always defined).
-export function childNodes(nodes, parentId) {
-  return nodes
-    .filter((n) => (n.parent_node_id ?? null) === parentId)
+// The plan is a DAG, not a strict tree - a scene can have more than one
+// incoming connection (two different obstacles both leading to the same
+// next scene), stored as rows in session_plan_edges rather than a single
+// parent_node_id column. Returns {edge, node} pairs (not bare nodes) so
+// callers can read the connection's own is_obstacle/sort_order alongside
+// the scene it points to, ordered by sort_order then edge id (stable).
+export function childConnections(nodes, edges, fromNodeId) {
+  const nodeById = new Map(nodes.map((n) => [n.id, n]))
+  return edges
+    .filter((e) => e.from_node_id === fromNodeId)
     .sort((a, b) => a.sort_order - b.sort_order || a.id.localeCompare(b.id))
+    .map((edge) => ({ edge, node: nodeById.get(edge.to_node_id) }))
+    .filter((c) => c.node)
 }
 
-// Walks the full subtree under nodeId - used to warn "this will also delete
-// N questions under it" before a destructive delete, since parent_node_id
-// cascades and a DM could otherwise fat-finger-delete a whole line of
-// planning.
-export function descendantCount(nodeId, nodes) {
-  let count = 0
-  for (const child of childNodes(nodes, nodeId)) {
-    count += 1 + descendantCount(child.id, nodes)
+// All node ids reachable by following edges forward from startId (not
+// including startId itself unless a cycle loops back to it) - the basis for
+// cycle detection below.
+function reachableFrom(edges, startId) {
+  const visited = new Set()
+  const stack = [startId]
+  while (stack.length > 0) {
+    const current = stack.pop()
+    for (const edge of edges) {
+      if (edge.from_node_id === current && !visited.has(edge.to_node_id)) {
+        visited.add(edge.to_node_id)
+        stack.push(edge.to_node_id)
+      }
+    }
   }
-  return count
+  return visited
+}
+
+// Linking fromNodeId -> toNodeId would create a cycle if toNodeId can
+// already reach fromNodeId (directly or transitively) - i.e. toNodeId is
+// already upstream of fromNodeId, so the new edge would close a loop. Used
+// before saving a "link to an existing scene" connection, since a real
+// cycle would break both the forward-planning mental model and dagre's
+// layered layout.
+export function wouldCreateCycle(edges, fromNodeId, toNodeId) {
+  if (fromNodeId === toNodeId) return true
+  return reachableFrom(edges, toNodeId).has(fromNodeId)
 }
