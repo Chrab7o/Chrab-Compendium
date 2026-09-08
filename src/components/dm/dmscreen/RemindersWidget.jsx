@@ -1,58 +1,109 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../../../lib/supabaseClient'
+import CharacterPicker from './CharacterPicker'
 
-// One freeform note per character, changes rarely - not session-scoped, not
-// reset between sessions. Debounced straight to Supabase on each edit; no
-// existing hook fits this (useDraftAutosave is localStorage-only, built for
-// draft recovery, with no Supabase-writing code path), so this is a small
-// ad-hoc per-character debounce.
-export default function RemindersWidget({ campaignId }) {
-  const [characters, setCharacters] = useState([])
+// A DM-picked list of characters/NPCs, each with a freeform note that
+// changes rarely - not auto-populated from a campaign anymore, the DM adds
+// exactly who they want to track. Subject membership lives in the widget's
+// own config ({ subjects: [{type, id}] }); the note text itself lives in
+// the shared dm_reminder_notes table (keyed by subject_type+subject_id) so
+// it's tied to the person, not to this one widget instance, and removing
+// someone from this widget doesn't discard what was written about them.
+export default function RemindersWidget({ config, onConfigChange }) {
+  const subjects = config?.subjects ?? []
+  const [names, setNames] = useState({})
   const [notes, setNotes] = useState({})
   const [loading, setLoading] = useState(true)
+  const [picking, setPicking] = useState(false)
   const timers = useRef({})
 
   useEffect(() => {
-    if (!campaignId) return
+    if (subjects.length === 0) {
+      setNames({})
+      setNotes({})
+      setLoading(false)
+      return
+    }
     setLoading(true)
-    supabase
-      .from('characters')
-      .select('id, name, dm_note')
-      .eq('campaign_id', campaignId)
-      .order('name')
-      .then(({ data }) => {
-        setCharacters(data ?? [])
-        setNotes(Object.fromEntries((data ?? []).map((c) => [c.id, c.dm_note ?? ''])))
-        setLoading(false)
-      })
-  }, [campaignId])
+    const characterIds = subjects.filter((s) => s.type === 'character').map((s) => s.id)
+    const entryIds = subjects.filter((s) => s.type === 'entry').map((s) => s.id)
+    Promise.all([
+      characterIds.length ? supabase.from('characters').select('id, name').in('id', characterIds) : Promise.resolve({ data: [] }),
+      entryIds.length ? supabase.from('entries').select('id, title').in('id', entryIds) : Promise.resolve({ data: [] }),
+      supabase.from('dm_reminder_notes').select('subject_type, subject_id, note').in(
+        'subject_id',
+        subjects.map((s) => s.id)
+      ),
+    ]).then(([{ data: chars }, { data: entries }, { data: noteRows }]) => {
+      const nameMap = {}
+      ;(chars ?? []).forEach((c) => (nameMap[`character:${c.id}`] = c.name))
+      ;(entries ?? []).forEach((e) => (nameMap[`entry:${e.id}`] = e.title))
+      setNames(nameMap)
+      const noteMap = {}
+      ;(noteRows ?? []).forEach((n) => (noteMap[`${n.subject_type}:${n.subject_id}`] = n.note))
+      setNotes(noteMap)
+      setLoading(false)
+    })
+  }, [JSON.stringify(subjects)])
 
-  function handleChange(characterId, value) {
-    setNotes((n) => ({ ...n, [characterId]: value }))
-    clearTimeout(timers.current[characterId])
-    timers.current[characterId] = setTimeout(() => {
-      supabase.from('characters').update({ dm_note: value }).eq('id', characterId)
+  function handleAddSubject(picked) {
+    onConfigChange({ subjects: [...subjects, { type: picked.type, id: picked.id }] })
+    setPicking(false)
+  }
+
+  function handleRemoveSubject(type, id) {
+    onConfigChange({ subjects: subjects.filter((s) => !(s.type === type && s.id === id)) })
+  }
+
+  function handleNoteChange(type, id, value) {
+    const key = `${type}:${id}`
+    setNotes((n) => ({ ...n, [key]: value }))
+    clearTimeout(timers.current[key])
+    timers.current[key] = setTimeout(() => {
+      supabase.from('dm_reminder_notes').upsert(
+        { subject_type: type, subject_id: id, note: value },
+        { onConflict: 'subject_type,subject_id' }
+      )
     }, 600)
   }
 
-  if (loading) return <p className="status-message">Loading...</p>
-  if (characters.length === 0) return <p className="status-message">No characters in this campaign yet.</p>
-
   return (
     <div className="dm-screen-widget-body dm-screen-reminders">
-      {characters.map((c) => (
-        <div key={c.id} className="dm-screen-reminder-row">
-          <label>
-            {c.name}
-            <textarea
-              value={notes[c.id] ?? ''}
-              onChange={(e) => handleChange(c.id, e.target.value)}
-              rows={2}
-              placeholder="Quick notes for this character..."
-            />
-          </label>
+      {loading ? (
+        <p className="status-message">Loading...</p>
+      ) : subjects.length === 0 ? (
+        <p className="status-message">No one added yet.</p>
+      ) : (
+        subjects.map((s) => {
+          const key = `${s.type}:${s.id}`
+          return (
+            <div key={key} className="dm-screen-reminder-row">
+              <label>
+                {names[key] ?? '...'}
+                <textarea
+                  value={notes[key] ?? ''}
+                  onChange={(e) => handleNoteChange(s.type, s.id, e.target.value)}
+                  rows={2}
+                  placeholder="Quick notes..."
+                />
+              </label>
+              <button type="button" className="link-button" onClick={() => handleRemoveSubject(s.type, s.id)}>
+                Remove
+              </button>
+            </div>
+          )
+        })
+      )}
+
+      {picking ? (
+        <CharacterPicker excludeSubjects={subjects} onSelect={handleAddSubject} onCancel={() => setPicking(false)} />
+      ) : (
+        <div className="dm-form-actions">
+          <button type="button" className="secondary" onClick={() => setPicking(true)}>
+            + Add character or NPC
+          </button>
         </div>
-      ))}
+      )}
     </div>
   )
 }

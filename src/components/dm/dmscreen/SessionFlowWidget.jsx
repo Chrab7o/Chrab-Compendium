@@ -6,7 +6,7 @@ import SessionPlanDiagram from '../sessionplanner/SessionPlanDiagram'
 // onNodeClick/selectedNodeId are both fully optional (every interactive
 // affordance in it is gated on onNodeClick being present), so omitting them
 // gives a genuinely inert render with no changes needed to that component.
-export default function SessionFlowWidget({ campaignId, config, onConfigChange }) {
+export default function SessionFlowWidget({ config, onConfigChange }) {
   const sessionPlanId = config?.sessionPlanId ?? null
   const [plans, setPlans] = useState([])
   const [selected, setSelected] = useState('')
@@ -17,14 +17,13 @@ export default function SessionFlowWidget({ campaignId, config, onConfigChange }
   const [error, setError] = useState(null)
 
   useEffect(() => {
-    if (sessionPlanId || !campaignId) return
+    if (sessionPlanId) return
     supabase
       .from('session_plans')
       .select('id, name')
-      .eq('campaign_id', campaignId)
       .order('updated_at', { ascending: false })
       .then(({ data }) => setPlans(data ?? []))
-  }, [sessionPlanId, campaignId])
+  }, [sessionPlanId])
 
   useEffect(() => {
     if (!sessionPlanId) return
@@ -65,7 +64,7 @@ export default function SessionFlowWidget({ campaignId, config, onConfigChange }
       <div className="dm-screen-widget-body">
         {error && <p className="status-message error">{error}</p>}
         {plans.length === 0 ? (
-          <p className="status-message">No session plans in this campaign yet.</p>
+          <p className="status-message">No session plans yet.</p>
         ) : (
           <div className="dm-form-row">
             <select value={selected} onChange={(e) => setSelected(e.target.value)}>

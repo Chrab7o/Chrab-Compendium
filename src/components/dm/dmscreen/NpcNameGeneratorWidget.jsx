@@ -4,8 +4,8 @@ import { useState } from 'react'
 // self-contained, no data files to maintain. Each style picks 2-3 syllables
 // from its own pools and stitches them together. Fully self-contained: no
 // Supabase calls, no persisted state - accepts (and ignores) the standard
-// campaignId/config/onConfigChange props so DMScreenPage's widget map can
-// treat every widget type uniformly.
+// config/onConfigChange props so DMScreenPage's widget map can treat every
+// widget type uniformly. Keeps only the 3 most recent names, not a long log.
 const STYLES = {
   Human: {
     prefix: ['Ar', 'Ber', 'Cal', 'Dor', 'Ed', 'Fen', 'Gar', 'Hal', 'Jor', 'Ken', 'Mar', 'Ros', 'Tal', 'Wil'],
@@ -48,7 +48,7 @@ export default function NpcNameGeneratorWidget() {
   function handleGenerate() {
     const name = generateName(style)
     setCurrent(name)
-    setHistory((h) => [name, ...h].slice(0, 10))
+    setHistory((h) => [name, ...h].slice(0, 3))
   }
 
   return (

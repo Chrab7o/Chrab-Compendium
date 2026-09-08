@@ -3,7 +3,6 @@ import { DndContext, closestCenter } from '@dnd-kit/core'
 import { SortableContext, arrayMove, useSortable, rectSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { supabase } from '../../lib/supabaseClient'
-import { useCampaignContext } from '../../contexts/CampaignContext'
 import { WIDGET_TYPES, widgetTypeInfo } from '../../lib/dmScreen'
 import NpcNameGeneratorWidget from '../../components/dm/dmscreen/NpcNameGeneratorWidget'
 import SessionFlowWidget from '../../components/dm/dmscreen/SessionFlowWidget'
@@ -42,7 +41,6 @@ function SortableWidgetCard({ id, title, onRemove, children }) {
 }
 
 export default function DMScreenPage() {
-  const { campaignId } = useCampaignContext()
   const [screens, setScreens] = useState([])
   const [activeScreenId, setActiveScreenId] = useState(null)
   const [widgets, setWidgets] = useState([])
@@ -55,24 +53,12 @@ export default function DMScreenPage() {
   const [addWidgetType, setAddWidgetType] = useState(WIDGET_TYPES[0].key)
 
   const loadScreens = useCallback(async () => {
-    if (!campaignId) {
-      setScreens([])
-      setActiveScreenId(null)
-      setLoadingScreens(false)
-      return
-    }
     setLoadingScreens(true)
-    const { data } = await supabase
-      .from('dm_screens')
-      .select('*')
-      .eq('campaign_id', campaignId)
-      .order('sort_order')
+    const { data } = await supabase.from('dm_screens').select('*').order('sort_order')
     setScreens(data ?? [])
-    // Switching campaigns must not leave a stale screen from the previous
-    // one selected - reset to this campaign's first screen (or none).
-    setActiveScreenId((data ?? [])[0]?.id ?? null)
+    setActiveScreenId((current) => current ?? (data ?? [])[0]?.id ?? null)
     setLoadingScreens(false)
-  }, [campaignId])
+  }, [])
 
   useEffect(() => {
     loadScreens()
@@ -102,7 +88,7 @@ export default function DMScreenPage() {
     if (!newScreenName.trim()) return
     const { data, error: insertError } = await supabase
       .from('dm_screens')
-      .insert({ campaign_id: campaignId, name: newScreenName.trim(), sort_order: screens.length })
+      .insert({ name: newScreenName.trim(), sort_order: screens.length })
       .select()
       .single()
     if (insertError) {
@@ -142,6 +128,7 @@ export default function DMScreenPage() {
       setError(deleteError.message)
       return
     }
+    setActiveScreenId(null)
     loadScreens()
   }
 
@@ -186,17 +173,6 @@ export default function DMScreenPage() {
     const reordered = arrayMove(widgets, oldIndex, newIndex)
     setWidgets(reordered)
     await Promise.all(reordered.map((w, i) => supabase.from('dm_screen_widgets').update({ sort_order: i }).eq('id', w.id)))
-  }
-
-  if (!campaignId) {
-    return (
-      <section className="page-wide">
-        <div className="view-header">
-          <h1>DM Screen</h1>
-        </div>
-        <p className="status-message">Select a campaign from the nav to use the DM Screen.</p>
-      </section>
-    )
   }
 
   if (loadingScreens) return <p className="status-message">Loading...</p>
@@ -293,7 +269,6 @@ export default function DMScreenPage() {
                         onRemove={() => handleRemoveWidget(widget.id)}
                       >
                         <Widget
-                          campaignId={campaignId}
                           config={widget.config}
                           onConfigChange={(newConfig) => handleConfigChange(widget.id, newConfig)}
                         />
@@ -308,7 +283,7 @@ export default function DMScreenPage() {
       )}
 
       {!activeScreen && screens.length === 0 && (
-        <p className="status-message">No screens yet for this campaign — add one above.</p>
+        <p className="status-message">No screens yet — add one above.</p>
       )}
     </section>
   )
