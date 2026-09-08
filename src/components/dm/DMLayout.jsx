@@ -13,6 +13,7 @@ const LINKS = [
   { to: '/dm/homebrew', label: 'Homebrew' },
   { to: '/dm/session-planner', label: 'Session Planner' },
   { to: '/dm/item-maker', label: 'Item Maker' },
+  { to: '/dm/screen', label: 'DM Screen' },
   { to: '/dm/notes', label: 'Player Notes' },
   { to: '/dm/import', label: 'Import' },
 ]
