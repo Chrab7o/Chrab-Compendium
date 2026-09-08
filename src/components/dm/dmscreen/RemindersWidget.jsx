@@ -55,17 +55,46 @@ export default function RemindersWidget({ config, onConfigChange }) {
     onConfigChange({ subjects: subjects.filter((s) => !(s.type === type && s.id === id)) })
   }
 
+  function commitNote(type, id, value) {
+    delete timers.current[`${type}:${id}`]
+    supabase.from('dm_reminder_notes').upsert(
+      { subject_type: type, subject_id: id, note: value },
+      { onConflict: 'subject_type,subject_id' }
+    )
+  }
+
   function handleNoteChange(type, id, value) {
     const key = `${type}:${id}`
     setNotes((n) => ({ ...n, [key]: value }))
-    clearTimeout(timers.current[key])
-    timers.current[key] = setTimeout(() => {
-      supabase.from('dm_reminder_notes').upsert(
-        { subject_type: type, subject_id: id, note: value },
-        { onConflict: 'subject_type,subject_id' }
-      )
-    }, 600)
+    clearTimeout(timers.current[key]?.timeoutId)
+    timers.current[key] = { value, timeoutId: setTimeout(() => commitNote(type, id, value), 600) }
   }
+
+  // Commit early on blur (don't make the DM wait out the debounce just by
+  // clicking away) and flush any still-pending debounced writes on unmount
+  // - without this, typing a note and then quickly reloading/navigating
+  // away (the most natural way to check "did that save?") loses the edit
+  // entirely, since the 600ms timer never gets the chance to fire.
+  function handleNoteBlur(type, id) {
+    const key = `${type}:${id}`
+    const pending = timers.current[key]
+    if (!pending) return
+    clearTimeout(pending.timeoutId)
+    commitNote(type, id, pending.value)
+  }
+
+  useEffect(() => {
+    return () => {
+      Object.entries(timers.current).forEach(([key, pending]) => {
+        clearTimeout(pending.timeoutId)
+        const [type, id] = key.split(':')
+        supabase.from('dm_reminder_notes').upsert(
+          { subject_type: type, subject_id: id, note: pending.value },
+          { onConflict: 'subject_type,subject_id' }
+        )
+      })
+    }
+  }, [])
 
   return (
     <div className="dm-screen-widget-body dm-screen-reminders">
@@ -93,6 +122,7 @@ export default function RemindersWidget({ config, onConfigChange }) {
               <textarea
                 value={notes[key] ?? ''}
                 onChange={(e) => handleNoteChange(s.type, s.id, e.target.value)}
+                onBlur={() => handleNoteBlur(s.type, s.id)}
                 rows={2}
                 placeholder="Quick notes..."
               />

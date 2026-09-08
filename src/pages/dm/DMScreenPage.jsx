@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { DndContext, closestCenter } from '@dnd-kit/core'
 import { SortableContext, arrayMove, useSortable, rectSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -40,9 +40,17 @@ function SortableWidgetCard({ id, title, onRemove, children }) {
   )
 }
 
+const ACTIVE_SCREEN_STORAGE_KEY = 'chrab-corner-dm-screen-active-id'
+
 export default function DMScreenPage() {
   const [screens, setScreens] = useState([])
-  const [activeScreenId, setActiveScreenId] = useState(null)
+  // Persisted so reloading the page (the natural way to check "did that
+  // save?") doesn't always jump back to the first screen by sort_order,
+  // hiding whichever screen you were actually working on.
+  const [activeScreenId, setActiveScreenIdState] = useState(
+    () => localStorage.getItem(ACTIVE_SCREEN_STORAGE_KEY) || null
+  )
+  const activeScreenIdRef = useRef(activeScreenId)
   const [widgets, setWidgets] = useState([])
   const [loadingScreens, setLoadingScreens] = useState(true)
   const [loadingWidgets, setLoadingWidgets] = useState(false)
@@ -52,11 +60,26 @@ export default function DMScreenPage() {
   const [renameValue, setRenameValue] = useState('')
   const [addWidgetType, setAddWidgetType] = useState(WIDGET_TYPES[0].key)
 
+  function setActiveScreenId(id) {
+    setActiveScreenIdState(id)
+    if (id) localStorage.setItem(ACTIVE_SCREEN_STORAGE_KEY, id)
+    else localStorage.removeItem(ACTIVE_SCREEN_STORAGE_KEY)
+  }
+
+  useEffect(() => {
+    activeScreenIdRef.current = activeScreenId
+  }, [activeScreenId])
+
   const loadScreens = useCallback(async () => {
     setLoadingScreens(true)
     const { data } = await supabase.from('dm_screens').select('*').order('sort_order')
-    setScreens(data ?? [])
-    setActiveScreenId((current) => current ?? (data ?? [])[0]?.id ?? null)
+    const loaded = data ?? []
+    setScreens(loaded)
+    // Keep the persisted selection if it still exists; a deleted/stale one
+    // falls back to the first screen, same as the original no-selection case.
+    const current = activeScreenIdRef.current
+    const stillValid = current && loaded.some((s) => s.id === current)
+    setActiveScreenId(stillValid ? current : (loaded[0]?.id ?? null))
     setLoadingScreens(false)
   }, [])
 
@@ -128,6 +151,7 @@ export default function DMScreenPage() {
       setError(deleteError.message)
       return
     }
+    activeScreenIdRef.current = null
     setActiveScreenId(null)
     loadScreens()
   }
