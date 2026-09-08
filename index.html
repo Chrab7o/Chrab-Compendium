@@ -13,6 +13,11 @@
   </head>
   <body>
     <div id="root"></div>
+    <!-- Item Description Maker widget (src/pages/dm/DMItemMakerPage.jsx) -
+         a plain script, not a module, per its own embedding instructions
+         (defines window.ItemDescriptionMaker, must run as a real <script>
+         tag rather than through the bundler). -->
+    <script src="/idm.js" defer></script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

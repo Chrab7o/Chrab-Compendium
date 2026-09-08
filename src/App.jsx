@@ -24,6 +24,7 @@ import DMSkillTreesPage from './pages/dm/DMSkillTreesPage'
 import DMHomebrewPage from './pages/dm/DMHomebrewPage'
 import DMSessionPlannerPage from './pages/dm/DMSessionPlannerPage'
 import SessionPlanEditorPage from './pages/dm/SessionPlanEditorPage'
+import DMItemMakerPage from './pages/dm/DMItemMakerPage'
 import ClassWizard from './components/dm/homebrew/ClassWizard'
 import StandaloneSubclassEditor from './components/dm/homebrew/StandaloneSubclassEditor'
 import HomebrewIndex from './pages/HomebrewIndex'
@@ -98,6 +99,7 @@ export default function App() {
               <Route path="homebrew/subclasses/:id/edit" element={<StandaloneSubclassEditor />} />
               <Route path="session-planner" element={<DMSessionPlannerPage />} />
               <Route path="session-planner/:id" element={<SessionPlanEditorPage />} />
+              <Route path="item-maker" element={<DMItemMakerPage />} />
               <Route path="notes" element={<DMNotesPage />} />
               <Route path="import" element={<ImportPage />} />
               <Route path="entries/new" element={<EntryEditorPage />} />

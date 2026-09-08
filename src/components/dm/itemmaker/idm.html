@@ -1,0 +1,143 @@
+<div class="idm-widget" data-idm-widget>
+  <header class="idm-header">
+    <h1>Item Description Maker</h1>
+    <p>Generates blank, fillable versions of 5e.tools' own <code>ve-stats</code> markup — matches its look automatically wherever that styling is already active in your Foundry.</p>
+  </header>
+
+  <div class="idm-layout">
+    <aside class="idm-saved-panel">
+      <h2>Saved Items</h2>
+      <button id="idm-btn-save" class="idm-btn idm-btn-block">Save Item</button>
+      <button id="idm-btn-new" class="idm-btn idm-btn-block">+ New Item</button>
+      <ul id="idm-saved-list" class="idm-saved-list"></ul>
+      <div class="idm-saved-actions">
+        <button id="idm-btn-export" class="idm-btn idm-btn-small">Export All</button>
+        <label class="idm-btn idm-btn-small idm-file-btn">
+          Import
+          <input type="file" id="idm-import-file" accept="application/json" hidden>
+        </label>
+      </div>
+    </aside>
+
+    <main class="idm-form-panel">
+      <div class="idm-field-row">
+        <label for="idm-f-name">Item Name <span class="idm-hint">(for your reference in the saved list only — not shown in the output)</span></label>
+        <input type="text" id="idm-f-name" placeholder="Monocle of Foresight">
+      </div>
+
+      <div class="idm-field-row">
+        <button type="button" id="idm-btn-syntax-help" class="idm-help-toggle">description syntax help</button>
+        <div id="idm-syntax-help" class="idm-syntax-help" hidden>
+          <ul>
+            <li>Blank line = new paragraph</li>
+            <li><code>**text**</code> = bold, <code>*text*</code> = italic</li>
+            <li><code>[[text]]</code> = accent-colored link-style highlight (like "Concentration" in the sample)</li>
+            <li><code>- item</code> on its own lines = bullet list</li>
+            <li><code>&gt; text</code> on its own line = blockquote</li>
+            <li><code>## Sub Title</code> starts a named sub-entry (like "Sense Thoughts.") — keeps absorbing following lines/paragraphs until the next <code>##</code> or the end</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="idm-features-section">
+        <div class="idm-features-header">
+          <h2>Blocks</h2>
+          <div class="idm-feature-actions">
+            <button type="button" id="idm-btn-add-feature" class="idm-btn idm-btn-small">+ Add Feature</button>
+            <button type="button" id="idm-btn-add-text" class="idm-btn idm-btn-small">+ Add Text</button>
+          </div>
+        </div>
+        <p class="idm-hint idm-feature-hint">A Feature is a stat-block card (spell or not) matching the 5e.tools structure. A Text block is plain text between features — use <code>&gt; text</code> for a blockquote transition like "Additionally, as an action, Cast Foresight".</p>
+        <div id="idm-blocks-list"></div>
+      </div>
+    </main>
+
+    <section class="idm-preview-panel">
+      <h2>Preview <span class="idm-hint">(unstyled here — this tool doesn't load your Foundry theme; check the real look in Foundry)</span></h2>
+      <div id="idm-preview" class="idm-preview-box"></div>
+
+      <h2>HTML Output</h2>
+      <textarea id="idm-html-output" readonly rows="14"></textarea>
+      <button id="idm-btn-copy" class="idm-btn idm-btn-block">Copy HTML</button>
+      <p id="idm-copy-status" class="idm-copy-status" hidden>Copied!</p>
+    </section>
+  </div>
+
+  <template id="idm-feature-block-template">
+    <fieldset class="idm-feature-card">
+      <div class="idm-feature-header">
+        <span class="idm-feature-title">Feature</span>
+        <div class="idm-feature-actions">
+          <button type="button" class="idm-icon-btn" data-action="up" title="Move up">↑</button>
+          <button type="button" class="idm-icon-btn" data-action="down" title="Move down">↓</button>
+          <button type="button" class="idm-icon-btn" data-action="remove" title="Remove">✕</button>
+        </div>
+      </div>
+
+      <div class="idm-field-row">
+        <label>Lead-in <span class="idm-hint">optional extra line above the name, e.g. "As an action, Cast"</span></label>
+        <input type="text" data-field="leadIn" placeholder="As an action, Cast">
+      </div>
+
+      <div class="idm-field-row-2col">
+        <div class="idm-field-row">
+          <label>Name</label>
+          <input type="text" data-field="name" placeholder="Detect Thoughts">
+        </div>
+        <div class="idm-field-row">
+          <label>Source <span class="idm-hint">optional, top-right</span></label>
+          <input type="text" data-field="source" placeholder="Homebrew">
+        </div>
+      </div>
+
+      <div class="idm-field-row">
+        <label>Subtitle <span class="idm-hint">any text, even if not a real spell</span></label>
+        <input type="text" data-field="subtitle" placeholder="Level 2 Divination">
+      </div>
+
+      <div class="idm-field-row-2col">
+        <div class="idm-field-row">
+          <label>Casting Time</label>
+          <input type="text" data-field="castingTime" placeholder="Action">
+        </div>
+        <div class="idm-field-row">
+          <label>Range</label>
+          <input type="text" data-field="range" placeholder="Self">
+        </div>
+        <div class="idm-field-row">
+          <label>Components</label>
+          <input type="text" data-field="components" placeholder="V, S, M (1 copper piece)">
+        </div>
+        <div class="idm-field-row">
+          <label>Duration</label>
+          <input type="text" data-field="duration" placeholder="Concentration, up to 1 minute">
+        </div>
+      </div>
+
+      <div class="idm-field-row">
+        <label>Description</label>
+        <textarea data-field="description" rows="8" placeholder="You activate one of the effects below...
+
+## Sense Thoughts
+You sense the presence of thoughts within 30 feet..."></textarea>
+      </div>
+    </fieldset>
+  </template>
+
+  <template id="idm-text-block-template">
+    <fieldset class="idm-feature-card">
+      <div class="idm-feature-header">
+        <span class="idm-feature-title">Text</span>
+        <div class="idm-feature-actions">
+          <button type="button" class="idm-icon-btn" data-action="up" title="Move up">↑</button>
+          <button type="button" class="idm-icon-btn" data-action="down" title="Move down">↓</button>
+          <button type="button" class="idm-icon-btn" data-action="remove" title="Remove">✕</button>
+        </div>
+      </div>
+      <div class="idm-field-row">
+        <label>Content</label>
+        <textarea data-field="content" rows="2" placeholder="> Additionally, as an action, Cast Foresight"></textarea>
+      </div>
+    </fieldset>
+  </template>
+</div>
