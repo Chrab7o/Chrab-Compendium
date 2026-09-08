@@ -31,7 +31,7 @@ function SortableWidgetCard({ id, title, onRemove, children }) {
           ⠿
         </span>
         <strong>{title}</strong>
-        <button type="button" className="link-button" onClick={onRemove}>
+        <button type="button" className="icon-button" title="Remove widget" aria-label="Remove widget" onClick={onRemove}>
           ✕
         </button>
       </div>

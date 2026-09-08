@@ -78,18 +78,24 @@ export default function RemindersWidget({ config, onConfigChange }) {
           const key = `${s.type}:${s.id}`
           return (
             <div key={key} className="dm-screen-reminder-row">
-              <label>
-                {names[key] ?? '...'}
-                <textarea
-                  value={notes[key] ?? ''}
-                  onChange={(e) => handleNoteChange(s.type, s.id, e.target.value)}
-                  rows={2}
-                  placeholder="Quick notes..."
-                />
-              </label>
-              <button type="button" className="link-button" onClick={() => handleRemoveSubject(s.type, s.id)}>
-                Remove
-              </button>
+              <div className="dm-screen-reminder-header">
+                <strong>{names[key] ?? '...'}</strong>
+                <button
+                  type="button"
+                  className="icon-button"
+                  title="Remove"
+                  aria-label={`Remove ${names[key] ?? 'this entry'}`}
+                  onClick={() => handleRemoveSubject(s.type, s.id)}
+                >
+                  ✕
+                </button>
+              </div>
+              <textarea
+                value={notes[key] ?? ''}
+                onChange={(e) => handleNoteChange(s.type, s.id, e.target.value)}
+                rows={2}
+                placeholder="Quick notes..."
+              />
             </div>
           )
         })

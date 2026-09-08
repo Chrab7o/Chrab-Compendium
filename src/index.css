@@ -710,6 +710,35 @@ button.link-button:hover {
   background: none;
 }
 
+/* Compact square button for icon-only dismiss/remove actions (a card's own
+   "×", a reminder's "remove from this list") - real button chrome (border,
+   background, a clear hover state) instead of a link-button's bare
+   underlined-looking text, which reads as an unfinished/rushed edge case
+   when it's the only control in its row. */
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  flex: none;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.95rem;
+  line-height: 1;
+  padding: 0;
+  transition: background var(--transition), color var(--transition), border-color var(--transition);
+}
+
+.icon-button:hover {
+  background: var(--danger);
+  color: var(--on-danger);
+  border-color: var(--danger);
+}
+
 .app-main {
   flex: 1;
   width: 100%;
@@ -2289,6 +2318,7 @@ button.tree-label:hover {
   width: 100%;
   text-align: left;
   background: var(--surface-2);
+  color: var(--text);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   padding: 0.5rem 0.75rem;
@@ -3035,6 +3065,28 @@ button.chip:hover {
   gap: 0.75rem;
   max-height: 420px;
   overflow-y: auto;
+}
+
+.dm-screen-reminder-row {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.6rem 0.75rem;
+}
+
+.dm-screen-reminder-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+}
+
+.dm-screen-reminder-header strong {
+  flex: 1;
+}
+
+.dm-screen-reminder-row textarea {
+  width: 100%;
 }
 
 .dm-screen-flow-header {

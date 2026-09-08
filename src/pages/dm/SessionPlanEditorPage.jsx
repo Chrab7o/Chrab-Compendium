@@ -195,9 +195,11 @@ export default function SessionPlanEditorPage() {
                       <span className="dm-list-meta">
                         {contentTypeInfo(child.content_type).label} · {edge.is_obstacle ? 'Obstacle' : 'Then'}
                       </span>
-                      <button type="button" className="link-button" onClick={() => handleUnlink(edge)}>
-                        Unlink
-                      </button>
+                      <div className="dm-list-actions">
+                        <button type="button" className="secondary" onClick={() => handleUnlink(edge)}>
+                          Unlink
+                        </button>
+                      </div>
                     </li>
                   ))}
                 </ul>
