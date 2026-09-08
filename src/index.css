@@ -2067,7 +2067,8 @@ button.tree-label:hover {
   gap: 0.4rem;
 }
 
-.skill-point-saved {
+.skill-point-saved,
+.save-confirmation {
   color: var(--accent-2-strong);
   font-size: 0.8rem;
 }

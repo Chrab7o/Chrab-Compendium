@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { forwardRef, useState } from 'react'
 
 // Syllable-pool procedural generator, not a curated name list - small,
 // self-contained, no data files to maintain. Each style picks 2-3 syllables
@@ -6,6 +6,11 @@ import { useState } from 'react'
 // Supabase calls, no persisted state - accepts (and ignores) the standard
 // config/onConfigChange props so DMScreenPage's widget map can treat every
 // widget type uniformly. Keeps only the 3 most recent names, not a long log.
+// Wrapped in forwardRef purely so DMScreenPage can attach a ref uniformly
+// to every widget type (for the page-level Save button's flush() call on
+// widgets that need it) without React warning about refs on a plain
+// function component - this widget has nothing to flush, so it doesn't
+// call useImperativeHandle at all.
 const STYLES = {
   Human: {
     prefix: ['Ar', 'Ber', 'Cal', 'Dor', 'Ed', 'Fen', 'Gar', 'Hal', 'Jor', 'Ken', 'Mar', 'Ros', 'Tal', 'Wil'],
@@ -40,7 +45,7 @@ function generateName(style) {
   return pick(pool.prefix) + pick(pool.middle) + pick(pool.suffix)
 }
 
-export default function NpcNameGeneratorWidget() {
+const NpcNameGeneratorWidget = forwardRef(function NpcNameGeneratorWidget(_props, _ref) {
   const [style, setStyle] = useState('Human')
   const [current, setCurrent] = useState(() => generateName('Human'))
   const [history, setHistory] = useState([])
@@ -78,4 +83,6 @@ export default function NpcNameGeneratorWidget() {
       )}
     </div>
   )
-}
+})
+
+export default NpcNameGeneratorWidget

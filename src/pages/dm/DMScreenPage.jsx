@@ -59,6 +59,12 @@ export default function DMScreenPage() {
   const [renaming, setRenaming] = useState(false)
   const [renameValue, setRenameValue] = useState('')
   const [addWidgetType, setAddWidgetType] = useState(WIDGET_TYPES[0].key)
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+  // Widget instances that expose flush() (currently Reminders and
+  // Wrap-Up, whichever have debounced local edits) - keyed by widget id so
+  // a stale ref from a removed widget can't linger.
+  const widgetRefs = useRef({})
 
   function setActiveScreenId(id) {
     setActiveScreenIdState(id)
@@ -184,9 +190,24 @@ export default function DMScreenPage() {
     setWidgets((w) => w.filter((widget) => widget.id !== widgetId))
   }
 
-  function handleConfigChange(widgetId, newConfig) {
+  async function handleConfigChange(widgetId, newConfig) {
     setWidgets((w) => w.map((widget) => (widget.id === widgetId ? { ...widget, config: newConfig } : widget)))
-    supabase.from('dm_screen_widgets').update({ config: newConfig }).eq('id', widgetId)
+    // .select() forces PostgREST to return the updated row(s) - without it,
+    // an UPDATE that RLS silently filters down to 0 matching rows (e.g. a
+    // stale/expiring session where is_dm() briefly doesn't hold) still
+    // reports success with no error, and the change is lost even though
+    // nothing looked wrong. Checking the returned rows is the only way to
+    // tell "saved" apart from "matched nothing."
+    const { data, error: updateError } = await supabase
+      .from('dm_screen_widgets')
+      .update({ config: newConfig })
+      .eq('id', widgetId)
+      .select()
+    if (updateError) {
+      setError(`Could not save: ${updateError.message}`)
+    } else if (!data || data.length === 0) {
+      setError('Could not save that change (no matching row was updated - try reloading and signing in again).')
+    }
   }
 
   async function handleDragEnd(event) {
@@ -196,7 +217,26 @@ export default function DMScreenPage() {
     const newIndex = widgets.findIndex((w) => w.id === over.id)
     const reordered = arrayMove(widgets, oldIndex, newIndex)
     setWidgets(reordered)
-    await Promise.all(reordered.map((w, i) => supabase.from('dm_screen_widgets').update({ sort_order: i }).eq('id', w.id)))
+    const results = await Promise.all(
+      reordered.map((w, i) => supabase.from('dm_screen_widgets').update({ sort_order: i }).eq('id', w.id).select())
+    )
+    const failed = results.find((r) => r.error || !r.data || r.data.length === 0)
+    if (failed) {
+      setError(failed.error ? `Could not save the new order: ${failed.error.message}` : 'Could not save the new order (try reloading and signing in again).')
+    }
+  }
+
+  // One page-level Save, rather than a save button on every widget - flushes
+  // any pending debounced edit (Reminders notes, Wrap-Up text) across every
+  // mounted widget on this screen at once. Widgets that don't need it
+  // (NPC Generator, Session Flow) just don't expose flush(), so the
+  // optional chaining below quietly skips them.
+  async function handleSaveView() {
+    setSaving(true)
+    await Promise.all(Object.values(widgetRefs.current).map((instance) => instance?.flush?.()))
+    setSaving(false)
+    setSaved(true)
+    setTimeout(() => setSaved(false), 1500)
   }
 
   if (loadingScreens) return <p className="status-message">Loading...</p>
@@ -252,6 +292,10 @@ export default function DMScreenPage() {
               </form>
             ) : (
               <>
+                <button type="button" onClick={handleSaveView} disabled={saving}>
+                  {saving ? 'Saving...' : 'Save'}
+                </button>
+                {saved && <span className="save-confirmation">Saved</span>}
                 <button type="button" className="secondary" onClick={startRename}>
                   Rename screen
                 </button>
@@ -293,6 +337,10 @@ export default function DMScreenPage() {
                         onRemove={() => handleRemoveWidget(widget.id)}
                       >
                         <Widget
+                          ref={(instance) => {
+                            if (instance) widgetRefs.current[widget.id] = instance
+                            else delete widgetRefs.current[widget.id]
+                          }}
                           config={widget.config}
                           onConfigChange={(newConfig) => handleConfigChange(widget.id, newConfig)}
                         />

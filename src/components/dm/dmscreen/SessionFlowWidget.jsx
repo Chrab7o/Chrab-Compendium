@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { forwardRef, useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabaseClient'
 import SessionPlanDiagram from '../sessionplanner/SessionPlanDiagram'
 
@@ -6,7 +6,11 @@ import SessionPlanDiagram from '../sessionplanner/SessionPlanDiagram'
 // onNodeClick/selectedNodeId are both fully optional (every interactive
 // affordance in it is gated on onNodeClick being present), so omitting them
 // gives a genuinely inert render with no changes needed to that component.
-export default function SessionFlowWidget({ config, onConfigChange }) {
+// Picking a plan writes immediately (no debounce), so there's nothing for
+// the page-level Save button to flush here - wrapped in forwardRef anyway,
+// purely so DMScreenPage can attach a ref uniformly to every widget type
+// without React warning about refs on a plain function component.
+const SessionFlowWidget = forwardRef(function SessionFlowWidget({ config, onConfigChange }, _ref) {
   const sessionPlanId = config?.sessionPlanId ?? null
   const [plans, setPlans] = useState([])
   const [selected, setSelected] = useState('')
@@ -99,4 +103,6 @@ export default function SessionFlowWidget({ config, onConfigChange }) {
       </div>
     </div>
   )
-}
+})
+
+export default SessionFlowWidget

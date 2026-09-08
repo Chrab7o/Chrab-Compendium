@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
 
 // Freeform "remember for next time" scratchpad - follow-ups, loose threads,
 // anything from this session worth not losing before the next one. Scoped
@@ -8,7 +8,11 @@ import { useEffect, useRef, useState } from 'react'
 // to be reviewed then cleared before the next session, hence the explicit
 // Clear action rather than letting notes from different sessions blur
 // together.
-export default function SessionWrapupWidget({ config, onConfigChange }) {
+//
+// Exposes flush() via ref so DMScreenPage's single page-level Save button
+// can commit every widget's pending debounced edits at once, rather than
+// each widget having its own Save action.
+const SessionWrapupWidget = forwardRef(function SessionWrapupWidget({ config, onConfigChange }, ref) {
   const [text, setText] = useState(config?.text ?? '')
   const timerRef = useRef(null)
   const pendingRef = useRef(null)
@@ -22,10 +26,21 @@ export default function SessionWrapupWidget({ config, onConfigChange }) {
     setText(config?.text ?? '')
   }, [config?.text])
 
-  // Commit early on blur and flush any still-pending debounced write on
-  // unmount - without this, typing then quickly reloading/navigating away
-  // (the natural way to check "did that save?") loses the edit, since the
-  // 600ms timer never gets the chance to fire.
+  useImperativeHandle(ref, () => ({
+    async flush() {
+      if (pendingRef.current === null) return
+      clearTimeout(timerRef.current)
+      const value = pendingRef.current
+      pendingRef.current = null
+      await onConfigChangeRef.current({ text: value })
+    },
+  }))
+
+  // Flush any still-pending debounced write on unmount - without this,
+  // typing then quickly reloading/navigating away (switching screens, say)
+  // loses the edit, since the 600ms timer never gets the chance to fire.
+  // The page-level Save button (flush() above) is the main safety net;
+  // this covers leaving without using it.
   useEffect(() => {
     return () => {
       if (pendingRef.current === null) return
@@ -76,4 +91,6 @@ export default function SessionWrapupWidget({ config, onConfigChange }) {
       </div>
     </div>
   )
-}
+})
+
+export default SessionWrapupWidget
