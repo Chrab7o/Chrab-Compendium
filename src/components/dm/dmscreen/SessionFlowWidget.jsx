@@ -1,11 +1,18 @@
 import { forwardRef, useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { supabase } from '../../../lib/supabaseClient'
+import { contentTypeInfo, isAnswered } from '../../../lib/sessionPlanner'
 import SessionPlanDiagram from '../sessionplanner/SessionPlanDiagram'
 
-// Read-only embed of a session plan's flow chart. SessionPlanDiagram's
-// onNodeClick/selectedNodeId are both fully optional (every interactive
-// affordance in it is gated on onNodeClick being present), so omitting them
-// gives a genuinely inert render with no changes needed to that component.
+// Read-only embed of a session plan's flow chart - click a scene on the
+// timeline to see what was actually filled in (question/answer, location/
+// characters/purpose, linked entry) below it, not just the rough outline.
+// SessionPlanDiagram's onNodeClick/selectedNodeId are both fully optional
+// (every interactive affordance in it is gated on onNodeClick being
+// present), so wiring them up here is the only change needed to that
+// shared component. No edit/branch/delete actions here on purpose - this is
+// a glance-at-it-mid-session reference view, not the editor; use the full
+// Session Planner page for that.
 // Picking a plan writes immediately (no debounce), so there's nothing for
 // the page-level Save button to flush here - wrapped in forwardRef anyway,
 // purely so DMScreenPage can attach a ref uniformly to every widget type
@@ -19,6 +26,7 @@ const SessionFlowWidget = forwardRef(function SessionFlowWidget({ config, onConf
   const [edges, setEdges] = useState([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [selectedNodeId, setSelectedNodeId] = useState(null)
 
   useEffect(() => {
     if (sessionPlanId) return
@@ -51,6 +59,7 @@ const SessionFlowWidget = forwardRef(function SessionFlowWidget({ config, onConf
       setPlan(planData)
       setNodes(nodeData ?? [])
       setEdges(edgeData ?? [])
+      setSelectedNodeId(null)
       setLoading(false)
     })
     return () => {
@@ -62,6 +71,12 @@ const SessionFlowWidget = forwardRef(function SessionFlowWidget({ config, onConf
     if (!selected) return
     onConfigChange({ sessionPlanId: selected })
   }
+
+  function handleNodeClick(node) {
+    setSelectedNodeId((current) => (current === node.id ? null : node.id))
+  }
+
+  const selectedNode = nodes.find((n) => n.id === selectedNodeId) ?? null
 
   if (!sessionPlanId) {
     return (
@@ -99,8 +114,45 @@ const SessionFlowWidget = forwardRef(function SessionFlowWidget({ config, onConf
         </button>
       </div>
       <div className="dm-screen-flow-wrap">
-        <SessionPlanDiagram nodes={nodes} edges={edges} />
+        <SessionPlanDiagram
+          nodes={nodes}
+          edges={edges}
+          selectedNodeId={selectedNodeId}
+          onNodeClick={handleNodeClick}
+        />
       </div>
+      {selectedNode && (
+        <div className="dm-screen-flow-detail">
+          <div className="dm-screen-widget-header">
+            <strong>{selectedNode.question}</strong>
+            <button type="button" className="icon-button" title="Close" aria-label="Close" onClick={() => setSelectedNodeId(null)}>
+              ✕
+            </button>
+          </div>
+          <p className="dm-list-meta">{contentTypeInfo(selectedNode.content_type).label}</p>
+          {(selectedNode.location || selectedNode.characters || selectedNode.purpose) && (
+            <p className="dm-list-meta">
+              {[
+                selectedNode.location && `Location: ${selectedNode.location}`,
+                selectedNode.characters && `Characters: ${selectedNode.characters}`,
+                selectedNode.purpose && `Purpose: ${selectedNode.purpose}`,
+              ]
+                .filter(Boolean)
+                .join(' · ')}
+            </p>
+          )}
+          {isAnswered(selectedNode) ? (
+            <p>{selectedNode.answer}</p>
+          ) : (
+            <p className="status-message">{contentTypeInfo(selectedNode.content_type).emptyBodyLabel}</p>
+          )}
+          {selectedNode.referenced_entry_id && (
+            <p>
+              <Link to={`/entry/${selectedNode.referenced_entry_id}`}>View linked entry →</Link>
+            </p>
+          )}
+        </div>
+      )}
     </div>
   )
 })
