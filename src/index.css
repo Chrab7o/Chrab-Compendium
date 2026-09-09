@@ -2340,7 +2340,30 @@ button.tree-label:hover {
 }
 
 .session-notes-list li {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.6rem 0.9rem;
   margin-bottom: 0.5rem;
+}
+
+.session-notes-list li:hover {
+  border-color: var(--text-muted);
+}
+
+/* Overrides the shared .link-button's plain-muted-text look here
+   specifically - the whole row is this button's visual container now, so
+   it reads as a card title, not bare floating text. */
+.session-notes-list .link-button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.session-notes-list .link-button:hover {
+  color: var(--accent-strong);
 }
 
 .session-notes-content {

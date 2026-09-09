@@ -106,7 +106,18 @@
 .idm-widget .idm-icon-btn { border: 1px solid var(--idm-border); background: var(--idm-panel-bg); color: var(--idm-text); border-radius: var(--radius-sm, 8px); cursor: pointer; padding: 2px 8px; font-size: 0.85em; }
 .idm-widget .idm-icon-btn:hover { border-color: var(--idm-accent); color: var(--idm-accent); }
 
-.idm-widget .idm-help-toggle { border: none; background: none; color: var(--idm-accent); cursor: pointer; font-size: 0.85em; font-weight: 400; text-decoration: underline; padding: 0; margin-left: 6px; }
+.idm-widget .idm-help-toggle {
+  border: 1px solid var(--idm-border);
+  background: var(--idm-panel-bg-2);
+  color: var(--idm-text-muted);
+  cursor: pointer;
+  font-size: 0.8em;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: var(--radius-sm, 8px);
+  margin-left: 6px;
+}
+.idm-widget .idm-help-toggle:hover { border-color: var(--idm-accent); color: var(--idm-accent); }
 .idm-widget .idm-syntax-help { margin-top: 6px; background: var(--idm-panel-bg-2); border: 1px solid var(--idm-border); border-radius: var(--radius-sm, 8px); padding: 8px 12px; font-size: 0.82em; color: var(--idm-text-muted); }
 .idm-widget .idm-syntax-help ul { margin: 0; padding-left: 18px; }
 .idm-widget .idm-syntax-help code { background: var(--idm-bg); padding: 1px 4px; border-radius: 3px; }
