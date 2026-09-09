@@ -1,22 +1,34 @@
-/* Item Description Maker — scoped embed styles. Every rule is namespaced
-   under .idm-widget so it can't leak onto, or be overridden by, the host page. */
+/* Item Description Maker — scoped embed styles, retinted to match the
+   Compendium's own "Marginalia" parchment/ink palette instead of the
+   standalone tool's original generic off-white/system-font look. Every
+   rule stays namespaced under .idm-widget (so it can't leak onto, or be
+   overridden by, the host page) - only the color/font/radius/shadow values
+   changed below, referencing the site's own custom properties (index.css)
+   directly rather than keeping a second, disconnected palette. Since this
+   file is a plain imported stylesheet (not run through the site's
+   @layer theme/base/utilities), it's unlayered and already wins over the
+   site's own layered element defaults (button, input, h1, ...) regardless
+   of specificity - same mechanism that already kept those from bleeding in
+   before this retint, now just pointed at matching colors instead of
+   fighting them. */
 .idm-widget {
-  --idm-accent: #8b1e2b;
-  --idm-accent-dark: #6e1521;
-  --idm-bg: #f5f3ef;
-  --idm-panel-bg: #ffffff;
-  --idm-border: #ddd7cc;
-  --idm-text: #262421;
-  --idm-text-muted: #6b6558;
+  --idm-accent: var(--accent-strong);
+  --idm-accent-dark: var(--accent);
+  --idm-bg: var(--bg);
+  --idm-panel-bg: var(--surface);
+  --idm-panel-bg-2: var(--surface-2);
+  --idm-border: var(--border);
+  --idm-text: var(--text);
+  --idm-text-muted: var(--text-muted);
 
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Spectral', 'Georgia', 'Iowan Old Style', serif;
   background: var(--idm-bg);
   color: var(--idm-text);
 }
 .idm-widget, .idm-widget * { box-sizing: border-box; }
 
 .idm-widget .idm-header { padding: 20px 24px 12px; border-bottom: 1px solid var(--idm-border); background: var(--idm-panel-bg); }
-.idm-widget .idm-header h1 { margin: 0 0 4px; font-size: 1.4em; color: var(--idm-accent-dark); }
+.idm-widget .idm-header h1 { margin: 0 0 4px; font-family: var(--font-display, 'Cinzel', 'Georgia', serif); font-weight: 600; letter-spacing: 0.01em; font-size: 1.4em; color: var(--idm-accent-dark); }
 .idm-widget .idm-header p { margin: 0; color: var(--idm-text-muted); font-size: 0.9em; }
 
 .idm-widget .idm-layout { display: grid; grid-template-columns: 220px 1fr 1fr; gap: 16px; padding: 16px; align-items: start; }
@@ -27,14 +39,15 @@
 .idm-widget .idm-preview-panel {
   background: var(--idm-panel-bg);
   border: 1px solid var(--idm-border);
-  border-radius: 6px;
+  border-radius: var(--radius-frame, 6px);
   padding: 14px;
+  box-shadow: var(--shadow-sm, 0 2px 8px rgba(60, 40, 20, 0.18));
 }
 
 .idm-widget h2 { font-size: 0.95em; text-transform: uppercase; letter-spacing: 0.04em; color: var(--idm-text-muted); margin: 0 0 10px; }
 
 .idm-widget .idm-field-row { margin-bottom: 12px; }
-.idm-widget label { display: block; font-size: 0.85em; font-weight: 600; margin-bottom: 4px; }
+.idm-widget label { display: block; font-size: 0.85em; font-weight: 600; margin-bottom: 4px; color: var(--idm-text); }
 .idm-widget .idm-hint { font-weight: 400; color: var(--idm-text-muted); font-size: 0.9em; }
 
 .idm-widget input[type="text"],
@@ -43,26 +56,36 @@
   width: 100%;
   padding: 7px 9px;
   border: 1px solid var(--idm-border);
-  border-radius: 4px;
+  border-radius: var(--radius-sm, 8px);
   font-size: 0.9em;
   font-family: inherit;
-  background: #fff;
+  background: var(--idm-panel-bg-2);
   color: var(--idm-text);
 }
 .idm-widget textarea { resize: vertical; font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace; font-size: 0.82em; }
-.idm-widget #idm-html-output { background: #faf9f6; }
+.idm-widget #idm-html-output { background: var(--idm-bg); }
 
-.idm-widget .idm-btn { cursor: pointer; border: 1px solid var(--idm-accent); background: var(--idm-accent); color: #fff; padding: 8px 12px; border-radius: 4px; font-size: 0.85em; font-weight: 600; }
-.idm-widget .idm-btn:hover { background: var(--idm-accent-dark); }
+.idm-widget .idm-btn {
+  cursor: pointer;
+  border: 1px solid var(--idm-accent-dark);
+  background: linear-gradient(135deg, var(--idm-accent), var(--idm-accent-dark));
+  color: var(--on-accent, #f6ecd2);
+  padding: 8px 12px;
+  border-radius: var(--radius-sm, 8px);
+  font-size: 0.85em;
+  font-weight: 600;
+  transition: filter 0.2s ease;
+}
+.idm-widget .idm-btn:hover { filter: brightness(1.08); }
 .idm-widget .idm-btn-block { display: block; width: 100%; margin-top: 8px; }
 .idm-widget .idm-btn-small { padding: 6px 8px; font-size: 0.78em; flex: 1; text-align: center; }
 .idm-widget .idm-file-btn { display: inline-block; }
 
 .idm-widget .idm-saved-actions { display: flex; gap: 6px; margin-top: 10px; }
 .idm-widget .idm-saved-list { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; max-height: 400px; overflow-y: auto; }
-.idm-widget .idm-saved-list li { display: flex; align-items: center; justify-content: space-between; padding: 6px 8px; border: 1px solid var(--idm-border); border-radius: 4px; font-size: 0.85em; cursor: pointer; }
+.idm-widget .idm-saved-list li { display: flex; align-items: center; justify-content: space-between; padding: 6px 8px; border: 1px solid var(--idm-border); border-radius: var(--radius-sm, 8px); font-size: 0.85em; cursor: pointer; background: var(--idm-panel-bg-2); }
 .idm-widget .idm-saved-list li:hover { border-color: var(--idm-accent); }
-.idm-widget .idm-saved-list li.active { border-color: var(--idm-accent); background: #fbeceb; }
+.idm-widget .idm-saved-list li.active { border-color: var(--idm-accent); background: rgba(122, 31, 43, 0.14); }
 .idm-widget .idm-saved-list .idm-item-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .idm-widget .idm-saved-list .idm-item-delete { background: none; border: none; color: var(--idm-text-muted); cursor: pointer; font-size: 1em; line-height: 1; padding: 0 0 0 6px; }
 .idm-widget .idm-saved-list .idm-item-delete:hover { color: var(--idm-accent); }
@@ -75,18 +98,18 @@
 .idm-widget .idm-features-header h2 { margin: 0; }
 .idm-widget .idm-feature-hint { margin: 0 0 10px; font-size: 0.85em; }
 
-.idm-widget .idm-feature-card { border: 1px solid var(--idm-border); border-radius: 6px; padding: 12px; margin-bottom: 12px; background: #fbfaf8; }
+.idm-widget .idm-feature-card { border: 1px solid var(--idm-border); border-radius: var(--radius-frame, 6px); padding: 12px; margin-bottom: 12px; background: var(--idm-panel-bg-2); }
 .idm-widget .idm-feature-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
 .idm-widget .idm-feature-title { font-weight: 700; font-size: 0.85em; text-transform: uppercase; letter-spacing: 0.04em; color: var(--idm-text-muted); }
 .idm-widget .idm-feature-actions { display: flex; gap: 4px; }
 
-.idm-widget .idm-icon-btn { border: 1px solid var(--idm-border); background: #fff; border-radius: 4px; cursor: pointer; padding: 2px 8px; font-size: 0.85em; }
+.idm-widget .idm-icon-btn { border: 1px solid var(--idm-border); background: var(--idm-panel-bg); color: var(--idm-text); border-radius: var(--radius-sm, 8px); cursor: pointer; padding: 2px 8px; font-size: 0.85em; }
 .idm-widget .idm-icon-btn:hover { border-color: var(--idm-accent); color: var(--idm-accent); }
 
 .idm-widget .idm-help-toggle { border: none; background: none; color: var(--idm-accent); cursor: pointer; font-size: 0.85em; font-weight: 400; text-decoration: underline; padding: 0; margin-left: 6px; }
-.idm-widget .idm-syntax-help { margin-top: 6px; background: #faf9f6; border: 1px solid var(--idm-border); border-radius: 4px; padding: 8px 12px; font-size: 0.82em; color: var(--idm-text-muted); }
+.idm-widget .idm-syntax-help { margin-top: 6px; background: var(--idm-panel-bg-2); border: 1px solid var(--idm-border); border-radius: var(--radius-sm, 8px); padding: 8px 12px; font-size: 0.82em; color: var(--idm-text-muted); }
 .idm-widget .idm-syntax-help ul { margin: 0; padding-left: 18px; }
-.idm-widget .idm-syntax-help code { background: #efece5; padding: 1px 4px; border-radius: 3px; }
+.idm-widget .idm-syntax-help code { background: var(--idm-bg); padding: 1px 4px; border-radius: 3px; }
 
-.idm-widget .idm-preview-box { border: 1px solid var(--idm-border); border-radius: 4px; padding: 10px; margin-bottom: 16px; min-height: 80px; background: #fdfcfa; font-size: 0.9em; }
+.idm-widget .idm-preview-box { border: 1px solid var(--idm-border); border-radius: var(--radius-sm, 8px); padding: 10px; margin-bottom: 16px; min-height: 80px; background: var(--idm-panel-bg-2); font-size: 0.9em; }
 .idm-widget .idm-copy-status { color: var(--idm-accent-dark); font-size: 0.85em; font-weight: 600; margin: 6px 0 0; }
