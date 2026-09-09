@@ -7,6 +7,29 @@ row with no border or background, reading as cheap/broken (e.g. "Remove" /
 "Unlink" sitting under a textarea with nothing else nearby, or "description
 syntax help" floating with no button chrome around it).
 
+## Root cause found on the third report (check this first)
+
+Every "meant to look plain" button class (`.link-button`, `.icon-button`,
+`.nav-dropdown-toggle`, `.tree-toggle`, `.tree-label`, `.chip-list .chip
+button`, `.nav-hamburger`) is still a real `<button>` underneath, which
+means it inherits the base `button`/`button:hover` rule's `box-shadow`
+(resting) and full `filter: brightness(1.08)` + glow `box-shadow` +
+`transform: translateY(-1px)` lift (hover) **unless every one of those
+properties is explicitly reset**, not just `background`/`color`. Several of
+these classes only ever reset `background`, which is why a plain-looking
+control could still puff up into a glowing raised box the moment it was
+hovered — even when its container already had perfectly good chrome (this
+is what was still happening in `SessionPlanEditorPage.jsx`'s already-fixed
+"What happens next" list). `button.secondary` was always written correctly
+(resets `filter`/`box-shadow` on hover); the other classes were incomplete
+copies of that pattern. All of them are now fixed to fully reset
+`box-shadow` (base) and `filter`/`box-shadow`/`transform` (hover).
+
+**If a new "plain" button class gets added later**, it must reset all four:
+`background`, `box-shadow` (at minimum on the base rule), and `filter` +
+`box-shadow` + `transform` on `:hover` — copy `button.secondary`'s pattern,
+not `.link-button`'s old one.
+
 ## The actual rule
 
 **It's not about the style itself — it's about whether the control is alone.**

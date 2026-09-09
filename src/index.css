@@ -454,6 +454,7 @@ h3 {
 
 .nav-hamburger:hover {
   background: rgba(255, 255, 255, 0.1);
+  filter: none;
   box-shadow: none;
   transform: none;
 }
@@ -561,6 +562,7 @@ h3 {
 .nav-dropdown-toggle {
   background: none;
   border: none;
+  box-shadow: none;
   color: var(--text-muted);
   cursor: pointer;
   font-size: 1rem;
@@ -577,6 +579,9 @@ h3 {
 
 button.nav-dropdown-toggle:hover {
   background: none;
+  filter: none;
+  box-shadow: none;
+  transform: none;
 }
 
 .nav-dropdown-menu {
@@ -692,9 +697,19 @@ button.nav-dropdown-toggle:hover {
   background: var(--bg);
 }
 
+/* Meant to look like plain text, not a button - but it's still a <button>
+   underneath, so without explicitly canceling every property the base
+   `button`/`button:hover` rules set (not just background/color), it still
+   inherits their resting shadow and its full hover lift/glow/brightness
+   treatment. That mismatch - a bare-looking control that suddenly puffs up
+   into a glowing raised box on hover/rest - is exactly the "cheap looking"
+   bug reported repeatedly against .link-button uses across the app.
+   button.secondary below already resets all of these correctly; this was
+   an incomplete copy of that pattern. */
 .link-button {
   background: none;
   border: none;
+  box-shadow: none;
   color: var(--text-muted);
   cursor: pointer;
   font-size: 1rem;
@@ -708,6 +723,9 @@ button.nav-dropdown-toggle:hover {
 
 button.link-button:hover {
   background: none;
+  filter: none;
+  box-shadow: none;
+  transform: none;
 }
 
 /* Compact square button for icon-only dismiss/remove actions (a card's own
@@ -730,6 +748,7 @@ button.link-button:hover {
   font-size: 0.95rem;
   line-height: 1;
   padding: 0;
+  box-shadow: none;
   transition: background var(--transition), color var(--transition), border-color var(--transition);
 }
 
@@ -737,6 +756,9 @@ button.link-button:hover {
   background: var(--danger);
   color: var(--on-danger);
   border-color: var(--danger);
+  filter: none;
+  box-shadow: none;
+  transform: none;
 }
 
 .app-main {
@@ -1916,6 +1938,7 @@ button:disabled {
 .tree-toggle {
   background: none;
   border: none;
+  box-shadow: none;
   color: var(--text-muted);
   cursor: pointer;
   width: 1.5rem;
@@ -1932,11 +1955,15 @@ button:disabled {
 
 button.tree-toggle:hover {
   background: none;
+  filter: none;
+  box-shadow: none;
+  transform: none;
 }
 
 .tree-label {
   background: none;
   border: none;
+  box-shadow: none;
   color: var(--text);
   font-family: inherit;
   font-size: 1.05rem;
@@ -1956,6 +1983,9 @@ button.tree-toggle:hover {
 
 button.tree-label:hover {
   background: none;
+  filter: none;
+  box-shadow: none;
+  transform: none;
 }
 
 .tree-label.selected {
@@ -2817,6 +2847,13 @@ button.chip:hover {
   padding: 0;
   font-size: 1rem;
   line-height: 1;
+}
+
+.chip-list .chip button:hover {
+  background: none;
+  filter: none;
+  box-shadow: none;
+  transform: none;
 }
 
 .chip-add {
