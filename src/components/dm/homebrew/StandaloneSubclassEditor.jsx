@@ -150,7 +150,7 @@ export default function StandaloneSubclassEditor() {
           rows={form.features}
           onChange={(features) => setForm({ ...form, features })}
           withLevel
-          withChoiceGroup
+          withSubFeatures
           addLabel="+ Add Feature"
         />
 

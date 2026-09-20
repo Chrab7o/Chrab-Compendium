@@ -271,6 +271,91 @@ export function splitChoiceGroups(features) {
   return { ungrouped, groups: groupOrder.map((name) => ({ name, features: groups.get(name) })) }
 }
 
+// Rebuilds the parent/sub-feature tree one level's features describe. The
+// storage shape stays flat — a sub-feature is a row whose choice_group
+// names its parent feature (the shape the 5etools importer already
+// produces) — but "Metamagic" and the metamagic options the player picks
+// from are one thing to read and one thing to edit, so both the detail page
+// and the wizard work with this nested view instead.
+//
+// Matching is by name: exact first, then the same "parent name contains the
+// group name" fallback the 5etools export uses, so a group called "Dark
+// Arts" still finds a feature named "Dark Arts Continued". A group whose
+// parent is missing entirely (older data, or an import with no intro
+// feature) gets a synthesized stand-in parent so its options never vanish.
+export function nestFeatures(features) {
+  const nodes = []
+  const byName = new Map()
+  for (const f of features) {
+    if (f.choice_group) continue
+    const node = { feature: f, children: [], choiceCount: null, synthetic: false }
+    nodes.push(node)
+    byName.set(f.name.trim().toLowerCase(), node)
+  }
+  for (const f of features) {
+    if (!f.choice_group) continue
+    const key = f.choice_group.trim().toLowerCase()
+    let node = byName.get(key) ?? nodes.find((n) => !n.synthetic && n.feature.name.toLowerCase().includes(key))
+    if (!node) {
+      node = {
+        feature: { id: `group:${f.choice_group}`, level: f.level, name: f.choice_group, description: '' },
+        children: [],
+        choiceCount: null,
+        synthetic: true,
+      }
+      nodes.push(node)
+      byName.set(key, node)
+    }
+    node.children.push(f)
+  }
+  for (const node of nodes) {
+    if (node.children.length === 0) continue
+    // The count lives on the option rows (one column, set the same on each)
+    // — null is the pre-existing "choose 1" default, 0 means everyone gets
+    // all of them rather than picking.
+    node.choiceCount = node.children[0].choice_count ?? 1
+  }
+  return nodes
+}
+
+// The editor's half of the same transform: flat rows in, nested rows out,
+// where each parent carries its own `children` array and `choice_count`.
+export function nestFeatureRows(rows) {
+  return nestFeatures(rows).map((node) => {
+    // A synthesized parent's id is a display-only placeholder ("group:Dark
+    // Arts"), not a row that exists - dropping it here means saving turns
+    // the stand-in into a real intro feature instead of trying to reuse it.
+    const { id, ...feature } = node.feature
+    return {
+      ...(node.synthetic ? feature : { id, ...feature }),
+      choice_group: '',
+      choice_count: node.choiceCount,
+      children: node.children.map(({ children: _drop, ...child }) => child),
+    }
+  })
+}
+
+// Nested rows back to the flat shape the tables store: each parent followed
+// by its own options, every option stamped with the parent's name and level
+// so the pairing survives a rename or a level change made in the editor.
+export function flattenFeatureRows(nested) {
+  const flat = []
+  for (const parent of nested) {
+    const { children = [], ...row } = parent
+    flat.push({ ...row, choice_group: '', choice_count: null, sort_order: flat.length })
+    for (const child of children) {
+      flat.push({
+        ...child,
+        level: row.level,
+        choice_group: row.name,
+        choice_count: row.choice_count ?? 1,
+        sort_order: flat.length,
+      })
+    }
+  }
+  return flat
+}
+
 // Reshapes the DB rows for one class into the flat form object the wizard
 // edits — mirrors SkillTreeNodeEditor.startEdit()'s reshape-into-form-state.
 export function classToFormState(classRow, features, tableColumns, tableValues, subclasses, subclassFeaturesBySubclassId) {
@@ -564,11 +649,17 @@ export function classFormToFiveToolsJson(form) {
         classFeatureObjs.push(holderObj)
         classFeatureRefs.push(refString(g.name, className, source, level))
       }
-      holderObj.entries.push({
-        type: 'options',
-        count: g.features[0]?.choice_count || 1,
-        entries: g.features.map((gf) => ({ type: 'refClassFeature', classFeature: refString(gf.name, className, source, level) })),
-      })
+      // choice_count 0 means everyone gets every sub-feature, so there is
+      // no choice to express - the options are just further features at the
+      // same level, referenced in order.
+      const groupCount = g.features[0]?.choice_count ?? 1
+      if (groupCount > 0) {
+        holderObj.entries.push({
+          type: 'options',
+          count: groupCount,
+          entries: g.features.map((gf) => ({ type: 'refClassFeature', classFeature: refString(gf.name, className, source, level) })),
+        })
+      }
       for (const gf of g.features) {
         classFeatureObjs.push({ name: gf.name, source, className, classSource: source, level, entries: markdownToEntries(gf.description) })
         classFeatureRefs.push(refString(gf.name, className, source, level))
@@ -645,11 +736,14 @@ export function classFormToFiveToolsJson(form) {
           subclassFeatureObjs.push(holderObj)
           featureRefs.push(scRefString(g.name, level))
         }
-        holderObj.entries.push({
-          type: 'options',
-          count: g.features[0]?.choice_count || 1,
-          entries: g.features.map((gf) => ({ type: 'refSubclassFeature', subclassFeature: scRefString(gf.name, level) })),
-        })
+        const groupCount = g.features[0]?.choice_count ?? 1
+        if (groupCount > 0) {
+          holderObj.entries.push({
+            type: 'options',
+            count: groupCount,
+            entries: g.features.map((gf) => ({ type: 'refSubclassFeature', subclassFeature: scRefString(gf.name, level) })),
+          })
+        }
         for (const gf of g.features) {
           subclassFeatureObjs.push({
             name: gf.name,

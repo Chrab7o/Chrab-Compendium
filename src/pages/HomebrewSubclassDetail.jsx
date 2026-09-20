@@ -3,7 +3,8 @@ import { useParams } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { supabase } from '../lib/supabaseClient'
-import { sortByLevel, splitChoiceGroups } from '../lib/homebrew'
+import { sortByLevel } from '../lib/homebrew'
+import NestedFeatureList from '../components/homebrew/NestedFeatureList'
 
 export default function HomebrewSubclassDetail() {
   const { slug } = useParams()
@@ -70,37 +71,10 @@ export default function HomebrewSubclassDetail() {
         <div className="homebrew-features">
           <h2>Features</h2>
           {levels.map((level) => {
-            const { ungrouped, groups: choiceGroups } = splitChoiceGroups(byLevel.get(level))
             return (
               <div key={level}>
                 <h2 className="homebrew-level-heading">Level {level}</h2>
-                {ungrouped.map((f) => (
-                  <div key={f.id} className="homebrew-feature">
-                    <h3>{f.name}</h3>
-                    {f.description && (
-                      <div className="homebrew-markdown">
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{f.description}</ReactMarkdown>
-                      </div>
-                    )}
-                  </div>
-                ))}
-                {choiceGroups.map((choiceGroup) => (
-                  <div key={choiceGroup.name} className="homebrew-choice-group">
-                    <h4 className="homebrew-group-label">
-                      {choiceGroup.name} — choose {choiceGroup.features[0]?.choice_count || 1} of the following
-                    </h4>
-                    {choiceGroup.features.map((f) => (
-                      <div key={f.id} className="homebrew-choice-feature">
-                        <h5>{f.name}</h5>
-                        {f.description && (
-                          <div className="homebrew-markdown">
-                            <ReactMarkdown remarkPlugins={[remarkGfm]}>{f.description}</ReactMarkdown>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                ))}
+                <NestedFeatureList features={byLevel.get(level)} headingLevel={3} />
               </div>
             )
           })}

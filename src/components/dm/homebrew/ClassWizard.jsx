@@ -266,9 +266,13 @@ export default function ClassWizard() {
     }
 
     await supabase.from('homebrew_class_features').delete().eq('class_id', classId)
-    if (form.features.length > 0) {
+    // Blank rows (a feature or sub-feature added and then left empty) are
+    // dropped rather than saved as a nameless heading - same rule the
+    // subclass feature save below already applies.
+    const namedFeatures = form.features.filter((f) => f.name.trim() !== '')
+    if (namedFeatures.length > 0) {
       const { error: featuresError } = await supabase.from('homebrew_class_features').insert(
-        form.features.map((f, i) => ({
+        namedFeatures.map((f, i) => ({
           class_id: classId,
           level: f.level,
           name: f.name,
@@ -673,15 +677,15 @@ export default function ClassWizard() {
         {currentStep === 'features' && (
           <div className="dm-form">
             <p className="status-message">
-              Add a row for each level that grants a feature. Not every level needs one. Give a set of features the
-              same "Choice group" name (e.g. "Dark Arts") if the player picks some of them rather than getting all of
-              them — the detail page boxes those together as options.
+              Add a row for each level that grants a feature. Not every level needs one. A feature that is really a
+              menu — Metamagic, Dark Arts, Fighting Styles — keeps its options as sub-features inside it, and you set
+              whether the player picks some of them or gets them all.
             </p>
             <RepeatableRows
               rows={form.features}
               onChange={(features) => setForm({ ...form, features })}
               withLevel
-              withChoiceGroup
+              withSubFeatures
               addLabel="+ Add Feature"
             />
           </div>
@@ -751,7 +755,7 @@ export default function ClassWizard() {
                   onChange={(features) => updateSubclass(i, { features })}
                   withLevel
                   allowedLevels={form.subclass_levels}
-                  withChoiceGroup
+                  withSubFeatures
                   addLabel="+ Add Feature"
                 />
               </div>

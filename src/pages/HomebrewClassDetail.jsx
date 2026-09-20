@@ -3,7 +3,8 @@ import { useParams } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { supabase } from '../lib/supabaseClient'
-import { ABILITY_LABELS, SPELLCASTING_PROGRESSIONS, sortByLevel, splitChoiceGroups } from '../lib/homebrew'
+import { ABILITY_LABELS, SPELLCASTING_PROGRESSIONS, sortByLevel } from '../lib/homebrew'
+import NestedFeatureList from '../components/homebrew/NestedFeatureList'
 
 export default function HomebrewClassDetail() {
   const { slug } = useParams()
@@ -184,7 +185,12 @@ export default function HomebrewClassDetail() {
                 .map((level) => (
                   <tr key={level}>
                     <td>{level}</td>
-                    <td>{(levels.get(level) ?? []).map((f) => f.name).join(', ') || '—'}</td>
+                    <td>
+                      {(levels.get(level) ?? [])
+                        .filter((f) => !f.choice_group)
+                        .map((f) => f.name)
+                        .join(', ') || '—'}
+                    </td>
                     {tableColumns.map((col) => (
                       <td key={col.id}>{valuesByColumn.get(col.id)?.[level] ?? '—'}</td>
                     ))}
@@ -200,37 +206,10 @@ export default function HomebrewClassDetail() {
           <h2>Features</h2>
           {sortedWriteupLevels.map((level) => {
             const group = writeupLevels.get(level)
-            const { ungrouped, groups: choiceGroups } = splitChoiceGroups(group.features)
             return (
               <div key={level}>
                 <h2 className="homebrew-level-heading">Level {level}</h2>
-                {ungrouped.map((f) => (
-                  <div key={f.id} className="homebrew-feature">
-                    <h3>{f.name}</h3>
-                    {f.description && (
-                      <div className="homebrew-markdown">
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{f.description}</ReactMarkdown>
-                      </div>
-                    )}
-                  </div>
-                ))}
-                {choiceGroups.map((choiceGroup) => (
-                  <div key={choiceGroup.name} className="homebrew-choice-group">
-                    <h4 className="homebrew-group-label">
-                      {choiceGroup.name} — choose {choiceGroup.features[0]?.choice_count || 1} of the following
-                    </h4>
-                    {choiceGroup.features.map((f) => (
-                      <div key={f.id} className="homebrew-choice-feature">
-                        <h5>{f.name}</h5>
-                        {f.description && (
-                          <div className="homebrew-markdown">
-                            <ReactMarkdown remarkPlugins={[remarkGfm]}>{f.description}</ReactMarkdown>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                ))}
+                <NestedFeatureList features={group.features} headingLevel={3} />
                 {group.bySubclass.size > 0 && (
                   <div className="homebrew-subclass-level-group">
                     <h4 className="homebrew-group-label">{cls.subclass_label}</h4>
@@ -238,7 +217,6 @@ export default function HomebrewClassDetail() {
                       const subclass = subclassesById.get(subclassId)
                       const showIntro = !introducedSubclasses.has(subclassId)
                       introducedSubclasses.add(subclassId)
-                      const { ungrouped: scUngrouped, groups: scChoiceGroups } = splitChoiceGroups(feats)
                       return (
                         <div key={subclassId} className="homebrew-subclass-feature-block">
                           <h4>{subclass?.name}</h4>
@@ -247,33 +225,7 @@ export default function HomebrewClassDetail() {
                               <ReactMarkdown remarkPlugins={[remarkGfm]}>{subclass.description}</ReactMarkdown>
                             </div>
                           )}
-                          {scUngrouped.map((f) => (
-                            <div key={f.id} className="homebrew-feature">
-                              <h5>{f.name}</h5>
-                              {f.description && (
-                                <div className="homebrew-markdown">
-                                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{f.description}</ReactMarkdown>
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                          {scChoiceGroups.map((choiceGroup) => (
-                            <div key={choiceGroup.name} className="homebrew-choice-group">
-                              <h4 className="homebrew-group-label">
-                                {choiceGroup.name} — choose {choiceGroup.features[0]?.choice_count || 1} of the following
-                              </h4>
-                              {choiceGroup.features.map((f) => (
-                                <div key={f.id} className="homebrew-choice-feature">
-                                  <h5>{f.name}</h5>
-                                  {f.description && (
-                                    <div className="homebrew-markdown">
-                                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{f.description}</ReactMarkdown>
-                                    </div>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          ))}
+                          <NestedFeatureList features={feats} headingLevel={5} />
                         </div>
                       )
                     })}

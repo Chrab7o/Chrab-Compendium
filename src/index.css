@@ -2824,6 +2824,61 @@ button.chip:hover {
   align-self: flex-end;
 }
 
+/* The sub-feature editor nested inside a feature row - indented behind the
+   same accent spine the detail page uses for the rendered options, so the
+   builder and the finished page read as the same structure. */
+.sub-features {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-left: 0.9rem;
+  padding: 0.75rem 0 0.25rem 0.9rem;
+  border-left: 3px solid var(--accent-2);
+}
+
+.sub-features-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sub-features-title {
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent-strong);
+  font-weight: 700;
+}
+
+.dm-form .sub-features-count {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: var(--text-xs);
+}
+
+.sub-features-hint {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.sub-feature-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.sub-features > button {
+  align-self: flex-start;
+}
+
 .chip-list {
   display: flex;
   flex-wrap: wrap;
@@ -3081,6 +3136,18 @@ button.chip:hover {
 
 .homebrew-choice-feature:last-child {
   margin-bottom: 0;
+}
+
+/* A choice group now lives inside the feature that introduces it (Metamagic
+   options under Metamagic), so it gets an accent spine and an indent to
+   read as belonging to the write-up above it rather than as a sibling. */
+.homebrew-feature .homebrew-choice-group {
+  margin: 0.85rem 0 0 0.9rem;
+  border-left: 3px solid var(--accent-2);
+}
+
+.homebrew-feature .homebrew-choice-group .homebrew-group-label {
+  margin-top: 0;
 }
 
 .homebrew-choice-feature > h5 {
