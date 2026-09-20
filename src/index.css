@@ -2862,6 +2862,50 @@ button.chip:hover {
   align-items: center;
 }
 
+.option-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.option-picker-label {
+  color: var(--text-muted);
+}
+
+.option-picker-hint {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  opacity: 0.85;
+}
+
+.option-picker .chip-list {
+  margin: 0.15rem 0 0.35rem;
+}
+
+.option-picker .chip {
+  background: var(--surface-2);
+  color: var(--text);
+  border-color: var(--accent-2);
+}
+
+.option-picker-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.option-picker-controls select {
+  max-width: 16rem;
+}
+
+.option-picker-controls .chip-add input {
+  max-width: 14rem;
+}
+
+
 .chip-add input {
   max-width: 12rem;
 }

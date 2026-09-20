@@ -21,6 +21,165 @@ export const SPELLCASTING_PROGRESSIONS = [
   { value: 'pact', label: 'Pact magic' },
 ]
 
+// Pick-list options for the proficiency fields. These are the standard 5e
+// terms, offered as dropdown choices so the common case is a click instead
+// of retyping "Light armor, Medium armor, Shields" by hand — but every
+// picker still takes a custom entry, since homebrew classes routinely grant
+// proficiencies that aren't on any official list.
+export const ARMOR_PROFICIENCY_OPTIONS = ['Light armor', 'Medium armor', 'Heavy armor', 'Shields']
+
+export const WEAPON_PROFICIENCY_OPTIONS = [
+  {
+    group: 'Categories',
+    options: ['Simple weapons', 'Martial weapons', 'Improvised weapons', 'Firearms'],
+  },
+  {
+    group: 'Simple weapons',
+    options: [
+      'Clubs',
+      'Daggers',
+      'Greatclubs',
+      'Handaxes',
+      'Javelins',
+      'Light hammers',
+      'Maces',
+      'Quarterstaffs',
+      'Sickles',
+      'Spears',
+      'Light crossbows',
+      'Darts',
+      'Shortbows',
+      'Slings',
+    ],
+  },
+  {
+    group: 'Martial weapons',
+    options: [
+      'Battleaxes',
+      'Flails',
+      'Glaives',
+      'Greataxes',
+      'Greatswords',
+      'Halberds',
+      'Lances',
+      'Longswords',
+      'Mauls',
+      'Morningstars',
+      'Pikes',
+      'Rapiers',
+      'Scimitars',
+      'Shortswords',
+      'Tridents',
+      'War picks',
+      'Warhammers',
+      'Whips',
+      'Blowguns',
+      'Hand crossbows',
+      'Heavy crossbows',
+      'Longbows',
+      'Nets',
+    ],
+  },
+]
+
+export const TOOL_PROFICIENCY_OPTIONS = [
+  {
+    group: 'Artisan’s tools',
+    options: [
+      "Alchemist's supplies",
+      "Brewer's supplies",
+      "Calligrapher's supplies",
+      "Carpenter's tools",
+      "Cartographer's tools",
+      "Cobbler's tools",
+      "Cook's utensils",
+      "Glassblower's tools",
+      "Jeweler's tools",
+      "Leatherworker's tools",
+      "Mason's tools",
+      "Painter's supplies",
+      "Potter's tools",
+      "Smith's tools",
+      "Tinker's tools",
+      "Weaver's tools",
+      "Woodcarver's tools",
+    ],
+  },
+  {
+    group: 'Kits & gear',
+    options: [
+      "Thieves' tools",
+      'Disguise kit',
+      'Forgery kit',
+      'Herbalism kit',
+      "Navigator's tools",
+      "Poisoner's kit",
+      'Vehicles (land)',
+      'Vehicles (water)',
+    ],
+  },
+  {
+    group: 'Gaming sets',
+    options: ['Dice set', 'Dragonchess set', 'Playing card set', 'Three-Dragon Ante set', 'Any one gaming set'],
+  },
+  {
+    group: 'Musical instruments',
+    options: [
+      'Bagpipes',
+      'Drum',
+      'Dulcimer',
+      'Flute',
+      'Lute',
+      'Lyre',
+      'Horn',
+      'Pan flute',
+      'Shawm',
+      'Viol',
+      'Any one musical instrument',
+    ],
+  },
+]
+
+// The 18 skills with the ability they key off, so the skill picker can show
+// "Athletics (STR)" without a second lookup table.
+export const SKILLS = [
+  { name: 'Acrobatics', ability: 'DEX' },
+  { name: 'Animal Handling', ability: 'WIS' },
+  { name: 'Arcana', ability: 'INT' },
+  { name: 'Athletics', ability: 'STR' },
+  { name: 'Deception', ability: 'CHA' },
+  { name: 'History', ability: 'INT' },
+  { name: 'Insight', ability: 'WIS' },
+  { name: 'Intimidation', ability: 'CHA' },
+  { name: 'Investigation', ability: 'INT' },
+  { name: 'Medicine', ability: 'WIS' },
+  { name: 'Nature', ability: 'INT' },
+  { name: 'Perception', ability: 'WIS' },
+  { name: 'Performance', ability: 'CHA' },
+  { name: 'Persuasion', ability: 'CHA' },
+  { name: 'Religion', ability: 'INT' },
+  { name: 'Sleight of Hand', ability: 'DEX' },
+  { name: 'Stealth', ability: 'DEX' },
+  { name: 'Survival', ability: 'WIS' },
+]
+
+// The proficiency columns are a single free-text string in the schema (and
+// in both import/export formats), but the wizard edits them as a list of
+// picked options. These two convert between the two shapes. Splitting on
+// "or" as well as commas keeps text typed by hand before the pickers
+// existed ("Light armor, medium armor, and shields", "Strength or
+// Dexterity") from coming back as one giant chip.
+export function parseProficiencyText(text) {
+  return (text || '')
+    .split(/,|\bor\b|\band\b/i)
+    .map((s) => s.trim())
+    .filter(Boolean)
+}
+
+export function joinProficiencyList(list, separator = ', ') {
+  return list.join(separator)
+}
+
 export const emptySubclassForm = () => ({
   id: null,
   name: '',

@@ -11,10 +11,19 @@ import {
   classFormToFiveToolsJson,
   fiveToolsJsonToClassForm,
   SPELLCASTING_PROGRESSIONS,
+  ARMOR_PROFICIENCY_OPTIONS,
+  WEAPON_PROFICIENCY_OPTIONS,
+  TOOL_PROFICIENCY_OPTIONS,
+  SKILLS,
+  ABILITY_SCORES,
+  ABILITY_LABELS,
+  parseProficiencyText,
+  joinProficiencyList,
 } from '../../../lib/homebrew'
 import WizardShell from '../WizardShell'
 import RepeatableRows from '../RepeatableRows'
 import AbilityScorePicker from '../AbilityScorePicker'
+import OptionPicker from '../OptionPicker'
 
 const STEPS = [
   { key: 'basics', label: 'Basics' },
@@ -23,6 +32,10 @@ const STEPS = [
   { key: 'table', label: 'Special Table Columns' },
   { key: 'subclasses', label: 'Subclasses' },
 ]
+
+const SKILL_OPTIONS = SKILLS.map((s) => s.name)
+
+const PRIMARY_ABILITY_OPTIONS = ABILITY_SCORES.map((a) => ABILITY_LABELS[a])
 
 function slugify(name) {
   return name
@@ -60,7 +73,6 @@ export default function ClassWizard() {
   const [loading, setLoading] = useState(!isNew)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
-  const [newSkillOption, setNewSkillOption] = useState('')
   const [newSubclassLevel, setNewSubclassLevel] = useState('')
 
   // Autosaves to localStorage as the DM works through the wizard, so
@@ -132,15 +144,27 @@ export default function ClassWizard() {
     setDraftPromptDismissed(true)
   }
 
-  function addSkillOption() {
-    const value = newSkillOption.trim()
-    if (!value || form.skill_choices_options.includes(value)) return
-    setForm({ ...form, skill_choices_options: [...form.skill_choices_options, value] })
-    setNewSkillOption('')
-  }
+  // The proficiency columns are single strings in the database, so each
+  // picker parses the string on the way in and re-joins on the way out.
+  // Keeping the storage shape untouched means the detail page, the JSON
+  // export, and the 5etools export all keep working unchanged.
+  const armorList = parseProficiencyText(form.armor_proficiencies)
+  const weaponList = parseProficiencyText(form.weapon_proficiencies)
+  const toolList = parseProficiencyText(form.tool_proficiencies)
+  const primaryAbilityList = parseProficiencyText(form.primary_ability)
 
-  function removeSkillOption(value) {
-    setForm({ ...form, skill_choices_options: form.skill_choices_options.filter((s) => s !== value) })
+  const skillCount = Number(form.skill_choices_count) || 0
+  const skillChoiceHint =
+    skillCount === 0
+      ? 'Set a count above first — with none to choose, these options are never offered.'
+      : form.skill_choices_options.length === 0
+        ? 'Empty means players may choose freely from any skill.'
+        : form.skill_choices_options.length < skillCount
+          ? `Only ${form.skill_choices_options.length} option${form.skill_choices_options.length === 1 ? '' : 's'} listed but ${skillCount} to choose — add more or lower the count.`
+          : `Players pick ${skillCount} of these ${form.skill_choices_options.length}.`
+
+  function setProficiencyList(field, list, separator = ', ') {
+    setForm({ ...form, [field]: joinProficiencyList(list, separator) })
   }
 
   function addSubclassLevel() {
@@ -185,6 +209,21 @@ export default function ClassWizard() {
   }
 
   async function handleSave() {
+    // Caught here rather than let the insert fail on a not-null constraint,
+    // so the DM lands back on the step that needs fixing instead of reading
+    // a Postgres error.
+    if (!form.name.trim()) {
+      setCurrentStep('basics')
+      setError('Give the class a name before saving.')
+      return
+    }
+    const unnamedSubclass = form.subclasses.findIndex((s) => !s.name.trim())
+    if (unnamedSubclass !== -1) {
+      setCurrentStep('subclasses')
+      setError(`${form.subclass_label} ${unnamedSubclass + 1} needs a name before saving.`)
+      return
+    }
+
     setSaving(true)
     setError(null)
 
@@ -472,14 +511,6 @@ export default function ClassWizard() {
                 </select>
               </label>
               <label>
-                Primary Ability
-                <input
-                  value={form.primary_ability}
-                  onChange={(e) => setForm({ ...form, primary_ability: e.target.value })}
-                  placeholder="e.g. Strength or Dexterity"
-                />
-              </label>
-              <label>
                 Campaign
                 <select value={form.campaign_id} onChange={(e) => setForm({ ...form, campaign_id: e.target.value })}>
                   <option value="">General (no campaign)</option>
@@ -491,6 +522,15 @@ export default function ClassWizard() {
                 </select>
               </label>
             </div>
+            <OptionPicker
+              label="Primary Ability"
+              hint="The ability this class keys off — add two if either works."
+              options={PRIMARY_ABILITY_OPTIONS}
+              selected={primaryAbilityList}
+              onChange={(list) => setProficiencyList('primary_ability', list, ' or ')}
+              addPlaceholder="Add ability…"
+              allowCustom={false}
+            />
             <AbilityScorePicker
               legend="Saving Throw Proficiencies"
               selected={form.saving_throw_proficiencies}
@@ -519,15 +559,17 @@ export default function ClassWizard() {
                 ))}
               </div>
               <span className="chip-add">
-                <input
-                  type="number"
-                  min="1"
-                  max="20"
-                  value={newSubclassLevel}
-                  onChange={(e) => setNewSubclassLevel(e.target.value)}
-                  placeholder="Level"
-                />
-                <button type="button" onClick={addSubclassLevel}>
+                <select value={newSubclassLevel} onChange={(e) => setNewSubclassLevel(e.target.value)}>
+                  <option value="">Level…</option>
+                  {Array.from({ length: 20 }, (_, i) => i + 1)
+                    .filter((level) => !form.subclass_levels.includes(level))
+                    .map((level) => (
+                      <option key={level} value={level}>
+                        Level {level}
+                      </option>
+                    ))}
+                </select>
+                <button type="button" className="secondary" onClick={addSubclassLevel} disabled={!newSubclassLevel}>
                   + Add level
                 </button>
               </span>
@@ -537,57 +579,55 @@ export default function ClassWizard() {
 
         {currentStep === 'proficiencies' && (
           <div className="dm-form">
+            <OptionPicker
+              label="Armor Proficiencies"
+              options={ARMOR_PROFICIENCY_OPTIONS}
+              selected={armorList}
+              onChange={(list) => setProficiencyList('armor_proficiencies', list)}
+              addPlaceholder="Add armor…"
+              customPlaceholder="Custom armor…"
+            />
+            <OptionPicker
+              label="Weapon Proficiencies"
+              hint="Pick a whole category (Simple, Martial) or list individual weapons."
+              options={WEAPON_PROFICIENCY_OPTIONS}
+              selected={weaponList}
+              onChange={(list) => setProficiencyList('weapon_proficiencies', list)}
+              addPlaceholder="Add weapon…"
+              customPlaceholder="Custom weapon…"
+            />
+            <OptionPicker
+              label="Tool Proficiencies"
+              options={TOOL_PROFICIENCY_OPTIONS}
+              selected={toolList}
+              onChange={(list) => setProficiencyList('tool_proficiencies', list)}
+              addPlaceholder="Add tool…"
+              customPlaceholder="Custom tool…"
+            />
             <div className="dm-form-row">
               <label>
-                Armor Proficiencies
-                <input
-                  value={form.armor_proficiencies}
-                  onChange={(e) => setForm({ ...form, armor_proficiencies: e.target.value })}
-                />
-              </label>
-              <label>
-                Weapon Proficiencies
-                <input
-                  value={form.weapon_proficiencies}
-                  onChange={(e) => setForm({ ...form, weapon_proficiencies: e.target.value })}
-                />
-              </label>
-              <label>
-                Tool Proficiencies
-                <input
-                  value={form.tool_proficiencies}
-                  onChange={(e) => setForm({ ...form, tool_proficiencies: e.target.value })}
-                />
+                Skill Choices Count
+                <select
+                  value={form.skill_choices_count}
+                  onChange={(e) => setForm({ ...form, skill_choices_count: Number(e.target.value) })}
+                >
+                  {Array.from({ length: Math.max(7, skillCount + 1) }, (_, n) => n).map((n) => (
+                    <option key={n} value={n}>
+                      {n === 0 ? 'None' : `Choose ${n}`}
+                    </option>
+                  ))}
+                </select>
               </label>
             </div>
-            <label>
-              Skill Choices Count
-              <input
-                type="number"
-                min="0"
-                value={form.skill_choices_count}
-                onChange={(e) => setForm({ ...form, skill_choices_count: e.target.value })}
-              />
-            </label>
-            <label>
-              Skill Choice Options (leave empty to allow choosing freely from any skill)
-              <div className="chip-list">
-                {form.skill_choices_options.map((skill) => (
-                  <span key={skill} className="chip">
-                    {skill}
-                    <button type="button" onClick={() => removeSkillOption(skill)}>
-                      ×
-                    </button>
-                  </span>
-                ))}
-              </div>
-              <span className="chip-add">
-                <input value={newSkillOption} onChange={(e) => setNewSkillOption(e.target.value)} placeholder="Skill name" />
-                <button type="button" onClick={addSkillOption}>
-                  + Add skill
-                </button>
-              </span>
-            </label>
+            <OptionPicker
+              label="Skill Choice Options"
+              hint={skillChoiceHint}
+              options={SKILL_OPTIONS}
+              selected={form.skill_choices_options}
+              onChange={(skill_choices_options) => setForm({ ...form, skill_choices_options })}
+              addPlaceholder="Add skill…"
+              customPlaceholder="Custom skill…"
+            />
             <label>
               Starting Equipment
               <textarea
@@ -618,9 +658,9 @@ export default function ClassWizard() {
                     onChange={(e) => setForm({ ...form, spellcasting_ability: e.target.value })}
                   >
                     <option value="">Choose...</option>
-                    {['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'].map((a) => (
+                    {ABILITY_SCORES.map((a) => (
                       <option key={a} value={a}>
-                        {a}
+                        {ABILITY_LABELS[a]}
                       </option>
                     ))}
                   </select>

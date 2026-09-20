@@ -24,19 +24,38 @@ export function AuthProvider({ children }) {
         return
       }
       setRoleLoading(true)
-      const { data } = await supabase.from('profiles').select('role').eq('id', userId).single()
-      if (!cancelled) {
-        setRole(data?.role ?? null)
-        setRoleLoading(false)
+      try {
+        const { data } = await supabase.from('profiles').select('role').eq('id', userId).single()
+        if (!cancelled) setRole(data?.role ?? null)
+      } catch (err) {
+        console.error('Failed to load role', err)
+        if (!cancelled) setRole(null)
+      } finally {
+        if (!cancelled) setRoleLoading(false)
       }
     }
 
-    supabase.auth.getSession().then(async ({ data }) => {
-      lastUserId = data.session?.user?.id ?? null
-      setSession(data.session)
-      await loadRole(data.session?.user?.id)
-      if (!cancelled) setLoading(false)
-    })
+    // supabase-js serializes getSession() behind a cross-tab lock, which can
+    // hang forever if a stale lock from a crashed/closed tab never releases
+    // (this is what previously required a manual page reload to recover
+    // from). Fall back to an unauthenticated state after a timeout instead
+    // of leaving the app stuck on "Loading" indefinitely.
+    const getSessionTimeout = new Promise((resolve) =>
+      setTimeout(() => resolve({ data: { session: null }, timedOut: true }), 8000)
+    )
+
+    Promise.race([supabase.auth.getSession(), getSessionTimeout])
+      .catch((err) => {
+        console.error('Failed to get session', err)
+        return { data: { session: null } }
+      })
+      .then(async (result) => {
+        const { data } = result
+        lastUserId = data.session?.user?.id ?? null
+        setSession(data.session)
+        await loadRole(data.session?.user?.id)
+        if (!cancelled) setLoading(false)
+      })
 
     const { data: listener } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
       const newUserId = newSession?.user?.id ?? null
