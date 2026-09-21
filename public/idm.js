@@ -4,6 +4,19 @@
 (function () {
   const STORAGE_KEY = 'idm_saved_items';
 
+  // Saved items go through a storage adapter so the host page can decide
+  // where they live. The default keeps the standalone tool's original
+  // behaviour (this browser's localStorage); Chrab Corner passes a
+  // Supabase-backed adapter instead, so items follow the DM across devices.
+  // Every method may return a promise - the UI updates from an in-memory
+  // cache and lets the write settle behind it.
+  const localStorageAdapter = {
+    list() {
+      try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch (e) { return []; }
+    },
+    saveAll(items) { localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); },
+  };
+
   // ---- formatting (5e.tools ve-stats markup generation) ----
 
   function escapeHtml(str) {
@@ -136,10 +149,16 @@ ${[subtitleRow, statRows, bodyHtml].filter(Boolean).join('\n')}
   function defaultTextBlock() { return { type: 'text', content: '' }; }
   function defaultItem() { return { __id: null, name: '', blocks: [defaultFeatureBlock()] }; }
 
-  function init(root) {
+  function init(root, options) {
     root = root || document;
     if (root.__idmInitialized) return;
     root.__idmInitialized = true;
+
+    const storage = (options && options.storage) || localStorageAdapter;
+    // The rendered list reads from this cache rather than from storage, so
+    // a remote adapter doesn't turn every re-render into a round trip. It's
+    // filled once below and then kept in step with each write.
+    let savedItems = [];
 
     let state = defaultItem();
 
@@ -156,10 +175,18 @@ ${[subtitleRow, statRows, bodyHtml].filter(Boolean).join('\n')}
       textBlockTemplate: q('idm-text-block-template'),
     };
 
-    function getSavedItems() {
-      try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch (e) { return []; }
+    function getSavedItems() { return savedItems; }
+
+    // Optimistic: the cache and the list update immediately, the adapter's
+    // write settles after. A failed write says so rather than silently
+    // leaving the screen showing something that was never stored.
+    function setSavedItems(items) {
+      savedItems = items;
+      Promise.resolve(storage.saveAll(items, root)).catch((err) => {
+        console.error('[idm] saving items failed', err);
+        alert('Could not save your items: ' + (err && err.message ? err.message : err));
+      });
     }
-    function setSavedItems(items) { localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); }
 
     function moveBlock(idx, dir) {
       const newIdx = idx + dir;
@@ -316,6 +343,18 @@ ${[subtitleRow, statRows, bodyHtml].filter(Boolean).join('\n')}
     syncCommonFieldsFromState();
     updatePreview();
     renderSavedList();
+
+    // First paint shows an empty list; a remote adapter fills it in when its
+    // fetch lands. Nothing else waits on this, so the editor is usable
+    // immediately either way.
+    Promise.resolve(storage.list(root))
+      .then((items) => {
+        savedItems = Array.isArray(items) ? items : [];
+        renderSavedList();
+      })
+      .catch((err) => {
+        console.error('[idm] loading saved items failed', err);
+      });
   }
 
   window.ItemDescriptionMaker = { init };
