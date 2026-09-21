@@ -124,3 +124,15 @@
 
 .idm-widget .idm-preview-box { border: 1px solid var(--idm-border); border-radius: var(--radius-sm, 8px); padding: 10px; margin-bottom: 16px; min-height: 80px; background: var(--idm-panel-bg-2); font-size: 0.9em; }
 .idm-widget .idm-copy-status { color: var(--idm-accent-dark); font-size: 0.85em; font-weight: 600; margin: 6px 0 0; }
+
+/* A saved-list load/save failure - shown in the list itself, since an empty
+   list and a list that never loaded are otherwise indistinguishable. */
+.idm-item-error {
+  padding: 0.5rem 0.65rem;
+  border: 1px solid #b3261e;
+  border-radius: 6px;
+  background: rgba(179, 38, 30, 0.1);
+  color: #7a1811;
+  font-size: 0.85rem;
+  list-style: none;
+}

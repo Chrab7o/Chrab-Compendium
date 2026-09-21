@@ -184,7 +184,8 @@ ${[subtitleRow, statRows, bodyHtml].filter(Boolean).join('\n')}
       savedItems = items;
       Promise.resolve(storage.saveAll(items, root)).catch((err) => {
         console.error('[idm] saving items failed', err);
-        alert('Could not save your items: ' + (err && err.message ? err.message : err));
+        showListError('Could not save: ' + errText(err));
+        alert('Could not save your items: ' + errText(err));
       });
     }
 
@@ -238,6 +239,15 @@ ${[subtitleRow, statRows, bodyHtml].filter(Boolean).join('\n')}
       const html = generateItemHTML(state);
       el.preview.innerHTML = html;
       el.htmlOutput.value = html;
+    }
+
+    function errText(err) { return (err && err.message) ? err.message : String(err); }
+
+    function showListError(message) {
+      const li = document.createElement('li');
+      li.className = 'idm-item-error';
+      li.textContent = message;
+      el.savedList.appendChild(li);
     }
 
     function renderSavedList() {
@@ -354,6 +364,11 @@ ${[subtitleRow, statRows, bodyHtml].filter(Boolean).join('\n')}
       })
       .catch((err) => {
         console.error('[idm] loading saved items failed', err);
+        // An empty list and a list that failed to load look identical, and
+        // this one is worth knowing about before typing a whole item in:
+        // say so in the list itself rather than only in a console nobody
+        // has open on a phone.
+        showListError('Could not load your saved items: ' + errText(err));
       });
   }
 
