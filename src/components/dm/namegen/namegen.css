@@ -33,7 +33,10 @@
   gap: 0.25rem;
 }
 
-/* A race row is the only control in its row, so it gets real chrome. */
+/* A race row is the only control in its row, so it gets real chrome. The
+   explicit color matters: the base button rule paints text in --on-accent
+   (near-white, for the accent gradient), which is invisible once these rows
+   swap that gradient for a neutral panel-colored background. */
 .ng-race {
   width: 100%;
   text-align: left;
@@ -41,6 +44,7 @@
   border: 1px solid rgba(127, 127, 127, 0.28);
   border-radius: 6px;
   background: rgba(127, 127, 127, 0.06);
+  color: var(--text);
   box-shadow: none;
   cursor: pointer;
 }
@@ -51,11 +55,17 @@
   box-shadow: none;
   background: rgba(127, 127, 127, 0.16);
   border-color: rgba(127, 127, 127, 0.45);
+  color: var(--text);
 }
 
-.ng-race.is-active {
-  border-color: currentColor;
-  background: rgba(127, 127, 127, 0.22);
+/* The picked race takes the accent fill the wizard's active step pill uses,
+   so "which race am I generating for" is legible at a glance instead of
+   being a slightly darker tan among tans. */
+.ng-race.is-active,
+.ng-race.is-active:hover {
+  border-color: var(--accent);
+  background: linear-gradient(135deg, var(--accent-strong), var(--accent));
+  color: var(--on-accent);
   font-weight: 600;
 }
 
@@ -96,6 +106,7 @@
   border: 1px solid rgba(127, 127, 127, 0.28);
   border-radius: 6px;
   background: rgba(127, 127, 127, 0.06);
+  color: var(--text);
   box-shadow: none;
   font-size: 1rem;
   cursor: pointer;
@@ -107,6 +118,7 @@
   box-shadow: none;
   background: rgba(127, 127, 127, 0.16);
   border-color: rgba(127, 127, 127, 0.45);
+  color: var(--text);
 }
 
 .ng-fav { flex: 0 0 auto; align-self: stretch; }
