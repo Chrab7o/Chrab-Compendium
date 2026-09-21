@@ -23,6 +23,7 @@ import DMCharactersPage from './pages/dm/DMCharactersPage'
 import DMSkillTreesPage from './pages/dm/DMSkillTreesPage'
 import DMHomebrewPage from './pages/dm/DMHomebrewPage'
 import DMSessionPlannerPage from './pages/dm/DMSessionPlannerPage'
+import DMLongTermPlanningPage from './pages/dm/DMLongTermPlanningPage'
 import SessionPlanEditorPage from './pages/dm/SessionPlanEditorPage'
 import DMItemMakerPage from './pages/dm/DMItemMakerPage'
 import DMNameGeneratorPage from './pages/dm/DMNameGeneratorPage'
@@ -101,6 +102,7 @@ export default function App() {
               <Route path="homebrew/subclasses/:id/edit" element={<StandaloneSubclassEditor />} />
               <Route path="session-planner" element={<DMSessionPlannerPage />} />
               <Route path="session-planner/:id" element={<SessionPlanEditorPage />} />
+              <Route path="long-term-planning" element={<DMLongTermPlanningPage />} />
               <Route path="item-maker" element={<DMItemMakerPage />} />
               <Route path="name-generator" element={<DMNameGeneratorPage />} />
               <Route path="screen" element={<DMScreenPage />} />

@@ -6,6 +6,7 @@ const SECTIONS = [
   { to: '/dm/campaigns', title: 'Campaigns', desc: 'Add and edit campaigns.' },
   { to: '/dm/maps', title: 'Maps', desc: 'Upload maps and place markers.' },
   { to: '/dm/characters', title: 'Characters', desc: 'Review imported character sheets, assign owners.' },
+  { to: '/dm/long-term-planning', title: 'Long-Term Planning', desc: 'Things to remember to do at some point, with no date on them yet.' },
   { to: '/dm/notes', title: 'Player Notes', desc: "Read-only view of everyone's private notes." },
   { to: '/dm/import', title: 'Import', desc: 'Bring in Foundry characters and Obsidian vaults.' },
 ]

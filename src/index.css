@@ -3283,3 +3283,97 @@ button.chip:hover {
 }
 
 } /* end @layer base */
+
+/* Long-term planning: a flat list of standing reminders. Each note is a card
+   with its own chrome (per docs/ui-conventions.md nothing sits as bare text
+   in its own row), and the "when" reads as a badge rather than a second
+   sentence, since it's usually two words. */
+.ltp-list {
+  display: grid;
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+}
+
+.ltp-item {
+  display: grid;
+  gap: 0.5rem;
+  padding: 1rem 1.15rem;
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.ltp-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  cursor: pointer;
+}
+
+.ltp-check input {
+  margin-top: 0.25rem;
+  width: 1.05rem;
+  height: 1.05rem;
+  flex: 0 0 auto;
+  accent-color: var(--accent-strong);
+  cursor: pointer;
+}
+
+.ltp-title {
+  font-size: var(--text-md);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.ltp-when {
+  justify-self: start;
+  padding: 0.2rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid var(--accent-2);
+  background: var(--surface-2);
+  color: var(--accent-strong);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ltp-details {
+  margin: 0;
+  white-space: pre-line;
+  color: var(--text-muted);
+}
+
+.ltp-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  justify-self: end;
+}
+
+.ltp-item.is-done {
+  border-left-color: var(--border);
+  opacity: 0.75;
+}
+
+.ltp-item.is-done .ltp-title {
+  text-decoration: line-through;
+}
+
+.ltp-done {
+  display: grid;
+  gap: 0.6rem;
+  margin-bottom: 2rem;
+}
+
+.ltp-done-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.ltp-edit {
+  gap: 0.75rem;
+}
