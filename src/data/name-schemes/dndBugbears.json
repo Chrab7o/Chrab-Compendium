@@ -1,0 +1,92 @@
+{
+  "id": "dndBugbears",
+  "parts": {
+    "nm1": [
+      "b",
+      "br",
+      "chr",
+      "d",
+      "g",
+      "gh",
+      "hr",
+      "kh",
+      "n",
+      "r",
+      "st",
+      "t",
+      "th",
+      "v",
+      "z",
+      "zh"
+    ],
+    "nm2": [
+      "a",
+      "e",
+      "i",
+      "o",
+      "u"
+    ],
+    "nm3": [
+      "d",
+      "dd",
+      "dr",
+      "g",
+      "gh",
+      "gg",
+      "gr",
+      "rr",
+      "rd",
+      "rg",
+      "rn",
+      "t",
+      "tt",
+      "tr",
+      "v",
+      "vr",
+      "z",
+      "zz"
+    ],
+    "nm4": [
+      "a",
+      "i",
+      "o",
+      "u"
+    ],
+    "nm5": [
+      "k",
+      "lk",
+      "mkk",
+      "n",
+      "nn",
+      "nk",
+      "r",
+      "rk",
+      "rr",
+      "th"
+    ]
+  },
+  "generators": {
+    "nameMas": {
+      "branches": [
+        {
+          "seq": [
+            "nm1",
+            "nm2",
+            "nm3",
+            "nm4",
+            "nm5"
+          ],
+          "weight": 0.6702
+        },
+        {
+          "seq": [
+            "nm1",
+            "nm4",
+            "nm5"
+          ],
+          "weight": 0.3298
+        }
+      ]
+    }
+  }
+}

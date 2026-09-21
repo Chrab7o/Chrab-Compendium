@@ -1,0 +1,81 @@
+{
+  "id": "dndGnollNames",
+  "parts": {
+    "nm1": [
+      "a",
+      "e",
+      "i",
+      "o",
+      "u"
+    ],
+    "nm2": [
+      "b",
+      "br",
+      "d",
+      "dr",
+      "dn",
+      "gn",
+      "gr",
+      "l",
+      "ld",
+      "lg",
+      "lb",
+      "lt",
+      "lth",
+      "mm",
+      "mn",
+      "md",
+      "nd",
+      "nr",
+      "r",
+      "rb",
+      "rd",
+      "rg",
+      "rr",
+      "rt",
+      "rth",
+      "st",
+      "sn",
+      "sm",
+      "t",
+      "th",
+      "y"
+    ],
+    "nm3": [
+      "a",
+      "e",
+      "o",
+      "u",
+      "a"
+    ],
+    "nm4": [
+      "b",
+      "d",
+      "g",
+      "k",
+      "kh",
+      "l",
+      "lk",
+      "m",
+      "r",
+      "rk",
+      "t",
+      "th"
+    ]
+  },
+  "generators": {
+    "nameMas": {
+      "branches": [
+        {
+          "seq": [
+            "nm1",
+            "nm2",
+            "nm3",
+            "nm4"
+          ],
+          "weight": 1
+        }
+      ]
+    }
+  }
+}

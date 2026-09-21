@@ -1,0 +1,477 @@
+{
+  "id": "dndHarengon",
+  "parts": {
+    "nm1": [
+      "Ad",
+      "Ae",
+      "Bal",
+      "Bei",
+      "Car",
+      "Cra",
+      "Dae",
+      "Dor",
+      "El",
+      "Ela",
+      "Er",
+      "Far",
+      "Fen",
+      "Gen",
+      "Glyn",
+      "Hei",
+      "Her",
+      "Ian",
+      "Ili",
+      "Kea",
+      "Kel",
+      "Leo",
+      "Lu",
+      "Mira",
+      "Mor",
+      "Nae",
+      "Nor",
+      "Olo",
+      "Oma",
+      "Pa",
+      "Per",
+      "Pet",
+      "Qi",
+      "Qin",
+      "Ralo",
+      "Ro",
+      "Sar",
+      "Syl",
+      "The",
+      "Tra",
+      "Ume",
+      "Uri",
+      "Va",
+      "Vir",
+      "Waes",
+      "Wran",
+      "Yel",
+      "Yin",
+      "Zin",
+      "Zum"
+    ],
+    "nm2": [
+      "balar",
+      "beros",
+      "can",
+      "ceran",
+      "dan",
+      "dithas",
+      "faren",
+      "fir",
+      "geiros",
+      "golor",
+      "hice",
+      "horn",
+      "jeon",
+      "jor",
+      "kas",
+      "kian",
+      "lamin",
+      "lar",
+      "len",
+      "maer",
+      "maris",
+      "menor",
+      "myar",
+      "nan",
+      "neiros",
+      "nelis",
+      "norin",
+      "peiros",
+      "petor",
+      "qen",
+      "quinal",
+      "ran",
+      "ren",
+      "ric",
+      "ris",
+      "ro",
+      "salor",
+      "sandoral",
+      "toris",
+      "tumal",
+      "valur",
+      "ven",
+      "warin",
+      "wraek",
+      "xalim",
+      "xidor",
+      "yarus",
+      "ydark",
+      "zeiros",
+      "zumin"
+    ],
+    "nm3": [
+      "Ad",
+      "Ara",
+      "Bi",
+      "Bry",
+      "Cai",
+      "Chae",
+      "Da",
+      "Dae",
+      "Eil",
+      "En",
+      "Fa",
+      "Fae",
+      "Gil",
+      "Gre",
+      "Hele",
+      "Hola",
+      "Iar",
+      "Ina",
+      "Jo",
+      "Key",
+      "Kris",
+      "Lia",
+      "Lora",
+      "Mag",
+      "Mia",
+      "Neri",
+      "Ola",
+      "Ori",
+      "Phi",
+      "Pres",
+      "Qi",
+      "Qui",
+      "Rava",
+      "Rey",
+      "Sha",
+      "Syl",
+      "Tor",
+      "Tris",
+      "Ula",
+      "Uri",
+      "Val",
+      "Ven",
+      "Wyn",
+      "Wysa",
+      "Xil",
+      "Xyr",
+      "Yes",
+      "Ylla",
+      "Zin",
+      "Zyl"
+    ],
+    "nm4": [
+      "banise",
+      "bella",
+      "caryn",
+      "cyne",
+      "di",
+      "dove",
+      "fiel",
+      "fina",
+      "gella",
+      "gwyn",
+      "hana",
+      "harice",
+      "jyre",
+      "kalyn",
+      "krana",
+      "lana",
+      "lee",
+      "leth",
+      "lynn",
+      "moira",
+      "mys",
+      "na",
+      "nala",
+      "phine",
+      "phyra",
+      "qirelle",
+      "ra",
+      "ralei",
+      "rel",
+      "rie",
+      "rieth",
+      "rona",
+      "rora",
+      "roris",
+      "satra",
+      "stina",
+      "sys",
+      "thana",
+      "thyra",
+      "tris",
+      "varis",
+      "vyre",
+      "wenys",
+      "wynn",
+      "xina",
+      "xisys",
+      "ynore",
+      "yra",
+      "zana",
+      "zorwyn"
+    ],
+    "nm5": [
+      "",
+      "",
+      "b",
+      "br",
+      "d",
+      "dr",
+      "g",
+      "j",
+      "l",
+      "m",
+      "n",
+      "r",
+      "t",
+      "th",
+      "tr",
+      "v",
+      "z"
+    ],
+    "nm6": [
+      "a",
+      "e",
+      "i",
+      "o",
+      "u",
+      "a",
+      "e",
+      "o"
+    ],
+    "nm7": [
+      "b",
+      "b",
+      "bb",
+      "br",
+      "d",
+      "d",
+      "dd",
+      "dr",
+      "g",
+      "g",
+      "gd",
+      "gl",
+      "l",
+      "l",
+      "ld",
+      "ll",
+      "ln",
+      "lm",
+      "lr",
+      "m",
+      "m",
+      "mm",
+      "mn",
+      "n",
+      "n",
+      "nb",
+      "nd",
+      "nn",
+      "r",
+      "r",
+      "rd",
+      "rl",
+      "rn",
+      "rr",
+      "rv",
+      "v",
+      "v",
+      "vl",
+      "vr",
+      "z",
+      "z",
+      "zd",
+      "zl",
+      "zn",
+      "zz"
+    ],
+    "nm8": [
+      "a",
+      "e",
+      "i",
+      "o",
+      "a",
+      "e",
+      "o",
+      "i",
+      "a",
+      "e",
+      "o",
+      "u"
+    ],
+    "nm9": [
+      "b",
+      "d",
+      "g",
+      "l",
+      "ll",
+      "m",
+      "n",
+      "nn",
+      "r",
+      "v",
+      "z"
+    ],
+    "nm10": [
+      "",
+      "h",
+      "k",
+      "l",
+      "n",
+      "r",
+      "t"
+    ]
+  },
+  "generators": {
+    "nameFem": {
+      "branches": [
+        {
+          "seq": [
+            "nm5",
+            "nm6",
+            "nm7",
+            "nm8",
+            "nm10"
+          ],
+          "weight": 0.5102
+        },
+        {
+          "seq": [
+            "nm5",
+            "nm6",
+            "nm7",
+            "nm8",
+            "nm9",
+            "nm8",
+            "nm10"
+          ],
+          "weight": 0.127
+        },
+        {
+          "seq": [
+            "nm5",
+            "nm6",
+            "nm9",
+            "nm8",
+            "nm7",
+            "nm8",
+            "nm10"
+          ],
+          "weight": 0.12
+        },
+        {
+          "seq": [
+            "nm5",
+            "nm6",
+            "nm7",
+            "nm8"
+          ],
+          "weight": 0.0767
+        },
+        {
+          "seq": [
+            "nm6",
+            "nm7",
+            "nm8",
+            "nm10"
+          ],
+          "weight": 0.0667
+        },
+        {
+          "seq": [
+            "nm5",
+            "nm6",
+            "nm9",
+            "nm8",
+            "nm7",
+            "nm8"
+          ],
+          "weight": 0.0262
+        },
+        {
+          "seq": [
+            "nm5",
+            "nm6",
+            "nm7",
+            "nm8",
+            "nm9",
+            "nm8"
+          ],
+          "weight": 0.0223
+        },
+        {
+          "seq": [
+            "nm6",
+            "nm7",
+            "nm8",
+            "nm9",
+            "nm8",
+            "nm10"
+          ],
+          "weight": 0.0188
+        },
+        {
+          "seq": [
+            "nm6",
+            "nm9",
+            "nm8",
+            "nm7",
+            "nm8",
+            "nm10"
+          ],
+          "weight": 0.016
+        },
+        {
+          "seq": [
+            "nm6",
+            "nm7",
+            "nm8"
+          ],
+          "weight": 0.0118
+        },
+        {
+          "seq": [
+            "nm6",
+            "nm7",
+            "nm8",
+            "nm9",
+            "nm8"
+          ],
+          "weight": 0.0022
+        },
+        {
+          "seq": [
+            "nm6",
+            "nm9",
+            "nm8",
+            "nm7",
+            "nm8"
+          ],
+          "weight": 0.0022
+        }
+      ]
+    },
+    "nameFemT": {
+      "branches": [
+        {
+          "seq": [
+            "nm3",
+            "nm4"
+          ],
+          "weight": 1
+        }
+      ]
+    },
+    "nameMasT": {
+      "branches": [
+        {
+          "seq": [
+            "nm1",
+            "nm2"
+          ],
+          "weight": 1
+        }
+      ]
+    }
+  }
+}

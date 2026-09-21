@@ -1,0 +1,381 @@
+{
+  "id": "dndBeholders",
+  "parts": {
+    "nm1": [
+      "",
+      "",
+      "",
+      "",
+      "",
+      "b",
+      "c",
+      "ch",
+      "d",
+      "dh",
+      "f",
+      "g",
+      "gh",
+      "j",
+      "kh",
+      "l",
+      "m",
+      "n",
+      "q",
+      "qh",
+      "r",
+      "s",
+      "th",
+      "v",
+      "x",
+      "z"
+    ],
+    "nm2": [
+      "a",
+      "e",
+      "i",
+      "o",
+      "a",
+      "e",
+      "i",
+      "o",
+      "a",
+      "e",
+      "i",
+      "o",
+      "a",
+      "e",
+      "i",
+      "o",
+      "a",
+      "e",
+      "i",
+      "o",
+      "a",
+      "e",
+      "i",
+      "o",
+      "a",
+      "e",
+      "i",
+      "o",
+      "a",
+      "e",
+      "i",
+      "o",
+      "a",
+      "e",
+      "i",
+      "o",
+      "a",
+      "e",
+      "i",
+      "o",
+      "a",
+      "e",
+      "i",
+      "o",
+      "aa",
+      "oa",
+      "ua",
+      "ia",
+      "au",
+      "ao",
+      "ou"
+    ],
+    "nm3": [
+      "d",
+      "dd",
+      "dr",
+      "dl",
+      "dh",
+      "dtr",
+      "dthr",
+      "g",
+      "gh",
+      "gth",
+      "k",
+      "kk",
+      "kh",
+      "kht",
+      "l",
+      "ld",
+      "ldr",
+      "lb",
+      "lbr",
+      "lm",
+      "ln",
+      "ls",
+      "lsh",
+      "lth",
+      "lthdr",
+      "lx",
+      "m",
+      "ml",
+      "md",
+      "mdr",
+      "mn",
+      "n",
+      "nt",
+      "nth",
+      "nthr",
+      "ndr",
+      "ntr",
+      "r",
+      "rb",
+      "rd",
+      "rg",
+      "rgr",
+      "rt",
+      "rthr",
+      "rth",
+      "rl",
+      "rn",
+      "rm",
+      "t",
+      "th",
+      "thr",
+      "thdr",
+      "tr",
+      "z",
+      "zd",
+      "zdr"
+    ],
+    "nm4": [
+      "a",
+      "i",
+      "o",
+      "u",
+      "a",
+      "i",
+      "o",
+      "u",
+      "y"
+    ],
+    "nm5": [
+      "c",
+      "k",
+      "ks",
+      "q",
+      "qs",
+      "r",
+      "rs",
+      "rx",
+      "s",
+      "sc",
+      "sk",
+      "x",
+      "z"
+    ],
+    "nm6": [
+      "a",
+      "e",
+      "i",
+      "a",
+      "e",
+      "i",
+      "a",
+      "e",
+      "i",
+      "a",
+      "e",
+      "i",
+      "a",
+      "e",
+      "i",
+      "a",
+      "e",
+      "i",
+      "o",
+      "o",
+      "ia",
+      "ai",
+      "ie",
+      "ee",
+      "io",
+      "ae",
+      "ea"
+    ],
+    "nm7": [
+      "",
+      "",
+      "",
+      "",
+      "",
+      "ch",
+      "cs",
+      "csh",
+      "hl",
+      "hm",
+      "hn",
+      "hx",
+      "hs",
+      "hsh",
+      "ks",
+      "ksh",
+      "ll",
+      "lm",
+      "ln",
+      "lk",
+      "lks",
+      "ls",
+      "lsh",
+      "lx",
+      "ph",
+      "r",
+      "rq",
+      "rv",
+      "s",
+      "sh",
+      "x"
+    ]
+  },
+  "generators": {
+    "nameMas": {
+      "branches": [
+        {
+          "seq": [
+            "nm1",
+            "nm2",
+            "nm3",
+            "nm4",
+            "nm7"
+          ],
+          "weight": 0.2713
+        },
+        {
+          "seq": [
+            "nm1",
+            "nm2",
+            "nm3",
+            "nm4",
+            "nm5",
+            "nm6",
+            "nm7"
+          ],
+          "weight": 0.1978,
+          "rows": "last5"
+        },
+        {
+          "seq": [
+            "nm1",
+            "nm2",
+            "nm7"
+          ],
+          "weight": 0.136,
+          "rows": "first5"
+        },
+        {
+          "seq": [
+            "nm1",
+            "nm2",
+            "nm3",
+            "nm4",
+            "nm5",
+            "nm6",
+            "nm5",
+            "nm6"
+          ],
+          "weight": 0.0822,
+          "rows": "last5"
+        },
+        {
+          "seq": [
+            "nm2",
+            "nm3",
+            "nm4",
+            "nm7"
+          ],
+          "weight": 0.0597
+        },
+        {
+          "seq": [
+            "nm1",
+            "nm2",
+            "nm3",
+            "nm4"
+          ],
+          "weight": 0.0553
+        },
+        {
+          "seq": [
+            "nm2",
+            "nm3",
+            "nm4",
+            "nm5",
+            "nm6",
+            "nm7"
+          ],
+          "weight": 0.0548,
+          "rows": "last5"
+        },
+        {
+          "seq": [
+            "nm1",
+            "nm2",
+            "nm3",
+            "nm4",
+            "nm5",
+            "nm6"
+          ],
+          "weight": 0.0395,
+          "rows": "last5"
+        },
+        {
+          "seq": [
+            "nm2",
+            "nm7"
+          ],
+          "weight": 0.0317,
+          "rows": "first5"
+        },
+        {
+          "seq": [
+            "nm1",
+            "nm2"
+          ],
+          "weight": 0.0267,
+          "rows": "first5"
+        },
+        {
+          "seq": [
+            "nm2",
+            "nm3",
+            "nm4",
+            "nm5",
+            "nm6",
+            "nm5",
+            "nm6"
+          ],
+          "weight": 0.0178,
+          "rows": "last5"
+        },
+        {
+          "seq": [
+            "nm2",
+            "nm3",
+            "nm4"
+          ],
+          "weight": 0.0137
+        },
+        {
+          "seq": [
+            "nm2",
+            "nm3",
+            "nm4",
+            "nm5",
+            "nm6"
+          ],
+          "weight": 0.0078,
+          "rows": "last5"
+        },
+        {
+          "seq": [
+            "nm2"
+          ],
+          "weight": 0.0057,
+          "rows": "first5"
+        }
+      ]
+    }
+  }
+}

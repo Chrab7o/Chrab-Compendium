@@ -1,0 +1,474 @@
+{
+  "generated": "2026-09-21",
+  "note": "Syllable data from fantasynamegenerators.com, used with credit; each race links to its source page. See scripts/name-schemes/README.md.",
+  "races": [
+    {
+      "key": "dnd-aarakocra-names",
+      "scheme": "dndAarakocra",
+      "label": "Aarakocra",
+      "source": "https://www.fantasynamegenerators.com/dnd-aarakocra-names.php"
+    },
+    {
+      "key": "dnd-aasimar-names",
+      "scheme": "dndAasimar",
+      "label": "Aasimar",
+      "source": "https://www.fantasynamegenerators.com/dnd-aasimar-names.php"
+    },
+    {
+      "key": "dnd-archdevil-names",
+      "scheme": "dndArchDevils",
+      "label": "Archdevil",
+      "source": "https://www.fantasynamegenerators.com/dnd-archdevil-names.php"
+    },
+    {
+      "key": "dnd-archfey-names",
+      "scheme": "dndArchfey",
+      "label": "Archfey",
+      "source": "https://www.fantasynamegenerators.com/dnd-archfey-names.php"
+    },
+    {
+      "key": "dnd-beholder-names",
+      "scheme": "dndBeholders",
+      "label": "Beholder",
+      "source": "https://www.fantasynamegenerators.com/dnd-beholder-names.php"
+    },
+    {
+      "key": "dnd-black-dragon-names",
+      "scheme": "dndDragonBlack",
+      "label": "Black Dragon",
+      "source": "https://www.fantasynamegenerators.com/dnd-black-dragon-names.php"
+    },
+    {
+      "key": "dnd-blue-dragon-names",
+      "scheme": "dndDragonBlue",
+      "label": "Blue Dragon",
+      "source": "https://www.fantasynamegenerators.com/dnd-blue-dragon-names.php"
+    },
+    {
+      "key": "dnd-brass-dragon-names",
+      "scheme": "dndDragonBrass",
+      "label": "Brass Dragon",
+      "source": "https://www.fantasynamegenerators.com/dnd-brass-dragon-names.php"
+    },
+    {
+      "key": "dnd-bronze-dragon-names",
+      "scheme": "dndDragonBronze",
+      "label": "Bronze Dragon",
+      "source": "https://www.fantasynamegenerators.com/dnd-bronze-dragon-names.php"
+    },
+    {
+      "key": "dnd-bugbear-names",
+      "scheme": "dndBugbears",
+      "label": "Bugbear",
+      "source": "https://www.fantasynamegenerators.com/dnd-bugbear-names.php"
+    },
+    {
+      "key": "dnd-bullywug-names",
+      "scheme": "dndBullywugs",
+      "label": "Bullywug",
+      "source": "https://www.fantasynamegenerators.com/dnd-bullywug-names.php"
+    },
+    {
+      "key": "dnd-centaur-names",
+      "scheme": "dndCentaurs",
+      "label": "Centaur",
+      "source": "https://www.fantasynamegenerators.com/dnd-centaur-names.php"
+    },
+    {
+      "key": "dnd-changeling-names",
+      "scheme": "dndChangelings",
+      "label": "Changeling",
+      "source": "https://www.fantasynamegenerators.com/dnd-changeling-names.php"
+    },
+    {
+      "key": "dnd-copper-dragon-names",
+      "scheme": "dndDragonCopper",
+      "label": "Copper Dragon",
+      "source": "https://www.fantasynamegenerators.com/dnd-copper-dragon-names.php"
+    },
+    {
+      "key": "dnd-deep-gnome-names",
+      "scheme": "dndDeepGnome",
+      "label": "Deep Gnome",
+      "source": "https://www.fantasynamegenerators.com/dnd-deep-gnome-names.php"
+    },
+    {
+      "key": "dnd-demon-lord-names",
+      "scheme": "dndDemonlords",
+      "label": "Demon Lord",
+      "source": "https://www.fantasynamegenerators.com/dnd-demon-lord-names.php"
+    },
+    {
+      "key": "dnd-deva-names",
+      "scheme": "dndDevaNames",
+      "label": "Deva",
+      "source": "https://www.fantasynamegenerators.com/dnd-deva-names.php"
+    },
+    {
+      "key": "dnd-dragonborn-names",
+      "scheme": "dndDragonbornNames",
+      "label": "Dragonborn",
+      "source": "https://www.fantasynamegenerators.com/dnd-dragonborn-names.php"
+    },
+    {
+      "key": "dnd-drow-names",
+      "scheme": "dndDrowNames",
+      "label": "Drow",
+      "source": "https://www.fantasynamegenerators.com/dnd-drow-names.php"
+    },
+    {
+      "key": "dnd-duergar-names",
+      "scheme": "dndDuergar",
+      "label": "Duergar",
+      "source": "https://www.fantasynamegenerators.com/dnd-duergar-names.php"
+    },
+    {
+      "key": "dnd-dwarf-names",
+      "scheme": "dndDwarfNames",
+      "label": "Dwarf",
+      "source": "https://www.fantasynamegenerators.com/dnd-dwarf-names.php"
+    },
+    {
+      "key": "dnd-eladrin-names",
+      "scheme": "dndEladrinNames",
+      "label": "Eladrin",
+      "source": "https://www.fantasynamegenerators.com/dnd-eladrin-names.php"
+    },
+    {
+      "key": "dnd-elf-names",
+      "scheme": "dndElfNames",
+      "label": "Elf",
+      "source": "https://www.fantasynamegenerators.com/dnd-elf-names.php"
+    },
+    {
+      "key": "dnd-fairy-names",
+      "scheme": "dndFairyNames",
+      "label": "Fairy",
+      "source": "https://www.fantasynamegenerators.com/dnd-fairy-names.php"
+    },
+    {
+      "key": "dnd-firbolg-names",
+      "scheme": "dndElfNames",
+      "label": "Firbolg",
+      "source": "https://www.fantasynamegenerators.com/dnd-firbolg-names.php"
+    },
+    {
+      "key": "dnd-genasi-names",
+      "scheme": "dndGenasi",
+      "label": "Genasi",
+      "source": "https://www.fantasynamegenerators.com/dnd-genasi-names.php"
+    },
+    {
+      "key": "dnd-genie-names",
+      "scheme": "dndGenies",
+      "label": "Genie",
+      "source": "https://www.fantasynamegenerators.com/dnd-genie-names.php"
+    },
+    {
+      "key": "dnd-giant-names",
+      "scheme": "dndGiants",
+      "label": "Giant",
+      "source": "https://www.fantasynamegenerators.com/dnd-giant-names.php"
+    },
+    {
+      "key": "dnd-githyanki-names",
+      "scheme": "dndGithyanki",
+      "label": "Githyanki",
+      "source": "https://www.fantasynamegenerators.com/dnd-githyanki-names.php"
+    },
+    {
+      "key": "dnd-githzerai-names",
+      "scheme": "dndGithzeraiNames",
+      "label": "Githzerai",
+      "source": "https://www.fantasynamegenerators.com/dnd-githzerai-names.php"
+    },
+    {
+      "key": "dnd-gnoll-names",
+      "scheme": "dndGnollNames",
+      "label": "Gnoll",
+      "source": "https://www.fantasynamegenerators.com/dnd-gnoll-names.php"
+    },
+    {
+      "key": "dnd-gnome-names",
+      "scheme": "dndGnomeNames",
+      "label": "Gnome",
+      "source": "https://www.fantasynamegenerators.com/dnd-gnome-names.php"
+    },
+    {
+      "key": "dnd-goblin-names",
+      "scheme": "dndGoblins",
+      "label": "Goblin",
+      "source": "https://www.fantasynamegenerators.com/dnd-goblin-names.php"
+    },
+    {
+      "key": "dnd-gold-dragon-names",
+      "scheme": "dndDragonGold",
+      "label": "Gold Dragon",
+      "source": "https://www.fantasynamegenerators.com/dnd-gold-dragon-names.php"
+    },
+    {
+      "key": "dnd-goliath-names",
+      "scheme": "dndGoliathNames",
+      "label": "Goliath",
+      "source": "https://www.fantasynamegenerators.com/dnd-goliath-names.php"
+    },
+    {
+      "key": "dnd-green-dragon-names",
+      "scheme": "dndDragonGreen",
+      "label": "Green Dragon",
+      "source": "https://www.fantasynamegenerators.com/dnd-green-dragon-names.php"
+    },
+    {
+      "key": "dnd-grung-names",
+      "scheme": "dndGrung",
+      "label": "Grung",
+      "source": "https://www.fantasynamegenerators.com/dnd-grung-names.php"
+    },
+    {
+      "key": "dnd-hag-names",
+      "scheme": "dndHagNames",
+      "label": "Hag",
+      "source": "https://www.fantasynamegenerators.com/dnd-hag-names.php"
+    },
+    {
+      "key": "dnd-half-elf-names",
+      "scheme": "dndHalfelfNames",
+      "label": "Half Elf",
+      "source": "https://www.fantasynamegenerators.com/dnd-half-elf-names.php"
+    },
+    {
+      "key": "dnd-half-orc-names",
+      "scheme": "dndOrcNames",
+      "label": "Half Orc",
+      "source": "https://www.fantasynamegenerators.com/dnd-half-orc-names.php"
+    },
+    {
+      "key": "dnd-halfling-names",
+      "scheme": "dndHalflingNames",
+      "label": "Halfling",
+      "source": "https://www.fantasynamegenerators.com/dnd-halfling-names.php"
+    },
+    {
+      "key": "dnd-harengon-names",
+      "scheme": "dndHarengon",
+      "label": "Harengon",
+      "source": "https://www.fantasynamegenerators.com/dnd-harengon-names.php"
+    },
+    {
+      "key": "dnd-hobgoblin-names",
+      "scheme": "dndHobgoblins",
+      "label": "Hobgoblin",
+      "source": "https://www.fantasynamegenerators.com/dnd-hobgoblin-names.php"
+    },
+    {
+      "key": "dnd-human-names",
+      "scheme": "dndHumanNames",
+      "label": "Human",
+      "source": "https://www.fantasynamegenerators.com/dnd-human-names.php"
+    },
+    {
+      "key": "dnd-kalashtar-names",
+      "scheme": "dndKalashtar",
+      "label": "Kalashtar",
+      "source": "https://www.fantasynamegenerators.com/dnd-kalashtar-names.php"
+    },
+    {
+      "key": "dnd-kenku-names",
+      "scheme": "dndKenkuNames",
+      "label": "Kenku",
+      "source": "https://www.fantasynamegenerators.com/dnd-kenku-names.php"
+    },
+    {
+      "key": "dnd-kobold-names",
+      "scheme": "dndKobolds",
+      "label": "Kobold",
+      "source": "https://www.fantasynamegenerators.com/dnd-kobold-names.php"
+    },
+    {
+      "key": "dnd-leonin-names",
+      "scheme": "dndLeonin",
+      "label": "Leonin",
+      "source": "https://www.fantasynamegenerators.com/dnd-leonin-names.php"
+    },
+    {
+      "key": "dnd-lizardfolk-names",
+      "scheme": "dndLizardfolkNames",
+      "label": "Lizardfolk",
+      "source": "https://www.fantasynamegenerators.com/dnd-lizardfolk-names.php"
+    },
+    {
+      "key": "dnd-locathah-names",
+      "scheme": "dndLocathah",
+      "label": "Locathah",
+      "source": "https://www.fantasynamegenerators.com/dnd-locathah-names.php"
+    },
+    {
+      "key": "dnd-loxodon-names",
+      "scheme": "dndLoxodons",
+      "label": "Loxodon",
+      "source": "https://www.fantasynamegenerators.com/dnd-loxodon-names.php"
+    },
+    {
+      "key": "dnd-mind-flayer-names",
+      "scheme": "dndMindFlayers",
+      "label": "Mind Flayer",
+      "source": "https://www.fantasynamegenerators.com/dnd-mind-flayer-names.php"
+    },
+    {
+      "key": "dnd-minotaur-names",
+      "scheme": "dndMinotaurNames",
+      "label": "Minotaur",
+      "source": "https://www.fantasynamegenerators.com/dnd-minotaur-names.php"
+    },
+    {
+      "key": "dnd-myconid-names",
+      "scheme": "dndMyconid",
+      "label": "Myconid",
+      "source": "https://www.fantasynamegenerators.com/dnd-myconid-names.php"
+    },
+    {
+      "key": "dnd-ogre-names",
+      "scheme": "dndOgres",
+      "label": "Ogre",
+      "source": "https://www.fantasynamegenerators.com/dnd-ogre-names.php"
+    },
+    {
+      "key": "dnd-orc-names",
+      "scheme": "dndOrcs",
+      "label": "Orc",
+      "source": "https://www.fantasynamegenerators.com/dnd-orc-names.php"
+    },
+    {
+      "key": "dnd-pixie-names",
+      "scheme": "dndPixies",
+      "label": "Pixie",
+      "source": "https://www.fantasynamegenerators.com/dnd-pixie-names.php"
+    },
+    {
+      "key": "dnd-platinum-dragon-names",
+      "scheme": "dndDragonPlatinum",
+      "label": "Platinum Dragon",
+      "source": "https://www.fantasynamegenerators.com/dnd-platinum-dragon-names.php"
+    },
+    {
+      "key": "dnd-red-dragon-names",
+      "scheme": "dndDragonRed",
+      "label": "Red Dragon",
+      "source": "https://www.fantasynamegenerators.com/dnd-red-dragon-names.php"
+    },
+    {
+      "key": "dnd-satyr-names",
+      "scheme": "dndSatyrs",
+      "label": "Satyr",
+      "source": "https://www.fantasynamegenerators.com/dnd-satyr-names.php"
+    },
+    {
+      "key": "dnd-shadar-kai-names",
+      "scheme": "dndShadarKai",
+      "label": "Shadar Kai",
+      "source": "https://www.fantasynamegenerators.com/dnd-shadar-kai-names.php"
+    },
+    {
+      "key": "dnd-shardmind-names",
+      "scheme": "dndShardmindNames",
+      "label": "Shardmind",
+      "source": "https://www.fantasynamegenerators.com/dnd-shardmind-names.php"
+    },
+    {
+      "key": "dnd-shifter-names",
+      "scheme": "dndShifterNames",
+      "label": "Shifter",
+      "source": "https://www.fantasynamegenerators.com/dnd-shifter-names.php"
+    },
+    {
+      "key": "dnd-silver-dragon-names",
+      "scheme": "dndDragonSilver",
+      "label": "Silver Dragon",
+      "source": "https://www.fantasynamegenerators.com/dnd-silver-dragon-names.php"
+    },
+    {
+      "key": "dnd-simic-hybrid-names",
+      "scheme": "dndSimicHybrids",
+      "label": "Simic Hybrid",
+      "source": "https://www.fantasynamegenerators.com/dnd-simic-hybrid-names.php"
+    },
+    {
+      "key": "dnd-tabaxi-names",
+      "scheme": "dndTabaxiNames",
+      "label": "Tabaxi",
+      "source": "https://www.fantasynamegenerators.com/dnd-tabaxi-names.php"
+    },
+    {
+      "key": "dnd-tiefling-names",
+      "scheme": "dndTieflingNames",
+      "label": "Tiefling",
+      "source": "https://www.fantasynamegenerators.com/dnd-tiefling-names.php"
+    },
+    {
+      "key": "dnd-tortle-names",
+      "scheme": "dndTortle",
+      "label": "Tortle",
+      "source": "https://www.fantasynamegenerators.com/dnd-tortle-names.php"
+    },
+    {
+      "key": "dnd-treant-names",
+      "scheme": "dndTreants",
+      "label": "Treant",
+      "source": "https://www.fantasynamegenerators.com/dnd-treant-names.php"
+    },
+    {
+      "key": "dnd-triton-names",
+      "scheme": "dndTriton",
+      "label": "Triton",
+      "source": "https://www.fantasynamegenerators.com/dnd-triton-names.php"
+    },
+    {
+      "key": "dnd-troglodyte-names",
+      "scheme": "dndTroglodytes",
+      "label": "Troglodyte",
+      "source": "https://www.fantasynamegenerators.com/dnd-troglodyte-names.php"
+    },
+    {
+      "key": "dnd-troll-names",
+      "scheme": "dndTrolls",
+      "label": "Troll",
+      "source": "https://www.fantasynamegenerators.com/dnd-troll-names.php"
+    },
+    {
+      "key": "dnd-vedalken-names",
+      "scheme": "dndVedalken",
+      "label": "Vedalken",
+      "source": "https://www.fantasynamegenerators.com/dnd-vedalken-names.php"
+    },
+    {
+      "key": "dnd-verdan-names",
+      "scheme": "dndVerdan",
+      "label": "Verdan",
+      "source": "https://www.fantasynamegenerators.com/dnd-verdan-names.php"
+    },
+    {
+      "key": "dnd-warforged-names",
+      "scheme": "dndWarforged",
+      "label": "Warforged",
+      "source": "https://www.fantasynamegenerators.com/dnd-warforged-names.php"
+    },
+    {
+      "key": "dnd-white-dragon-names",
+      "scheme": "dndDragonWhite",
+      "label": "White Dragon",
+      "source": "https://www.fantasynamegenerators.com/dnd-white-dragon-names.php"
+    },
+    {
+      "key": "dnd-wilden-names",
+      "scheme": "dndWildenNames",
+      "label": "Wilden",
+      "source": "https://www.fantasynamegenerators.com/dnd-wilden-names.php"
+    },
+    {
+      "key": "dnd-yuan-ti-names",
+      "scheme": "dndYuanTi",
+      "label": "Yuan Ti",
+      "source": "https://www.fantasynamegenerators.com/dnd-yuan-ti-names.php"
+    }
+  ]
+}

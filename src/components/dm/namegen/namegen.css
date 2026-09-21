@@ -1,0 +1,129 @@
+/* Name generator. Per docs/ui-conventions.md: every "plain" button below
+   resets box-shadow on the base rule and filter/box-shadow/transform on hover,
+   and no control is left as bare borderless text alone in its own row. */
+
+.ng-layout {
+  display: grid;
+  grid-template-columns: minmax(200px, 260px) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.ng-saved { grid-column: 1 / -1; }
+
+@media (max-width: 760px) {
+  .ng-layout { grid-template-columns: minmax(0, 1fr); }
+}
+
+.ng-muted { opacity: 0.7; font-size: 0.9rem; }
+
+.ng-empty { display: grid; gap: 0.5rem; }
+.ng-empty code { padding: 0.1em 0.4em; border-radius: 4px; background: rgba(127, 127, 127, 0.18); }
+
+.ng-search {
+  width: 100%;
+  margin-bottom: 0.6rem;
+  padding: 0.45rem 0.6rem;
+}
+
+.ng-race-list {
+  max-height: 60vh;
+  overflow-y: auto;
+  display: grid;
+  gap: 0.25rem;
+}
+
+/* A race row is the only control in its row, so it gets real chrome. */
+.ng-race {
+  width: 100%;
+  text-align: left;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid rgba(127, 127, 127, 0.28);
+  border-radius: 6px;
+  background: rgba(127, 127, 127, 0.06);
+  box-shadow: none;
+  cursor: pointer;
+}
+
+.ng-race:hover {
+  filter: none;
+  transform: none;
+  box-shadow: none;
+  background: rgba(127, 127, 127, 0.16);
+  border-color: rgba(127, 127, 127, 0.45);
+}
+
+.ng-race.is-active {
+  border-color: currentColor;
+  background: rgba(127, 127, 127, 0.22);
+  font-weight: 600;
+}
+
+.ng-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.9rem;
+}
+
+.ng-kinds { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.ng-kinds .chip { cursor: pointer; }
+.ng-kinds .chip.is-active { border-color: currentColor; font-weight: 600; }
+
+.ng-count { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.9rem; }
+
+.ng-names {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 0.4rem;
+}
+
+.ng-names li {
+  display: flex;
+  align-items: stretch;
+  gap: 0.25rem;
+}
+
+/* Click-to-copy: a real bordered control, not bare text. */
+.ng-name {
+  flex: 1;
+  text-align: left;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid rgba(127, 127, 127, 0.28);
+  border-radius: 6px;
+  background: rgba(127, 127, 127, 0.06);
+  box-shadow: none;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.ng-name:hover {
+  filter: none;
+  transform: none;
+  box-shadow: none;
+  background: rgba(127, 127, 127, 0.16);
+  border-color: rgba(127, 127, 127, 0.45);
+}
+
+.ng-fav { flex: 0 0 auto; align-self: stretch; }
+.ng-fav[aria-pressed='true'] { border-color: currentColor; }
+
+.ng-saved-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.3rem;
+}
+
+.ng-credit {
+  margin-top: 1rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid rgba(127, 127, 127, 0.25);
+  font-size: 0.82rem;
+  opacity: 0.75;
+}
+
+.ng-credit a { color: inherit; }
