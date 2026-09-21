@@ -24,6 +24,7 @@ import DMSkillTreesPage from './pages/dm/DMSkillTreesPage'
 import DMHomebrewPage from './pages/dm/DMHomebrewPage'
 import DMSessionPlannerPage from './pages/dm/DMSessionPlannerPage'
 import DMLongTermPlanningPage from './pages/dm/DMLongTermPlanningPage'
+import DMCharacterNotesPage from './pages/dm/DMCharacterNotesPage'
 import SessionPlanEditorPage from './pages/dm/SessionPlanEditorPage'
 import DMItemMakerPage from './pages/dm/DMItemMakerPage'
 import DMNameGeneratorPage from './pages/dm/DMNameGeneratorPage'
@@ -94,6 +95,7 @@ export default function App() {
               <Route path="campaigns" element={<DMCampaignsPage />} />
               <Route path="maps" element={<DMMapsPage />} />
               <Route path="characters" element={<DMCharactersPage />} />
+              <Route path="character-notes" element={<DMCharacterNotesPage />} />
               <Route path="skill-trees" element={<DMSkillTreesPage />} />
               <Route path="homebrew" element={<DMHomebrewPage />} />
               <Route path="homebrew/classes/new" element={<ClassWizard />} />

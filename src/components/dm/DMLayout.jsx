@@ -9,6 +9,7 @@ const LINKS = [
   { to: '/dm/campaigns', label: 'Campaigns' },
   { to: '/dm/maps', label: 'Maps' },
   { to: '/dm/characters', label: 'Characters' },
+  { to: '/dm/character-notes', label: 'Character Notes' },
   { to: '/dm/skill-trees', label: 'Skill Trees' },
   { to: '/dm/homebrew', label: 'Homebrew' },
   { to: '/dm/session-planner', label: 'Session Planner' },

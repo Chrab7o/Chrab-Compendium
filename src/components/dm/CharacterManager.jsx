@@ -5,6 +5,7 @@ import { useImpersonation } from '../../contexts/ImpersonationContext'
 
 const TREE_TYPE_LABELS = { feature: 'Feature Tree', archetype: 'Archetype Tree' }
 const DEFAULT_DOWNTIME_XP = 60
+const DEFAULT_LONG_REST_XP = 20
 
 function LabeledNumberInput({ label, initialValue, onSave }) {
   const [value, setValue] = useState(initialValue)
@@ -116,6 +117,22 @@ export default function CharacterManager({ campaigns, onChange }) {
     else load()
   }
 
+  // Kept in its own column rather than sharing the downtime field: a long
+  // rest is always worth the same, so awarding one used to mean retyping
+  // the downtime amount and then typing it back afterwards - and the time
+  // that last step got forgotten, the next downtime award was silently
+  // wrong.
+  async function setLongRestXp(characterId, treeType, longRestXp) {
+    const { error: upsertError } = await supabase
+      .from('character_skill_points')
+      .upsert(
+        { character_id: characterId, tree_type: treeType, long_rest_xp: longRestXp },
+        { onConflict: 'character_id,tree_type' }
+      )
+    if (upsertError) setError(upsertError.message)
+    else load()
+  }
+
   // The points box holds the current remaining balance directly, so
   // granting more XP still means adding to whatever's already there (not
   // just typing the award amount, which would overwrite instead of add) -
@@ -148,15 +165,15 @@ export default function CharacterManager({ campaigns, onChange }) {
   // One batched upsert covering every character x tree_type combination,
   // rather than firing grantXp (and its own reload) once per row - the
   // whole point of a group assign is not clicking through everyone one at
-  // a time.
-  async function grantDowntimeToAll() {
+  // a time. `amountFor` picks which award to hand out, so downtime and long
+  // rest share the batching without sharing an amount.
+  async function grantToAll(amountFor) {
     const rows = []
     for (const c of characters) {
       for (const treeType of applicableTreeTypesFor(c)) {
         const row = skillPoints.find((p) => p.character_id === c.id && p.tree_type === treeType)
         const available = row?.points_available ?? 0
-        const downtimeXp = row?.downtime_xp ?? DEFAULT_DOWNTIME_XP
-        rows.push({ character_id: c.id, tree_type: treeType, points_available: available + downtimeXp })
+        rows.push({ character_id: c.id, tree_type: treeType, points_available: available + amountFor(row) })
       }
     }
     if (rows.length === 0) return
@@ -166,6 +183,9 @@ export default function CharacterManager({ campaigns, onChange }) {
     if (upsertError) setError(upsertError.message)
     else load()
   }
+
+  const grantDowntimeToAll = () => grantToAll((row) => row?.downtime_xp ?? DEFAULT_DOWNTIME_XP)
+  const grantLongRestToAll = () => grantToAll((row) => row?.long_rest_xp ?? DEFAULT_LONG_REST_XP)
 
   useEffect(() => {
     load()
@@ -224,6 +244,9 @@ export default function CharacterManager({ campaigns, onChange }) {
           <button type="button" onClick={grantDowntimeToAll}>
             Give Everyone Downtime XP
           </button>
+          <button type="button" onClick={grantLongRestToAll}>
+            Give Everyone Long Rest XP
+          </button>
           <Link to="/dm/import" className="button-link">
             + Import
           </Link>
@@ -260,6 +283,7 @@ export default function CharacterManager({ campaigns, onChange }) {
               </select>
               <div className="dm-list-actions">
                 <Link to={`/character/${c.id}`}>View</Link>
+                <Link to={`/dm/character-notes?character=${c.id}`}>Notes</Link>
                 {c.owner_id ? (
                   <button type="button" onClick={() => viewAs(c)}>
                     View As
@@ -279,6 +303,7 @@ export default function CharacterManager({ campaigns, onChange }) {
                     const row = skillPoints.find((p) => p.character_id === c.id && p.tree_type === treeType)
                     const available = row?.points_available ?? 0
                     const downtimeXp = row?.downtime_xp ?? DEFAULT_DOWNTIME_XP
+                    const longRestXp = row?.long_rest_xp ?? DEFAULT_LONG_REST_XP
                     const spent = pointsSpentFor(c.id, treeType)
                     return (
                       <div key={treeType} className="skill-point-input-group">
@@ -298,7 +323,19 @@ export default function CharacterManager({ campaigns, onChange }) {
                           className="secondary"
                           onClick={() => grantXp(c.id, treeType, available, downtimeXp)}
                         >
-                          +{downtimeXp} XP
+                          +{downtimeXp} XP downtime
+                        </button>
+                        <LabeledNumberInput
+                          label="Long rest XP award"
+                          initialValue={longRestXp}
+                          onSave={(xp) => setLongRestXp(c.id, treeType, xp)}
+                        />
+                        <button
+                          type="button"
+                          className="secondary"
+                          onClick={() => grantXp(c.id, treeType, available, longRestXp)}
+                        >
+                          +{longRestXp} XP long rest
                         </button>
                       </div>
                     )
