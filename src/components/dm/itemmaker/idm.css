@@ -123,6 +123,13 @@
 .idm-widget .idm-syntax-help code { background: var(--idm-bg); padding: 1px 4px; border-radius: 3px; }
 
 .idm-widget .idm-preview-box { border: 1px solid var(--idm-border); border-radius: var(--radius-sm, 8px); padding: 10px; margin-bottom: 16px; min-height: 80px; background: var(--idm-panel-bg-2); font-size: 0.9em; }
+/* Preview lists: features render as bullets now (tooltips strip tables), so
+   the preview has to show them the same way the pasted output will. */
+.idm-widget .idm-preview-box ul { margin: 6px 0; padding-left: 20px; list-style: disc; }
+.idm-widget .idm-preview-box li { margin: 2px 0; }
+.idm-widget .idm-preview-box p { margin: 6px 0; }
+.idm-widget .idm-preview-box blockquote { margin: 6px 0 6px 12px; padding-left: 10px; border-left: 3px solid var(--idm-border); }
+
 .idm-widget .idm-copy-status { color: var(--idm-accent-dark); font-size: 0.85em; font-weight: 600; margin: 6px 0 0; }
 
 /* A saved-list load/save failure - shown in the list itself, since an empty

@@ -44,17 +44,27 @@
     return `<p>${lines.map(parseInline).join('<br>')}</p>`;
   }
 
+  // A "## Subtitle" block. The title carries its emphasis inline (<strong>)
+  // rather than through 5etools' entry-title-inner class: this markup is
+  // pasted into tooltips that ship none of that stylesheet, so anything
+  // leaning on an external class renders as flat text there.
   function renderNamedBlock(lines) {
     const title = lines[0].trim().replace(/^##\s+/, '');
     const rest = lines.slice(1).join('\n');
     const paragraphs = rest.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
-    const titleSpan = `<span class="entry-title-inner ">${parseInline(title)}.</span>`;
-    if (paragraphs.length === 0) {
-      return `<div class="ve-rd__b ve-rd__b--named ve-rd__b--3">\n<p>${titleSpan}</p>\n</div>`;
+    const titleHtml = `<strong>${parseInline(title)}.</strong>`;
+    if (paragraphs.length === 0) return `<p>${titleHtml}</p>`;
+    // Paragraphs under a "##" heading get the same list/quote treatment as
+    // ones outside it. They used to be flattened into <p>...<br>... , which
+    // silently turned a bullet list written inside a section into literal
+    // "- " text - only lists written outside any section ever rendered.
+    const isStructured = (p) => p.split('\n').every((l) => /^\s*[->]\s/.test(l));
+    if (isStructured(paragraphs[0])) {
+      return [`<p>${titleHtml}</p>`, ...paragraphs.map(renderRawBlock)].join('\n');
     }
-    const firstP = `<p>${titleSpan} ${paragraphs[0].split('\n').map(parseInline).join('<br>')}</p>`;
-    const restPs = paragraphs.slice(1).map((p) => `<p>${p.split('\n').map(parseInline).join('<br>')}</p>`);
-    return `<div class="ve-rd__b ve-rd__b--named ve-rd__b--3">\n${[firstP, ...restPs].join('\n')}\n</div>`;
+    const firstP = `<p>${titleHtml} ${paragraphs[0].split('\n').map(parseInline).join('<br>')}</p>`;
+    const restHtml = paragraphs.slice(1).map(renderRawBlock);
+    return [firstP, ...restHtml].join('\n');
   }
 
   function parseBody(text) {
@@ -88,45 +98,42 @@
     return blocks.map((b) => (b.type === 'named' ? renderNamedBlock(b.lines) : renderRawBlock(b.text))).join('\n');
   }
 
+  // A feature used to render as a <table class="ve-stats"> stat block. The
+  // tooltips these descriptions get pasted into strip tables outright, which
+  // took the whole feature with them - name, stats, body, all invisible. So
+  // a feature is now a bullet: its name (and subtitle) in bold at the top of
+  // the item, everything else plain paragraphs beneath. Only <ul>/<li>,
+  // <p>, <strong>, <em> and <br> are used anywhere, since those are what
+  // survive.
   function generateFeatureHTML(feature) {
-    const leadInHtml = feature.leadIn ? `<h1 class="ve-stats__h-name ve-copyable ve-m-0">${escapeHtml(feature.leadIn)}</h1>` : '';
-    const nameHtml = feature.name ? `<h1 class="ve-stats__h-name ve-copyable ve-m-0">${escapeHtml(feature.name)}</h1>` : '';
-    const sourceHtml = feature.source ? `<p><a href="#">${escapeHtml(feature.source)}</a></p>` : '';
-    const subtitleRow = feature.subtitle ? `    <tr>\n      <td colspan="6"><p><em>${parseInline(feature.subtitle)}</em></p></td>\n    </tr>` : '';
+    const headingParts = [];
+    if (feature.leadIn) headingParts.push(escapeHtml(feature.leadIn));
+    if (feature.name) headingParts.push(escapeHtml(feature.name));
+    const heading = headingParts.join(' ');
+    const sourceHtml = feature.source ? ` <em>(${escapeHtml(feature.source)})</em>` : '';
+    const subtitleHtml = feature.subtitle ? ` — <strong>${parseInline(feature.subtitle)}</strong>` : '';
+
     const statFields = [
       feature.castingTime ? { label: 'Casting Time', value: feature.castingTime } : null,
       feature.range ? { label: 'Range', value: feature.range } : null,
       feature.components ? { label: 'Components', value: feature.components } : null,
       feature.duration ? { label: 'Duration', value: feature.duration } : null,
     ].filter(Boolean);
-    const statRows = statFields.map((f, i) => {
-      let cls = '';
-      if (statFields.length === 1) cls = ' class="ve-pt-2 ve-pb-2"';
-      else if (i === 0) cls = ' class="ve-pt-2"';
-      else if (i === statFields.length - 1) cls = ' class="ve-pb-2"';
-      return `    <tr>\n      <td colspan="6"${cls}><p><strong>${escapeHtml(f.label)}:</strong> ${parseInline(f.value)}</p></td>\n    </tr>`;
-    }).join('\n');
-    const bodyHtml = feature.description
-      ? `    <tr>\n      <td colspan="6">\n        <div class="ve-rd__b ve-rd__b--2">\n${parseBody(feature.description)}\n        </div>\n      </td>\n    </tr>`
+    const statList = statFields.length
+      ? `<ul>${statFields
+          .map((f) => `<li><strong>${escapeHtml(f.label)}:</strong> ${parseInline(f.value)}</li>`)
+          .join('')}</ul>`
       : '';
-    return `<table class="ve-w-100 ve-stats">
-  <tbody>
-    <tr>
-      <th colspan="6" class="ve-stats__th-name ve-text-left ve-pb-0">
-        <div class="ve-split-v-end">
-          <div class="ve-flex-v-center">
-            ${leadInHtml}
-            ${nameHtml}
-          </div>
-          <div class="ve-stats__wrp-h-source ve-flex-v-baseline">
-            ${sourceHtml}
-          </div>
-        </div>
-      </th>
-    </tr>
-${[subtitleRow, statRows, bodyHtml].filter(Boolean).join('\n')}
-  </tbody>
-</table>`;
+
+    const bodyHtml = feature.description ? parseBody(feature.description) : '';
+
+    // A feature with nothing but a body (no name, no subtitle) shouldn't get
+    // an empty bullet in front of it - it's just text at that point, and its
+    // stats stand on their own.
+    if (!heading && !subtitleHtml) return [statList, bodyHtml].filter(Boolean).join('\n');
+
+    const bullet = `<ul>\n  <li><strong>${heading}</strong>${sourceHtml}${subtitleHtml}${statList ? `\n${statList}` : ''}</li>\n</ul>`;
+    return [bullet, bodyHtml].filter(Boolean).join('\n');
   }
 
   function generateTextBlockHTML(block) {

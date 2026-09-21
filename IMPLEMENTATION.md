@@ -90,3 +90,25 @@ those, regenerate `embed/` by reapplying the same transform: wrap the markup
 in `.idm-widget`, prefix every id/class with `idm-`, scope every CSS selector
 under `.idm-widget`, and wrap the JS body in the `init(root)` function shown
 in `embed/idm.js`.
+
+## How Chrab Corner actually embeds it (divergences from the above)
+
+This copy has been modified in three ways, so the instructions above describe
+the upstream tool rather than what is running here:
+
+- **It is bundled, not a `<script src="/idm.js">` tag.** The file lives at
+  `src/components/dm/itemmaker/idm.js` and `DMItemMakerPage.jsx` imports it
+  for its side effect. It used to sit in `public/`, but an unhashed file
+  there is served with a four-hour cache, and browsers kept running an old
+  copy for hours after a deploy. Bundled, it gets a content-hashed filename.
+- **Saved items go through a storage adapter.** `init(root, { storage })`
+  takes `{ list(), saveAll(items) }`; without one it still uses
+  `localStorage['idm_saved_items']` exactly as before. This app passes a
+  Supabase-backed adapter (`src/lib/itemMakerStorage.js`) so saved items
+  follow the DM across devices.
+- **Features render as bullets, not `ve-stats` tables.** The tooltips these
+  descriptions get pasted into strip `<table>` outright, which made every
+  feature invisible. `generateFeatureHTML` now emits a bold-name bullet with
+  its stats nested under it, and `renderNamedBlock` uses `<strong>` instead
+  of 5etools' `entry-title-inner` class. The generated markup sticks to
+  `<ul>`, `<li>`, `<p>`, `<strong>`, `<em>` and `<br>`.
