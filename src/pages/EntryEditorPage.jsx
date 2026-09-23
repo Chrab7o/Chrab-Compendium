@@ -1,21 +1,17 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
-import { useCategories } from '../contexts/CategoryContext'
 import { useTags } from '../contexts/TagContext'
-import { flattenFolders } from '../lib/folders'
 import RichTextEditor from '../components/RichTextEditor'
-import PlacementManager from '../components/dm/PlacementManager'
+import TagGroupPicker from '../components/TagGroupPicker'
 
 const emptyForm = {
   id: null,
   title: '',
   content: '',
-  category: 'lore',
   visibility: 'public',
   campaign_id: '',
   parent_entry_id: '',
-  folder_id: '',
   tags: [],
 }
 
@@ -24,7 +20,6 @@ function toFormState(entry) {
     ...entry,
     campaign_id: entry.campaign_id ?? '',
     parent_entry_id: entry.parent_entry_id ?? '',
-    folder_id: entry.folder_id ?? '',
     tags: entry.tags ?? [],
   }
 }
@@ -33,17 +28,17 @@ export default function EntryEditorPage() {
   const { id } = useParams()
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
-  const { categories } = useCategories()
-  const { tags: availableTags } = useTags()
+  const { tags: availableTags, groups } = useTags()
   const isNew = !id
 
+  // Creating an entry no longer means choosing where it goes first — the FAB
+  // opens this page directly. ?tag= is still honoured so "new entry" from
+  // inside a filtered view can pre-select what you were already looking at.
   const [form, setForm] = useState(() => ({
     ...emptyForm,
-    category: searchParams.get('category') ?? 'lore',
-    folder_id: searchParams.get('folder') ?? '',
+    tags: searchParams.getAll('tag'),
   }))
   const [campaigns, setCampaigns] = useState([])
-  const [folders, setFolders] = useState([])
   const [otherEntries, setOtherEntries] = useState([])
   const [loading, setLoading] = useState(!isNew)
   const [error, setError] = useState(null)
@@ -55,10 +50,6 @@ export default function EntryEditorPage() {
       .select('*')
       .order('name', { ascending: true })
       .then(({ data }) => setCampaigns(data ?? []))
-    supabase
-      .from('folders')
-      .select('*')
-      .then(({ data }) => setFolders(data ?? []))
     supabase
       .from('entries')
       .select('id, title')
@@ -86,19 +77,33 @@ export default function EntryEditorPage() {
     }
   }, [id, isNew])
 
+  // A required group (Type) has to be satisfied before saving, since nothing
+  // downstream can describe an entry that has no kind.
+  function missingRequiredGroups() {
+    const selected = new Set(form.tags)
+    return groups
+      .filter((g) => g.required)
+      .filter((g) => !availableTags.some((t) => t.group_id === g.id && selected.has(t.value)))
+  }
+
   async function handleSubmit(e) {
     e.preventDefault()
+
+    const missing = missingRequiredGroups()
+    if (missing.length > 0) {
+      setError(`Pick a ${missing.map((g) => g.label).join(' and a ')} tag before saving.`)
+      return
+    }
+
     setSaving(true)
     setError(null)
 
     const payload = {
       title: form.title,
       content: form.content,
-      category: form.category,
       visibility: form.visibility,
       campaign_id: form.campaign_id || null,
       parent_entry_id: form.parent_entry_id || null,
-      folder_id: form.folder_id || null,
       tags: form.tags,
     }
 
@@ -139,13 +144,6 @@ export default function EntryEditorPage() {
 
   const linkableEntries = otherEntries.filter((e) => e.id !== id)
 
-  function toggleTag(value) {
-    setForm((f) => ({
-      ...f,
-      tags: f.tags.includes(value) ? f.tags.filter((t) => t !== value) : [...f.tags, value],
-    }))
-  }
-
   return (
     <section className="page entry-editor-page">
       <div className="view-header">
@@ -172,34 +170,15 @@ export default function EntryEditorPage() {
           />
         </label>
 
+        <fieldset className="tag-checklist">
+          <legend>Tags</legend>
+          <TagGroupPicker
+            value={form.tags}
+            onChange={(tags) => setForm((f) => ({ ...f, tags }))}
+          />
+        </fieldset>
+
         <div className="dm-form-row">
-          <label>
-            Category
-            <select
-              value={form.category}
-              onChange={(e) => setForm({ ...form, category: e.target.value, folder_id: '' })}
-            >
-              {categories.map((c) => (
-                <option key={c.value} value={c.value}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Folder
-            <select
-              value={form.folder_id}
-              onChange={(e) => setForm({ ...form, folder_id: e.target.value })}
-            >
-              <option value="">(top level)</option>
-              {flattenFolders(folders, form.category).map((f) => (
-                <option key={f.id} value={f.id}>
-                  {f.label}
-                </option>
-              ))}
-            </select>
-          </label>
           <label>
             Visibility
             <select
@@ -225,6 +204,7 @@ export default function EntryEditorPage() {
             </select>
           </label>
         </div>
+
         <label>
           Attach as DM notes on entry (optional)
           <select
@@ -239,24 +219,7 @@ export default function EntryEditorPage() {
             ))}
           </select>
         </label>
-        <fieldset className="tag-checklist">
-          <legend>Tags</legend>
-          {availableTags.length === 0 && (
-            <p className="status-message">
-              No tags yet — add some from DM Dashboard → Tags.
-            </p>
-          )}
-          {availableTags.map((t) => (
-            <label key={t.value} className="tag-checklist-item">
-              <input
-                type="checkbox"
-                checked={form.tags.includes(t.value)}
-                onChange={() => toggleTag(t.value)}
-              />
-              {t.label}
-            </label>
-          ))}
-        </fieldset>
+
         {error && <p className="status-message error">{error}</p>}
         <div className="dm-form-actions">
           <button type="submit" disabled={saving}>
@@ -272,12 +235,6 @@ export default function EntryEditorPage() {
           )}
         </div>
       </form>
-
-      {isNew ? (
-        <p className="status-message">Save this entry first to also place it in other folders.</p>
-      ) : (
-        <PlacementManager entryId={id} folders={folders} />
-      )}
     </section>
   )
 }

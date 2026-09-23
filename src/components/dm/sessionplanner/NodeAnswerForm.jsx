@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabaseClient'
-import { useCategories } from '../../../contexts/CategoryContext'
+import { useTags } from '../../../contexts/TagContext'
 import { useDraftAutosave } from '../../../hooks/useDraftAutosave'
 import { CONTENT_TYPES, contentTypeInfo, wouldCreateCycle } from '../../../lib/sessionPlanner'
 import EntryPicker from './EntryPicker'
@@ -43,7 +43,7 @@ export default function NodeAnswerForm({
   onSaved,
   onCancel,
 }) {
-  const { categories } = useCategories()
+  const { typeTags } = useTags()
 
   const [contentType, setContentType] = useState(node.content_type ?? 'question')
   const [questionText, setQuestionText] = useState(node.question)
@@ -56,7 +56,7 @@ export default function NodeAnswerForm({
   const [referencedEntry, setReferencedEntry] = useState(null)
   const [showEntryPicker, setShowEntryPicker] = useState(false)
   const [newEntryTitle, setNewEntryTitle] = useState('')
-  const [newEntryCategory, setNewEntryCategory] = useState('')
+  const [newEntryType, setNewEntryType] = useState('')
   const [creatingEntry, setCreatingEntry] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
@@ -135,14 +135,14 @@ export default function NodeAnswerForm({
   }
 
   async function handleCreateEntry() {
-    if (!newEntryTitle.trim() || !newEntryCategory) return
+    if (!newEntryTitle.trim() || !newEntryType) return
     setCreatingEntry(true)
     const { data, error: insertError } = await supabase
       .from('entries')
       .insert({
         title: newEntryTitle.trim(),
         content: '',
-        category: newEntryCategory,
+        tags: [newEntryType],
         visibility: 'public',
         campaign_id: campaignId || null,
       })
@@ -155,7 +155,7 @@ export default function NodeAnswerForm({
     }
     setReferencedEntry(data)
     setNewEntryTitle('')
-    setNewEntryCategory('')
+    setNewEntryType('')
   }
 
   async function handleSave(e) {
@@ -402,19 +402,19 @@ export default function NodeAnswerForm({
               />
             </label>
             <label>
-              Category
-              <select value={newEntryCategory} onChange={(e) => setNewEntryCategory(e.target.value)}>
+              Type
+              <select value={newEntryType} onChange={(e) => setNewEntryType(e.target.value)}>
                 <option value="">Choose...</option>
-                {categories.map((c) => (
-                  <option key={c.value} value={c.value}>
-                    {c.label}
+                {typeTags.map((t) => (
+                  <option key={t.value} value={t.value}>
+                    {t.label}
                   </option>
                 ))}
               </select>
             </label>
             <button
               type="button"
-              disabled={!newEntryTitle.trim() || !newEntryCategory || creatingEntry}
+              disabled={!newEntryTitle.trim() || !newEntryType || creatingEntry}
               onClick={handleCreateEntry}
             >
               Create entry

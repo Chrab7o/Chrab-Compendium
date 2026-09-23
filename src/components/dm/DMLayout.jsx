@@ -2,10 +2,8 @@ import { NavLink, Outlet } from 'react-router-dom'
 
 const LINKS = [
   { to: '/dm', label: 'Overview', end: true },
-  { to: '/dm/organize', label: 'Folders & Entries' },
   { to: '/dm/worlds', label: 'Worlds' },
-  { to: '/dm/categories', label: 'Categories' },
-  { to: '/dm/tags', label: 'Tags' },
+  { to: '/dm/tags', label: 'Tags & Groups' },
   { to: '/dm/campaigns', label: 'Campaigns' },
   { to: '/dm/maps', label: 'Maps' },
   { to: '/dm/characters', label: 'Characters' },

@@ -1,6 +1,6 @@
 // Skill trees are single-parent for display/nesting purposes (same shape as
 // folders.parent_folder_id) — pure helpers here mirror the style of
-// src/lib/folders.js. A node's full *prerequisite* set (for unlock checks,
+// src/lib/tags.js. A node's full *prerequisite* set (for unlock checks,
 // separate from where it's nested in the outline) is parent_node_id plus
 // whatever's in skill_tree_node_prereqs, passed around here as a
 // Map<nodeId, string[]> ("extraPrereqsByNode").

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../../../lib/supabaseClient'
-import { effectiveEntryCampaignId } from '../../../lib/folders'
+import { entryInCampaignScope } from '../../../lib/tags'
 
 // A search-and-select widget, not a page - EntrySearch.jsx is the closest
 // existing thing but it's a full page that navigates via <Link> on click and
@@ -10,32 +10,31 @@ import { effectiveEntryCampaignId } from '../../../lib/folders'
 // campaignId, which can easily differ from the DM's current nav-wide pick.
 export default function EntryPicker({ campaignId, onSelect, onCancel }) {
   const [entries, setEntries] = useState([])
-  const [folders, setFolders] = useState([])
   const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    Promise.all([supabase.from('entries').select('*'), supabase.from('folders').select('*')]).then(
-      ([{ data: entryData }, { data: folderData }]) => {
-        setEntries(entryData ?? [])
-        setFolders(folderData ?? [])
+    supabase
+      .from('entries')
+      .select('*')
+      .then(({ data }) => {
+        setEntries(data ?? [])
         setLoading(false)
-      }
-    )
+      })
   }, [])
 
   const results = useMemo(() => {
     const q = query.trim().toLowerCase()
     if (!q) return []
+    const scope = campaignId ? new Set([campaignId]) : null
     return entries
       .filter((e) => {
-        const eff = effectiveEntryCampaignId(folders, e)
-        if (eff !== (campaignId || null)) return false
+        if (!entryInCampaignScope(e, scope)) return false
         return e.title.toLowerCase().includes(q)
       })
       .sort((a, b) => a.title.localeCompare(b.title))
       .slice(0, 20)
-  }, [entries, folders, query, campaignId])
+  }, [entries, query, campaignId])
 
   return (
     <div className="entry-picker">
@@ -61,7 +60,7 @@ export default function EntryPicker({ campaignId, onSelect, onCancel }) {
           {results.map((e) => (
             <li key={e.id}>
               <button type="button" onClick={() => onSelect(e)}>
-                {e.title} <span className="dm-list-meta">{e.category}</span>
+                {e.title}
               </button>
             </li>
           ))}

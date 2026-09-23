@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../../../lib/supabaseClient'
-import { effectiveEntryCampaignId, effectiveEntryTags } from '../../../lib/folders'
+import { entryInCampaignScope } from '../../../lib/tags'
 
 // Read-only reference list of past session notes while planning the next
 // one - same tag-match TagView.jsx uses ('session-note', case-insensitive),
@@ -9,29 +9,28 @@ import { effectiveEntryCampaignId, effectiveEntryTags } from '../../../lib/folde
 // different campaign than the one this plan belongs to.
 export default function SessionNotesPanel({ campaignId }) {
   const [entries, setEntries] = useState([])
-  const [folders, setFolders] = useState([])
   const [loading, setLoading] = useState(true)
   const [expandedId, setExpandedId] = useState(null)
 
   useEffect(() => {
-    Promise.all([supabase.from('entries').select('*'), supabase.from('folders').select('*')]).then(
-      ([{ data: entryData }, { data: folderData }]) => {
-        setEntries(entryData ?? [])
-        setFolders(folderData ?? [])
+    supabase
+      .from('entries')
+      .select('*')
+      .then(({ data }) => {
+        setEntries(data ?? [])
         setLoading(false)
-      }
-    )
+      })
   }, [])
 
   const notes = useMemo(() => {
+    const scope = campaignId ? new Set([campaignId]) : null
     return entries
       .filter((e) => {
-        const eff = effectiveEntryCampaignId(folders, e)
-        if (eff !== (campaignId || null)) return false
-        return effectiveEntryTags(folders, e).some((t) => t.toLowerCase() === 'session-note')
+        if (!entryInCampaignScope(e, scope)) return false
+        return (e.tags ?? []).some((t) => t.toLowerCase() === 'session-note')
       })
       .sort((a, b) => (b.created_at ?? '').localeCompare(a.created_at ?? ''))
-  }, [entries, folders, campaignId])
+  }, [entries, campaignId])
 
   if (loading) return <p className="status-message">Loading...</p>
 

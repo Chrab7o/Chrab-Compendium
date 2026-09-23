@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { supabase } from '../../../lib/supabaseClient'
 import { uploadEntryImage } from '../../../lib/entryImages'
-import { useCategories } from '../../../contexts/CategoryContext'
+import { useTags } from '../../../contexts/TagContext'
 import {
   isImageFile,
   isMarkdownFile,
@@ -15,18 +15,28 @@ import {
 
 const EMBED_RE = /!\[\[([^\]|#]+)(?:#[^\]|]*)?(?:\|[^\]]+)?\]\]/g
 
+function slugify(name) {
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '')
+}
+
 export default function ObsidianImporter({ campaigns }) {
-  const { categories } = useCategories()
+  const { typeTags, groups, reload: reloadTags } = useTags()
   const [notes, setNotes] = useState([]) // { relativePath, file }
   const [images, setImages] = useState(new Map()) // lowercased filename -> File
   const [vaultName, setVaultName] = useState('')
-  const [folderCategory, setFolderCategory] = useState({})
+  const [folderType, setFolderType] = useState({})
   const [defaultVisibility, setDefaultVisibility] = useState('public')
   const [defaultCampaignId, setDefaultCampaignId] = useState('')
   const [importing, setImporting] = useState(false)
   const [progress, setProgress] = useState(null)
   const [summary, setSummary] = useState(null)
   const [error, setError] = useState(null)
+
+  const collectionGroup = groups.find((g) => g.value === 'collection')
 
   function handlePick(e) {
     const files = Array.from(e.target.files)
@@ -43,8 +53,9 @@ export default function ObsidianImporter({ campaigns }) {
     setNotes(noteFiles)
     setImages(imageMap)
 
-    const folders = [...new Set(noteFiles.map((n) => topFolder(n.relativePath)))]
-    setFolderCategory(Object.fromEntries(folders.map((f) => [f, 'lore'])))
+    const top = [...new Set(noteFiles.map((n) => topFolder(n.relativePath)))]
+    const fallback = typeTags[0]?.value ?? 'lore'
+    setFolderType(Object.fromEntries(top.map((f) => [f, fallback])))
     setSummary(null)
     setError(null)
   }
@@ -59,6 +70,7 @@ export default function ObsidianImporter({ campaigns }) {
         notes.map(async (n) => ({ ...n, text: await n.file.text() }))
       )
 
+      const fallbackType = typeTags[0]?.value ?? 'lore'
       const parsedNotes = read.map((n) => {
         const { frontmatter, body } = parseFrontmatter(n.text)
         const segments = folderSegments(n.relativePath)
@@ -67,65 +79,57 @@ export default function ObsidianImporter({ campaigns }) {
           frontmatter,
           body,
           title: frontmatter.title || basenameNoExt(n.file.name),
-          category: folderCategory[topFolder(n.relativePath)] || 'lore',
-          // Segments below the category-determining top folder become
-          // actual nested folders, e.g. Location/Region/Talmundre -> two
-          // folders ("Region", "Talmundre") under the Location category.
+          type: folderType[topFolder(n.relativePath)] || fallbackType,
+          // Segments below the type-determining top folder become Collection
+          // tags, e.g. Location/Region/Talmundre -> "Region" + "Talmundre".
+          // Every level is applied, not just the deepest, so filtering by
+          // "Region" still finds everything that used to nest beneath it.
           nestedSegments: segments.slice(1),
           tags: normalizeTags(frontmatter),
         }
       })
 
-      // Find-or-create the folder chain for a note's nested segments,
-      // reusing folders already created for earlier notes on the same path.
-      const folderCache = new Map() // `${category}|${parentId}|${name}` -> id
-      const siblingCounts = new Map() // `${category}|${parentId}` -> next sort_order
-      async function resolveFolderChain(category, segments) {
-        let parentId = null
+      // Find-or-create a Collection tag per folder name, reusing ones
+      // created for earlier notes on the same path. Same-named folders from
+      // different branches deliberately merge into one tag — with no tree to
+      // disambiguate them, two "Notes" folders are one "Notes" collection.
+      const tagCache = new Map() // name -> tag value
+      async function resolveCollectionTags(segments) {
+        const values = []
         for (const name of segments) {
-          const cacheKey = `${category}|${parentId}|${name}`
-          if (folderCache.has(cacheKey)) {
-            parentId = folderCache.get(cacheKey)
+          if (tagCache.has(name)) {
+            values.push(tagCache.get(name))
             continue
           }
-          const siblingKey = `${category}|${parentId}`
-          const sortOrder = siblingCounts.get(siblingKey) ?? 0
-          siblingCounts.set(siblingKey, sortOrder + 1)
-          const { data, error: folderError } = await supabase
-            .from('folders')
-            .insert({
-              name,
-              category,
-              parent_folder_id: parentId,
-              campaign_id: defaultCampaignId || null,
-              sort_order: sortOrder,
-            })
-            .select()
-            .single()
-          if (folderError) throw folderError
-          folderCache.set(cacheKey, data.id)
-          parentId = data.id
+          const value = slugify(name)
+          const { error: tagError } = await supabase
+            .from('tags')
+            .upsert(
+              { value, label: name, group_id: collectionGroup?.id ?? null },
+              { onConflict: 'value', ignoreDuplicates: true }
+            )
+          if (tagError) throw tagError
+          tagCache.set(name, value)
+          values.push(value)
         }
-        return parentId
+        return values
       }
 
-      // Pass 1: insert every note as an entry, creating its folder chain first.
+      // Pass 1: insert every note as an entry.
       setProgress({ done: 0, total: parsedNotes.length, stage: 'importing' })
       const titleToId = new Map()
       const inserted = []
       for (const note of parsedNotes) {
         try {
-          const folderId = await resolveFolderChain(note.category, note.nestedSegments)
+          const collectionTags = await resolveCollectionTags(note.nestedSegments)
           const { data, error: insertError } = await supabase
             .from('entries')
             .insert({
               title: note.title,
               content: note.body,
-              category: note.category,
               visibility: defaultVisibility,
               campaign_id: defaultCampaignId || null,
-              folder_id: folderId,
-              tags: note.tags,
+              tags: [...new Set([note.type, ...collectionTags, ...note.tags])],
             })
             .select()
             .single()
@@ -175,10 +179,12 @@ export default function ObsidianImporter({ campaigns }) {
         setProgress((p) => ({ ...p, done: p.done + 1 }))
       }
 
+      await reloadTags()
       setSummary({
         imported: inserted.filter((n) => !n.error).length,
         failed: inserted.filter((n) => n.error),
         imagesUploaded: assetUrls.size,
+        collectionsCreated: tagCache.size,
         unresolvedLinks,
       })
     } catch (err) {
@@ -189,17 +195,17 @@ export default function ObsidianImporter({ campaigns }) {
     }
   }
 
-  const folders = Object.keys(folderCategory)
+  const topFolders = Object.keys(folderType)
 
   return (
     <div className="dm-panel">
       <h2>Import Obsidian Vault</h2>
       <p className="view-subtitle">
-        Select your vault folder. Each note's top-level folder picks its category below; every
-        folder level beneath that is recreated as a nested folder here too, so General's sidebar
-        mirrors your vault's structure. [[wikilinks]] between notes and ![[embedded images]] are
-        resolved after import. Callouts and comments aren't converted — they'll come through as
-        plain text.
+        Select your vault folder. Each note's top-level folder picks its Type below; every folder
+        level beneath that becomes a Collection tag, so a note at
+        Location/Region/Talmundre comes through tagged both "Region" and "Talmundre" and turns up
+        under either. [[wikilinks]] between notes and ![[embedded images]] are resolved after
+        import. Callouts and comments aren't converted — they'll come through as plain text.
       </p>
       <input type="file" webkitdirectory="true" directory="true" multiple onChange={handlePick} />
 
@@ -231,20 +237,20 @@ export default function ObsidianImporter({ campaigns }) {
             </label>
           </div>
 
-          <p className="map-edit-hint">Map each vault folder to an entry category:</p>
+          <p className="map-edit-hint">Map each vault folder to an entry Type:</p>
           <div className="folder-category-list">
-            {folders.map((folder) => (
+            {topFolders.map((folder) => (
               <label key={folder} className="folder-category-row">
                 {folder}
                 <select
-                  value={folderCategory[folder]}
+                  value={folderType[folder]}
                   onChange={(e) =>
-                    setFolderCategory((prev) => ({ ...prev, [folder]: e.target.value }))
+                    setFolderType((prev) => ({ ...prev, [folder]: e.target.value }))
                   }
                 >
-                  {categories.map((c) => (
-                    <option key={c.value} value={c.value}>
-                      {c.label}
+                  {typeTags.map((t) => (
+                    <option key={t.value} value={t.value}>
+                      {t.label}
                     </option>
                   ))}
                 </select>
@@ -268,7 +274,8 @@ export default function ObsidianImporter({ campaigns }) {
           {summary && (
             <div className="import-summary">
               <p>
-                Imported {summary.imported} entries, uploaded {summary.imagesUploaded} images.
+                Imported {summary.imported} entries, created {summary.collectionsCreated} collection
+                tags, uploaded {summary.imagesUploaded} images.
               </p>
               {summary.failed.length > 0 && (
                 <p className="status-message error">

@@ -1,27 +1,39 @@
 import { useTags } from '../contexts/TagContext'
-import { entriesUnderFolderTree, effectiveEntryTags } from '../lib/folders'
+import { matchesAllTags, tagLabel as lookupLabel } from '../lib/tags'
+import { tagsByGroup } from '../lib/tags'
 import { BrowseIcon } from './Icons'
 import EntryCard from './EntryCard'
 
 // Shown when a map region becomes "active" (clicked on the map or picked
-// from the region dropdown) — everything filed under its linked folder,
-// grouped into sections by the entries' own tags (same tag vocabulary/order
-// TagView.jsx already uses), not a hardcoded Locations/People/Session-Notes
-// list, so a new DM-added tag shows up here automatically too.
-export default function RegionEntryPanel({ region, folders, entries, placements, onClose }) {
-  const { tags } = useTags()
-  const underFolder = entriesUnderFolderTree(folders, entries, placements, region.folder_id)
+// from the region dropdown) — everything matching its tag query, grouped
+// into sections by the entries' own Type tags, so a new DM-added type shows
+// up here automatically.
+// A region used to point at one folder; it now points at a set of tags an
+// entry must carry all of, which means a region can scope to a combination
+// ("Locations" + "Ashfall") that no single folder ever held.
+export default function RegionEntryPanel({ region, tagQuery, entries, onClose }) {
+  const { tags, groups } = useTags()
+  const matched = entries.filter((e) => matchesAllTags(e.tags, tagQuery))
 
-  const groups = tags
+  // Section by Type, since that's the group that says what a thing is. The
+  // region's own query tags are dropped as section headers — every entry
+  // here matches them by definition, so they'd all be one useless group.
+  const typeGroup = groups.find((g) => g.value === 'type')
+  const typeTags = typeGroup ? tagsByGroup(tags, [typeGroup])[0]?.tags ?? [] : []
+  const queryTags = new Set((tagQuery ?? []).map((t) => t.toLowerCase()))
+
+  const sections = typeTags
+    .filter((t) => !queryTags.has(t.value.toLowerCase()))
     .map((tag) => ({
       tag,
-      entries: underFolder.filter((e) =>
-        effectiveEntryTags(folders, e).some((t) => t.toLowerCase() === tag.value.toLowerCase())
+      entries: matched.filter((e) =>
+        (e.tags ?? []).some((t) => t.toLowerCase() === tag.value.toLowerCase())
       ),
     }))
-    .filter((g) => g.entries.length > 0)
-  const taggedIds = new Set(groups.flatMap((g) => g.entries.map((e) => e.id)))
-  const untagged = underFolder.filter((e) => !taggedIds.has(e.id))
+    .filter((s) => s.entries.length > 0)
+
+  const sectionedIds = new Set(sections.flatMap((s) => s.entries.map((e) => e.id)))
+  const other = matched.filter((e) => !sectionedIds.has(e.id))
 
   return (
     <aside className="region-panel">
@@ -32,34 +44,44 @@ export default function RegionEntryPanel({ region, folders, entries, placements,
         </button>
       </div>
 
-      {!region.folder_id && (
-        <p className="status-message">This region isn't linked to a folder yet.</p>
+      {(!tagQuery || tagQuery.length === 0) && (
+        <p className="status-message">This region isn't linked to any tags yet.</p>
       )}
 
-      {region.folder_id && underFolder.length === 0 && (
+      {tagQuery?.length > 0 && (
+        <p className="region-panel-query">
+          {tagQuery.map((t) => (
+            <span key={t} className="tag">
+              {lookupLabel(tags, t)}
+            </span>
+          ))}
+        </p>
+      )}
+
+      {tagQuery?.length > 0 && matched.length === 0 && (
         <div className="browse-empty">
           <BrowseIcon />
-          <p className="browse-empty-title">Nothing filed here yet</p>
+          <p className="browse-empty-title">Nothing tagged this way yet</p>
         </div>
       )}
 
-      {groups.map((g) => (
-        <section key={g.tag.id} className="region-panel-group">
-          <h3>{g.tag.label}</h3>
+      {sections.map((s) => (
+        <section key={s.tag.id} className="region-panel-group">
+          <h3>{s.tag.label}</h3>
           <div className="entry-grid">
-            {g.entries.map((e) => (
-              <EntryCard key={e.__placementId ? `placement-${e.__placementId}` : e.id} entry={e} folders={folders} />
+            {s.entries.map((e) => (
+              <EntryCard key={e.id} entry={e} />
             ))}
           </div>
         </section>
       ))}
 
-      {untagged.length > 0 && (
+      {other.length > 0 && (
         <section className="region-panel-group">
           <h3>Other</h3>
           <div className="entry-grid">
-            {untagged.map((e) => (
-              <EntryCard key={e.__placementId ? `placement-${e.__placementId}` : e.id} entry={e} folders={folders} />
+            {other.map((e) => (
+              <EntryCard key={e.id} entry={e} />
             ))}
           </div>
         </section>

@@ -40,7 +40,7 @@ export function CampaignProvider({ children }) {
   // Entering a different world invalidates a campaign selection that
   // belonged to the old one — otherwise the two could point at unrelated
   // worlds, and the "world-wide, no campaign picked" fallback filter
-  // (scopedCampaignIds in lib/folders.js) would be filtering by a campaign
+  // (scopedCampaignIds in lib/tags.js) would be filtering by a campaign
   // that isn't even in the newly-selected world.
   function setWorldId(id) {
     setWorldIdState(id)

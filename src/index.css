@@ -3452,3 +3452,236 @@ button.chip:hover {
   font-size: var(--text-xs);
   color: var(--text-muted);
 }
+
+
+/* Tag groups: the pseudo-folders that replaced the folder tree. A group is
+   a labelled row of chips — in the entry editor it's what you tag with, in
+   search it's one facet of the query. Per-tag color rides on --chip-accent
+   so a DM-chosen color tints the active chip without needing a rule per
+   tag; it falls back to the standard accent when none is set. */
+
+.tag-group-picker,
+.tag-query-picker {
+  display: grid;
+  gap: 1rem;
+}
+
+.tag-group {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.tag-group-header {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+}
+
+.tag-group-label {
+  font-weight: 600;
+  font-size: 0.85rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.tag-group-required {
+  color: var(--accent-strong, var(--accent));
+}
+
+.tag-group-hint {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.tag-group-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.chip.active {
+  background: var(--chip-accent, var(--accent-2));
+  border-color: var(--chip-accent, var(--accent-2));
+  color: var(--on-accent-2);
+}
+
+/* Dashed so it reads as "add one" rather than as another selectable tag.
+   Still a real chip with border and background, per docs/ui-conventions.md
+   — and since it inherits the base button rule, it resets the resting
+   shadow and the whole hover lift explicitly. */
+.chip-new {
+  border-style: dashed;
+  border-color: var(--accent-2);
+  color: var(--accent);
+  box-shadow: none;
+}
+
+.chip-new:hover {
+  border-style: solid;
+  background: var(--surface-2);
+  filter: none;
+  box-shadow: none;
+  transform: none;
+}
+
+.tag-group-create {
+  display: inline-flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.tag-group-create input {
+  max-width: 12rem;
+}
+
+.tag-group-swatch {
+  width: 0.85rem;
+  height: 0.85rem;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--accent-2);
+  flex-shrink: 0;
+}
+
+.tag-manager-group {
+  margin-top: 1.5rem;
+}
+
+.tag-manager-group h3 {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+
+/* Search: one filter row per group. The label sits above its own chip row
+   so two groups never read as one long undifferentiated wall of chips —
+   that separation is the whole point of grouping them. */
+
+.entry-search-group {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.entry-search-group-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.entry-search-actions {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+/* Bulk edit: the replacement for retagging a folder and having its whole
+   subtree follow. Sticks to the top of the results so the selection stays
+   actionable while you scroll through what you picked. */
+
+.bulk-edit-bar {
+  position: sticky;
+  top: 0.5rem;
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-end;
+  padding: 0.9rem 1.1rem;
+  margin: 1rem 0;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+
+.bulk-edit-count {
+  font-weight: 700;
+  color: var(--accent);
+  align-self: center;
+}
+
+.bulk-edit-bar label {
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+}
+
+.bulk-edit-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* The select checkbox has to live outside the card's <a>, or every click on
+   it would also navigate. */
+.entry-card-shell {
+  position: relative;
+  display: flex;
+}
+
+.entry-card-shell .entry-card {
+  flex: 1;
+}
+
+.entry-card-select {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
+  z-index: 2;
+  display: flex;
+}
+
+.entry-card-select input {
+  width: 1.1rem;
+  height: 1.1rem;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.entry-card-selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent) inset;
+}
+
+/* Map regions now target a set of tags rather than one folder, so the panel
+   shows which tags it's matching on. */
+
+.region-panel-query {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0 0 0.75rem;
+}
+
+.region-tag-overrides {
+  display: grid;
+  gap: 0.6rem;
+  margin: 1rem 0;
+}
+
+.region-tag-overrides details {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.6rem 0.9rem;
+  background: var(--surface-2);
+}
+
+.region-tag-overrides summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.region-tag-overrides details[open] summary {
+  margin-bottom: 0.75rem;
+}

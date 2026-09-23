@@ -1,8 +1,8 @@
 import { Link } from 'react-router-dom'
 
 const SECTIONS = [
-  { to: '/dm/organize', title: 'Folders & Entries', desc: 'Browse and organize your whole category tree, add entries in place.' },
-  { to: '/dm/categories', title: 'Categories', desc: 'Add, rename, reorder, or consolidate the top-level tabs.' },
+  { to: '/search', title: 'Browse & Bulk Edit', desc: 'Find anything by tag, then retag, hide, or reassign a whole set at once.' },
+  { to: '/dm/tags', title: 'Tags & Groups', desc: 'The vocabulary everything is organized by \u2014 groups act as the filter rows in search.' },
   { to: '/dm/campaigns', title: 'Campaigns', desc: 'Add and edit campaigns.' },
   { to: '/dm/maps', title: 'Maps', desc: 'Upload maps and place markers.' },
   { to: '/dm/characters', title: 'Characters', desc: 'Review imported character sheets, assign owners.' },

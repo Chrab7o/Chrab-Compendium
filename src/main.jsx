@@ -5,7 +5,6 @@ import { HeroUIProvider } from '@heroui/react'
 import { AuthProvider } from './contexts/AuthContext'
 import { ImpersonationProvider } from './contexts/ImpersonationContext'
 import { CampaignProvider } from './contexts/CampaignContext'
-import { CategoryProvider } from './contexts/CategoryContext'
 import { TagProvider } from './contexts/TagContext'
 import App from './App'
 import 'leaflet/dist/leaflet.css'
@@ -17,13 +16,11 @@ ReactDOM.createRoot(document.getElementById('root')).render(
       <AuthProvider>
         <ImpersonationProvider>
           <CampaignProvider>
-            <CategoryProvider>
               <TagProvider>
                 <HeroUIProvider>
                   <App />
                 </HeroUIProvider>
               </TagProvider>
-            </CategoryProvider>
           </CampaignProvider>
         </ImpersonationProvider>
       </AuthProvider>

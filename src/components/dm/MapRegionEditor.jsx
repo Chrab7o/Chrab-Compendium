@@ -1,27 +1,24 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import { useMapRegions } from '../../hooks/useMapRegions'
-import { useCategories } from '../../contexts/CategoryContext'
-import { flattenFolders } from '../../lib/folders'
 import { getMapImageUrl } from '../../lib/mapStorage'
 import MapViewer from '../MapViewer'
+import TagQueryPicker from './TagQueryPicker'
 
 const emptyForm = {
   id: null,
   name: '',
-  category: '',
-  folder_id: '',
+  tag_query: [],
   visibility: 'public',
   campaign_id: '',
   linked_map_id: '',
   linkType: 'none',
-  // Per-timeline exceptions on top of folder_id (the default) - keyed by
-  // campaign_id, value is the override folder_id. See region_folder_links.
-  folderOverrides: {},
+  // Per-timeline exceptions on top of tag_query (the default) - keyed by
+  // campaign_id, value is the override tag array. See region_tag_links.
+  tagOverrides: {},
 }
 
-export default function MapRegionEditor({ maps, folders, campaigns, regionFolderLinks = [], onChange }) {
-  const { categories } = useCategories()
+export default function MapRegionEditor({ maps, campaigns, regionTagLinks = [], onChange }) {
   const [mapId, setMapId] = useState('')
   const [drawing, setDrawing] = useState(false)
   const [drawingPoints, setDrawingPoints] = useState([])
@@ -37,19 +34,12 @@ export default function MapRegionEditor({ maps, folders, campaigns, regionFolder
   const otherWorldMaps = map?.world_id
     ? maps.filter((m) => m.world_id === map.world_id && m.id !== map.id)
     : []
-  // A region either browses a folder or zooms into another map, never
-  // both. This has to be its own explicit field rather than derived from
-  // whether folder_id/linked_map_id are set - otherwise picking "Folder"
-  // for a region that doesn't have one yet (folder_id still empty) would
-  // immediately re-derive back to "none" and the folder picker would never
-  // appear at all.
+  // A region either browses entries or zooms into another map, never both.
+  // This has to be its own explicit field rather than derived from whether
+  // tag_query/linked_map_id are set - otherwise picking "Tags" for a region
+  // that has no tags yet would immediately re-derive back to "none" and the
+  // tag picker would never appear at all.
   const linkType = form?.linkType ?? 'none'
-
-  useEffect(() => {
-    if (form && !form.category && categories.length > 0) {
-      setForm((f) => ({ ...f, category: categories[0].value }))
-    }
-  }, [form, categories])
 
   // Escape cancels an in-progress drawing session.
   useEffect(() => {
@@ -98,22 +88,20 @@ export default function MapRegionEditor({ maps, folders, campaigns, regionFolder
 
   function handleRegionClick(region) {
     if (drawing) return
+    const query = region.tag_query ?? []
     setForm({
       id: region.id,
       name: region.name,
-      category: region.folder_id
-        ? folders.find((f) => f.id === region.folder_id)?.category ?? ''
-        : '',
-      folder_id: region.folder_id ?? '',
+      tag_query: query,
       visibility: region.visibility,
       points: region.points,
       campaign_id: region.campaign_id ?? '',
       linked_map_id: region.linked_map_id ?? '',
-      linkType: region.linked_map_id ? 'map' : region.folder_id ? 'folder' : 'none',
-      folderOverrides: Object.fromEntries(
-        regionFolderLinks
+      linkType: region.linked_map_id ? 'map' : query.length > 0 ? 'tags' : 'none',
+      tagOverrides: Object.fromEntries(
+        regionTagLinks
           .filter((l) => l.region_id === region.id)
-          .map((l) => [l.campaign_id, l.folder_id])
+          .map((l) => [l.campaign_id, l.tag_query ?? []])
       ),
     })
     setError(null)
@@ -132,7 +120,7 @@ export default function MapRegionEditor({ maps, folders, campaigns, regionFolder
       map_id: mapId,
       name: form.name,
       points: form.points,
-      folder_id: linkType === 'folder' ? form.folder_id || null : null,
+      tag_query: linkType === 'tags' ? form.tag_query : [],
       visibility: form.visibility,
       campaign_id: form.campaign_id || null,
       linked_map_id: linkType === 'map' ? form.linked_map_id || null : null,
@@ -147,22 +135,22 @@ export default function MapRegionEditor({ maps, folders, campaigns, regionFolder
     }
 
     // Per-timeline overrides only make sense while the region actually
-    // browses a folder - clearing out any stale rows here too if the DM
-    // switched away from "Folder" or removed one.
+    // browses entries - clearing out any stale rows here too if the DM
+    // switched away from "Tags" or emptied one.
     const desired =
-      linkType === 'folder'
-        ? Object.entries(form.folderOverrides).filter(([, folderId]) => folderId)
+      linkType === 'tags'
+        ? Object.entries(form.tagOverrides).filter(([, query]) => query?.length > 0)
         : []
     const { error: clearError } = await supabase
-      .from('region_folder_links')
+      .from('region_tag_links')
       .delete()
       .eq('region_id', saved.id)
     if (!clearError && desired.length > 0) {
-      await supabase.from('region_folder_links').insert(
-        desired.map(([campaignId, folderId]) => ({
+      await supabase.from('region_tag_links').insert(
+        desired.map(([campaignId, query]) => ({
           region_id: saved.id,
           campaign_id: campaignId,
-          folder_id: folderId,
+          tag_query: query,
         }))
       )
     }
@@ -261,56 +249,32 @@ export default function MapRegionEditor({ maps, folders, campaigns, regionFolder
                   value={linkType}
                   onChange={(e) => {
                     const next = e.target.value
-                    if (next === 'folder') setForm({ ...form, linkType: next, linked_map_id: '' })
+                    if (next === 'tags') setForm({ ...form, linkType: next, linked_map_id: '' })
                     else if (next === 'map') {
                       setForm({
                         ...form,
                         linkType: next,
-                        folder_id: '',
+                        tag_query: [],
                         linked_map_id: otherWorldMaps[0]?.id ?? '',
                       })
-                    } else setForm({ ...form, linkType: next, folder_id: '', linked_map_id: '' })
+                    } else setForm({ ...form, linkType: next, tag_query: [], linked_map_id: '' })
                   }}
                 >
                   <option value="none">None</option>
-                  <option value="folder">Folder (browse entries)</option>
+                  <option value="tags">Tags (browse entries)</option>
                   <option value="map" disabled={otherWorldMaps.length === 0}>
                     Another map (zoom in){otherWorldMaps.length === 0 ? ' — no other maps in this world' : ''}
                   </option>
                 </select>
               </label>
+              {linkType === 'tags' && (
+                <TagQueryPicker
+                  value={form.tag_query}
+                  onChange={(tag_query) => setForm({ ...form, tag_query })}
+                />
+              )}
+
               <div className="dm-form-row">
-                {linkType === 'folder' && (
-                  <>
-                    <label>
-                      Category
-                      <select
-                        value={form.category}
-                        onChange={(e) => setForm({ ...form, category: e.target.value, folder_id: '' })}
-                      >
-                        {categories.map((c) => (
-                          <option key={c.value} value={c.value}>
-                            {c.label}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    <label>
-                      Folder
-                      <select
-                        value={form.folder_id}
-                        onChange={(e) => setForm({ ...form, folder_id: e.target.value })}
-                      >
-                        <option value="">(no folder link)</option>
-                        {flattenFolders(folders, form.category).map((f) => (
-                          <option key={f.id} value={f.id}>
-                            {f.label}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  </>
-                )}
                 {linkType === 'map' && (
                   <label>
                     Zoom to map
@@ -352,32 +316,32 @@ export default function MapRegionEditor({ maps, folders, campaigns, regionFolder
                 </label>
               </div>
 
-              {linkType === 'folder' && mapCampaigns.length > 0 && (
-                <div className="dm-form-row region-folder-overrides">
+              {linkType === 'tags' && mapCampaigns.length > 0 && (
+                <div className="region-tag-overrides">
                   <p className="map-edit-hint">
-                    Same shape, different destination per timeline — pick a folder here to
-                    override the default above for that one timeline only.
+                    Same shape, different destination per timeline — pick tags here to
+                    override the default above for that one timeline only. Leave a timeline
+                    empty to use the default.
                   </p>
                   {mapCampaigns.map((c) => (
-                    <label key={c.id}>
-                      {c.name}
-                      <select
-                        value={form.folderOverrides[c.id] ?? ''}
-                        onChange={(e) =>
+                    <details key={c.id}>
+                      <summary>
+                        {c.name}
+                        {form.tagOverrides[c.id]?.length > 0
+                          ? ` — ${form.tagOverrides[c.id].length} tag(s)`
+                          : ' — uses default'}
+                      </summary>
+                      <TagQueryPicker
+                        label={`Override for ${c.name}`}
+                        value={form.tagOverrides[c.id] ?? []}
+                        onChange={(query) =>
                           setForm({
                             ...form,
-                            folderOverrides: { ...form.folderOverrides, [c.id]: e.target.value },
+                            tagOverrides: { ...form.tagOverrides, [c.id]: query },
                           })
                         }
-                      >
-                        <option value="">(use default)</option>
-                        {flattenFolders(folders, form.category).map((f) => (
-                          <option key={f.id} value={f.id}>
-                            {f.label}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
+                      />
+                    </details>
                   ))}
                 </div>
               )}

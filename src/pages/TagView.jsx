@@ -1,44 +1,37 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { useCampaignContext } from '../contexts/CampaignContext'
-import { effectiveEntryCampaignId, effectiveEntryTags, scopedCampaignIds } from '../lib/folders'
+import { entryInCampaignScope, scopedCampaignIds } from '../lib/tags'
 import EntryCard from '../components/EntryCard'
 
 // Shared by the Locations/People/Session Notes nav pages — each is just this
-// same tag-filtered, session-scoped list with a different tag/title. Not a
-// folder/category browse: an entry shows up here purely because it carries
-// the matching tag, regardless of where it otherwise lives.
+// same tag-filtered, session-scoped list with a different tag/title. A thin
+// preset over what EntrySearch does generally: an entry shows up here purely
+// because it carries the matching tag.
 // `embedded` skips the standalone-route .page wrapper (background/width
 // cap/padding) — CharacterHub's Session Notes tab already sits inside its
 // own .page, and nesting two would double up the card look.
 export default function TagView({ tag, title, embedded }) {
   const { campaigns, campaign, campaignId, world, worldId } = useCampaignContext()
   const [entries, setEntries] = useState([])
-  const [folders, setFolders] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     setLoading(true)
-    Promise.all([
-      supabase.from('entries').select('*'),
-      supabase.from('folders').select('*'),
-    ]).then(([{ data: entryData }, { data: folderData }]) => {
-      setEntries(entryData ?? [])
-      setFolders(folderData ?? [])
-      setLoading(false)
-    })
+    supabase
+      .from('entries')
+      .select('*')
+      .then(({ data }) => {
+        setEntries(data ?? [])
+        setLoading(false)
+      })
   }, [])
 
-  const tagged = entries.filter((e) =>
-    effectiveEntryTags(folders, e).some((t) => t.toLowerCase() === tag.toLowerCase())
-  )
   const allowedCampaignIds = scopedCampaignIds(campaigns, worldId, campaignId)
-  const scoped = allowedCampaignIds
-    ? tagged.filter((e) => {
-        const eff = effectiveEntryCampaignId(folders, e)
-        return !eff || allowedCampaignIds.has(eff)
-      })
-    : tagged
+  const scoped = entries
+    .filter((e) => (e.tags ?? []).some((t) => t.toLowerCase() === tag.toLowerCase()))
+    .filter((e) => entryInCampaignScope(e, allowedCampaignIds))
+    .sort((a, b) => a.title.localeCompare(b.title))
 
   const scopeName = campaign?.name ?? world?.name
 
@@ -55,7 +48,7 @@ export default function TagView({ tag, title, embedded }) {
 
       <div className="entry-grid">
         {scoped.map((entry) => (
-          <EntryCard key={entry.id} entry={entry} folders={folders} />
+          <EntryCard key={entry.id} entry={entry} />
         ))}
       </div>
     </section>

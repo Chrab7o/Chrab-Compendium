@@ -2,24 +2,24 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabaseClient'
 import { useMapMarkers } from '../hooks/useMapMarkers'
 import { useMapRegions } from '../hooks/useMapRegions'
-import { useRegionFolderLinks } from '../hooks/useRegionFolderLinks'
+import { useRegionTagLinks } from '../hooks/useRegionTagLinks'
 import { useCampaignContext } from '../contexts/CampaignContext'
-import { effectiveRegionFolderId } from '../lib/folders'
+import { effectiveRegionTagQuery } from '../lib/tags'
 import { getMapImageUrl } from '../lib/mapStorage'
 import MapViewer from './MapViewer'
 import RegionEntryPanel from './RegionEntryPanel'
 
 // A map plus its regions: hover a region for its name, click it (or pick it
-// from the dropdown) to either open a side panel of everything filed under
-// its linked folder, or — if it's linked to another map instead — navigate
-// there via onNavigateToMap. A region is one or the other, never both.
+// from the dropdown) to either open a side panel of everything matching its
+// tag query, or — if it's linked to another map instead — navigate there via
+// onNavigateToMap. A region is one or the other, never both.
 // Shared by MapDetail and WorldMapPage so this behavior only lives in one
 // place.
 export default function MapWithRegions({ map, onNavigateToMap }) {
   const { campaignId } = useCampaignContext()
   const { markers: allMarkers } = useMapMarkers(map.id)
   const { regions: allRegions } = useMapRegions(map.id)
-  const { links: folderLinks } = useRegionFolderLinks(allRegions.map((r) => r.id))
+  const { links: tagLinks } = useRegionTagLinks(allRegions.map((r) => r.id))
   // A map is shared across every campaign/era in its world now — markers
   // and regions are what's actually timeline-specific. General (no
   // campaign_id) ones always show; a campaign-tagged one only shows when
@@ -27,25 +27,18 @@ export default function MapWithRegions({ map, onNavigateToMap }) {
   const markers = allMarkers.filter((m) => !m.campaign_id || m.campaign_id === campaignId)
   const regions = allRegions.filter((r) => !r.campaign_id || r.campaign_id === campaignId)
   const [selectedRegionId, setSelectedRegionId] = useState(null)
-  const [folders, setFolders] = useState([])
   const [entries, setEntries] = useState([])
-  const [placements, setPlacements] = useState([])
 
   useEffect(() => {
-    Promise.all([
-      supabase.from('folders').select('*'),
-      supabase.from('entries').select('*'),
-      supabase.from('entry_placements').select('*'),
-    ]).then(([{ data: folderData }, { data: entryData }, { data: placementData }]) => {
-      setFolders(folderData ?? [])
-      setEntries(entryData ?? [])
-      setPlacements(placementData ?? [])
-    })
+    supabase
+      .from('entries')
+      .select('*')
+      .then(({ data }) => setEntries(data ?? []))
   }, [])
 
   const selectedRegion = regions.find((r) => r.id === selectedRegionId) ?? null
   const linkedMapRegions = regions.filter((r) => r.linked_map_id)
-  const folderRegions = regions.filter((r) => !r.linked_map_id)
+  const browseRegions = regions.filter((r) => !r.linked_map_id)
 
   function activateRegion(region) {
     if (region.linked_map_id) onNavigateToMap?.(region.linked_map_id)
@@ -60,7 +53,7 @@ export default function MapWithRegions({ map, onNavigateToMap }) {
           into its map.
         </p>
 
-        {folderRegions.length > 0 && (
+        {browseRegions.length > 0 && (
           <div className="map-picker">
             <label>
               Jump to a region
@@ -69,7 +62,7 @@ export default function MapWithRegions({ map, onNavigateToMap }) {
                 onChange={(e) => setSelectedRegionId(e.target.value || null)}
               >
                 <option value="">Choose a region...</option>
-                {[...folderRegions]
+                {[...browseRegions]
                   .sort((a, b) => a.name.localeCompare(b.name))
                   .map((r) => (
                     <option key={r.id} value={r.id}>
@@ -106,13 +99,9 @@ export default function MapWithRegions({ map, onNavigateToMap }) {
 
       {selectedRegion && (
         <RegionEntryPanel
-          region={{
-            ...selectedRegion,
-            folder_id: effectiveRegionFolderId(selectedRegion, folderLinks, campaignId),
-          }}
-          folders={folders}
+          region={selectedRegion}
+          tagQuery={effectiveRegionTagQuery(selectedRegion, tagLinks, campaignId)}
           entries={entries}
-          placements={placements}
           onClose={() => setSelectedRegionId(null)}
         />
       )}
