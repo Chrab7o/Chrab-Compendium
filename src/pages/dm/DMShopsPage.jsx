@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import {
   DEFAULT_SPEC,
@@ -37,6 +37,12 @@ export default function DMShopsPage() {
   const [manual, setManual] = useState(emptyManual)
   const [showAdd, setShowAdd] = useState(false)
   const [pool, setPool] = useState(null)
+  // The rarity counts are edited locally and only written on blur. Keeping a
+  // draft here (rather than reading straight from `spec`) means typing stays
+  // responsive, and - more importantly - the restock below can use what is
+  // currently in the boxes instead of whatever last round-tripped from the
+  // database.
+  const [countDraft, setCountDraft] = useState({})
 
   const selected = shops.find((s) => s.id === selectedId) ?? null
   const spec = useMemo(() => ({ ...DEFAULT_SPEC, ...(selected?.spec ?? {}) }), [selected])
@@ -82,6 +88,22 @@ export default function DMShopsPage() {
     if (!selectedId || pool) return
     loadPool().then(setPool).catch((err) => setError(err.message))
   }, [selectedId, pool])
+
+  // Seed the count boxes once per shop, as soon as that shop's row is actually
+  // in hand. Keying this on `selectedId` alone seeded them from a row that had
+  // not loaded yet, so a freshly created shop showed zeros; re-seeding on every
+  // change of `spec` would instead stomp a number still being typed.
+  const seededFor = useRef(null)
+  useEffect(() => {
+    if (!selected) {
+      seededFor.current = null
+      setCountDraft({})
+      return
+    }
+    if (seededFor.current === selected.id) return
+    seededFor.current = selected.id
+    setCountDraft({ ...DEFAULT_SPEC.counts, ...(selected.spec?.counts ?? {}) })
+  }, [selected])
 
   const progress = useMemo(
     () => (pool && selected ? cycleProgress(pool, spec, selected.draw_history ?? {}) : []),
@@ -141,17 +163,34 @@ export default function DMShopsPage() {
     if (!selected) return
     const kept = stock.filter((row) => row.origin !== '5etools')
     const keptNote = kept.length ? ` ${kept.length} hand-added item(s) will be kept.` : ''
-    if (!confirm(`Reroll all random stock for "${selected.name}"?${keptNote}`)) return
+    // What is in the boxes right now, which is not necessarily what has been
+    // saved: clicking this button blurs the count input, and that write is
+    // still in flight while the confirm dialog blocks.
+    const counts = { ...spec.counts, ...countDraft }
+    const total = Object.values(counts).reduce((sum, n) => sum + (Number(n) || 0), 0)
+    if (!confirm(`Reroll ${total} random items for "${selected.name}"?${keptNote}`)) return
 
     setSaving(true)
     setError(null)
     setNotice(null)
     try {
       const pool = await loadPool()
+      const rollSpec = { ...spec, counts }
+      // Save the counts before rolling, so what the shop stocks always matches
+      // what its saved spec says it stocks.
+      await commitCounts(counts)
+      // Re-read the discard pile rather than trusting the loaded row: a restock
+      // is the one action where using a stale value silently corrupts the
+      // no-repeat cycle.
+      const { data: fresh } = await supabase
+        .from('shops')
+        .select('draw_history')
+        .eq('id', selected.id)
+        .single()
       // The discard pile makes restocks mutually exclusive: an item can't come
       // back until the rest of its rarity has been dealt. See rollStock.
-      const { items, shortfalls, history, cycles } = rollStock(pool, spec, {
-        history: selected.draw_history ?? {},
+      const { items, shortfalls, history, cycles } = rollStock(pool, rollSpec, {
+        history: fresh?.draw_history ?? {},
       })
 
       const { error: clearError } = await supabase
@@ -237,10 +276,23 @@ export default function DMShopsPage() {
     patchShop({ spec: { ...spec, sources: SETTING_NEUTRAL_SOURCES.filter((s) => current.has(s)) } })
   }
 
-  function setCount(rarity, value) {
-    const next = Math.max(0, Math.min(50, Number(value) || 0))
-    if (next === (spec.counts?.[rarity] ?? 0)) return
-    patchShop({ spec: { ...spec, counts: { ...spec.counts, [rarity]: next } } })
+  const clampCount = (value) => Math.max(0, Math.min(50, Number(value) || 0))
+
+  function editCount(rarity, value) {
+    setCountDraft((prev) => ({ ...prev, [rarity]: clampCount(value) }))
+  }
+
+  function commitCounts(counts = countDraft) {
+    if (!selected) return Promise.resolve()
+    if (JSON.stringify(counts) === JSON.stringify(spec.counts)) return Promise.resolve()
+    return supabase
+      .from('shops')
+      .update({ spec: { ...spec, counts } })
+      .eq('id', selected.id)
+      .then(({ error: e }) => {
+        if (e) setError(e.message)
+        else load()
+      })
   }
 
   const openAddPanel = useCallback(async () => {
@@ -437,16 +489,17 @@ export default function DMShopsPage() {
                   {RARITIES.map((rarity) => (
                     <label key={rarity}>
                       {rarity}
-                      {/* Committed on blur, not on change: an onChange here
-                          would write to the database on every keystroke, and
-                          the reload that follows would fight the cursor. */}
+                      {/* Edited locally, saved on blur: writing on every
+                          keystroke would round-trip the database per digit and
+                          the reload would fight the cursor. Restock uses the
+                          draft directly, so an unsaved box still counts. */}
                       <input
                         type="number"
                         min="0"
                         max="50"
-                        key={`count-${selected.id}-${rarity}`}
-                        defaultValue={spec.counts?.[rarity] ?? 0}
-                        onBlur={(e) => setCount(rarity, e.target.value)}
+                        value={countDraft[rarity] ?? 0}
+                        onChange={(e) => editCount(rarity, e.target.value)}
+                        onBlur={() => commitCounts()}
                       />
                     </label>
                   ))}
