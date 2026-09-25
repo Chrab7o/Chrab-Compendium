@@ -3685,3 +3685,278 @@ button.chip:hover {
 .region-tag-overrides details[open] summary {
   margin-bottom: 0.75rem;
 }
+
+/* ---- Shops -------------------------------------------------------------
+   The DM roller at /dm/shops and the player-facing shelf at /shop/:slug.
+   Rarity badges extend the existing .badge system rather than inventing a
+   parallel one; their hues follow the 5e convention players already read
+   (green / blue / purple / gold) rather than the site palette, since the
+   whole job of the badge is to be recognised at a glance. They are picked
+   deep enough to hold contrast against the cream parchment surfaces. */
+
+.rarity-uncommon {
+  background: var(--accent-2);
+  color: var(--on-accent-2);
+}
+
+.rarity-rare {
+  background: #1f4e79;
+  color: #eef4fb;
+}
+
+.rarity-very-rare {
+  background: #5b2a86;
+  color: #f3eafa;
+}
+
+.rarity-legendary {
+  background: var(--accent-purple);
+  color: var(--on-accent-purple);
+}
+
+/* Homebrew and hand-typed rows, so the DM can tell at a glance what a
+   restock will and won't replace. */
+.badge-own {
+  background: var(--surface-2);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  font-style: italic;
+}
+
+/* Shop switcher. These are real buttons carrying .secondary, per
+   docs/ui-conventions.md - the active one is marked by an inset rule
+   rather than by removing its chrome. */
+.shop-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: var(--space-4);
+}
+
+.shop-tabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.shop-tabs button.is-active {
+  border-color: var(--accent);
+  box-shadow: inset 0 -3px 0 var(--accent);
+}
+
+.shop-fieldset {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-frame);
+  padding: var(--space-3);
+  margin: 0 0 var(--space-3);
+}
+
+.shop-fieldset legend {
+  padding: 0 0.4rem;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.shop-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.shop-counts label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  text-transform: capitalize;
+  font-size: var(--text-sm);
+}
+
+.shop-counts input {
+  width: 5rem;
+}
+
+.shop-sources {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 0.4rem;
+}
+
+.shop-source {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-size: var(--text-sm);
+}
+
+.shop-source input {
+  width: auto;
+  flex-shrink: 0;
+}
+
+.shop-banished {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.shop-banished li,
+.shop-homebrew li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+  padding: 0.4rem 0.75rem;
+  text-transform: capitalize;
+}
+
+.shop-homebrew {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.shop-url {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.shop-restocked {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.shop-stock-main {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.shop-attune {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  font-style: italic;
+  margin: 0;
+}
+
+/* ---- Player-facing shelf ---- */
+
+.shop-blurb {
+  margin-bottom: var(--space-5);
+}
+
+.shop-shelf {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: var(--space-4);
+}
+
+.shop-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-frame);
+  padding: var(--space-4);
+  box-shadow: var(--shadow-sm);
+}
+
+.shop-card-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.35rem;
+}
+
+.shop-card-header h2 {
+  margin: 0;
+  font-size: var(--text-md);
+}
+
+/* Item text is full rules prose, often with a table - keep it readable at
+   card width rather than letting a d100 table stretch the grid column. */
+.shop-card .entry-content {
+  font-size: var(--text-sm);
+}
+
+.shop-card .entry-content table {
+  width: 100%;
+  font-size: var(--text-xs);
+}
+
+@media (max-width: 600px) {
+  .shop-shelf {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Deck progress: how much of each rarity has been dealt since its last
+   reshuffle. A bar rather than a bare fraction because the useful question
+   is "are we near the end of the deck", not the exact count. */
+.shop-progress {
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  align-items: flex-start;
+}
+
+.shop-progress-note {
+  margin: 0 0 0.3rem;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.shop-progress-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  font-size: var(--text-sm);
+}
+
+.shop-progress-label {
+  text-transform: capitalize;
+  min-width: 5.5rem;
+}
+
+.shop-progress-bar {
+  flex: 1;
+  height: 6px;
+  min-width: 60px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.shop-progress-bar > span {
+  display: block;
+  height: 100%;
+  background: var(--accent-2);
+  transition: width var(--transition);
+}
+
+.shop-progress-count {
+  color: var(--text-muted);
+  min-width: 7rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}

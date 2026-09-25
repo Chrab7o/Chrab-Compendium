@@ -5,6 +5,7 @@ import EntryDetail from './pages/EntryDetail'
 import EntryEditorPage from './pages/EntryEditorPage'
 import MapsView from './pages/MapsView'
 import MapDetail from './pages/MapDetail'
+import ShopDetail from './pages/ShopDetail'
 import WorldMapPage from './pages/WorldMapPage'
 import TagView from './pages/TagView'
 import SearchPage from './pages/SearchPage'
@@ -25,6 +26,7 @@ import DMLongTermPlanningPage from './pages/dm/DMLongTermPlanningPage'
 import DMCharacterNotesPage from './pages/dm/DMCharacterNotesPage'
 import SessionPlanEditorPage from './pages/dm/SessionPlanEditorPage'
 import DMItemMakerPage from './pages/dm/DMItemMakerPage'
+import DMShopsPage from './pages/dm/DMShopsPage'
 import DMNameGeneratorPage from './pages/dm/DMNameGeneratorPage'
 import DMScreenPage from './pages/dm/DMScreenPage'
 import ClassWizard from './components/dm/homebrew/ClassWizard'
@@ -52,6 +54,7 @@ export default function App() {
             <Route path="/entry/:id" element={<EntryDetail />} />
             <Route path="/maps" element={<MapsView />} />
             <Route path="/map/:slug" element={<MapDetail />} />
+            <Route path="/shop/:slug" element={<ShopDetail />} />
             <Route path="/world/:slug" element={<WorldMapPage />} />
             <Route path="/locations" element={<TagView tag="location" title="Locations" />} />
             <Route path="/people" element={<TagView tag="person" title="People" />} />
@@ -102,6 +105,7 @@ export default function App() {
               <Route path="session-planner/:id" element={<SessionPlanEditorPage />} />
               <Route path="long-term-planning" element={<DMLongTermPlanningPage />} />
               <Route path="item-maker" element={<DMItemMakerPage />} />
+              <Route path="shops" element={<DMShopsPage />} />
               <Route path="name-generator" element={<DMNameGeneratorPage />} />
               <Route path="screen" element={<DMScreenPage />} />
               <Route path="notes" element={<DMNotesPage />} />

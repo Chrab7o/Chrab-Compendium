@@ -13,6 +13,7 @@ const LINKS = [
   { to: '/dm/session-planner', label: 'Session Planner' },
   { to: '/dm/long-term-planning', label: 'Long-Term Planning' },
   { to: '/dm/item-maker', label: 'Item Maker' },
+  { to: '/dm/shops', label: 'Shops' },
   { to: '/dm/name-generator', label: 'Name Generator' },
   { to: '/dm/screen', label: 'DM Screen' },
   { to: '/dm/notes', label: 'Player Notes' },
