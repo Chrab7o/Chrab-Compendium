@@ -70,12 +70,18 @@ function shuffled(arr, rng) {
  * reports the gap, rather than looping forever looking for items that aren't
  * there.
  */
-export function rollStock(pool, spec = DEFAULT_SPEC, { rng = Math.random, history = {} } = {}) {
+export function rollStock(pool, spec = DEFAULT_SPEC, { rng = Math.random, history = {}, avoid = [] } = {}) {
   const sources = new Set(spec.sources ?? SETTING_NEUTRAL_SOURCES)
   const excluded = new Set(spec.exclude ?? [])
   const counts = spec.counts ?? DEFAULT_SPEC.counts
+  // Keys already on the shelf. Topping a shop up must not deal something it is
+  // currently stocking, and that can't be left to the discard pile alone: the
+  // pile is cleared when a deck reshuffles, while the shelf is not.
+  const onShelf = new Set(avoid)
 
-  const eligible = pool.filter((it) => sources.has(it.source) && !excluded.has(it.key))
+  const eligible = pool.filter(
+    (it) => sources.has(it.source) && !excluded.has(it.key) && !onShelf.has(it.key)
+  )
 
   const items = []
   const shortfalls = []
@@ -116,6 +122,32 @@ export function rollStock(pool, spec = DEFAULT_SPEC, { rng = Math.random, histor
 
   return { items, shortfalls, history: nextHistory, cycles }
 }
+
+/**
+ * How many slots each rarity is short of what `spec` asks for, given what is
+ * currently on the shelf. Only rolled rows count towards the quota - a homebrew
+ * item the DM added by hand is a bonus, not one of the five uncommons.
+ *
+ * Gaps appear when an item is removed: sold in character, or sent to the
+ * never-stock list. Filling them is deliberately separate from a restock, so
+ * plugging one hole doesn't reroll the other nineteen items.
+ */
+export function missingCounts(stock = [], spec = DEFAULT_SPEC) {
+  const counts = spec.counts ?? DEFAULT_SPEC.counts
+  const have = {}
+  for (const row of stock) {
+    if (row.origin !== '5etools') continue
+    have[row.rarity] = (have[row.rarity] ?? 0) + 1
+  }
+  const missing = {}
+  for (const rarity of RARITIES) {
+    missing[rarity] = Math.max(0, (Number(counts[rarity]) || 0) - (have[rarity] ?? 0))
+  }
+  return missing
+}
+
+/** Total across all rarities, for enabling the fill button and labelling it. */
+export const totalMissing = (missing) => Object.values(missing).reduce((sum, n) => sum + n, 0)
 
 /** How far through its deck each rarity is, for showing cycle progress. */
 export function cycleProgress(pool, spec = DEFAULT_SPEC, history = {}) {

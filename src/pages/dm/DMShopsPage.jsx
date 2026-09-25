@@ -4,6 +4,8 @@ import {
   DEFAULT_SPEC,
   RARITIES,
   cycleProgress,
+  missingCounts,
+  totalMissing,
   SETTING_NEUTRAL_SOURCES,
   SOURCE_LABELS,
   attunementLabel,
@@ -104,6 +106,14 @@ export default function DMShopsPage() {
     seededFor.current = selected.id
     setCountDraft({ ...DEFAULT_SPEC.counts, ...(selected.spec?.counts ?? {}) })
   }, [selected])
+
+  // Gaps left by items that were removed or banished, so the fill button can
+  // say how many slots it would actually plug.
+  const missing = useMemo(
+    () => missingCounts(stock, { ...spec, counts: { ...spec.counts, ...countDraft } }),
+    [stock, spec, countDraft]
+  )
+  const gaps = totalMissing(missing)
 
   const progress = useMemo(
     () => (pool && selected ? cycleProgress(pool, spec, selected.draw_history ?? {}) : []),
@@ -233,6 +243,61 @@ export default function DMShopsPage() {
         )
       }
       setNotice(messages.length > 0 ? messages.join(' ') : null)
+      await loadStock(selected.id)
+      load()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // Deal only into the empty slots, leaving everything already on the shelf
+  // alone. Same deck and same discard pile as a restock - this is a partial
+  // deal, not a separate randomiser.
+  async function handleFillGaps() {
+    if (!selected || gaps === 0) return
+    setSaving(true)
+    setError(null)
+    setNotice(null)
+    try {
+      const pool = await loadPool()
+      const { data: fresh } = await supabase
+        .from('shops')
+        .select('draw_history')
+        .eq('id', selected.id)
+        .single()
+      const { items, shortfalls, history, cycles } = rollStock(
+        pool,
+        { ...spec, counts: missing },
+        {
+          history: fresh?.draw_history ?? {},
+          avoid: stock.map((row) => row.item_key).filter(Boolean),
+        }
+      )
+
+      if (items.length > 0) {
+        const start = stock.length
+        const { error: insertError } = await supabase
+          .from('shop_items')
+          .insert(items.map((item, i) => toStockRow(item, selected.id, start + i)))
+        if (insertError) throw insertError
+      }
+
+      await supabase.from('shops').update({ draw_history: history }).eq('id', selected.id)
+
+      const messages = [`Filled ${items.length} empty slot${items.length === 1 ? '' : 's'}.`]
+      if (cycles.length > 0) {
+        messages.push(`The ${cycles.join(' and ')} deck${cycles.length === 1 ? '' : 's'} reshuffled.`)
+      }
+      if (shortfalls.length > 0) {
+        messages.push(
+          `Still short on: ${shortfalls
+            .map((s) => `${s.rarity} (${s.got} of ${s.want})`)
+            .join(', ')}. Widen the sources or trim the never-stock list.`
+        )
+      }
+      setNotice(messages.join(' '))
       await loadStock(selected.id)
       load()
     } catch (err) {
@@ -565,6 +630,9 @@ export default function DMShopsPage() {
               <div className="dm-form-actions">
                 <button type="button" onClick={handleRestock} disabled={saving}>
                   {saving ? 'Rolling...' : 'Restock (reroll everything)'}
+                </button>
+                <button type="button" className="secondary" onClick={handleFillGaps} disabled={saving || gaps === 0}>
+                  {gaps === 0 ? 'No empty slots' : `Fill ${gaps} empty slot${gaps === 1 ? '' : 's'}`}
                 </button>
                 <button type="button" className="secondary" onClick={openAddPanel}>
                   + Add an item by hand
