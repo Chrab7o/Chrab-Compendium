@@ -180,6 +180,23 @@ export function toStockRow(item, shopId, position) {
   }
 }
 
+const RARITY_ORDER = Object.fromEntries(RARITIES.map((rarity, i) => [rarity, i]))
+
+/**
+ * Shelf order: weakest rarity first, alphabetical within a rarity, anything
+ * unrated (hand-typed items with no rarity set) last. Used after every change
+ * to the stock so topping a shop up doesn't leave the new items stranded at the
+ * bottom of the list.
+ */
+export function sortStock(rows = []) {
+  return [...rows].sort((a, b) => {
+    const ra = RARITY_ORDER[a.rarity] ?? RARITIES.length
+    const rb = RARITY_ORDER[b.rarity] ?? RARITIES.length
+    if (ra !== rb) return ra - rb
+    return (a.name ?? '').localeCompare(b.name ?? '')
+  })
+}
+
 /** Turn a name into the slug its player-facing URL uses. */
 export const slugify = (s) =>
   s

@@ -197,7 +197,7 @@
 		"source": "TCE",
 		"rarity": "very rare",
 		"attunement": true,
-		"text": "{#itemEntry Absorbing Tattoo|TCE}"
+		"text": "Produced by a special needle, this magic tattoo features designs that emphasize one color (green).\n\n**Tattoo Attunement.** To attune to this item, you hold the needle to your skin where you want the tattoo to appear, pressing the needle there throughout the attunement process. When the attunement is complete, the needle turns into the ink that becomes the tattoo, which appears on the skin.\n\nIf your attunement to the tattoo ends, the tattoo vanishes, and the needle reappears in your space.\n\n**Damage Resistance.** While the tattoo is on your skin, you have resistance to acid damage.\n\n**Damage Absorption.** When you take acid damage, you can use your reaction to gain immunity against that instance of the damage, and you regain a number of hit points equal to half the damage you would have taken. Once this reaction is used, it can't be used again until the next dawn."
 	},
 	{
 		"key": "alchemical-compendium|tce",
@@ -709,7 +709,7 @@
 		"source": "TCE",
 		"rarity": "very rare",
 		"attunement": true,
-		"text": "{#itemEntry Absorbing Tattoo|TCE}"
+		"text": "Produced by a special needle, this magic tattoo features designs that emphasize one color (blue).\n\n**Tattoo Attunement.** To attune to this item, you hold the needle to your skin where you want the tattoo to appear, pressing the needle there throughout the attunement process. When the attunement is complete, the needle turns into the ink that becomes the tattoo, which appears on the skin.\n\nIf your attunement to the tattoo ends, the tattoo vanishes, and the needle reappears in your space.\n\n**Damage Resistance.** While the tattoo is on your skin, you have resistance to cold damage.\n\n**Damage Absorption.** When you take cold damage, you can use your reaction to gain immunity against that instance of the damage, and you regain a number of hit points equal to half the damage you would have taken. Once this reaction is used, it can't be used again until the next dawn."
 	},
 	{
 		"key": "comet-card|bmt",
@@ -1197,7 +1197,7 @@
 		"source": "TCE",
 		"rarity": "very rare",
 		"attunement": true,
-		"text": "{#itemEntry Absorbing Tattoo|TCE}"
+		"text": "Produced by a special needle, this magic tattoo features designs that emphasize one color (red).\n\n**Tattoo Attunement.** To attune to this item, you hold the needle to your skin where you want the tattoo to appear, pressing the needle there throughout the attunement process. When the attunement is complete, the needle turns into the ink that becomes the tattoo, which appears on the skin.\n\nIf your attunement to the tattoo ends, the tattoo vanishes, and the needle reappears in your space.\n\n**Damage Resistance.** While the tattoo is on your skin, you have resistance to fire damage.\n\n**Damage Absorption.** When you take fire damage, you can use your reaction to gain immunity against that instance of the damage, and you regain a number of hit points equal to half the damage you would have taken. Once this reaction is used, it can't be used again until the next dawn."
 	},
 	{
 		"key": "flames-card|bmt",
@@ -1229,7 +1229,7 @@
 		"source": "TCE",
 		"rarity": "very rare",
 		"attunement": true,
-		"text": "{#itemEntry Absorbing Tattoo|TCE}"
+		"text": "Produced by a special needle, this magic tattoo features designs that emphasize one color (white).\n\n**Tattoo Attunement.** To attune to this item, you hold the needle to your skin where you want the tattoo to appear, pressing the needle there throughout the attunement process. When the attunement is complete, the needle turns into the ink that becomes the tattoo, which appears on the skin.\n\nIf your attunement to the tattoo ends, the tattoo vanishes, and the needle reappears in your space.\n\n**Damage Resistance.** While the tattoo is on your skin, you have resistance to force damage.\n\n**Damage Absorption.** When you take force damage, you can use your reaction to gain immunity against that instance of the damage, and you regain a number of hit points equal to half the damage you would have taken. Once this reaction is used, it can't be used again until the next dawn."
 	},
 	{
 		"key": "fulminating-treatise|tce",
@@ -1557,7 +1557,7 @@
 		"source": "XDMG",
 		"rarity": "very rare",
 		"attunement": true,
-		"text": "{#itemEntry Ioun Stone|XDMG}\n\nWhile this pale lavender ellipsoid orbits your head, you can take a Reaction to cancel a spell of level 4 or lower cast by a creature you can see. A canceled spell has no effect, and any resources used to cast it are wasted. Once the stone has canceled 20 levels of spells, it burns out, turns dull gray, and loses its magic."
+		"text": "Roughly marble sized, *Ioun Stones* are named after Ioun, a god of knowledge and prophecy revered on some worlds. Many types of *Ioun Stones* exist, each type a distinct combination of shape and color.\n\nWhen you take a Magic action to toss an *Ioun Stone* into the air, the stone orbits your head at a distance of 1d3 feet, conferring its benefit to you while doing so. You can have up to three *Ioun Stones* orbiting your head at the same time.\n\nEach *Ioun Stone* orbiting your head is considered to be an object you are wearing. The orbiting stone avoids contact with other creatures and objects, adjusting its orbit to avoid collisions and thwarting all attempts by other creatures to attack or snatch it.\n\nAs a Utilize action, you can seize and stow any number of *Ioun Stones* orbiting your head. If your Attunement to an Ioun Stone ends while it's orbiting your head, the stone falls as though you had dropped it.\n\nWhile this pale lavender ellipsoid orbits your head, you can take a Reaction to cancel a spell of level 4 or lower cast by a creature you can see. A canceled spell has no effect, and any resources used to cast it are wasted. Once the stone has canceled 20 levels of spells, it burns out, turns dull gray, and loses its magic."
 	},
 	{
 		"key": "ioun-stone-agility|xdmg",
@@ -1565,7 +1565,7 @@
 		"source": "XDMG",
 		"rarity": "very rare",
 		"attunement": true,
-		"text": "{#itemEntry Ioun Stone|XDMG}\n\nYour Dexterity increases by 2, to a maximum of 20, while this deep-red sphere orbits your head."
+		"text": "Roughly marble sized, *Ioun Stones* are named after Ioun, a god of knowledge and prophecy revered on some worlds. Many types of *Ioun Stones* exist, each type a distinct combination of shape and color.\n\nWhen you take a Magic action to toss an *Ioun Stone* into the air, the stone orbits your head at a distance of 1d3 feet, conferring its benefit to you while doing so. You can have up to three *Ioun Stones* orbiting your head at the same time.\n\nEach *Ioun Stone* orbiting your head is considered to be an object you are wearing. The orbiting stone avoids contact with other creatures and objects, adjusting its orbit to avoid collisions and thwarting all attempts by other creatures to attack or snatch it.\n\nAs a Utilize action, you can seize and stow any number of *Ioun Stones* orbiting your head. If your Attunement to an Ioun Stone ends while it's orbiting your head, the stone falls as though you had dropped it.\n\nYour Dexterity increases by 2, to a maximum of 20, while this deep-red sphere orbits your head."
 	},
 	{
 		"key": "ioun-stone-awareness|xdmg",
@@ -1573,7 +1573,7 @@
 		"source": "XDMG",
 		"rarity": "rare",
 		"attunement": true,
-		"text": "{#itemEntry Ioun Stone|XDMG}\n\nWhile this dark-blue rhomboid orbits your head, you have Advantage on Initiative rolls and Wisdom (Perception) checks."
+		"text": "Roughly marble sized, *Ioun Stones* are named after Ioun, a god of knowledge and prophecy revered on some worlds. Many types of *Ioun Stones* exist, each type a distinct combination of shape and color.\n\nWhen you take a Magic action to toss an *Ioun Stone* into the air, the stone orbits your head at a distance of 1d3 feet, conferring its benefit to you while doing so. You can have up to three *Ioun Stones* orbiting your head at the same time.\n\nEach *Ioun Stone* orbiting your head is considered to be an object you are wearing. The orbiting stone avoids contact with other creatures and objects, adjusting its orbit to avoid collisions and thwarting all attempts by other creatures to attack or snatch it.\n\nAs a Utilize action, you can seize and stow any number of *Ioun Stones* orbiting your head. If your Attunement to an Ioun Stone ends while it's orbiting your head, the stone falls as though you had dropped it.\n\nWhile this dark-blue rhomboid orbits your head, you have Advantage on Initiative rolls and Wisdom (Perception) checks."
 	},
 	{
 		"key": "ioun-stone-fortitude|xdmg",
@@ -1581,7 +1581,7 @@
 		"source": "XDMG",
 		"rarity": "very rare",
 		"attunement": true,
-		"text": "{#itemEntry Ioun Stone|XDMG}\n\nYour Constitution increases by 2, to a maximum of 20, while this pink rhomboid orbits your head."
+		"text": "Roughly marble sized, *Ioun Stones* are named after Ioun, a god of knowledge and prophecy revered on some worlds. Many types of *Ioun Stones* exist, each type a distinct combination of shape and color.\n\nWhen you take a Magic action to toss an *Ioun Stone* into the air, the stone orbits your head at a distance of 1d3 feet, conferring its benefit to you while doing so. You can have up to three *Ioun Stones* orbiting your head at the same time.\n\nEach *Ioun Stone* orbiting your head is considered to be an object you are wearing. The orbiting stone avoids contact with other creatures and objects, adjusting its orbit to avoid collisions and thwarting all attempts by other creatures to attack or snatch it.\n\nAs a Utilize action, you can seize and stow any number of *Ioun Stones* orbiting your head. If your Attunement to an Ioun Stone ends while it's orbiting your head, the stone falls as though you had dropped it.\n\nYour Constitution increases by 2, to a maximum of 20, while this pink rhomboid orbits your head."
 	},
 	{
 		"key": "ioun-stone-greater-absorption|xdmg",
@@ -1589,7 +1589,7 @@
 		"source": "XDMG",
 		"rarity": "legendary",
 		"attunement": true,
-		"text": "{#itemEntry Ioun Stone|XDMG}\n\nWhile this marbled lavender and green ellipsoid orbits your head, you can take a Reaction to cancel a spell of level 8 or lower cast by a creature you can see. A canceled spell has no effect, and any resources used to cast it are wasted. Once the stone has canceled 20 levels of spells, it burns out, turns dull gray, and loses its magic."
+		"text": "Roughly marble sized, *Ioun Stones* are named after Ioun, a god of knowledge and prophecy revered on some worlds. Many types of *Ioun Stones* exist, each type a distinct combination of shape and color.\n\nWhen you take a Magic action to toss an *Ioun Stone* into the air, the stone orbits your head at a distance of 1d3 feet, conferring its benefit to you while doing so. You can have up to three *Ioun Stones* orbiting your head at the same time.\n\nEach *Ioun Stone* orbiting your head is considered to be an object you are wearing. The orbiting stone avoids contact with other creatures and objects, adjusting its orbit to avoid collisions and thwarting all attempts by other creatures to attack or snatch it.\n\nAs a Utilize action, you can seize and stow any number of *Ioun Stones* orbiting your head. If your Attunement to an Ioun Stone ends while it's orbiting your head, the stone falls as though you had dropped it.\n\nWhile this marbled lavender and green ellipsoid orbits your head, you can take a Reaction to cancel a spell of level 8 or lower cast by a creature you can see. A canceled spell has no effect, and any resources used to cast it are wasted. Once the stone has canceled 20 levels of spells, it burns out, turns dull gray, and loses its magic."
 	},
 	{
 		"key": "ioun-stone-insight|xdmg",
@@ -1597,7 +1597,7 @@
 		"source": "XDMG",
 		"rarity": "very rare",
 		"attunement": true,
-		"text": "{#itemEntry Ioun Stone|XDMG}\n\nYour Wisdom increases by 2, to a maximum of 20, while this incandescent blue sphere orbits your head."
+		"text": "Roughly marble sized, *Ioun Stones* are named after Ioun, a god of knowledge and prophecy revered on some worlds. Many types of *Ioun Stones* exist, each type a distinct combination of shape and color.\n\nWhen you take a Magic action to toss an *Ioun Stone* into the air, the stone orbits your head at a distance of 1d3 feet, conferring its benefit to you while doing so. You can have up to three *Ioun Stones* orbiting your head at the same time.\n\nEach *Ioun Stone* orbiting your head is considered to be an object you are wearing. The orbiting stone avoids contact with other creatures and objects, adjusting its orbit to avoid collisions and thwarting all attempts by other creatures to attack or snatch it.\n\nAs a Utilize action, you can seize and stow any number of *Ioun Stones* orbiting your head. If your Attunement to an Ioun Stone ends while it's orbiting your head, the stone falls as though you had dropped it.\n\nYour Wisdom increases by 2, to a maximum of 20, while this incandescent blue sphere orbits your head."
 	},
 	{
 		"key": "ioun-stone-intellect|xdmg",
@@ -1605,7 +1605,7 @@
 		"source": "XDMG",
 		"rarity": "very rare",
 		"attunement": true,
-		"text": "{#itemEntry Ioun Stone|XDMG}\n\nYour Intelligence increases by 2, to a maximum of 20, while this marbled scarlet and blue sphere orbits your head."
+		"text": "Roughly marble sized, *Ioun Stones* are named after Ioun, a god of knowledge and prophecy revered on some worlds. Many types of *Ioun Stones* exist, each type a distinct combination of shape and color.\n\nWhen you take a Magic action to toss an *Ioun Stone* into the air, the stone orbits your head at a distance of 1d3 feet, conferring its benefit to you while doing so. You can have up to three *Ioun Stones* orbiting your head at the same time.\n\nEach *Ioun Stone* orbiting your head is considered to be an object you are wearing. The orbiting stone avoids contact with other creatures and objects, adjusting its orbit to avoid collisions and thwarting all attempts by other creatures to attack or snatch it.\n\nAs a Utilize action, you can seize and stow any number of *Ioun Stones* orbiting your head. If your Attunement to an Ioun Stone ends while it's orbiting your head, the stone falls as though you had dropped it.\n\nYour Intelligence increases by 2, to a maximum of 20, while this marbled scarlet and blue sphere orbits your head."
 	},
 	{
 		"key": "ioun-stone-leadership|xdmg",
@@ -1613,7 +1613,7 @@
 		"source": "XDMG",
 		"rarity": "very rare",
 		"attunement": true,
-		"text": "{#itemEntry Ioun Stone|XDMG}\n\nYour Charisma increases by 2, to a maximum of 20, while this marbled pink and green sphere orbits your head."
+		"text": "Roughly marble sized, *Ioun Stones* are named after Ioun, a god of knowledge and prophecy revered on some worlds. Many types of *Ioun Stones* exist, each type a distinct combination of shape and color.\n\nWhen you take a Magic action to toss an *Ioun Stone* into the air, the stone orbits your head at a distance of 1d3 feet, conferring its benefit to you while doing so. You can have up to three *Ioun Stones* orbiting your head at the same time.\n\nEach *Ioun Stone* orbiting your head is considered to be an object you are wearing. The orbiting stone avoids contact with other creatures and objects, adjusting its orbit to avoid collisions and thwarting all attempts by other creatures to attack or snatch it.\n\nAs a Utilize action, you can seize and stow any number of *Ioun Stones* orbiting your head. If your Attunement to an Ioun Stone ends while it's orbiting your head, the stone falls as though you had dropped it.\n\nYour Charisma increases by 2, to a maximum of 20, while this marbled pink and green sphere orbits your head."
 	},
 	{
 		"key": "ioun-stone-mastery|xdmg",
@@ -1621,7 +1621,7 @@
 		"source": "XDMG",
 		"rarity": "legendary",
 		"attunement": true,
-		"text": "{#itemEntry Ioun Stone|XDMG}\n\nYour Proficiency Bonus increases by 1 while this pale green prism orbits your head."
+		"text": "Roughly marble sized, *Ioun Stones* are named after Ioun, a god of knowledge and prophecy revered on some worlds. Many types of *Ioun Stones* exist, each type a distinct combination of shape and color.\n\nWhen you take a Magic action to toss an *Ioun Stone* into the air, the stone orbits your head at a distance of 1d3 feet, conferring its benefit to you while doing so. You can have up to three *Ioun Stones* orbiting your head at the same time.\n\nEach *Ioun Stone* orbiting your head is considered to be an object you are wearing. The orbiting stone avoids contact with other creatures and objects, adjusting its orbit to avoid collisions and thwarting all attempts by other creatures to attack or snatch it.\n\nAs a Utilize action, you can seize and stow any number of *Ioun Stones* orbiting your head. If your Attunement to an Ioun Stone ends while it's orbiting your head, the stone falls as though you had dropped it.\n\nYour Proficiency Bonus increases by 1 while this pale green prism orbits your head."
 	},
 	{
 		"key": "ioun-stone-protection|xdmg",
@@ -1629,7 +1629,7 @@
 		"source": "XDMG",
 		"rarity": "rare",
 		"attunement": true,
-		"text": "{#itemEntry Ioun Stone|XDMG}\n\nYou gain a +1 bonus to Armor Class while this dusty-rose prism orbits your head."
+		"text": "Roughly marble sized, *Ioun Stones* are named after Ioun, a god of knowledge and prophecy revered on some worlds. Many types of *Ioun Stones* exist, each type a distinct combination of shape and color.\n\nWhen you take a Magic action to toss an *Ioun Stone* into the air, the stone orbits your head at a distance of 1d3 feet, conferring its benefit to you while doing so. You can have up to three *Ioun Stones* orbiting your head at the same time.\n\nEach *Ioun Stone* orbiting your head is considered to be an object you are wearing. The orbiting stone avoids contact with other creatures and objects, adjusting its orbit to avoid collisions and thwarting all attempts by other creatures to attack or snatch it.\n\nAs a Utilize action, you can seize and stow any number of *Ioun Stones* orbiting your head. If your Attunement to an Ioun Stone ends while it's orbiting your head, the stone falls as though you had dropped it.\n\nYou gain a +1 bonus to Armor Class while this dusty-rose prism orbits your head."
 	},
 	{
 		"key": "ioun-stone-regeneration|xdmg",
@@ -1637,7 +1637,7 @@
 		"source": "XDMG",
 		"rarity": "legendary",
 		"attunement": true,
-		"text": "{#itemEntry Ioun Stone|XDMG}\n\nYou regain 15 Hit Points at the end of each hour this pearly white spindle orbits your head if you have at least 1 Hit Point."
+		"text": "Roughly marble sized, *Ioun Stones* are named after Ioun, a god of knowledge and prophecy revered on some worlds. Many types of *Ioun Stones* exist, each type a distinct combination of shape and color.\n\nWhen you take a Magic action to toss an *Ioun Stone* into the air, the stone orbits your head at a distance of 1d3 feet, conferring its benefit to you while doing so. You can have up to three *Ioun Stones* orbiting your head at the same time.\n\nEach *Ioun Stone* orbiting your head is considered to be an object you are wearing. The orbiting stone avoids contact with other creatures and objects, adjusting its orbit to avoid collisions and thwarting all attempts by other creatures to attack or snatch it.\n\nAs a Utilize action, you can seize and stow any number of *Ioun Stones* orbiting your head. If your Attunement to an Ioun Stone ends while it's orbiting your head, the stone falls as though you had dropped it.\n\nYou regain 15 Hit Points at the end of each hour this pearly white spindle orbits your head if you have at least 1 Hit Point."
 	},
 	{
 		"key": "ioun-stone-reserve|xdmg",
@@ -1645,7 +1645,7 @@
 		"source": "XDMG",
 		"rarity": "rare",
 		"attunement": true,
-		"text": "{#itemEntry Ioun Stone|XDMG}\n\nThis vibrant purple prism stores spells cast into it, holding them until you use them. The stone can store up to 4 levels of spells at a time. When found, it contains 1d4 levels of stored spells chosen by the DM.\n\nAny creature can cast a spell of level 1 through 4 into the stone by touching it as the spell is cast. The spell has no effect, other than to be stored in the stone. If the stone can't hold the spell, the spell is expended without effect. The level of the slot used to cast the spell determines how much space it uses.\n\nWhile this stone orbits your head, you can cast any spell stored in it. The spell uses the slot level, spell save DC, spell attack bonus, and spellcasting ability of the original caster but is otherwise treated as if you cast the spell. The spell cast from the stone is no longer stored in it, freeing up space."
+		"text": "Roughly marble sized, *Ioun Stones* are named after Ioun, a god of knowledge and prophecy revered on some worlds. Many types of *Ioun Stones* exist, each type a distinct combination of shape and color.\n\nWhen you take a Magic action to toss an *Ioun Stone* into the air, the stone orbits your head at a distance of 1d3 feet, conferring its benefit to you while doing so. You can have up to three *Ioun Stones* orbiting your head at the same time.\n\nEach *Ioun Stone* orbiting your head is considered to be an object you are wearing. The orbiting stone avoids contact with other creatures and objects, adjusting its orbit to avoid collisions and thwarting all attempts by other creatures to attack or snatch it.\n\nAs a Utilize action, you can seize and stow any number of *Ioun Stones* orbiting your head. If your Attunement to an Ioun Stone ends while it's orbiting your head, the stone falls as though you had dropped it.\n\nThis vibrant purple prism stores spells cast into it, holding them until you use them. The stone can store up to 4 levels of spells at a time. When found, it contains 1d4 levels of stored spells chosen by the DM.\n\nAny creature can cast a spell of level 1 through 4 into the stone by touching it as the spell is cast. The spell has no effect, other than to be stored in the stone. If the stone can't hold the spell, the spell is expended without effect. The level of the slot used to cast the spell determines how much space it uses.\n\nWhile this stone orbits your head, you can cast any spell stored in it. The spell uses the slot level, spell save DC, spell attack bonus, and spellcasting ability of the original caster but is otherwise treated as if you cast the spell. The spell cast from the stone is no longer stored in it, freeing up space."
 	},
 	{
 		"key": "ioun-stone-strength|xdmg",
@@ -1653,7 +1653,7 @@
 		"source": "XDMG",
 		"rarity": "very rare",
 		"attunement": true,
-		"text": "{#itemEntry Ioun Stone|XDMG}\n\nYour Strength increases by 2, to a maximum of 20, while this pale blue rhomboid orbits your head."
+		"text": "Roughly marble sized, *Ioun Stones* are named after Ioun, a god of knowledge and prophecy revered on some worlds. Many types of *Ioun Stones* exist, each type a distinct combination of shape and color.\n\nWhen you take a Magic action to toss an *Ioun Stone* into the air, the stone orbits your head at a distance of 1d3 feet, conferring its benefit to you while doing so. You can have up to three *Ioun Stones* orbiting your head at the same time.\n\nEach *Ioun Stone* orbiting your head is considered to be an object you are wearing. The orbiting stone avoids contact with other creatures and objects, adjusting its orbit to avoid collisions and thwarting all attempts by other creatures to attack or snatch it.\n\nAs a Utilize action, you can seize and stow any number of *Ioun Stones* orbiting your head. If your Attunement to an Ioun Stone ends while it's orbiting your head, the stone falls as though you had dropped it.\n\nYour Strength increases by 2, to a maximum of 20, while this pale blue rhomboid orbits your head."
 	},
 	{
 		"key": "ioun-stone-sustenance|xdmg",
@@ -1661,7 +1661,7 @@
 		"source": "XDMG",
 		"rarity": "rare",
 		"attunement": true,
-		"text": "{#itemEntry Ioun Stone|XDMG}\n\nYou don't need to eat or drink while this clear spindle orbits your head."
+		"text": "Roughly marble sized, *Ioun Stones* are named after Ioun, a god of knowledge and prophecy revered on some worlds. Many types of *Ioun Stones* exist, each type a distinct combination of shape and color.\n\nWhen you take a Magic action to toss an *Ioun Stone* into the air, the stone orbits your head at a distance of 1d3 feet, conferring its benefit to you while doing so. You can have up to three *Ioun Stones* orbiting your head at the same time.\n\nEach *Ioun Stone* orbiting your head is considered to be an object you are wearing. The orbiting stone avoids contact with other creatures and objects, adjusting its orbit to avoid collisions and thwarting all attempts by other creatures to attack or snatch it.\n\nAs a Utilize action, you can seize and stow any number of *Ioun Stones* orbiting your head. If your Attunement to an Ioun Stone ends while it's orbiting your head, the stone falls as though you had dropped it.\n\nYou don't need to eat or drink while this clear spindle orbits your head."
 	},
 	{
 		"key": "iron-bands-of-bilarro|xdmg",
@@ -1749,7 +1749,7 @@
 		"source": "TCE",
 		"rarity": "very rare",
 		"attunement": true,
-		"text": "{#itemEntry Absorbing Tattoo|TCE}"
+		"text": "Produced by a special needle, this magic tattoo features designs that emphasize one color (yellow).\n\n**Tattoo Attunement.** To attune to this item, you hold the needle to your skin where you want the tattoo to appear, pressing the needle there throughout the attunement process. When the attunement is complete, the needle turns into the ink that becomes the tattoo, which appears on the skin.\n\nIf your attunement to the tattoo ends, the tattoo vanishes, and the needle reappears in your space.\n\n**Damage Resistance.** While the tattoo is on your skin, you have resistance to lightning damage.\n\n**Damage Absorption.** When you take lightning damage, you can use your reaction to gain immunity against that instance of the damage, and you regain a number of hit points equal to half the damage you would have taken. Once this reaction is used, it can't be used again until the next dawn."
 	},
 	{
 		"key": "lyre-of-building|tce",
@@ -1893,7 +1893,7 @@
 		"source": "TCE",
 		"rarity": "very rare",
 		"attunement": true,
-		"text": "{#itemEntry Absorbing Tattoo|TCE}"
+		"text": "Produced by a special needle, this magic tattoo features designs that emphasize one color (black).\n\n**Tattoo Attunement.** To attune to this item, you hold the needle to your skin where you want the tattoo to appear, pressing the needle there throughout the attunement process. When the attunement is complete, the needle turns into the ink that becomes the tattoo, which appears on the skin.\n\nIf your attunement to the tattoo ends, the tattoo vanishes, and the needle reappears in your space.\n\n**Damage Resistance.** While the tattoo is on your skin, you have resistance to necrotic damage.\n\n**Damage Absorption.** When you take necrotic damage, you can use your reaction to gain immunity against that instance of the damage, and you regain a number of hit points equal to half the damage you would have taken. Once this reaction is used, it can't be used again until the next dawn."
 	},
 	{
 		"key": "nimbus-coronet|bgg",
@@ -2029,7 +2029,7 @@
 		"source": "TCE",
 		"rarity": "very rare",
 		"attunement": true,
-		"text": "{#itemEntry Absorbing Tattoo|TCE}"
+		"text": "Produced by a special needle, this magic tattoo features designs that emphasize one color (violet).\n\n**Tattoo Attunement.** To attune to this item, you hold the needle to your skin where you want the tattoo to appear, pressing the needle there throughout the attunement process. When the attunement is complete, the needle turns into the ink that becomes the tattoo, which appears on the skin.\n\nIf your attunement to the tattoo ends, the tattoo vanishes, and the needle reappears in your space.\n\n**Damage Resistance.** While the tattoo is on your skin, you have resistance to poison damage.\n\n**Damage Absorption.** When you take poison damage, you can use your reaction to gain immunity against that instance of the damage, and you regain a number of hit points equal to half the damage you would have taken. Once this reaction is used, it can't be used again until the next dawn."
 	},
 	{
 		"key": "portable-hole|xdmg",
@@ -2085,7 +2085,7 @@
 		"source": "TCE",
 		"rarity": "very rare",
 		"attunement": true,
-		"text": "{#itemEntry Absorbing Tattoo|TCE}"
+		"text": "Produced by a special needle, this magic tattoo features designs that emphasize one color (silver).\n\n**Tattoo Attunement.** To attune to this item, you hold the needle to your skin where you want the tattoo to appear, pressing the needle there throughout the attunement process. When the attunement is complete, the needle turns into the ink that becomes the tattoo, which appears on the skin.\n\nIf your attunement to the tattoo ends, the tattoo vanishes, and the needle reappears in your space.\n\n**Damage Resistance.** While the tattoo is on your skin, you have resistance to psychic damage.\n\n**Damage Absorption.** When you take psychic damage, you can use your reaction to gain immunity against that instance of the damage, and you regain a number of hit points equal to half the damage you would have taken. Once this reaction is used, it can't be used again until the next dawn."
 	},
 	{
 		"key": "puzzle-card|bmt",
@@ -2157,7 +2157,7 @@
 		"source": "TCE",
 		"rarity": "very rare",
 		"attunement": true,
-		"text": "{#itemEntry Absorbing Tattoo|TCE}"
+		"text": "Produced by a special needle, this magic tattoo features designs that emphasize one color (gold).\n\n**Tattoo Attunement.** To attune to this item, you hold the needle to your skin where you want the tattoo to appear, pressing the needle there throughout the attunement process. When the attunement is complete, the needle turns into the ink that becomes the tattoo, which appears on the skin.\n\nIf your attunement to the tattoo ends, the tattoo vanishes, and the needle reappears in your space.\n\n**Damage Resistance.** While the tattoo is on your skin, you have resistance to radiant damage.\n\n**Damage Absorption.** When you take radiant damage, you can use your reaction to gain immunity against that instance of the damage, and you regain a number of hit points equal to half the damage you would have taken. Once this reaction is used, it can't be used again until the next dawn."
 	},
 	{
 		"key": "reveler-s-concertina|tce",
@@ -2509,7 +2509,7 @@
 		"source": "TCE",
 		"rarity": "very rare",
 		"attunement": true,
-		"text": "{#itemEntry Absorbing Tattoo|TCE}"
+		"text": "Produced by a special needle, this magic tattoo features designs that emphasize one color (orange).\n\n**Tattoo Attunement.** To attune to this item, you hold the needle to your skin where you want the tattoo to appear, pressing the needle there throughout the attunement process. When the attunement is complete, the needle turns into the ink that becomes the tattoo, which appears on the skin.\n\nIf your attunement to the tattoo ends, the tattoo vanishes, and the needle reappears in your space.\n\n**Damage Resistance.** While the tattoo is on your skin, you have resistance to thunder damage.\n\n**Damage Absorption.** When you take thunder damage, you can use your reaction to gain immunity against that instance of the damage, and you regain a number of hit points equal to half the damage you would have taken. Once this reaction is used, it can't be used again until the next dawn."
 	},
 	{
 		"key": "tome-of-clear-thought|xdmg",

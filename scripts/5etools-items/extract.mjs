@@ -62,6 +62,74 @@ function stripTags(str) {
   }
 }
 
+// ---- {#itemEntry Name|Source} ----------------------------------------------
+
+// Items that share boilerplate don't repeat it: every Ioun Stone's entries are
+// just a reference to one shared "Ioun Stone" template in items-base.json plus
+// its own one-line benefit, and every Absorbing Tattoo is nothing but the
+// reference. The template carries {{item.field}} placeholders filled from the
+// referencing item, so "Force Absorbing Tattoo" resolves its own damage type.
+//
+// Leaving these unresolved silently drops most of an item's rules text, which
+// is how this was found: a tattoo whose whole description was the marker.
+const itemEntries = new Map()
+
+function loadItemEntryTemplates(base) {
+  for (const entry of base.itemEntry ?? []) {
+    itemEntries.set(`${entry.name}|${entry.source}`.toLowerCase(), entry)
+  }
+}
+
+/** ["acid"] -> "acid"; ["acid","cold","fire"] -> "acid, cold, and fire" */
+function listify(value) {
+  const parts = (Array.isArray(value) ? value : [value]).filter(Boolean).map(String)
+  if (parts.length <= 1) return parts[0] ?? ''
+  if (parts.length === 2) return `${parts[0]} and ${parts[1]}`
+  return `${parts.slice(0, -1).join(', ')}, and ${parts[parts.length - 1]}`
+}
+
+// Substitution happens on the serialised template so it reaches placeholders at
+// any depth; the replacement is JSON-escaped so a value containing a quote
+// can't break the parse back.
+function fillTemplate(template, item) {
+  const filled = JSON.stringify(template).replace(/\{\{([^}]+)\}\}/g, (whole, expr) => {
+    const trimmed = expr.trim()
+    const field = trimmed.replace(/^getFullImmRes\s+/, '').replace(/^item\./, '')
+    if (!(field in item)) return whole
+    const value = item[field]
+    const text = Array.isArray(value) ? listify(value) : String(value ?? '')
+    return JSON.stringify(text).slice(1, -1)
+  })
+  return JSON.parse(filled)
+}
+
+// Splice the referenced template in wherever the marker appears, at any depth.
+function resolveItemEntries(node, item) {
+  if (typeof node === 'string') {
+    const match = /^\{#itemEntry\s+([^|}]+)(?:\|([^}]*))?\}$/.exec(node.trim())
+    if (!match) return node
+    const [, name, source] = match
+    const template = itemEntries.get(`${name}|${source || item.source}`.toLowerCase())
+    if (!template) return node
+    return resolveItemEntries(fillTemplate(template.entriesTemplate ?? [], item), item)
+  }
+  if (Array.isArray(node)) {
+    // flatMap, so a marker standing alone in a list expands into its siblings
+    // rather than becoming a nested array.
+    return node.flatMap((child) => {
+      const resolved = resolveItemEntries(child, item)
+      return Array.isArray(resolved) ? resolved : [resolved]
+    })
+  }
+  if (node && typeof node === 'object') {
+    const out = { ...node }
+    if (out.entries) out.entries = [].concat(resolveItemEntries(out.entries, item))
+    if (out.items) out.items = [].concat(resolveItemEntries(out.items, item))
+    return out
+  }
+  return node
+}
+
 // ---- entries -> markdown ---------------------------------------------------
 
 // The player-facing page renders these with the same ReactMarkdown + remarkGfm
@@ -139,6 +207,7 @@ const slug = (s) =>
 
 const neutral = new Set(SETTING_NEUTRAL_SOURCES);
 const raw = JSON.parse(readFileSync(join(dataDir, 'items.json'), 'utf8'));
+loadItemEntryTemplates(JSON.parse(readFileSync(join(dataDir, 'items-base.json'), 'utf8')));
 
 const pool = raw.item
   .filter((it) => it.wondrous === true)
@@ -157,7 +226,7 @@ const pool = raw.item
     // `reqAttune` is either absent, `true` ("requires attunement", no condition),
     // or a qualifier like "by a druid". Keep the boolean a boolean.
     attunement: it.reqAttune === true ? true : it.reqAttune ? stripTags(String(it.reqAttune)) : null,
-    text: render(it.entries ?? []),
+    text: render(resolveItemEntries(it.entries ?? [], it)),
   }))
   .sort((a, b) => a.name.localeCompare(b.name));
 

@@ -12,6 +12,7 @@ import {
   loadPool,
   rollStock,
   slugify,
+  sortStock,
   toStockRow,
 } from '../../lib/shopPool'
 
@@ -167,8 +168,19 @@ export default function DMShopsPage() {
     }
   }
 
+  // Renumber the whole shelf into rarity order. Run after anything that changes
+  // the stock, so a topped-up item lands with its own rarity instead of at the
+  // bottom of the list.
+  async function resortStock(shopId) {
+    const { data } = await supabase.from('shop_items').select('id, name, rarity').eq('shop_id', shopId)
+    const ordered = sortStock(data ?? [])
+    await Promise.all(
+      ordered.map((row, i) => supabase.from('shop_items').update({ position: i }).eq('id', row.id))
+    )
+  }
+
   // A restock replaces every rolled row and leaves the DM's own additions
-  // alone, renumbering so the rolled items lead and the kept ones follow.
+  // alone, then the whole shelf is re-sorted by rarity.
   async function handleRestock() {
     if (!selected) return
     const kept = stock.filter((row) => row.origin !== '5etools')
@@ -217,12 +229,7 @@ export default function DMShopsPage() {
         if (insertError) throw insertError
       }
 
-      // Hand-added rows sort after the fresh roll.
-      await Promise.all(
-        kept.map((row, i) =>
-          supabase.from('shop_items').update({ position: items.length + i }).eq('id', row.id)
-        )
-      )
+      await resortStock(selected.id)
 
       await supabase
         .from('shops')
@@ -284,6 +291,7 @@ export default function DMShopsPage() {
         if (insertError) throw insertError
       }
 
+      await resortStock(selected.id)
       await supabase.from('shops').update({ draw_history: history }).eq('id', selected.id)
 
       const messages = [`Filled ${items.length} empty slot${items.length === 1 ? '' : 's'}.`]
@@ -378,6 +386,7 @@ export default function DMShopsPage() {
     else {
       setManual(emptyManual)
       setShowAdd(false)
+      await resortStock(selected.id)
       loadStock(selected.id)
     }
   }
