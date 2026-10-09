@@ -3960,3 +3960,384 @@ button.chip:hover {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
+
+/* ---------------------------------------------------------------------------
+   Story Engine (sphere grid). The board is plain SVG; sphere colors come from
+   each story tag's own color via the --se-tag custom property set inline.
+   Stubs are dashed and translucent, untagged spheres are bare parchment, and
+   GM-only spheres carry a small wax-seal "GM" badge - so the state of the
+   world reads at a glance without opening anything.
+   --------------------------------------------------------------------------- */
+.se-page .view-header {
+  margin-bottom: var(--space-3);
+}
+
+.se-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.se-world {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  min-width: 14rem;
+}
+
+.se-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.se-stat {
+  background: var(--accent-2);
+  color: var(--on-accent-2);
+}
+
+.se-stat.is-stub {
+  background: var(--accent-purple);
+  color: var(--on-accent-purple);
+}
+
+.se-stat.is-untagged {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.se-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.se-board {
+  position: relative;
+  height: max(540px, calc(100vh - 300px));
+  border: 2px solid var(--border);
+  border-radius: var(--radius-frame);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 4px var(--surface-2), var(--shadow-sm);
+  overflow: hidden;
+}
+
+.se-board-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.se-board-svg.is-panning {
+  cursor: grabbing;
+}
+
+.se-grid-dot {
+  fill: var(--border);
+  opacity: 0.35;
+}
+
+.se-link {
+  stroke: var(--text-muted);
+  stroke-width: 2;
+  opacity: 0.55;
+}
+
+.se-link.is-lit {
+  stroke: var(--accent-2);
+  stroke-width: 3.5;
+  opacity: 1;
+}
+
+.se-link-preview {
+  stroke-width: 3;
+  stroke-dasharray: 8 6;
+}
+
+.se-link-preview.is-link {
+  stroke: var(--accent-2-strong);
+}
+
+.se-link-preview.is-unlink {
+  stroke: var(--danger);
+}
+
+.se-sphere {
+  cursor: pointer;
+}
+
+.se-board-svg.is-dragging .se-sphere {
+  cursor: grabbing;
+}
+
+.se-sphere-body {
+  fill: var(--se-tag, var(--surface-2));
+  stroke: color-mix(in srgb, var(--se-tag, var(--border)) 70%, black);
+  stroke-width: 2.5;
+  transition: fill-opacity var(--transition);
+}
+
+.se-sphere.is-untagged .se-sphere-body {
+  fill: var(--surface-2);
+  stroke: var(--border);
+}
+
+.se-sphere.is-stub .se-sphere-body {
+  fill-opacity: 0.35;
+  stroke: var(--se-tag, var(--border));
+  stroke-dasharray: 5 4;
+}
+
+.se-sphere:hover .se-sphere-body {
+  filter: brightness(1.12);
+}
+
+.se-sphere.is-dragged {
+  opacity: 0.85;
+}
+
+.se-sphere-ring {
+  fill: none;
+  stroke: var(--accent-2-strong);
+  stroke-width: 3;
+}
+
+.se-sphere.is-focus .se-sphere-ring {
+  stroke: var(--accent);
+  stroke-width: 4;
+}
+
+.se-sphere-drop {
+  fill: none;
+  stroke-width: 3;
+  stroke-dasharray: 6 5;
+}
+
+.se-sphere-drop.is-link {
+  stroke: var(--accent-2-strong);
+}
+
+.se-sphere-drop.is-unlink {
+  stroke: var(--danger);
+}
+
+.se-sphere-gm circle {
+  fill: var(--accent);
+  stroke: var(--surface);
+  stroke-width: 1.5;
+}
+
+.se-sphere-gm text {
+  fill: var(--on-accent);
+  font-size: 6.5px;
+  font-weight: 700;
+  text-anchor: middle;
+  pointer-events: none;
+}
+
+.se-sphere-label {
+  fill: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  text-anchor: middle;
+  paint-order: stroke;
+  stroke: var(--surface);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.se-sphere.is-selected .se-sphere-label {
+  fill: var(--accent);
+}
+
+.se-board-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: var(--space-5);
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.se-board-empty p {
+  margin: 0.2rem 0;
+  max-width: 28rem;
+}
+
+.se-board-zoom {
+  position: absolute;
+  right: var(--space-3);
+  bottom: var(--space-3);
+  display: flex;
+  gap: 0.35rem;
+}
+
+.se-board-zoom button {
+  min-width: 2.2rem;
+  padding: 0.35rem 0.6rem;
+}
+
+.se-side {
+  margin-bottom: 0;
+  max-height: max(540px, calc(100vh - 300px));
+  overflow-y: auto;
+}
+
+.se-tabs {
+  margin-bottom: var(--space-3);
+}
+
+.se-notice {
+  color: var(--accent-2);
+  font-weight: 600;
+}
+
+.se-subhead {
+  font-size: var(--text-md);
+  margin: var(--space-4) 0 var(--space-2);
+}
+
+.se-flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+}
+
+.dm-form label.se-flag {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--text);
+}
+
+.se-links li {
+  padding: 0.4rem 0.6rem;
+}
+
+/* A sphere name in the link list: a plain-looking button, so it resets every
+   property the base button rule sets (see docs/ui-conventions.md). */
+button.se-link-name {
+  background: none;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  color: var(--text);
+  font-weight: 600;
+  text-align: left;
+}
+
+button.se-link-name:hover {
+  background: none;
+  color: var(--accent);
+  filter: none;
+  box-shadow: none;
+  transform: none;
+  text-decoration: underline;
+}
+
+.se-swatch {
+  display: inline-block;
+  width: 0.85rem;
+  height: 0.85rem;
+  flex: none;
+  border-radius: 50%;
+  background: var(--surface-2);
+  border: 1.5px solid var(--border);
+}
+
+.se-swatch.is-stub {
+  background: transparent;
+  border: 1.5px dashed var(--text-muted);
+}
+
+.se-swatch.is-untagged {
+  background: var(--surface-2);
+}
+
+.se-detail-actions {
+  margin-top: var(--space-4);
+}
+
+.se-multi {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: 0.6rem 0.8rem;
+  margin-bottom: var(--space-3);
+  border: 1px solid var(--accent-2);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--accent-2) 12%, var(--surface));
+  font-size: var(--text-sm);
+}
+
+.se-context {
+  margin: 0 0 var(--space-3);
+  padding: 0.55rem 0.8rem;
+  border-left: 4px solid var(--accent-2);
+  background: var(--surface-2);
+  font-size: var(--text-sm);
+}
+
+.se-draft {
+  list-style: decimal inside;
+  margin: 0 0 var(--space-3);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.se-draft li {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.se-draft li input {
+  flex: 1;
+  min-width: 0;
+}
+
+.se-draft-reroll {
+  padding: 0.3rem 0.55rem;
+  line-height: 1;
+}
+
+.se-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1rem;
+  margin-top: var(--space-3);
+  font-size: var(--text-sm);
+}
+
+.se-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+@media (max-width: 1100px) {
+  .se-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .se-side {
+    max-height: none;
+  }
+}
