@@ -4067,7 +4067,7 @@ button.chip:hover {
 
 .sg-board {
   position: relative;
-  height: max(540px, calc(100vh - 300px));
+  height: clamp(400px, 58vh, 680px);
   border: 2px solid var(--border);
   border-radius: var(--radius-frame);
   background: var(--surface);
@@ -4240,7 +4240,7 @@ button.chip:hover {
 
 .sg-side {
   margin-bottom: 0;
-  max-height: max(540px, calc(100vh - 300px));
+  max-height: clamp(400px, 58vh, 680px);
   overflow-y: auto;
 }
 
@@ -4434,8 +4434,72 @@ button.sg-link-name:hover {
 
 .sg-detail-links {
   display: flex;
+  align-items: center;
   gap: 0.5rem;
+  margin-left: auto;
+}
+
+/* The sphere editor: full width above the grid, text on the left at the
+   same size as the full entry editor, everything else in a column beside it. */
+.sg-editor {
+  margin-bottom: var(--space-4);
+}
+
+.sg-detail-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
   margin-bottom: var(--space-3);
+}
+
+input.sg-detail-title {
+  flex: 1 1 18rem;
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: 700;
+  padding: 0.35rem 0.6rem;
+}
+
+.sg-save-state {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--accent-2);
+}
+
+.sg-save-state.is-saving {
+  color: var(--accent-purple);
+}
+
+.sg-detail-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.sg-detail-text .rich-editor-content {
+  min-height: 440px;
+}
+
+.sg-detail-meta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.sg-detail-meta .sg-subhead {
+  margin: 0;
+}
+
+.sg-hint {
+  margin: 0 0 var(--space-2);
+}
+
+@media (max-width: 1000px) {
+  .sg-detail-body {
+    grid-template-columns: 1fr;
+  }
 }
 
 .sg-detail-links .button-link {

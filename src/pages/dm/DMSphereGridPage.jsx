@@ -34,11 +34,12 @@ export default function DMSphereGridPage() {
   const [pools, setPools] = useState([])
   const [selection, setSelection] = useState(() => new Set())
   const [focusId, setFocusId] = useState(null)
-  const [tab, setTab] = useState('sphere')
+  const [tab, setTab] = useState('generate')
   const [error, setError] = useState(null)
   const [notice, setNotice] = useState(null)
   const [newGridName, setNewGridName] = useState('')
   const viewCenterRef = useRef({ x: 0, y: 0 })
+  const editorRef = useRef(null)
 
   const loadGrids = useCallback(async () => {
     const { data, error: gridError } = await supabase
@@ -155,8 +156,16 @@ export default function DMSphereGridPage() {
   const handleSelectionChange = useCallback((next, nextFocus) => {
     setSelection(next)
     setFocusId(nextFocus)
-    if (nextFocus) setTab((t) => (t === 'pools' || t === 'add' ? 'sphere' : t))
   }, [])
+
+  // The editor opens above the grid, so bring it into view when a different
+  // sphere is opened and its top has scrolled off screen.
+  useEffect(() => {
+    if (!focusId || !editorRef.current) return
+    if (editorRef.current.getBoundingClientRect().top < 0) {
+      editorRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }, [focusId])
 
   // Where new spheres go: around the selection, else near whichever sphere is
   // closest to the middle of the view, else the middle of the view itself.
@@ -452,6 +461,39 @@ export default function DMSphereGridPage() {
       {error && <p className="status-message error">{error}</p>}
       {notice && !error && <p className="status-message sg-notice">{notice}</p>}
 
+      {focusSphere && focusEntry && (
+        <div className="dm-panel sg-editor" ref={editorRef}>
+          <SphereDetail
+            key={focusEntry.id}
+            sphere={focusSphere}
+            entry={focusEntry}
+            linked={linkedToFocus}
+            onUpdate={(changes) => handleUpdate(focusEntry.id, changes)}
+            onUnlink={handleUnlink}
+            onFocus={(id) => handleSelectionChange(new Set([id]), id)}
+            onPlace={(ids) => handlePlace(ids, focusSphere)}
+            onRemove={() => handleRemove([focusEntry.id])}
+            onDeleteEntry={() => handleDeleteEntry(focusEntry.id)}
+            onClose={() => setFocusId(null)}
+          />
+        </div>
+      )}
+
+      {selection.size > 1 && (
+        <div className="sg-multi">
+          <span>
+            <strong>{selection.size}</strong> selected — drag any of them to move or link the group.
+          </span>
+          <button type="button" className="secondary" onClick={() => handleRemove([...selection])}>
+            Remove from grid
+          </button>
+        </div>
+      )}
+
+      {!focusSphere && spheres.length > 0 && (
+        <p className="status-message sg-hint">Click a sphere to open it here.</p>
+      )}
+
       <div className="sg-layout">
         <SphereBoard
           key={gridId}
@@ -469,7 +511,6 @@ export default function DMSphereGridPage() {
         <aside className="dm-panel sg-side">
           <div className="shop-tabs sg-tabs">
             {[
-              ['sphere', 'Sphere'],
               ['generate', 'Generate'],
               ['add', 'Add existing'],
               ['pools', `Pools (${pools.length})`],
@@ -484,37 +525,6 @@ export default function DMSphereGridPage() {
               </button>
             ))}
           </div>
-
-          {tab === 'sphere' && (
-            <>
-              {selection.size > 1 && (
-                <div className="sg-multi">
-                  <span>
-                    <strong>{selection.size}</strong> selected — drag any of them to move or link the group.
-                  </span>
-                  <button type="button" className="secondary" onClick={() => handleRemove([...selection])}>
-                    Remove from grid
-                  </button>
-                </div>
-              )}
-              {focusSphere && focusEntry ? (
-                <SphereDetail
-                  key={focusEntry.id}
-                  sphere={focusSphere}
-                  entry={focusEntry}
-                  linked={linkedToFocus}
-                  onUpdate={(changes) => handleUpdate(focusEntry.id, changes)}
-                  onUnlink={handleUnlink}
-                  onFocus={(id) => handleSelectionChange(new Set([id]), id)}
-                  onPlace={(ids) => handlePlace(ids, focusSphere)}
-                  onRemove={() => handleRemove([focusEntry.id])}
-                  onDeleteEntry={() => handleDeleteEntry(focusEntry.id)}
-                />
-              ) : (
-                <p className="status-message">Click a sphere to open it.</p>
-              )}
-            </>
-          )}
 
           {tab === 'generate' && (
             <GeneratorPanel
