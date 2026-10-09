@@ -1,6 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { generateOne, generatorLabel } from '../../../lib/nameSchemes'
-import { drawFromPool, resolveTag } from '../../../lib/storyEngine'
+import { drawFromPool } from '../../../lib/sphereGrid'
+import { useTags } from '../../../contexts/TagContext'
+import TagGroupPicker from '../../TagGroupPicker'
 
 // Same lazy loading as the Name Generator: syllable data only loads once a
 // scheme is actually picked.
@@ -14,13 +16,17 @@ const MAX_COUNT = 20
 // The generation loop: pick a generator and a count, get a draft batch,
 // reroll all or one at a time (or type over any name), then create the lot in
 // one press. Everything is drawn from curated pools or the installed syllable
-// schemes - nothing is invented.
-export default function GeneratorPanel({ tags, tagsByValue, pools, existingNames, selectedSpheres, onCreate }) {
+// schemes - nothing is invented, and no name already used by an entry
+// anywhere in the wiki comes back.
+export default function GeneratorPanel({ pools, existingNames, selectedSpheres, onCreate }) {
+  const { tags, groups } = useTags()
   const [source, setSource] = useState('')
   const [scheme, setScheme] = useState(null)
   const [schemeGen, setSchemeGen] = useState('')
   const [count, setCount] = useState(5)
-  const [tagInput, setTagInput] = useState('')
+  const [batchTags, setBatchTags] = useState([])
+  const [showTags, setShowTags] = useState(true)
+  const [gmOnly, setGmOnly] = useState(true)
   const [draft, setDraft] = useState([])
   const [notice, setNotice] = useState(null)
   const [error, setError] = useState(null)
@@ -30,10 +36,10 @@ export default function GeneratorPanel({ tags, tagsByValue, pools, existingNames
   const pool = source.startsWith('pool:') ? pools.find((p) => p.id === source.slice(5)) : null
   const schemeId = source.startsWith('scheme:') ? source.slice(7) : null
 
-  // A pool tied to a tag makes that tag the default for what it generates.
+  // A pool's own tags are the default for what it generates.
   useEffect(() => {
-    if (pool?.tag) setTagInput(tagsByValue.get(pool.tag)?.label ?? '')
-  }, [pool, tagsByValue])
+    if (pool) setBatchTags(pool.tags ?? [])
+  }, [pool])
 
   useEffect(() => {
     if (!schemeId) {
@@ -100,32 +106,44 @@ export default function GeneratorPanel({ tags, tagsByValue, pools, existingNames
     setDraft((rows) => rows.map((r, i) => (i === index ? { ...r, name } : r)))
   }
 
-  const tagCheck = useMemo(() => resolveTag(tagInput, tags), [tagInput, tags])
   const toCreate = draft.map((d) => d.name.trim()).filter(Boolean)
 
+  // Same rule as the entry editor: a tag from every required group (Type).
+  // With no required groups defined, at least one tag of any kind - a new
+  // entry should never start out tagless.
+  const owned = new Set(batchTags)
+  const missingGroups = groups
+    .filter((g) => g.required)
+    .filter((g) => !tags.some((t) => t.group_id === g.id && owned.has(t.value)))
+  const tagProblem = missingGroups.length
+    ? `Pick a ${missingGroups.map((g) => g.label).join(' and a ')} tag for the batch.`
+    : !batchTags.length
+      ? 'Pick at least one tag for the batch.'
+      : null
+
   async function handleCreate() {
-    if (tagCheck.error || !toCreate.length) return
+    if (!toCreate.length || tagProblem) return
     setSaving(true)
     setError(null)
-    const err = await onCreate(toCreate, tagCheck.value)
+    const err = await onCreate(toCreate, { tags: batchTags, visibility: gmOnly ? 'dm' : 'public' })
     setSaving(false)
     if (err) setError(err)
     else {
       setDraft([])
-      setNotice(`Created ${toCreate.length} sphere(s).`)
+      setNotice(`Created ${toCreate.length} entr${toCreate.length === 1 ? 'y' : 'ies'}.`)
     }
   }
 
   return (
-    <div className="se-generate">
-      <p className="se-context">
+    <div className="sg-generate">
+      <p className="sg-context">
         {selectedSpheres.length ? (
           <>
             New spheres link to{' '}
             <strong>{selectedSpheres.length === 1 ? selectedSpheres[0].name : `${selectedSpheres.length} selected spheres`}</strong>.
           </>
         ) : (
-          <>Nothing selected — new spheres start unlinked.</>
+          <>Nothing selected — new entries start unlinked.</>
         )}
       </p>
 
@@ -177,12 +195,33 @@ export default function GeneratorPanel({ tags, tagsByValue, pools, existingNames
               onChange={(e) => setCount(e.target.value)}
             />
           </label>
-          <label>
-            Tag for the batch
-            <input list="se-tag-options" value={tagInput} onChange={(e) => setTagInput(e.target.value)} placeholder="Untagged" />
+          <label className="sg-flag sg-flag-inline">
+            <input type="checkbox" checked={gmOnly} onChange={(e) => setGmOnly(e.target.checked)} />
+            GM-only
           </label>
         </div>
-        {tagCheck.error && <p className="status-message error">{tagCheck.error}</p>}
+        <div className="sg-tags">
+          <div className="sg-tags-head">
+            <span>Tags for the batch</span>
+            <button type="button" className="secondary sg-small" onClick={() => setShowTags((v) => !v)}>
+              {showTags ? 'Done' : 'Edit tags'}
+            </button>
+          </div>
+          {showTags ? (
+            <TagGroupPicker value={batchTags} onChange={setBatchTags} />
+          ) : batchTags.length ? (
+            <div className="sg-tag-chips">
+              {batchTags.map((v) => (
+                <span key={v} className="badge badge-tag">
+                  {tags.find((t) => t.value === v)?.label ?? v}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className="status-message">No tags yet.</p>
+          )}
+        </div>
+        {tagProblem && draft.length > 0 && <p className="status-message error">{tagProblem}</p>}
         <div className="dm-form-actions">
           <button type="button" onClick={generate} disabled={!ready}>
             {draft.length ? 'Reroll all' : 'Generate'}
@@ -198,7 +237,7 @@ export default function GeneratorPanel({ tags, tagsByValue, pools, existingNames
 
       {draft.length > 0 && (
         <>
-          <ol className="se-draft">
+          <ol className="sg-draft">
             {draft.map((d, i) => (
               <li key={d.key}>
                 <input
@@ -209,7 +248,7 @@ export default function GeneratorPanel({ tags, tagsByValue, pools, existingNames
                 />
                 <button
                   type="button"
-                  className="secondary se-draft-reroll"
+                  className="secondary sg-draft-reroll"
                   onClick={() => rerollOne(i)}
                   disabled={!ready}
                   title="Reroll this name"
@@ -229,8 +268,8 @@ export default function GeneratorPanel({ tags, tagsByValue, pools, existingNames
             ))}
           </ol>
           <div className="dm-form-actions">
-            <button type="button" onClick={handleCreate} disabled={saving || !toCreate.length || Boolean(tagCheck.error)}>
-              {saving ? 'Creating…' : `Create ${toCreate.length} sphere${toCreate.length === 1 ? '' : 's'}`}
+            <button type="button" onClick={handleCreate} disabled={saving || !toCreate.length || Boolean(tagProblem)}>
+              {saving ? 'Creating…' : `Create ${toCreate.length} entr${toCreate.length === 1 ? 'y' : 'ies'}`}
             </button>
             <button type="button" className="secondary" onClick={() => setDraft([])}>
               Discard batch

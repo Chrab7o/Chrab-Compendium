@@ -8,7 +8,7 @@ const SECTIONS = [
   { to: '/dm/characters', title: 'Characters', desc: 'Review imported character sheets, assign owners.' },
   { to: '/dm/character-notes', title: 'Character Notes', desc: 'Your own bio, arc plans, and notes for each player character.' },
   { to: '/dm/long-term-planning', title: 'Long-Term Planning', desc: 'Things to remember to do at some point, with no date on them yet.' },
-  { to: '/dm/story-engine', title: 'Story Engine', desc: 'Build a world on a board of linked spheres, generating names from pools you curate.' },
+  { to: '/dm/sphere-grid', title: 'Sphere Grid', desc: 'Explore entries as a web of linked spheres, and create new ones from name pools you curate.' },
   { to: '/dm/notes', title: 'Player Notes', desc: "Read-only view of everyone's private notes." },
   { to: '/dm/import', title: 'Import', desc: 'Bring in Foundry characters and Obsidian vaults.' },
 ]

@@ -3537,6 +3537,53 @@ button.chip:hover {
   max-width: 12rem;
 }
 
+.tag-group-create {
+  flex-wrap: wrap;
+}
+
+/* Beats `.dm-form label`'s column layout when the picker sits in a form. */
+.tag-group-picker label.tag-group-dm-toggle {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: var(--text-sm);
+  color: var(--text);
+}
+
+.tag-chip-dm {
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.chip.active .tag-chip-dm {
+  color: inherit;
+}
+
+.tag-group-new {
+  padding: 0.75rem;
+  border: 1px dashed var(--accent-2);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+
+.tag-group-new-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.tag-group-new-fields input:not([type='checkbox']) {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+.tag-group-add {
+  justify-self: start;
+}
+
 .tag-group-swatch {
   width: 0.85rem;
   height: 0.85rem;
@@ -3962,17 +4009,17 @@ button.chip:hover {
 }
 
 /* ---------------------------------------------------------------------------
-   Story Engine (sphere grid). The board is plain SVG; sphere colors come from
-   each story tag's own color via the --se-tag custom property set inline.
+   Sphere Grid. The board is plain SVG; each sphere's color comes from
+   its Type tag via the --sg-color custom property set inline.
    Stubs are dashed and translucent, untagged spheres are bare parchment, and
    GM-only spheres carry a small wax-seal "GM" badge - so the state of the
    world reads at a glance without opening anything.
    --------------------------------------------------------------------------- */
-.se-page .view-header {
+.sg-page .view-header {
   margin-bottom: var(--space-3);
 }
 
-.se-toolbar {
+.sg-toolbar {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
@@ -3981,7 +4028,7 @@ button.chip:hover {
   margin-bottom: var(--space-3);
 }
 
-.se-world {
+.sg-world {
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
@@ -3990,35 +4037,35 @@ button.chip:hover {
   min-width: 14rem;
 }
 
-.se-stats {
+.sg-stats {
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;
 }
 
-.se-stat {
+.sg-stat {
   background: var(--accent-2);
   color: var(--on-accent-2);
 }
 
-.se-stat.is-stub {
+.sg-stat.is-stub {
   background: var(--accent-purple);
   color: var(--on-accent-purple);
 }
 
-.se-stat.is-untagged {
+.sg-stat.is-untagged {
   background: var(--accent);
   color: var(--on-accent);
 }
 
-.se-layout {
+.sg-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 380px;
   gap: var(--space-4);
   align-items: start;
 }
 
-.se-board {
+.sg-board {
   position: relative;
   height: max(540px, calc(100vh - 300px));
   border: 2px solid var(--border);
@@ -4028,7 +4075,7 @@ button.chip:hover {
   overflow: hidden;
 }
 
-.se-board-svg {
+.sg-board-svg {
   display: block;
   width: 100%;
   height: 100%;
@@ -4037,106 +4084,106 @@ button.chip:hover {
   user-select: none;
 }
 
-.se-board-svg.is-panning {
+.sg-board-svg.is-panning {
   cursor: grabbing;
 }
 
-.se-grid-dot {
+.sg-grid-dot {
   fill: var(--border);
   opacity: 0.35;
 }
 
-.se-link {
+.sg-link {
   stroke: var(--text-muted);
   stroke-width: 2;
   opacity: 0.55;
 }
 
-.se-link.is-lit {
+.sg-link.is-lit {
   stroke: var(--accent-2);
   stroke-width: 3.5;
   opacity: 1;
 }
 
-.se-link-preview {
+.sg-link-preview {
   stroke-width: 3;
   stroke-dasharray: 8 6;
 }
 
-.se-link-preview.is-link {
+.sg-link-preview.is-link {
   stroke: var(--accent-2-strong);
 }
 
-.se-link-preview.is-unlink {
+.sg-link-preview.is-unlink {
   stroke: var(--danger);
 }
 
-.se-sphere {
+.sg-sphere {
   cursor: pointer;
 }
 
-.se-board-svg.is-dragging .se-sphere {
+.sg-board-svg.is-dragging .sg-sphere {
   cursor: grabbing;
 }
 
-.se-sphere-body {
-  fill: var(--se-tag, var(--surface-2));
-  stroke: color-mix(in srgb, var(--se-tag, var(--border)) 70%, black);
+.sg-sphere-body {
+  fill: var(--sg-color, var(--surface-2));
+  stroke: color-mix(in srgb, var(--sg-color, var(--border)) 70%, black);
   stroke-width: 2.5;
   transition: fill-opacity var(--transition);
 }
 
-.se-sphere.is-untagged .se-sphere-body {
+.sg-sphere.is-untagged .sg-sphere-body {
   fill: var(--surface-2);
   stroke: var(--border);
 }
 
-.se-sphere.is-stub .se-sphere-body {
+.sg-sphere.is-stub .sg-sphere-body {
   fill-opacity: 0.35;
-  stroke: var(--se-tag, var(--border));
+  stroke: var(--sg-color, var(--border));
   stroke-dasharray: 5 4;
 }
 
-.se-sphere:hover .se-sphere-body {
+.sg-sphere:hover .sg-sphere-body {
   filter: brightness(1.12);
 }
 
-.se-sphere.is-dragged {
+.sg-sphere.is-dragged {
   opacity: 0.85;
 }
 
-.se-sphere-ring {
+.sg-sphere-ring {
   fill: none;
   stroke: var(--accent-2-strong);
   stroke-width: 3;
 }
 
-.se-sphere.is-focus .se-sphere-ring {
+.sg-sphere.is-focus .sg-sphere-ring {
   stroke: var(--accent);
   stroke-width: 4;
 }
 
-.se-sphere-drop {
+.sg-sphere-drop {
   fill: none;
   stroke-width: 3;
   stroke-dasharray: 6 5;
 }
 
-.se-sphere-drop.is-link {
+.sg-sphere-drop.is-link {
   stroke: var(--accent-2-strong);
 }
 
-.se-sphere-drop.is-unlink {
+.sg-sphere-drop.is-unlink {
   stroke: var(--danger);
 }
 
-.se-sphere-gm circle {
+.sg-sphere-gm circle {
   fill: var(--accent);
   stroke: var(--surface);
   stroke-width: 1.5;
 }
 
-.se-sphere-gm text {
+.sg-sphere-gm text {
   fill: var(--on-accent);
   font-size: 6.5px;
   font-weight: 700;
@@ -4144,7 +4191,7 @@ button.chip:hover {
   pointer-events: none;
 }
 
-.se-sphere-label {
+.sg-sphere-label {
   fill: var(--text);
   font-size: 13px;
   font-weight: 600;
@@ -4156,11 +4203,11 @@ button.chip:hover {
   pointer-events: none;
 }
 
-.se-sphere.is-selected .se-sphere-label {
+.sg-sphere.is-selected .sg-sphere-label {
   fill: var(--accent);
 }
 
-.se-board-empty {
+.sg-board-empty {
   position: absolute;
   inset: 0;
   display: flex;
@@ -4173,12 +4220,12 @@ button.chip:hover {
   pointer-events: none;
 }
 
-.se-board-empty p {
+.sg-board-empty p {
   margin: 0.2rem 0;
   max-width: 28rem;
 }
 
-.se-board-zoom {
+.sg-board-zoom {
   position: absolute;
   right: var(--space-3);
   bottom: var(--space-3);
@@ -4186,51 +4233,51 @@ button.chip:hover {
   gap: 0.35rem;
 }
 
-.se-board-zoom button {
+.sg-board-zoom button {
   min-width: 2.2rem;
   padding: 0.35rem 0.6rem;
 }
 
-.se-side {
+.sg-side {
   margin-bottom: 0;
   max-height: max(540px, calc(100vh - 300px));
   overflow-y: auto;
 }
 
-.se-tabs {
+.sg-tabs {
   margin-bottom: var(--space-3);
 }
 
-.se-notice {
+.sg-notice {
   color: var(--accent-2);
   font-weight: 600;
 }
 
-.se-subhead {
+.sg-subhead {
   font-size: var(--text-md);
   margin: var(--space-4) 0 var(--space-2);
 }
 
-.se-flags {
+.sg-flags {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem 1.25rem;
 }
 
-.dm-form label.se-flag {
+.dm-form label.sg-flag {
   flex-direction: row;
   align-items: center;
   gap: 0.45rem;
   color: var(--text);
 }
 
-.se-links li {
+.sg-links li {
   padding: 0.4rem 0.6rem;
 }
 
 /* A sphere name in the link list: a plain-looking button, so it resets every
    property the base button rule sets (see docs/ui-conventions.md). */
-button.se-link-name {
+button.sg-link-name {
   background: none;
   border: none;
   box-shadow: none;
@@ -4240,7 +4287,7 @@ button.se-link-name {
   text-align: left;
 }
 
-button.se-link-name:hover {
+button.sg-link-name:hover {
   background: none;
   color: var(--accent);
   filter: none;
@@ -4249,7 +4296,7 @@ button.se-link-name:hover {
   text-decoration: underline;
 }
 
-.se-swatch {
+.sg-swatch {
   display: inline-block;
   width: 0.85rem;
   height: 0.85rem;
@@ -4259,20 +4306,20 @@ button.se-link-name:hover {
   border: 1.5px solid var(--border);
 }
 
-.se-swatch.is-stub {
+.sg-swatch.is-stub {
   background: transparent;
   border: 1.5px dashed var(--text-muted);
 }
 
-.se-swatch.is-untagged {
+.sg-swatch.is-untagged {
   background: var(--surface-2);
 }
 
-.se-detail-actions {
+.sg-detail-actions {
   margin-top: var(--space-4);
 }
 
-.se-multi {
+.sg-multi {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -4285,7 +4332,7 @@ button.se-link-name:hover {
   font-size: var(--text-sm);
 }
 
-.se-context {
+.sg-context {
   margin: 0 0 var(--space-3);
   padding: 0.55rem 0.8rem;
   border-left: 4px solid var(--accent-2);
@@ -4293,7 +4340,7 @@ button.se-link-name:hover {
   font-size: var(--text-sm);
 }
 
-.se-draft {
+.sg-draft {
   list-style: decimal inside;
   margin: 0 0 var(--space-3);
   padding: 0;
@@ -4302,23 +4349,23 @@ button.se-link-name:hover {
   gap: 0.4rem;
 }
 
-.se-draft li {
+.sg-draft li {
   display: flex;
   align-items: center;
   gap: 0.4rem;
 }
 
-.se-draft li input {
+.sg-draft li input {
   flex: 1;
   min-width: 0;
 }
 
-.se-draft-reroll {
+.sg-draft-reroll {
   padding: 0.3rem 0.55rem;
   line-height: 1;
 }
 
-.se-legend {
+.sg-legend {
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem 1rem;
@@ -4326,18 +4373,141 @@ button.se-link-name:hover {
   font-size: var(--text-sm);
 }
 
-.se-legend-item {
+.sg-legend-item {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
 }
 
+.sg-grid-picker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+.sg-new-grid {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.sg-new-grid input {
+  min-width: 12rem;
+}
+
+.sg-sphere-more circle {
+  fill: var(--accent-purple);
+  stroke: var(--surface);
+  stroke-width: 1.5;
+}
+
+.sg-sphere-more text {
+  fill: var(--on-accent-purple);
+  font-size: 8px;
+  font-weight: 700;
+  text-anchor: middle;
+  pointer-events: none;
+}
+
+.sg-legend-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.3rem;
+  height: 1.3rem;
+  padding: 0 0.2rem;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 700;
+}
+
+.sg-legend-badge.is-gm {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.sg-legend-badge.is-more {
+  background: var(--accent-purple);
+  color: var(--on-accent-purple);
+}
+
+.sg-detail-links {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: var(--space-3);
+}
+
+.sg-detail-links .button-link {
+  padding: 0.4rem 0.8rem;
+  font-size: var(--text-sm);
+}
+
+.sg-detail-links .sg-secondary-link {
+  background: var(--accent-2);
+  color: var(--on-accent-2);
+}
+
+.sg-tags {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.sg-tags-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.sg-tag-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+button.sg-small {
+  padding: 0.25rem 0.6rem;
+  font-size: var(--text-sm);
+}
+
+.sg-subhead-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.sg-links li.is-off-grid {
+  background: transparent;
+  border: 1px dashed var(--border);
+}
+
+.sg-link-name.is-off-grid {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.dm-form label.sg-flag-inline {
+  align-self: end;
+  padding-bottom: 0.6rem;
+}
+
+.sg-adder {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
 @media (max-width: 1100px) {
-  .se-layout {
+  .sg-layout {
     grid-template-columns: 1fr;
   }
 
-  .se-side {
+  .sg-side {
     max-height: none;
   }
 }

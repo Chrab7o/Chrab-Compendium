@@ -12,7 +12,7 @@ const LINKS = [
   { to: '/dm/homebrew', label: 'Homebrew' },
   { to: '/dm/session-planner', label: 'Session Planner' },
   { to: '/dm/long-term-planning', label: 'Long-Term Planning' },
-  { to: '/dm/story-engine', label: 'Story Engine' },
+  { to: '/dm/sphere-grid', label: 'Sphere Grid' },
   { to: '/dm/item-maker', label: 'Item Maker' },
   { to: '/dm/shops', label: 'Shops' },
   { to: '/dm/name-generator', label: 'Name Generator' },

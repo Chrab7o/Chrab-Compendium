@@ -23,7 +23,7 @@ import DMSkillTreesPage from './pages/dm/DMSkillTreesPage'
 import DMHomebrewPage from './pages/dm/DMHomebrewPage'
 import DMSessionPlannerPage from './pages/dm/DMSessionPlannerPage'
 import DMLongTermPlanningPage from './pages/dm/DMLongTermPlanningPage'
-import DMStoryEnginePage from './pages/dm/DMStoryEnginePage'
+import DMSphereGridPage from './pages/dm/DMSphereGridPage'
 import DMCharacterNotesPage from './pages/dm/DMCharacterNotesPage'
 import SessionPlanEditorPage from './pages/dm/SessionPlanEditorPage'
 import DMItemMakerPage from './pages/dm/DMItemMakerPage'
@@ -105,7 +105,7 @@ export default function App() {
               <Route path="session-planner" element={<DMSessionPlannerPage />} />
               <Route path="session-planner/:id" element={<SessionPlanEditorPage />} />
               <Route path="long-term-planning" element={<DMLongTermPlanningPage />} />
-              <Route path="story-engine" element={<DMStoryEnginePage />} />
+              <Route path="sphere-grid" element={<DMSphereGridPage />} />
               <Route path="item-maker" element={<DMItemMakerPage />} />
               <Route path="shops" element={<DMShopsPage />} />
               <Route path="name-generator" element={<DMNameGeneratorPage />} />

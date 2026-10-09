@@ -1,4 +1,4 @@
-// Pure helpers for the Story Engine board (see the story_engine migration).
+// Pure helpers for the Sphere Grid (see the sphere_grid migration).
 // Nothing in here touches Supabase.
 
 export const SPHERE_RADIUS = 22
@@ -113,10 +113,30 @@ export function parsePoolText(text) {
     .filter(Boolean)
 }
 
-/** Resolve what was typed in the tag field to a tag value, by value or label. */
-export function resolveTag(input, tags) {
-  const q = normalize(input ?? '')
-  if (!q) return { value: null }
-  const match = tags.find((t) => t.value === q || t.label.toLowerCase() === q)
-  return match ? { value: match.value } : { error: `"${input.trim()}" is not one of the story tags.` }
+// Vivid fallbacks for Type tags that have no color of their own, picked by a
+// stable hash so a tag keeps the same color across grids and reloads.
+const FALLBACK_COLORS = [
+  '#a3172e', '#1f5fa8', '#2f6b3a', '#b5651d', '#7c2d92', '#0f766e',
+  '#be185d', '#8a5a12', '#4d7d14', '#c2410c', '#0e7490', '#5b2a86',
+]
+
+function hashColor(value) {
+  let h = 0
+  for (let i = 0; i < value.length; i++) h = (Math.imul(h, 31) + value.charCodeAt(i)) | 0
+  return FALLBACK_COLORS[Math.abs(h) % FALLBACK_COLORS.length]
+}
+
+/**
+ * What a sphere is colored by: its Type tag (the wiki's exclusive "kind"
+ * group), falling back to the first tag it carries. Returns the tag row and
+ * a color, or nulls for an untagged entry.
+ */
+export function sphereKind(entryTags, tags, typeGroupId) {
+  const owned = entryTags ?? []
+  if (!owned.length) return { tag: null, color: null }
+  const byValue = new Map(tags.map((t) => [t.value, t]))
+  const typeValue = owned.find((v) => byValue.get(v)?.group_id === typeGroupId)
+  const value = typeValue ?? owned[0]
+  const tag = byValue.get(value) ?? { value, label: value }
+  return { tag, color: tag.color || hashColor(value) }
 }

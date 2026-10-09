@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { SPHERE_RADIUS, centroid, linkKey } from '../../../lib/storyEngine'
+import { SPHERE_RADIUS, centroid, linkKey } from '../../../lib/sphereGrid'
 
 const MIN_ZOOM = 0.25
 const MAX_ZOOM = 2.5
@@ -12,24 +12,23 @@ const DRAG_THRESHOLD = 4
 const isTyping = (el) =>
   el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable)
 
-// The sphere grid: a static 2D space you pan, where spheres stay wherever they
-// are put. Plain SVG rather than a graph library - nothing here is laid out
+// The sphere grid: a static 2D space you pan, where spheres (entries) stay
+// wherever they are put on this grid. Plain SVG rather than a graph library - nothing here is laid out
 // automatically, so a layout engine would only be in the way.
 //
 // Drag has two jobs, settled by where the drop lands: released over another
 // sphere it links (or, if already linked, unlinks) and the dragged spheres
 // snap back; released anywhere else it is a move. Dragging a selected sphere
 // carries the whole selection with it, for both.
-export default function StoryBoard({
+export default function SphereBoard({
   spheres,
   links,
-  tagsByValue,
   selection,
   focusId,
   onSelectionChange,
   onMove,
   onLinkDrop,
-  onDelete,
+  onRemove,
   viewCenterRef,
 }) {
   const wrapRef = useRef(null)
@@ -114,21 +113,22 @@ export default function StoryBoard({
     return () => svg.removeEventListener('wheel', onWheel)
   }, [])
 
-  // Delete acts on the selection; Escape clears it. Ignored while typing in
-  // the side panel so Backspace in a text field never deletes a sphere.
+  // Delete takes the selection off this grid (the entries themselves stay);
+  // Escape clears it. Ignored while typing in the side panel so Backspace in
+  // a text field never removes a sphere.
   useEffect(() => {
     const onKey = (e) => {
       if (isTyping(e.target)) return
       if ((e.key === 'Delete' || e.key === 'Backspace') && selection.size) {
         e.preventDefault()
-        onDelete([...selection])
+        onRemove([...selection])
       } else if (e.key === 'Escape' && selection.size) {
         onSelectionChange(new Set(), null)
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [selection, onDelete, onSelectionChange])
+  }, [selection, onRemove, onSelectionChange])
 
   function handlePointerDown(e) {
     if (e.button !== 0 && e.button !== 1) return
@@ -246,10 +246,10 @@ export default function StoryBoard({
   const gridSize = 40 * view.k
 
   return (
-    <div className="se-board" ref={wrapRef}>
+    <div className="sg-board" ref={wrapRef}>
       <svg
         ref={svgRef}
-        className={`se-board-svg${gesture.current?.type === 'pan' ? ' is-panning' : ''}${drag ? ' is-dragging' : ''}`}
+        className={`sg-board-svg${gesture.current?.type === 'pan' ? ' is-panning' : ''}${drag ? ' is-dragging' : ''}`}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
@@ -258,17 +258,17 @@ export default function StoryBoard({
       >
         <defs>
           <pattern
-            id="se-grid"
+            id="sg-grid"
             width={gridSize}
             height={gridSize}
             patternUnits="userSpaceOnUse"
             x={view.x % gridSize}
             y={view.y % gridSize}
           >
-            <circle cx={1.5} cy={1.5} r={1.3} className="se-grid-dot" />
+            <circle cx={1.5} cy={1.5} r={1.3} className="sg-grid-dot" />
           </pattern>
         </defs>
-        <rect width="100%" height="100%" fill="url(#se-grid)" />
+        <rect width="100%" height="100%" fill="url(#sg-grid)" />
 
         <g transform={`translate(${view.x} ${view.y}) scale(${view.k})`}>
           {links.map((l) => {
@@ -283,7 +283,7 @@ export default function StoryBoard({
                 y1={p1.y}
                 x2={p2.x}
                 y2={p2.y}
-                className={`se-link${lit ? ' is-lit' : ''}`}
+                className={`sg-link${lit ? ' is-lit' : ''}`}
               />
             )
           })}
@@ -301,20 +301,19 @@ export default function StoryBoard({
                     y1={p1.y}
                     x2={p2.x}
                     y2={p2.y}
-                    className={`se-link-preview is-${dropMode}`}
+                    className={`sg-link-preview is-${dropMode}`}
                   />
                 )
               })}
 
           {spheres.map((s) => {
             const p = pos.get(s.id)
-            const tag = s.tag ? tagsByValue.get(s.tag) : null
             const selected = selection.has(s.id)
             const isTarget = drag?.targetId === s.id
             const showLabel = showAllLabels || selected || hoverId === s.id || isTarget
             const classes = [
-              'se-sphere',
-              tag ? 'is-tagged' : 'is-untagged',
+              'sg-sphere',
+              s.color ? 'is-tagged' : 'is-untagged',
               s.is_stub && 'is-stub',
               selected && 'is-selected',
               focusId === s.id && 'is-focus',
@@ -328,29 +327,36 @@ export default function StoryBoard({
                 data-sphere-id={s.id}
                 transform={`translate(${p.x} ${p.y})`}
                 className={classes}
-                style={tag?.color ? { '--se-tag': tag.color } : undefined}
+                style={s.color ? { '--sg-color': s.color } : undefined}
                 onPointerEnter={() => setHoverId(s.id)}
                 onPointerLeave={() => setHoverId((h) => (h === s.id ? null : h))}
               >
-                {selected && <circle r={R + 7} className="se-sphere-ring" />}
-                {isTarget && <circle r={R + 12} className={`se-sphere-drop is-${dropMode}`} />}
-                <circle r={R} className="se-sphere-body" />
+                {selected && <circle r={R + 7} className="sg-sphere-ring" />}
+                {isTarget && <circle r={R + 12} className={`sg-sphere-drop is-${dropMode}`} />}
+                <circle r={R} className="sg-sphere-body" />
                 {s.gm_only && (
-                  <g transform={`translate(${R * 0.72} ${-R * 0.72})`} className="se-sphere-gm">
+                  <g transform={`translate(${R * 0.72} ${-R * 0.72})`} className="sg-sphere-gm">
                     <circle r={8} />
                     <text dy="0.35em">GM</text>
                   </g>
                 )}
+                {s.hiddenLinks > 0 && (
+                  <g transform={`translate(${R * 0.72} ${R * 0.72})`} className="sg-sphere-more">
+                    <circle r={9} />
+                    <text dy="0.35em">+{s.hiddenLinks}</text>
+                  </g>
+                )}
                 {showLabel && (
-                  <text y={R + 17} className="se-sphere-label">
+                  <text y={R + 17} className="sg-sphere-label">
                     {s.name}
                   </text>
                 )}
                 <title>
                   {s.name}
-                  {tag ? ` · ${tag.label}` : ' · untagged'}
+                  {s.kindLabel ? ` · ${s.kindLabel}` : ' · untagged'}
                   {s.is_stub ? ' · stub' : ''}
                   {s.gm_only ? ' · GM-only' : ''}
+                  {s.hiddenLinks ? ` · ${s.hiddenLinks} linked entr${s.hiddenLinks === 1 ? 'y' : 'ies'} not on this grid` : ''}
                 </title>
               </g>
             )
@@ -359,13 +365,16 @@ export default function StoryBoard({
       </svg>
 
       {!spheres.length && (
-        <div className="se-board-empty">
-          <p>An empty board.</p>
-          <p>Open <strong>Generate</strong> to create the first sphere — a planet, an era, an arc title, anything.</p>
+        <div className="sg-board-empty">
+          <p>An empty grid.</p>
+          <p>
+            <strong>Generate</strong> new entries, or <strong>Add existing</strong> ones from the wiki — a planet, an
+            era, an arc title, anything.
+          </p>
         </div>
       )}
 
-      <div className="se-board-zoom">
+      <div className="sg-board-zoom">
         <button type="button" className="secondary" onClick={() => zoomBy(1.25)} aria-label="Zoom in">
           +
         </button>
