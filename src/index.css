@@ -3284,47 +3284,134 @@ button.chip:hover {
 
 } /* end @layer base */
 
-/* Long-term planning: a flat list of standing reminders. Each note is a card
-   with its own chrome (per docs/ui-conventions.md nothing sits as bare text
-   in its own row), and the "when" reads as a badge rather than a second
-   sentence, since it's usually two words. */
-.ltp-list {
+/* Long-term planning: notes listed on the left, the open one in a large
+   rich editor on the right - room to brainstorm, not just jot reminders.
+   Focus mode drops the list so the editor takes the full width. The "when"
+   reads as a badge rather than a second sentence, since it's usually two
+   words. */
+.ltp-layout {
   display: grid;
-  gap: 0.75rem;
-  margin-bottom: 2rem;
+  grid-template-columns: minmax(220px, 300px) minmax(0, 1fr);
+  gap: var(--space-4);
+  align-items: start;
 }
 
-.ltp-item {
-  display: grid;
+.ltp-page.is-focus .ltp-layout {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.ltp-page.is-focus .view-header {
+  margin-bottom: var(--space-3);
+}
+
+.ltp-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-height: calc(100vh - 220px);
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
+button.ltp-new {
+  width: 100%;
+}
+
+.ltp-index {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.ltp-index li {
+  display: flex;
+  align-items: flex-start;
   gap: 0.5rem;
-  padding: 1rem 1.15rem;
+  padding: 0.5rem 0.55rem;
   border: 1px solid var(--border);
   border-left: 4px solid var(--accent);
   border-radius: var(--radius-sm);
   background: var(--surface);
-  box-shadow: var(--shadow-sm);
 }
 
-.ltp-check {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.6rem;
-  cursor: pointer;
+.ltp-index li.is-selected {
+  border-color: var(--accent-2);
+  border-left-color: var(--accent-2);
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--accent-2);
 }
 
-.ltp-check input {
-  margin-top: 0.25rem;
-  width: 1.05rem;
-  height: 1.05rem;
-  flex: 0 0 auto;
+.ltp-index.is-done li {
+  border-left-color: var(--border);
+  opacity: 0.75;
+}
+
+.ltp-index.is-done .ltp-index-title {
+  text-decoration: line-through;
+}
+
+.ltp-index input[type='checkbox'] {
+  margin-top: 0.3rem;
+  flex: none;
   accent-color: var(--accent-strong);
   cursor: pointer;
 }
 
-.ltp-title {
-  font-size: var(--text-md);
-  font-weight: 600;
+/* Plain-looking button: resets everything the base button rule sets, per
+   docs/ui-conventions.md. */
+button.ltp-index-open {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+  padding: 0;
+  border: none;
+  background: none;
   color: var(--text);
+  text-align: left;
+  font-weight: 400;
+  box-shadow: none;
+}
+
+button.ltp-index-open:hover {
+  background: none;
+  filter: none;
+  box-shadow: none;
+  transform: none;
+}
+
+button.ltp-index-open:hover .ltp-index-title {
+  color: var(--accent);
+}
+
+.ltp-index-title {
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.ltp-index-preview {
+  width: 100%;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ltp-index-move {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.ltp-index-move button {
+  padding: 0.1rem 0.45rem;
+  font-size: var(--text-sm);
 }
 
 .ltp-when {
@@ -3340,32 +3427,9 @@ button.chip:hover {
   letter-spacing: 0.04em;
 }
 
-.ltp-details {
-  margin: 0;
-  white-space: pre-line;
-  color: var(--text-muted);
-}
-
-.ltp-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  justify-self: end;
-}
-
-.ltp-item.is-done {
-  border-left-color: var(--border);
-  opacity: 0.75;
-}
-
-.ltp-item.is-done .ltp-title {
-  text-decoration: line-through;
-}
-
 .ltp-done {
   display: grid;
   gap: 0.6rem;
-  margin-bottom: 2rem;
 }
 
 .ltp-done-header {
@@ -3374,9 +3438,89 @@ button.chip:hover {
   gap: 0.5rem;
 }
 
-.ltp-edit {
-  gap: 0.75rem;
+.ltp-editor-pane {
+  min-width: 0;
 }
+
+.ltp-editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.ltp-editor-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+input.ltp-editor-title {
+  flex: 1 1 18rem;
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: 700;
+  padding: 0.35rem 0.6rem;
+}
+
+.ltp-editor-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.ltp-editor-when {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.ltp-editor-when input {
+  flex: 1;
+}
+
+/* The writing area fills most of the screen height. */
+.ltp-editor-body .rich-editor-content {
+  min-height: calc(100vh - 380px);
+}
+
+.ltp-page.is-focus .ltp-editor-body .rich-editor-content {
+  min-height: calc(100vh - 300px);
+}
+
+.ltp-empty {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  min-height: 40vh;
+  padding: var(--space-5);
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-frame);
+  color: var(--text-muted);
+}
+
+.ltp-empty p {
+  flex-basis: 100%;
+  margin: 0;
+  text-align: center;
+}
+
+@media (max-width: 860px) {
+  .ltp-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ltp-sidebar {
+    max-height: none;
+  }
+}
+
 
 /* Character Notes: a people list beside one character's long-form notes.
    Same two-column shape as the name generator, which reads well for
@@ -4084,6 +4228,138 @@ button.tag-picker-option.is-create {
   .shop-shelf {
     grid-template-columns: 1fr;
   }
+}
+
+/* ---- Trading: open/closed, prices, buy/sell, the ledger ---- */
+
+.badge-open {
+  background: var(--accent-2);
+  color: var(--on-accent-2);
+}
+
+.badge-closed {
+  background: var(--danger);
+  color: var(--on-danger);
+}
+
+.badge-buy {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.badge-sell {
+  background: var(--accent-purple);
+  color: var(--on-accent-purple);
+}
+
+/* Not yet applied in Foundry - still counting toward the balance. */
+.badge-pending {
+  background: var(--accent-purple-strong);
+  color: var(--on-accent-purple);
+}
+
+.shop-price {
+  font-weight: 700;
+  color: var(--accent-purple);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.shop-open-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.shop-inline-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.shop-inline-field input {
+  width: 6rem;
+}
+
+.shop-catalog {
+  max-height: 420px;
+  overflow-y: auto;
+  margin-bottom: var(--space-3);
+}
+
+.shop-catalog-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-shrink: 0;
+}
+
+.shop-trades li {
+  align-items: center;
+}
+
+.shop-closed-sign {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  padding: var(--space-5) var(--space-4);
+  border: 2px solid var(--danger);
+  border-radius: var(--radius-frame);
+  background: var(--surface);
+  text-align: center;
+}
+
+.shop-closed-sign strong {
+  font-size: var(--text-xl);
+  color: var(--danger);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.shop-wallet {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.4rem 1rem;
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-4);
+  border: 1px solid var(--accent-purple);
+  border-left-width: 4px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.shop-card-price {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  margin: 0 0 0.35rem;
+}
+
+.shop-card.is-sold-out {
+  opacity: 0.6;
+}
+
+.shop-buy {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border);
+}
+
+.shop-buy input {
+  width: 4.5rem;
+}
+
+.shop-sell {
+  margin-top: var(--space-5);
 }
 
 /* Deck progress: how much of each rarity has been dealt since its last
@@ -4916,6 +5192,150 @@ label.sg-kind {
   color: var(--text-muted);
 }
 
+/* KindSelect: a collapsible tree dropdown. The toggle looks like a form
+   field; every button here is plain-looking, so each resets the base
+   button rule's shadow/filter/transform, per docs/ui-conventions.md. */
+.kind-select {
+  position: relative;
+}
+
+button.kind-select-toggle {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 500;
+  text-align: left;
+  box-shadow: none;
+}
+
+button.kind-select-toggle:hover,
+button.kind-select-toggle[aria-expanded='true'] {
+  border-color: var(--accent-2);
+  background: var(--surface);
+  filter: none;
+  box-shadow: none;
+  transform: none;
+}
+
+.kind-select-pop {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  min-width: 16rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.4rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+}
+
+.kind-select-list,
+.kind-select-list ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.kind-select-list {
+  max-height: 20rem;
+  overflow-y: auto;
+}
+
+.kind-select-row {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  padding-left: calc(var(--depth, 0) * 1rem);
+}
+
+button.kind-select-twisty,
+.kind-select-twisty-spacer {
+  flex: none;
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+button.kind-select-twisty {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--accent-2);
+  font-size: 0.8rem;
+  box-shadow: none;
+}
+
+button.kind-select-twisty:hover {
+  background: var(--surface-2);
+  filter: none;
+  box-shadow: none;
+  transform: none;
+}
+
+button.kind-select-option {
+  flex: 1;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.3rem 0.5rem;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text);
+  font-weight: 500;
+  text-align: left;
+  box-shadow: none;
+}
+
+button.kind-select-option:hover {
+  background: var(--surface-2);
+  filter: none;
+  box-shadow: none;
+  transform: none;
+}
+
+button.kind-select-option.is-current {
+  background: var(--accent-2);
+  color: var(--on-accent-2);
+  font-weight: 700;
+}
+
+button.kind-select-option.is-empty {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.kind-select-count {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+button.kind-select-option.is-current .kind-select-count {
+  color: inherit;
+}
+
+.kind-select-empty {
+  margin: 0.3rem;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
 /* Kind curation (Questions tab): an indented tree of kinds, then the
    selected kind's settings and questions. */
 .sg-kinds {
@@ -4961,11 +5381,6 @@ button.sg-kind-node:hover {
   filter: none;
   box-shadow: none;
   transform: none;
-}
-
-button.sg-kind-node.is-universal {
-  border-color: var(--accent-purple);
-  border-width: 2px;
 }
 
 button.sg-kind-node.is-selected {

@@ -177,8 +177,7 @@ export const kindTag = (kinds, kindId) => kindChain(kinds, kindId).find((k) => k
 /** Kinds in tree order with their depth, for indented pickers and lists. */
 export function kindTree(kinds) {
   const children = new Map()
-  // Universal kinds ("Every sphere") aren't something a sphere can be.
-  for (const k of kinds.filter((x) => !x.universal)) {
+  for (const k of kinds) {
     const key = k.parent_id && kinds.some((p) => p.id === k.parent_id) ? k.parent_id : null
     if (!children.has(key)) children.set(key, [])
     children.get(key).push(k)
@@ -226,13 +225,7 @@ export function kindDescendants(kinds, kindId) {
  * (null when the question's own ideas are showing).
  */
 export function kindPrompts(kinds, prompts, hidden, kindId, { includeHidden = false, overrides = [] } = {}) {
-  // Universal kinds sit above every chain, as the root-most ancestor - so
-  // their questions show on every sphere (even one with no kind yet) and can
-  // be switched off or tailored like any other inherited question.
-  const chain = [
-    ...kindChain(kinds, kindId).filter((k) => !k.universal),
-    ...kinds.filter((k) => k.universal),
-  ]
+  const chain = kindChain(kinds, kindId)
   const hiddenBy = new Map()
   for (const h of hidden) {
     if (!hiddenBy.has(h.prompt_id)) hiddenBy.set(h.prompt_id, new Set())

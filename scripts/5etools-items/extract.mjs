@@ -235,3 +235,76 @@ writeFileSync(outFile, `${JSON.stringify(pool, null, '\t')}\n`, 'utf8');
 
 const counts = RARITIES.map((r) => `${r}: ${pool.filter((i) => i.rarity === r).length}`);
 console.log(`${outFile} <- ${pool.length} items (${counts.join(', ')})`);
+
+// ---- store catalog ---------------------------------------------------------
+
+// Priced mundane gear for 'store' shops: everything in the core books that has
+// a list price - weapons, armor, adventuring gear, tools, mounts, trade goods.
+// The magic pool above is wondrous-only and unpriced; this is its counterpart.
+// 5etools stores `value` in copper.
+//
+// Potions and oils are the exception: every one is included at any rarity,
+// priced or not, because stores sell them and only Potion of Healing has a
+// list price. Unpriced ones arrive with price_gp null for the DM to set.
+const CATALOG_SOURCES = new Set(['XPHB', 'PHB', 'XDMG']);
+
+// Type codes ("G|XPHB" -> "G") to the category shown in the store picker.
+// Treasure ($G gems, $A art, $C coins) and vehicles are left out: they're
+// loot and transport, not shop stock.
+const CATALOG_TYPES = {
+  M: 'Melee weapon',
+  R: 'Ranged weapon',
+  A: 'Ammunition',
+  LA: 'Light armor',
+  MA: 'Medium armor',
+  HA: 'Heavy armor',
+  S: 'Shield',
+  G: 'Adventuring gear',
+  AT: "Artisan's tools",
+  T: 'Tools',
+  GS: 'Gaming set',
+  INS: 'Instrument',
+  SCF: 'Spellcasting focus',
+  FD: 'Food and drink',
+  TG: 'Trade good',
+  MNT: 'Mount',
+  TAH: 'Tack and harness',
+  P: 'Potion or oil',
+};
+
+const DAMAGE_TYPES = { S: 'slashing', P: 'piercing', B: 'bludgeoning' };
+
+function statLine(it) {
+  const parts = [];
+  if (it.dmg1) parts.push(`${it.dmg1} ${DAMAGE_TYPES[it.dmgType] ?? ''}`.trim());
+  if (it.ac) parts.push(`AC ${it.ac}`);
+  if (it.weight) parts.push(`${it.weight} lb.`);
+  return parts.length ? `*${parts.join(' · ')}*` : '';
+}
+
+const base = JSON.parse(readFileSync(join(dataDir, 'items-base.json'), 'utf8'));
+const catalogFile = join(dirname(outFile), 'catalog.json');
+const seen = new Set();
+const catalog = [...base.baseitem, ...raw.item]
+  .filter((it) => !it.reprintedAs && CATALOG_SOURCES.has(it.source))
+  .filter((it) => {
+    if (String(it.type ?? '').split('|')[0] === 'P') return true;
+    return it.value != null && (!it.rarity || ['none', 'common', 'uncommon'].includes(it.rarity));
+  })
+  .map((it) => ({ it, type: CATALOG_TYPES[String(it.type ?? '').split('|')[0]] }))
+  .filter(({ type }) => type)
+  .map(({ it, type }) => ({
+    key: `${slug(it.name)}|${it.source.toLowerCase()}`,
+    name: it.name,
+    source: it.source,
+    type,
+    rarity: it.rarity && it.rarity !== 'none' ? it.rarity : null,
+    price_gp: it.value != null ? it.value / 100 : null,
+    text: [statLine(it), render(resolveItemEntries(it.entries ?? [], it))].filter(Boolean).join('\n\n'),
+  }))
+  // A base item and its items.json twin can share a key; keep the first.
+  .filter((item) => (seen.has(item.key) ? false : seen.add(item.key)))
+  .sort((a, b) => a.type.localeCompare(b.type) || a.name.localeCompare(b.name));
+
+writeFileSync(catalogFile, `${JSON.stringify(catalog, null, '\t')}\n`, 'utf8');
+console.log(`${catalogFile} <- ${catalog.length} items`);

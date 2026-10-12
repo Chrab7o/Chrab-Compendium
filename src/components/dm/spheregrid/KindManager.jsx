@@ -235,20 +235,6 @@ export default function KindManager({ kinds, prompts, hidden, overrides, pools, 
       </p>
 
       <ul className="sg-kind-tree">
-        {kinds
-          .filter((k) => k.universal)
-          .map((kind) => (
-            <li key={kind.id}>
-              <button
-                type="button"
-                className={`sg-kind-node is-universal${kind.id === selectedId ? ' is-selected' : ''}`}
-                onClick={() => selectKind(kind)}
-              >
-                <span>{kind.label}</span>
-                <span className="sg-kind-node-meta">{prompts.filter((p) => p.kind_id === kind.id).length}q · all spheres</span>
-              </button>
-            </li>
-          ))}
         {tree.map(({ kind, depth }) => (
           <li key={kind.id} style={{ '--depth': depth }}>
             <button
@@ -308,9 +294,9 @@ export default function KindManager({ kinds, prompts, hidden, overrides, pools, 
         <button
           type="button"
           className="secondary"
-          onClick={() => setNewKind({ ...emptyKind, parent_id: selected?.universal ? null : selectedId })}
+          onClick={() => setNewKind({ ...emptyKind, parent_id: selectedId })}
         >
-          + New kind{selected && !selected.universal ? ` under ${selected.label}` : ''}
+          + New kind{selected ? ` under ${selected.label}` : ''}
         </button>
       )}
 
@@ -320,46 +306,35 @@ export default function KindManager({ kinds, prompts, hidden, overrides, pools, 
         <div className="sg-kind-detail">
           <h3 className="sg-subhead">{kindPath(kinds, selected.id)}</h3>
 
-          {selected.universal && (
-            <p className="status-message">
-              These questions show on every sphere. Any kind can switch one off or tailor its ideas.
-            </p>
-          )}
           <form className="dm-form" onSubmit={saveKind}>
             <label>
               Name
               <input value={kindDraft.label} onChange={(e) => setKindDraft({ ...kindDraft, label: e.target.value })} />
             </label>
-            {!selected.universal && (
-              <>
-                <label>
-                  Under
-                  <KindSelect
-                    kinds={kinds}
-                    value={kindDraft.parent_id}
-                    onChange={(v) => setKindDraft({ ...kindDraft, parent_id: v })}
-                    emptyLabel="— Top level —"
-                    exclude={kindDescendants(kinds, selected.id)}
-                  />
-                </label>
-                <label>
-                  Adds wiki tag
-                  <select value={kindDraft.tag} onChange={(e) => setKindDraft({ ...kindDraft, tag: e.target.value })}>
-                    <option value="">{kindDraft.parent_id ? '— Same as parent —' : '— None —'}</option>
-                    {tagOptions}
-                  </select>
-                </label>
-              </>
-            )}
+            <label>
+              Under
+              <KindSelect
+                kinds={kinds}
+                value={kindDraft.parent_id}
+                onChange={(v) => setKindDraft({ ...kindDraft, parent_id: v })}
+                emptyLabel="— Top level —"
+                exclude={kindDescendants(kinds, selected.id)}
+              />
+            </label>
+            <label>
+              Adds wiki tag
+              <select value={kindDraft.tag} onChange={(e) => setKindDraft({ ...kindDraft, tag: e.target.value })}>
+                <option value="">{kindDraft.parent_id ? '— Same as parent —' : '— None —'}</option>
+                {tagOptions}
+              </select>
+            </label>
             <div className="dm-form-actions">
               <button type="submit" disabled={saving}>
                 Save kind
               </button>
-              {!selected.universal && (
-                <button type="button" className="danger" onClick={deleteKind}>
-                  Delete kind
-                </button>
-              )}
+              <button type="button" className="danger" onClick={deleteKind}>
+                Delete kind
+              </button>
             </div>
           </form>
 

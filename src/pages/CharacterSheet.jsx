@@ -9,6 +9,8 @@ import {
   getSkills,
   estimateAC,
   estimateMaxHP,
+  getFlatAC,
+  getMaxHPOverride,
   getInventory,
   getSpells,
   getFeats,
@@ -60,7 +62,9 @@ export default function CharacterSheet({ characterId: characterIdProp }) {
   const { race, background } = getRaceAndBackground(actor)
   const abilities = getAbilities(actor)
   const skills = getSkills(actor)
-  const ac = estimateAC(actor)
+  const flatAc = getFlatAC(actor)
+  const ac = flatAc ?? estimateAC(actor)
+  const maxHpOverride = getMaxHPOverride(actor)
   const maxHp = estimateMaxHP(actor)
   const currentHp = actor.system?.attributes?.hp?.value
   const inventory = getInventory(actor)
@@ -85,14 +89,18 @@ export default function CharacterSheet({ characterId: characterIdProp }) {
         <div className="sheet-stat">
           <span className="sheet-stat-label">HP</span>
           <span className="sheet-stat-value">{currentHp ?? '?'}</span>
-          {maxHp !== null && (
-            <span className="sheet-estimate">~{maxHp} base max (before feats like Tough)</span>
+          {maxHpOverride !== null ? (
+            <span className="sheet-estimate">of {maxHpOverride} max</span>
+          ) : (
+            maxHp !== null && (
+              <span className="sheet-estimate">~{maxHp} base max (before feats like Tough)</span>
+            )
           )}
         </div>
         <div className="sheet-stat">
           <span className="sheet-stat-label">AC</span>
           <span className="sheet-stat-value">{ac}</span>
-          <span className="sheet-estimate">estimated</span>
+          {flatAc === null && <span className="sheet-estimate">estimated</span>}
         </div>
         <div className="sheet-stat">
           <span className="sheet-stat-label">Proficiency</span>

@@ -1,0 +1,2819 @@
+[
+	{
+		"key": "abacus|phb",
+		"name": "Abacus",
+		"source": "PHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 2,
+		"text": "*2 lb.*"
+	},
+	{
+		"key": "acid|xphb",
+		"name": "Acid",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 25,
+		"text": "*1 lb.*\n\nWhen you take the Attack action, you can replace one of your attacks with throwing a vial of Acid. Target one creature or object you can see within 20 feet of yourself. The target must succeed on a Dexterity saving throw (8 plus your Dexterity modifier and Proficiency Bonus) or take 2d6 Acid damage."
+	},
+	{
+		"key": "alchemist-s-fire|xphb",
+		"name": "Alchemist's Fire",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 50,
+		"text": "*1 lb.*\n\nWhen you take the Attack action, you can replace one of your attacks with throwing a flask of Alchemist's Fire. Target one creature or object you can see within 20 feet of yourself. The target must succeed on a Dexterity saving throw (8 plus your Dexterity modifier and Proficiency Bonus) or take 1d4 Fire damage and start burning."
+	},
+	{
+		"key": "antitoxin|xphb",
+		"name": "Antitoxin",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 50,
+		"text": "As a Bonus Action, you can drink a vial of Antitoxin to gain Advantage on saving throws to avoid or end the Poisoned condition for 1 hour."
+	},
+	{
+		"key": "assassin-s-blood|xdmg",
+		"name": "Assassin's Blood",
+		"source": "XDMG",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 150,
+		"text": "A creature subjected to Assassin's Blood makes a 10 Constitution saving throw. On a failed save, the creature takes 6 (1d12) Poison damage and has the Poisoned condition for 24 hours. On a successful save, the creature takes half as much damage only."
+	},
+	{
+		"key": "backpack|xphb",
+		"name": "Backpack",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 2,
+		"text": "*5 lb.*\n\nA Backpack holds up to 30 pounds within 1 cubic foot. It can also serve as a saddlebag."
+	},
+	{
+		"key": "ball-bearing|phb",
+		"name": "Ball Bearing",
+		"source": "PHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 0.001,
+		"text": "*0.002 lb.*\n\nMost commonly found inside a bag of ball bearings."
+	},
+	{
+		"key": "ball-bearings|xphb",
+		"name": "Ball Bearings",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 1,
+		"text": "*2 lb.*\n\nAs a Utilize action, you can spill Ball Bearings from their pouch. They spread to cover a level, 10-foot-square area within 10 feet of yourself. A creature that enters this area for the first time on a turn must succeed on a 10 Dexterity saving throw or have the Prone condition. It takes 10 minutes to recover the Ball Bearings."
+	},
+	{
+		"key": "barrel|xphb",
+		"name": "Barrel",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 2,
+		"text": "*70 lb.*\n\nA Barrel holds up to 40 gallons of liquid or up to 4 cubic feet of dry goods."
+	},
+	{
+		"key": "basic-poison|xphb",
+		"name": "Basic Poison",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 100,
+		"text": "As a Bonus Action, you can use a vial of Basic Poison to coat one weapon or up to three pieces of ammunition. A creature that takes Piercing or Slashing damage from the poisoned weapon or ammunition takes an extra 1d4 Poison damage. Once applied, the poison retains potency for 1 minute or until its damage is dealt, whichever comes first."
+	},
+	{
+		"key": "basket|xphb",
+		"name": "Basket",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 0.4,
+		"text": "*2 lb.*\n\nA Basket holds up to 40 pounds within 2 cubic feet."
+	},
+	{
+		"key": "bedroll|xphb",
+		"name": "Bedroll",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 1,
+		"text": "*7 lb.*\n\nA Bedroll sleeps one Small or Medium creature. While in a Bedroll, you automatically succeed on saving throws against extreme cold (see the Dungeon Master's Guide)."
+	},
+	{
+		"key": "bell|xphb",
+		"name": "Bell",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 1,
+		"text": "When rung as a Utilize action, a Bell produces a sound that can be heard up to 60 feet away."
+	},
+	{
+		"key": "blanket|xphb",
+		"name": "Blanket",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 0.5,
+		"text": "*3 lb.*\n\nWhile wrapped in a blanket, you have Advantage on saving throws against extreme cold (see the Dungeon Master's Guide)."
+	},
+	{
+		"key": "block-and-tackle|xphb",
+		"name": "Block and Tackle",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 1,
+		"text": "*5 lb.*\n\nA Block and Tackle allows you to hoist up to four times the weight you can normally lift."
+	},
+	{
+		"key": "book|xphb",
+		"name": "Book",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 25,
+		"text": "*5 lb.*\n\nA Book contains fiction or nonfiction. If you consult an accurate nonfiction Book about its topic, you gain a +5 bonus to Intelligence (Arcana, History, Nature, or Religion) checks you make about that topic."
+	},
+	{
+		"key": "bucket|xphb",
+		"name": "Bucket",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 0.05,
+		"text": "*2 lb.*\n\nA Bucket holds up to half a cubic foot of contents."
+	},
+	{
+		"key": "bullseye-lantern|xphb",
+		"name": "Bullseye Lantern",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 10,
+		"text": "*2 lb.*\n\nA Bullseye Lantern burns Oil as fuel to cast Bright Light in a 60-foot Cone and Dim Light for an additional 60 feet."
+	},
+	{
+		"key": "burglar-s-pack|xphb",
+		"name": "Burglar's Pack",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 16,
+		"text": "*47.5 lb.*\n\nA Burglar's Pack contains the following items: Backpack, Ball Bearings, Bell, 10 Candles, Crowbar, Hooded Lantern, 7 flasks of Oil, 5 days of Rations, Rope, Tinderbox, and Waterskin."
+	},
+	{
+		"key": "burnt-othur-fumes|xdmg",
+		"name": "Burnt Othur Fumes",
+		"source": "XDMG",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 500,
+		"text": "A creature subjected to Burnt Othur Fumes must succeed on a 13 Constitution saving throw or take 10 (3d6) Poison damage, and it must repeat the save at the start of each of its turns. On each successive failed save, the creature takes 3 (1d6) Poison damage. After three successful saves, the poison ends."
+	},
+	{
+		"key": "caltrop|phb",
+		"name": "Caltrop",
+		"source": "PHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 0.05,
+		"text": "*0.1 lb.*\n\nAs an action, you can spread a single bag of caltrops to cover a 5-foot-square area. Any creature that enters the area must succeed on a 15 Dexterity saving throw or stop moving and take 1 piercing damage. Until the creature regains at least 1 hit point, its walking speed is reduced by 10 feet. A creature moving through the area at half speed doesn't need to make the saving throw."
+	},
+	{
+		"key": "caltrops|xphb",
+		"name": "Caltrops",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 1,
+		"text": "*2 lb.*\n\nAs a Utilize action, you can spread Caltrops from their bag to cover a 5-foot-square area within 5 feet of yourself. A creature that enters this area for the first time on a turn must succeed on a 15 Dexterity saving throw or take 1 Piercing damage and have its Speed reduced to 0 until the start of its next turn. It takes 10 minutes to recover the Caltrops."
+	},
+	{
+		"key": "candle|xphb",
+		"name": "Candle",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 0.01,
+		"text": "For 1 hour, a lit Candle sheds Bright Light in a 5-foot radius and Dim Light for an additional 5 feet."
+	},
+	{
+		"key": "carrion-crawler-mucus|xdmg",
+		"name": "Carrion Crawler Mucus",
+		"source": "XDMG",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 200,
+		"text": "A creature subjected to Carrion Crawler Mucus must succeed on a 13 Constitution saving throw or have the Poisoned condition for 1 minute. The creature also has the Paralyzed condition while Poisoned in this way. The creature repeats the save at the end of each of its turns, ending the effect on itself on a success."
+	},
+	{
+		"key": "chain|xphb",
+		"name": "Chain",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 5,
+		"text": "*10 lb.*\n\nAs a Utilize action, you can wrap a Chain around an unwilling creature within 5 feet of yourself that has the Grappled, Incapacitated, or Restrained condition if you succeed on a 13 Strength (Athletics) check. If the creature's legs are bound, the creature has the Restrained condition until it escapes. Escaping the Chain requires the creature to make a successful 18 Dexterity (Acrobatics) check as an action. Bursting the Chain requires a successful 20 Strength (Athletics) check as an action."
+	},
+	{
+		"key": "chalk-1-piece|phb",
+		"name": "Chalk (1 piece)",
+		"source": "PHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 0.01,
+		"text": ""
+	},
+	{
+		"key": "chest|xphb",
+		"name": "Chest",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 5,
+		"text": "*25 lb.*\n\nA Chest holds up to 12 cubic feet of contents."
+	},
+	{
+		"key": "climber-s-kit|xphb",
+		"name": "Climber's Kit",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 25,
+		"text": "*12 lb.*\n\nA Climber's Kit includes boot tips, gloves, pitons, and a harness. As a Utilize action, you can use the Climber's Kit to anchor yourself; when you do, you can't fall more than 25 feet from the anchor point, and you can't move more than 25 feet from there without undoing the anchor as a Bonus Action."
+	},
+	{
+		"key": "common-clothes|phb",
+		"name": "Common Clothes",
+		"source": "PHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 0.5,
+		"text": "*3 lb.*"
+	},
+	{
+		"key": "component-pouch|xphb",
+		"name": "Component Pouch",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 25,
+		"text": "*2 lb.*\n\nA Component Pouch is watertight and filled with compartments that hold all the free Material components of your spells."
+	},
+	{
+		"key": "costume|xphb",
+		"name": "Costume",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 5,
+		"text": "*4 lb.*\n\nWhile wearing a Costume, you have Advantage on any ability check you make to impersonate the person or type of person it represents."
+	},
+	{
+		"key": "crossbow-bolt-case|xphb",
+		"name": "Crossbow Bolt Case",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 1,
+		"text": "*1 lb.*\n\nA Crossbow Bolt Case holds up to 20 Bolts."
+	},
+	{
+		"key": "crowbar|xphb",
+		"name": "Crowbar",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 2,
+		"text": "*5 lb.*\n\nUsing a Crowbar gives you Advantage on Strength checks where the Crowbar's leverage can be applied."
+	},
+	{
+		"key": "diplomat-s-pack|xphb",
+		"name": "Diplomat's Pack",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 39,
+		"text": "*39 lb.*\n\nA Diplomat's Pack contains the following items: Chest, Fine Clothes, Ink, 5 Ink Pens, Lamp, 2 Map or Scroll Cases, 4 flasks of Oil, 5 sheets of Paper, 5 sheets of Parchment, Perfume, and Tinderbox."
+	},
+	{
+		"key": "dungeoneer-s-pack|xphb",
+		"name": "Dungeoneer's Pack",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 12,
+		"text": "*55 lb.*\n\nA Dungeoneer's Pack contains the following items: Backpack, Caltrops, Crowbar, 2 flasks of Oil, 10 days of Rations, Rope, Tinderbox, 10 Torches, and Waterskin."
+	},
+	{
+		"key": "entertainer-s-pack|xphb",
+		"name": "Entertainer's Pack",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 40,
+		"text": "*58.5 lb.*\n\nAn Entertainer's Pack contains the following items: Backpack, Bedroll, Bell, Bullseye Lantern, 3 Costumes, Mirror, 8 flasks of Oil, 9 days of Rations, Tinderbox, and Waterskin."
+	},
+	{
+		"key": "essence-of-ether|xdmg",
+		"name": "Essence of Ether",
+		"source": "XDMG",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 300,
+		"text": "A creature subjected to Essence of Ether must succeed on a 15 Constitution saving throw or have the Poisoned condition for 8 hours. The creature also has the Unconscious condition while Poisoned in this way. The creature wakes up if it takes damage or if another creature takes an action to shake it awake."
+	},
+	{
+		"key": "explorer-s-pack|xphb",
+		"name": "Explorer's Pack",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 10,
+		"text": "*55 lb.*\n\nAn Explorer's Pack contains the following items: Backpack, Bedroll, 2 flasks of Oil, 10 days of Rations, Rope, Tinderbox, 10 Torches, and Waterskin."
+	},
+	{
+		"key": "fine-clothes|xphb",
+		"name": "Fine Clothes",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 15,
+		"text": "*6 lb.*\n\nFine Clothes are made of expensive fabrics and adorned with expertly crafted details. Some events and locations admit only people wearing these clothes."
+	},
+	{
+		"key": "fishing-tackle|phb",
+		"name": "Fishing Tackle",
+		"source": "PHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 1,
+		"text": "*4 lb.*\n\nThis kit includes a wooden rod, silken line, corkwood bobbers, steel hooks, lead sinkers, velvet lures, and narrow netting."
+	},
+	{
+		"key": "flask|xphb",
+		"name": "Flask",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 0.02,
+		"text": "*1 lb.*\n\nA Flask holds up to 1 pint."
+	},
+	{
+		"key": "glass-bottle|xphb",
+		"name": "Glass Bottle",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 2,
+		"text": "*2 lb.*\n\nA Glass Bottle holds up to 1½ pints."
+	},
+	{
+		"key": "grappling-hook|xphb",
+		"name": "Grappling Hook",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 2,
+		"text": "*4 lb.*\n\nAs a Utilize action, you can throw the Grappling Hook at a railing, a ledge, or another catch within 50 feet of yourself, and the hook catches on if you succeed on a 13 Dexterity (Acrobatics) check. If you tied a Rope to the hook, you can then climb it."
+	},
+	{
+		"key": "hammer|phb",
+		"name": "Hammer",
+		"source": "PHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 1,
+		"text": "*3 lb.*"
+	},
+	{
+		"key": "healer-s-kit|xphb",
+		"name": "Healer's Kit",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 5,
+		"text": "*3 lb.*\n\nA Healer's Kit has ten uses. As a Utilize action, you can expend one of its uses to stabilize an Unconscious creature that has 0 Hit Points without needing to make a Wisdom (Medicine) check."
+	},
+	{
+		"key": "holy-water|xphb",
+		"name": "Holy Water",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 25,
+		"text": "*1 lb.*\n\nWhen you take the Attack action, you can replace one of your attacks with throwing a flask of Holy Water. Target one creature you can see within 20 feet of yourself. The target must succeed on a Dexterity saving throw (8 plus your Dexterity modifier and Proficiency Bonus) or take 2d8 Radiant damage if it is a Fiend or an Undead."
+	},
+	{
+		"key": "hooded-lantern|xphb",
+		"name": "Hooded Lantern",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 5,
+		"text": "*2 lb.*\n\nA Hooded Lantern burns Oil as fuel to cast Bright Light in a 30-foot radius and Dim Light for an additional 30 feet. As a Bonus Action, you can lower the hood, reducing the light to Dim Light in a 5-foot radius, or raise it again."
+	},
+	{
+		"key": "hourglass|phb",
+		"name": "Hourglass",
+		"source": "PHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 25,
+		"text": "*1 lb.*"
+	},
+	{
+		"key": "hunting-trap|xphb",
+		"name": "Hunting Trap",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 5,
+		"text": "*25 lb.*\n\nAs a Utilize action, you can set a Hunting Trap, which is a sawtooth steel ring that snaps shut when a creature steps on a pressure plate in the center. The trap is affixed by a heavy chain to an immobile object, such as a tree or a spike driven into the ground. A creature that steps on the plate must succeed on a 13 Dexterity saving throw or take 1d4 Piercing damage and have its Speed reduced to 0 until the start of its next turn. Thereafter, until the creature breaks free of the trap, its movement is limited by the length of the chain (typically 3 feet). A creature can use its action to make a 13 Strength (Athletics) check, freeing itself or another creature within its reach on a success. Each failed check deals 1 Piercing damage to the trapped creature."
+	},
+	{
+		"key": "ink|xphb",
+		"name": "Ink",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 10,
+		"text": "Ink comes in a 1-ounce bottle, which provides enough ink to write about 500 pages."
+	},
+	{
+		"key": "ink-pen|xphb",
+		"name": "Ink Pen",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 0.02,
+		"text": "Using Ink, an Ink Pen is used to write or draw."
+	},
+	{
+		"key": "iron-pot|xphb",
+		"name": "Iron Pot",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 2,
+		"text": "*10 lb.*\n\nAn Iron Pot holds up to 1 gallon."
+	},
+	{
+		"key": "iron-spike|xphb",
+		"name": "Iron Spike",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 0.1,
+		"text": "*0.5 lb.*\n\nIron Spikes come in bundles of ten. As a Utilize action, you can use a blunt object, such as a Light Hammer, to hammer a spike into wood, earth, or a similar material. You can do so to jam a door shut or to then tie a Rope or Chain to the Spike."
+	},
+	{
+		"key": "iron-spikes|xphb",
+		"name": "Iron Spikes",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 1,
+		"text": "*5 lb.*\n\nIron Spikes come in bundles of ten. As a Utilize action, you can use a blunt object, such as a Light Hammer, to hammer a spike into wood, earth, or a similar material. You can do so to jam a door shut or to then tie a Rope or Chain to the Spike."
+	},
+	{
+		"key": "jug|xphb",
+		"name": "Jug",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 0.02,
+		"text": "*4 lb.*\n\nA Jug holds up to 1 gallon."
+	},
+	{
+		"key": "ladder|xphb",
+		"name": "Ladder",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 0.1,
+		"text": "*25 lb.*\n\nA Ladder is 10 feet tall. You must climb to move up or down it."
+	},
+	{
+		"key": "lamp|xphb",
+		"name": "Lamp",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 0.5,
+		"text": "*1 lb.*\n\nA Lamp burns Oil as fuel to cast Bright Light in a 15-foot radius and Dim Light for an additional 30 feet."
+	},
+	{
+		"key": "lock|xphb",
+		"name": "Lock",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 10,
+		"text": "*1 lb.*\n\nA Lock comes with a key. Without the key, a creature can use Thieves' Tools to pick this Lock with a successful 15 Dexterity (Sleight of Hand) check."
+	},
+	{
+		"key": "lolth-s-sting|xdmg",
+		"name": "Lolth's Sting",
+		"source": "XDMG",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 200,
+		"text": "A creature subjected to Lolth's Sting must succeed on a 13 Constitution saving throw or have the Poisoned condition for 1 hour. If the creature fails the save by 5 or more, the creature also has the Unconscious condition while Poisoned in this way. The creature wakes up if it takes damage or if another creature takes an action to shake it awake."
+	},
+	{
+		"key": "magnifying-glass|xphb",
+		"name": "Magnifying Glass",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 100,
+		"text": "A Magnifying Glass grants Advantage on any ability check made to appraise or inspect a highly detailed item. Lighting a fire with a Magnifying Glass requires light as bright as sunlight to focus, tinder to ignite, and about 5 minutes for the fire to ignite."
+	},
+	{
+		"key": "malice|xdmg",
+		"name": "Malice",
+		"source": "XDMG",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 250,
+		"text": "A creature subjected to Malice must succeed on a 15 Constitution saving throw or have the Poisoned condition for 1 hour. The creature also has the Blinded condition while Poisoned in this way."
+	},
+	{
+		"key": "manacles|xphb",
+		"name": "Manacles",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 2,
+		"text": "*6 lb.*\n\nAs a Utilize action, you can use Manacles to bind an unwilling Small or Medium creature within 5 feet of yourself that has the Grappled, Incapacitated, or Restrained condition if you succeed on a 13 Dexterity (Sleight of Hand) check. While bound, a creature has Disadvantage on attack rolls, and the creature is Restrained if the Manacles are attached to a chain or hook that is fixed in place. Escaping the Manacles requires a successful 20 Dexterity (Sleight of Hand) check as an action. Bursting them requires a successful 25 Strength (Athletics) check as an action.\n\nEach set of Manacles comes with a key. Without the key, a creature can use Thieves' Tools to pick the Manacles' lock with a successful 15 Dexterity (Sleight of Hand) check."
+	},
+	{
+		"key": "map|xphb",
+		"name": "Map",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 1,
+		"text": "If you consult an accurate Map, you gain a +5 bonus to Wisdom (Survival) checks you make to find your way in the place represented on it."
+	},
+	{
+		"key": "map-or-scroll-case|xphb",
+		"name": "Map or Scroll Case",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 1,
+		"text": "*1 lb.*\n\nA Map or Scroll Case holds up to 10 sheets of paper or 5 sheets of parchment."
+	},
+	{
+		"key": "merchant-s-scale|phb",
+		"name": "Merchant's Scale",
+		"source": "PHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 5,
+		"text": "*3 lb.*\n\nA scale includes a small balance, pans, and a suitable assortment of weights up to 2 pounds. With it, you can measure the exact weight of small objects, such as raw precious metals or trade goods, to help determine their worth."
+	},
+	{
+		"key": "mess-kit|phb",
+		"name": "Mess Kit",
+		"source": "PHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 0.2,
+		"text": "*1 lb.*\n\nThis tin box contains a cup and simple cutlery. The box clamps together, and one side can be used as a cooking pan and the other as a plate or shallow bowl."
+	},
+	{
+		"key": "midnight-tears|xdmg",
+		"name": "Midnight Tears",
+		"source": "XDMG",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 1500,
+		"text": "A creature that ingests Midnight Tears suffers no effect until the stroke of midnight. Any effect that ends the Poisoned condition neutralizes this poison. If the poison hasn't been neutralized before midnight, the creature makes a 17 Constitution saving throw, taking 31 (9d6) Poison damage on a failed save or half as much damage on a successful one."
+	},
+	{
+		"key": "miner-s-pick|phb",
+		"name": "Miner's Pick",
+		"source": "PHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 2,
+		"text": "*10 lb.*"
+	},
+	{
+		"key": "mirror|xphb",
+		"name": "Mirror",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 5,
+		"text": "*0.5 lb.*\n\nA handheld steel Mirror is useful for personal cosmetics but also for peeking around corners and reflecting light as a signal."
+	},
+	{
+		"key": "net|xphb",
+		"name": "Net",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 1,
+		"text": "*3 lb.*\n\nWhen you take the Attack action, you can replace one of your attacks with throwing a Net. Target a creature you can see within 15 feet of yourself. The target must succeed on a Dexterity saving throw (8 plus your Dexterity modifier and Proficiency Bonus) or have the Restrained condition until it escapes. The target succeeds automatically if it is Huge or larger.\n\nTo escape, the target or a creature within 5 feet of it must take an action to make a 10 Strength (Athletics) check, freeing the Restrained creature on a success. Destroying the Net (AC 10; 5 HP; Immunity to Bludgeoning, Poison, and Psychic damage) also frees the target, ending the effect."
+	},
+	{
+		"key": "oil|xphb",
+		"name": "Oil",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 0.1,
+		"text": "*1 lb.*\n\nYou can douse a creature, object, or space with Oil or use it as fuel, as detailed below.\n\n**Dousing a Creature or an Object.** When you take the Attack action, you can replace one of your attacks with throwing an Oil flask. Target one creature or object within 20 feet of yourself. The target must succeed on a Dexterity saving throw (8 plus your Dexterity modifier and Proficiency Bonus) or be covered in oil. If the target takes Fire damage before the oil dries (after 1 minute), the target takes an extra 5 Fire damage from burning oil.\n\n**Dousing a Space.** You can take the Utilize action to pour an Oil flask on level ground to cover a 5-foot-square area within 5 feet of yourself. If lit, the oil burns until the end of the turn 2 rounds from when the oil was lit (or 12 seconds) and deals 5 Fire damage to any creature that enters the area or ends its turn there. A creature can take this damage only once per turn.\n\n**Fuel.** Oil serves as fuel for Lamps and Lanterns. Once lit, a flask of Oil burns for 6 hours in a Lamp or Lantern. That duration doesn't need to be consecutive; you can extinguish the burning Oil (as a Utilize action) and rekindle it again until it has burned for a total of 6 hours."
+	},
+	{
+		"key": "oil-of-taggit|xdmg",
+		"name": "Oil of Taggit",
+		"source": "XDMG",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 400,
+		"text": "A creature subjected to Oil of Taggit must succeed on a 13 Constitution saving throw or have the Poisoned condition for 24 hours. The creature also has the Unconscious condition while Poisoned in this way. It wakes up if it takes damage."
+	},
+	{
+		"key": "pale-tincture|xdmg",
+		"name": "Pale Tincture",
+		"source": "XDMG",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 250,
+		"text": "A creature subjected to Pale Tincture must succeed on a 16 Constitution saving throw or take 3 (1d6) Poison damage and have the Poisoned condition. The Poisoned creature repeats the save every 24 hours, taking 3 (1d6) Poison damage on a failed save. The damage the poison deals can't be healed by any means while the creature remains Poisoned. After seven successful saves against the poison, the creature is no longer Poisoned."
+	},
+	{
+		"key": "paper|xphb",
+		"name": "Paper",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 0.2,
+		"text": "One sheet of Paper can hold about 250 handwritten words."
+	},
+	{
+		"key": "parchment|xphb",
+		"name": "Parchment",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 0.1,
+		"text": "One sheet of Parchment can hold about 250 handwritten words."
+	},
+	{
+		"key": "perfume|xphb",
+		"name": "Perfume",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 5,
+		"text": "Perfume comes in a 4-ounce vial. For 1 hour after applying Perfume to yourself, you have Advantage on Charisma (Persuasion) checks made to influence an Indifferent Humanoid within 5 feet of yourself."
+	},
+	{
+		"key": "pitcher|phb",
+		"name": "Pitcher",
+		"source": "PHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 0.02,
+		"text": "*4 lb.*\n\nA pitcher holds 1 gallon of liquid."
+	},
+	{
+		"key": "piton|phb",
+		"name": "Piton",
+		"source": "PHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 0.05,
+		"text": "*0.25 lb.*"
+	},
+	{
+		"key": "pole|xphb",
+		"name": "Pole",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 0.05,
+		"text": "*7 lb.*\n\nA Pole is 10 feet long. You can use it to touch something up to 10 feet away. If you must make a Strength (Athletics) check as part of a High or Long Jump, you can use the Pole to vault, giving yourself Advantage on the check."
+	},
+	{
+		"key": "portable-ram|xphb",
+		"name": "Portable Ram",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 4,
+		"text": "*35 lb.*\n\nYou can use a Portable Ram to break down doors. When doing so, you gain a +4 bonus to the Strength check. One other character can help you use the ram, giving you Advantage on this check."
+	},
+	{
+		"key": "pouch|xphb",
+		"name": "Pouch",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 0.5,
+		"text": "*1 lb.*\n\nA Pouch holds up to 6 pounds within one-fifth of a cubic foot."
+	},
+	{
+		"key": "priest-s-pack|xphb",
+		"name": "Priest's Pack",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 33,
+		"text": "*29 lb.*\n\nA Priest's Pack contains the following items: Backpack, Blanket, Holy Water, Lamp, 7 days of Rations, Robe, and Tinderbox."
+	},
+	{
+		"key": "purple-worm-poison|xdmg",
+		"name": "Purple Worm Poison",
+		"source": "XDMG",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 2000,
+		"text": "A creature subjected to Purple Worm Poison makes a 21 Constitution saving throw, taking 35 (10d6) Poison damage on a failed save or half as much damage on a successful one."
+	},
+	{
+		"key": "quiver|xphb",
+		"name": "Quiver",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 1,
+		"text": "*1 lb.*\n\nA Quiver holds up to 20 Arrows."
+	},
+	{
+		"key": "rations|xphb",
+		"name": "Rations",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 0.5,
+		"text": "*2 lb.*\n\nRations consist of travel-ready food, including jerky, dried fruit, hardtack, and nuts. See \"Malnutrition\" for the risks of not eating."
+	},
+	{
+		"key": "robe|xphb",
+		"name": "Robe",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 1,
+		"text": "*4 lb.*\n\nA Robe has vocational or ceremonial significance. Some events and locations admit only people wearing a Robe bearing certain colors or symbols."
+	},
+	{
+		"key": "rope|xphb",
+		"name": "Rope",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 1,
+		"text": "*5 lb.*\n\nAs a Utilize action, you can tie a knot with Rope if you succeed on a 10 Dexterity (Sleight of Hand) check. The Rope can be burst with a successful 20 Strength (Athletics) check.\n\nYou can bind an unwilling creature with the Rope only if the creature has the Grappled, Incapacitated, or Restrained condition. If the creature's legs are bound, the creature has the Restrained condition until it escapes. Escaping the Rope requires the creature to make a successful 15 Dexterity (Acrobatics) check as an action."
+	},
+	{
+		"key": "sack|xphb",
+		"name": "Sack",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 0.01,
+		"text": "*0.5 lb.*\n\nA Sack holds up to 30 pounds within 1 cubic foot."
+	},
+	{
+		"key": "scholar-s-pack|xphb",
+		"name": "Scholar's Pack",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 40,
+		"text": "*22 lb.*\n\nA Scholar's Pack contains the following items: Backpack, Book, Ink, Ink Pen, Lamp, 10 flasks of Oil, 10 sheets of Parchment, and Tinderbox."
+	},
+	{
+		"key": "sealing-wax|phb",
+		"name": "Sealing Wax",
+		"source": "PHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 0.5,
+		"text": ""
+	},
+	{
+		"key": "serpent-venom|xdmg",
+		"name": "Serpent Venom",
+		"source": "XDMG",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 200,
+		"text": "A creature subjected to Serpent Venom must succeed on a 11 Constitution saving throw, taking 10 (3d6) Poison damage on a failed save or half as much damage on a successful one."
+	},
+	{
+		"key": "shovel|xphb",
+		"name": "Shovel",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 2,
+		"text": "*5 lb.*\n\nWorking for 1 hour, you can use a Shovel to dig a hole that is 5 feet on each side in soil or similar material."
+	},
+	{
+		"key": "signal-whistle|xphb",
+		"name": "Signal Whistle",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 0.05,
+		"text": "When blown as a Utilize action, a Signal Whistle produces a sound that can be heard up to 600 feet away."
+	},
+	{
+		"key": "signet-ring|phb",
+		"name": "Signet Ring",
+		"source": "PHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 5,
+		"text": ""
+	},
+	{
+		"key": "silk-rope-50-feet|phb",
+		"name": "Silk Rope (50 feet)",
+		"source": "PHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 10,
+		"text": "*5 lb.*\n\nRope, whether made of hemp or silk, has 2 hit points and can be burst with a 17 Strength check."
+	},
+	{
+		"key": "sledgehammer|phb",
+		"name": "Sledgehammer",
+		"source": "PHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 2,
+		"text": "*10 lb.*"
+	},
+	{
+		"key": "soap|phb",
+		"name": "Soap",
+		"source": "PHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 0.02,
+		"text": ""
+	},
+	{
+		"key": "spellbook|phb",
+		"name": "Spellbook",
+		"source": "PHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 50,
+		"text": "*3 lb.*\n\nEssential for wizards, a spellbook is a leather-bound tome with 100 blank vellum pages suitable for recording spells."
+	},
+	{
+		"key": "spyglass|xphb",
+		"name": "Spyglass",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 1000,
+		"text": "*1 lb.*\n\nObjects viewed through a Spyglass are magnified to twice their size."
+	},
+	{
+		"key": "string|xphb",
+		"name": "String",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 0.1,
+		"text": "String is 10 feet long. You can tie a knot in it as a Utilize action."
+	},
+	{
+		"key": "tankard|phb",
+		"name": "Tankard",
+		"source": "PHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 0.02,
+		"text": "*1 lb.*\n\nA tankard holds 1 pint of liquid."
+	},
+	{
+		"key": "tent|xphb",
+		"name": "Tent",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 2,
+		"text": "*20 lb.*\n\nA Tent sleeps up to two Small or Medium creatures."
+	},
+	{
+		"key": "tinderbox|xphb",
+		"name": "Tinderbox",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 0.5,
+		"text": "*1 lb.*\n\nA Tinderbox is a small container holding flint, fire steel, and tinder (usually dry cloth soaked in light oil) used to kindle a fire. Using it to light a Candle, Lamp, Lantern, or Torch—or anything else with exposed fuel—takes a Bonus Action. Lighting any other fire takes 1 minute."
+	},
+	{
+		"key": "torch|xphb",
+		"name": "Torch",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 0.01,
+		"text": "*1 lb.*\n\nA Torch burns for 1 hour, casting Bright Light in a 20-foot radius and Dim Light for an additional 20 feet. When you take the Attack action, you can attack with the Torch, using it as a Simple Melee weapon. On a hit, the target takes 1 Fire damage."
+	},
+	{
+		"key": "torpor|xdmg",
+		"name": "Torpor",
+		"source": "XDMG",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 600,
+		"text": "A creature subjected to Torpor poison must succeed on a 15 Constitution saving throw or have the Poisoned condition for 4d6 hours. The creature's Speed is halved while the creature is Poisoned in this way."
+	},
+	{
+		"key": "traveler-s-clothes|xphb",
+		"name": "Traveler's Clothes",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 2,
+		"text": "*4 lb.*\n\nTraveler's Clothes are resilient garments designed for travel in various environments."
+	},
+	{
+		"key": "truth-serum|xdmg",
+		"name": "Truth Serum",
+		"source": "XDMG",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 150,
+		"text": "A creature subjected to Truth Serum must succeed on a 11 Constitution saving throw or have the Poisoned condition for 1 hour. The Poisoned creature can't knowingly communicate a lie."
+	},
+	{
+		"key": "vial|xphb",
+		"name": "Vial",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 1,
+		"text": "A Vial holds up to 4 ounces."
+	},
+	{
+		"key": "waterskin|xphb",
+		"name": "Waterskin",
+		"source": "XPHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 0.2,
+		"text": "*5 lb.*\n\nA Waterskin holds up to 4 pints. If you don't drink sufficient water, you risk dehydration."
+	},
+	{
+		"key": "whetstone|phb",
+		"name": "Whetstone",
+		"source": "PHB",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 0.01,
+		"text": "*1 lb.*"
+	},
+	{
+		"key": "wyvern-poison|xdmg",
+		"name": "Wyvern Poison",
+		"source": "XDMG",
+		"type": "Adventuring gear",
+		"rarity": null,
+		"price_gp": 1200,
+		"text": "A creature subjected to Wyvern Poison makes a 14 Constitution saving throw, taking 24 (7d6) Poison damage on a failed save or half as much damage on a successful one."
+	},
+	{
+		"key": "arrow|xphb",
+		"name": "Arrow",
+		"source": "XPHB",
+		"type": "Ammunition",
+		"rarity": null,
+		"price_gp": 0.05,
+		"text": "*0.05 lb.*\n\nArrows are used with a weapon that has the ammunition property to make a ranged attack. Each time you attack with the weapon, you expend one piece of ammunition. Drawing the ammunition from a quiver, case, or other container is part of the attack (you need a free hand to load a one-handed weapon). At the end of the battle, you can recover half your expended ammunition by taking a minute to search the battlefield.\n\nArrows are typically stored in a Quiver (bought separately)."
+	},
+	{
+		"key": "arrows-20|xphb",
+		"name": "Arrows (20)",
+		"source": "XPHB",
+		"type": "Ammunition",
+		"rarity": null,
+		"price_gp": 1,
+		"text": "*1 lb.*\n\nArrows are used with a weapon that has the ammunition property to make a ranged attack. Each time you attack with the weapon, you expend one piece of ammunition. Drawing the ammunition from a quiver, case, or other container is part of the attack (you need a free hand to load a one-handed weapon). At the end of the battle, you can recover half your expended ammunition by taking a minute to search the battlefield.\n\nArrows are typically stored in a Quiver (bought separately)."
+	},
+	{
+		"key": "bolt|xphb",
+		"name": "Bolt",
+		"source": "XPHB",
+		"type": "Ammunition",
+		"rarity": null,
+		"price_gp": 0.05,
+		"text": "*0.075 lb.*\n\nCrossbow bolts are used with a weapon that has the ammunition property to make a ranged attack. Each time you attack with the weapon, you expend one piece of ammunition. Drawing the ammunition from a quiver, case, or other container is part of the attack (you need a free hand to load a one-handed weapon). At the end of the battle, you can recover half your expended ammunition by taking a minute to search the battlefield.\n\nBolts are typically stored in a Crossbow Bolt Case (bought separately)."
+	},
+	{
+		"key": "bolts-20|xphb",
+		"name": "Bolts (20)",
+		"source": "XPHB",
+		"type": "Ammunition",
+		"rarity": null,
+		"price_gp": 1,
+		"text": "*1.5 lb.*\n\nCrossbow bolts are used with a weapon that has the ammunition property to make a ranged attack. Each time you attack with the weapon, you expend one piece of ammunition. Drawing the ammunition from a quiver, case, or other container is part of the attack (you need a free hand to load a one-handed weapon). At the end of the battle, you can recover half your expended ammunition by taking a minute to search the battlefield.\n\nBolts are typically stored in a Crossbow Bolt Case (bought separately)."
+	},
+	{
+		"key": "firearm-bullet|xphb",
+		"name": "Firearm Bullet",
+		"source": "XPHB",
+		"type": "Ammunition",
+		"rarity": null,
+		"price_gp": 0.3,
+		"text": "*0.2 lb.*\n\nFirearm Bullets are destroyed upon use in a modern firearm."
+	},
+	{
+		"key": "firearm-bullets-10|xphb",
+		"name": "Firearm Bullets (10)",
+		"source": "XPHB",
+		"type": "Ammunition",
+		"rarity": null,
+		"price_gp": 3,
+		"text": "*2 lb.*\n\nFirearm Bullets are destroyed upon use in a modern firearm."
+	},
+	{
+		"key": "needle|xphb",
+		"name": "Needle",
+		"source": "XPHB",
+		"type": "Ammunition",
+		"rarity": null,
+		"price_gp": 0.02,
+		"text": "*0.02 lb.*\n\nBlowgun needles are used with a weapon that has the ammunition property to make a ranged attack. Each time you attack with the weapon, you expend one piece of ammunition. Drawing the ammunition from a quiver, case, or other container is part of the attack (you need a free hand to load a one-handed weapon). At the end of the battle, you can recover half your expended ammunition by taking a minute to search the battlefield.\n\nNeedles are typically stored in a Pouch (bought separately)."
+	},
+	{
+		"key": "needles-50|xphb",
+		"name": "Needles (50)",
+		"source": "XPHB",
+		"type": "Ammunition",
+		"rarity": null,
+		"price_gp": 1,
+		"text": "*1 lb.*\n\nBlowgun needles are used with a weapon that has the ammunition property to make a ranged attack. Each time you attack with the weapon, you expend one piece of ammunition. Drawing the ammunition from a quiver, case, or other container is part of the attack (you need a free hand to load a one-handed weapon). At the end of the battle, you can recover half your expended ammunition by taking a minute to search the battlefield.\n\nNeedles are typically stored in a Pouch (bought separately)."
+	},
+	{
+		"key": "sling-bullet|xphb",
+		"name": "Sling Bullet",
+		"source": "XPHB",
+		"type": "Ammunition",
+		"rarity": null,
+		"price_gp": 0.002,
+		"text": "*0.075 lb.*\n\nSling bullets are used with a weapon that has the ammunition property to make a ranged attack. Each time you attack with the weapon, you expend one piece of ammunition. Drawing the ammunition from a quiver, case, or other container is part of the attack (you need a free hand to load a one-handed weapon). At the end of the battle, you can recover half your expended ammunition by taking a minute to search the battlefield.\n\nSling Bullets are typically stored in a Pouch (bought separately)."
+	},
+	{
+		"key": "sling-bullets-20|xphb",
+		"name": "Sling Bullets (20)",
+		"source": "XPHB",
+		"type": "Ammunition",
+		"rarity": null,
+		"price_gp": 0.04,
+		"text": "*1.5 lb.*\n\nSling bullets are used with a weapon that has the ammunition property to make a ranged attack. Each time you attack with the weapon, you expend one piece of ammunition. Drawing the ammunition from a quiver, case, or other container is part of the attack (you need a free hand to load a one-handed weapon). At the end of the battle, you can recover half your expended ammunition by taking a minute to search the battlefield.\n\nSling Bullets are typically stored in a Pouch (bought separately)."
+	},
+	{
+		"key": "alchemist-s-supplies|xphb",
+		"name": "Alchemist's Supplies",
+		"source": "XPHB",
+		"type": "Artisan's tools",
+		"rarity": null,
+		"price_gp": 50,
+		"text": "*8 lb.*\n\n- **Ability:.** Intelligence\n- **Utilize:.** Identify a substance (15), or start a fire (15)\n- **Craft:.** Acid, Alchemist's Fire, Component Pouch, Oil, Paper, Perfume"
+	},
+	{
+		"key": "brewer-s-supplies|xphb",
+		"name": "Brewer's Supplies",
+		"source": "XPHB",
+		"type": "Artisan's tools",
+		"rarity": null,
+		"price_gp": 20,
+		"text": "*9 lb.*\n\n- **Ability:.** Intelligence\n- **Utilize:.** Detect poisoned drink (15), or identify alcohol (10)\n- **Craft:.** Antitoxin"
+	},
+	{
+		"key": "calligrapher-s-supplies|xphb",
+		"name": "Calligrapher's Supplies",
+		"source": "XPHB",
+		"type": "Artisan's tools",
+		"rarity": null,
+		"price_gp": 10,
+		"text": "*5 lb.*\n\n- **Ability:.** Dexterity\n- **Utilize:.** Write text with impressive flourishes that guard against forgery (15)\n- **Craft:.** Ink, Spell Scroll"
+	},
+	{
+		"key": "carpenter-s-tools|xphb",
+		"name": "Carpenter's Tools",
+		"source": "XPHB",
+		"type": "Artisan's tools",
+		"rarity": null,
+		"price_gp": 8,
+		"text": "*6 lb.*\n\n- **Ability:.** Strength\n- **Utilize:.** Seal or pry open a door or container (20)\n- **Craft:.** Club, Greatclub, Quarterstaff, Barrel, Chest, Ladder, Pole, Portable Ram, Torch"
+	},
+	{
+		"key": "cartographer-s-tools|xphb",
+		"name": "Cartographer's Tools",
+		"source": "XPHB",
+		"type": "Artisan's tools",
+		"rarity": null,
+		"price_gp": 15,
+		"text": "*6 lb.*\n\n- **Ability:.** Wisdom\n- **Utilize:.** Draft a map of a small area (15)\n- **Craft:.** Map"
+	},
+	{
+		"key": "cobbler-s-tools|xphb",
+		"name": "Cobbler's Tools",
+		"source": "XPHB",
+		"type": "Artisan's tools",
+		"rarity": null,
+		"price_gp": 5,
+		"text": "*5 lb.*\n\n- **Ability:.** Dexterity\n- **Utilize:.** Modify footwear to give Advantage on the wearer's next Dexterity (Acrobatics) check (10)\n- **Craft:.** Climber's Kit"
+	},
+	{
+		"key": "cook-s-utensils|xphb",
+		"name": "Cook's Utensils",
+		"source": "XPHB",
+		"type": "Artisan's tools",
+		"rarity": null,
+		"price_gp": 1,
+		"text": "*8 lb.*\n\n- **Ability:.** Wisdom\n- **Utilize:.** Improve food's flavor (10), or detect spoiled or poisoned food (15)\n- **Craft:.** Rations"
+	},
+	{
+		"key": "glassblower-s-tools|xphb",
+		"name": "Glassblower's Tools",
+		"source": "XPHB",
+		"type": "Artisan's tools",
+		"rarity": null,
+		"price_gp": 30,
+		"text": "*5 lb.*\n\n- **Ability:.** Intelligence\n- **Utilize:.** Discern what a glass object held in the past 24 hours (15)\n- **Craft:.** Glass Bottle, Magnifying Glass, Spyglass, Vial"
+	},
+	{
+		"key": "jeweler-s-tools|xphb",
+		"name": "Jeweler's Tools",
+		"source": "XPHB",
+		"type": "Artisan's tools",
+		"rarity": null,
+		"price_gp": 25,
+		"text": "*2 lb.*\n\n- **Ability:.** Intelligence\n- **Utilize:.** Discern a gem's value (15)\n- **Craft:.** Arcane Focus, Holy Symbol"
+	},
+	{
+		"key": "leatherworker-s-tools|xphb",
+		"name": "Leatherworker's Tools",
+		"source": "XPHB",
+		"type": "Artisan's tools",
+		"rarity": null,
+		"price_gp": 5,
+		"text": "*5 lb.*\n\n- **Ability:.** Dexterity\n- **Utilize:.** Add a design to a leather item (10)\n- **Craft:.** Sling, Whip, Hide Armor, Leather Armor, Studded Leather Armor, Backpack, Crossbow Bolt Case, Map or Scroll Case, Parchment, Pouch, Quiver, Waterskin"
+	},
+	{
+		"key": "mason-s-tools|xphb",
+		"name": "Mason's Tools",
+		"source": "XPHB",
+		"type": "Artisan's tools",
+		"rarity": null,
+		"price_gp": 10,
+		"text": "*8 lb.*\n\n- **Ability:.** Strength\n- **Utilize:.** Chisel a symbol or hole in stone (10)\n- **Craft:.** Block and Tackle"
+	},
+	{
+		"key": "painter-s-supplies|xphb",
+		"name": "Painter's Supplies",
+		"source": "XPHB",
+		"type": "Artisan's tools",
+		"rarity": null,
+		"price_gp": 10,
+		"text": "*5 lb.*\n\n- **Ability:.** Wisdom\n- **Utilize:.** Paint a recognizable image of something you've seen (10)\n- **Craft:.** Druidic Focus, Holy Symbol"
+	},
+	{
+		"key": "potter-s-tools|xphb",
+		"name": "Potter's Tools",
+		"source": "XPHB",
+		"type": "Artisan's tools",
+		"rarity": null,
+		"price_gp": 10,
+		"text": "*3 lb.*\n\n- **Ability:.** Intelligence\n- **Utilize:.** Discern what a ceramic object held in the past 24 hours (15)\n- **Craft:.** Jug, Lamp"
+	},
+	{
+		"key": "smith-s-tools|xphb",
+		"name": "Smith's Tools",
+		"source": "XPHB",
+		"type": "Artisan's tools",
+		"rarity": null,
+		"price_gp": 20,
+		"text": "*8 lb.*\n\n- **Ability:.** Strength\n- **Utilize:.** Pry open a door or container (20)\n- **Craft:.** Any Melee weapon (except Club, Greatclub, Quarterstaff, and Whip), Medium armor (except Hide), Heavy armor, Ball Bearings, Bucket, Caltrops, Chain, Crowbar, Firearm Bullets, Grappling Hook, Iron Pot, Iron Spikes, Sling Bullets"
+	},
+	{
+		"key": "tinker-s-tools|xphb",
+		"name": "Tinker's Tools",
+		"source": "XPHB",
+		"type": "Artisan's tools",
+		"rarity": null,
+		"price_gp": 50,
+		"text": "*10 lb.*\n\n- **Ability:.** Dexterity\n- **Utilize:.** Assemble a Tiny item composed of scrap, which falls apart in 1 minute (20)\n- **Craft:.** Musket, Pistol, Bell, Bullseye Lantern, Flask, Hooded Lantern, Hunting Trap, Lock, Manacles, Mirror, Shovel, Signal Whistle, Tinderbox"
+	},
+	{
+		"key": "weaver-s-tools|xphb",
+		"name": "Weaver's Tools",
+		"source": "XPHB",
+		"type": "Artisan's tools",
+		"rarity": null,
+		"price_gp": 1,
+		"text": "*5 lb.*\n\n- **Ability:.** Dexterity\n- **Utilize:.** Mend a tear in clothing (10), or sew a Tiny design (10)\n- **Craft:.** Padded Armor, Basket, Bedroll, Blanket, Fine Clothes, Net, Robe, Rope, Sack, String, Tent, Traveler's Clothes"
+	},
+	{
+		"key": "woodcarver-s-tools|xphb",
+		"name": "Woodcarver's Tools",
+		"source": "XPHB",
+		"type": "Artisan's tools",
+		"rarity": null,
+		"price_gp": 1,
+		"text": "*5 lb.*\n\n- **Ability:.** Dexterity\n- **Utilize:.** Carve a pattern in wood (10)\n- **Craft:.** Club, Greatclub, Quarterstaff, Ranged weapons (except Pistol, Musket, and Sling), Arcane Focus, Arrows, Bolts, Druidic Focus, Ink Pen, Needles"
+	},
+	{
+		"key": "ale-gallon|phb",
+		"name": "Ale (gallon)",
+		"source": "PHB",
+		"type": "Food and drink",
+		"rarity": null,
+		"price_gp": 0.2,
+		"text": ""
+	},
+	{
+		"key": "ale-mug|xphb",
+		"name": "Ale (mug)",
+		"source": "XPHB",
+		"type": "Food and drink",
+		"rarity": null,
+		"price_gp": 0.04,
+		"text": ""
+	},
+	{
+		"key": "bread-loaf|xphb",
+		"name": "Bread (loaf)",
+		"source": "XPHB",
+		"type": "Food and drink",
+		"rarity": null,
+		"price_gp": 0.02,
+		"text": ""
+	},
+	{
+		"key": "cheese-wedge|xphb",
+		"name": "Cheese (wedge)",
+		"source": "XPHB",
+		"type": "Food and drink",
+		"rarity": null,
+		"price_gp": 0.1,
+		"text": ""
+	},
+	{
+		"key": "chunk-of-meat|phb",
+		"name": "Chunk of Meat",
+		"source": "PHB",
+		"type": "Food and drink",
+		"rarity": null,
+		"price_gp": 0.3,
+		"text": ""
+	},
+	{
+		"key": "common-wine-bottle|xphb",
+		"name": "Common Wine (bottle)",
+		"source": "XPHB",
+		"type": "Food and drink",
+		"rarity": null,
+		"price_gp": 0.2,
+		"text": ""
+	},
+	{
+		"key": "fine-wine-bottle|xphb",
+		"name": "Fine Wine (bottle)",
+		"source": "XPHB",
+		"type": "Food and drink",
+		"rarity": null,
+		"price_gp": 10,
+		"text": ""
+	},
+	{
+		"key": "dice-set|xphb",
+		"name": "Dice Set",
+		"source": "XPHB",
+		"type": "Gaming set",
+		"rarity": null,
+		"price_gp": 0.1,
+		"text": "- **Ability:.** Wisdom\n- **Utilize:.** Discern whether someone is cheating (10), or win the game (20)"
+	},
+	{
+		"key": "dragonchess-set|xphb",
+		"name": "Dragonchess Set",
+		"source": "XPHB",
+		"type": "Gaming set",
+		"rarity": null,
+		"price_gp": 1,
+		"text": "- **Ability:.** Wisdom\n- **Utilize:.** Discern whether someone is cheating (10), or win the game (20)"
+	},
+	{
+		"key": "playing-cards|xphb",
+		"name": "Playing Cards",
+		"source": "XPHB",
+		"type": "Gaming set",
+		"rarity": null,
+		"price_gp": 0.5,
+		"text": "- **Ability:.** Wisdom\n- **Utilize:.** Discern whether someone is cheating (10), or win the game (20)"
+	},
+	{
+		"key": "three-dragon-ante-set|xphb",
+		"name": "Three-Dragon Ante Set",
+		"source": "XPHB",
+		"type": "Gaming set",
+		"rarity": null,
+		"price_gp": 1,
+		"text": "- **Ability:.** Wisdom\n- **Utilize:.** Discern whether someone is cheating (10), or win the game (20)"
+	},
+	{
+		"key": "chain-mail|xphb",
+		"name": "Chain Mail",
+		"source": "XPHB",
+		"type": "Heavy armor",
+		"rarity": null,
+		"price_gp": 75,
+		"text": "*AC 16 · 55 lb.*"
+	},
+	{
+		"key": "plate-armor|xphb",
+		"name": "Plate Armor",
+		"source": "XPHB",
+		"type": "Heavy armor",
+		"rarity": null,
+		"price_gp": 1500,
+		"text": "*AC 18 · 65 lb.*"
+	},
+	{
+		"key": "ring-mail|xphb",
+		"name": "Ring Mail",
+		"source": "XPHB",
+		"type": "Heavy armor",
+		"rarity": null,
+		"price_gp": 30,
+		"text": "*AC 14 · 40 lb.*"
+	},
+	{
+		"key": "splint-armor|xphb",
+		"name": "Splint Armor",
+		"source": "XPHB",
+		"type": "Heavy armor",
+		"rarity": null,
+		"price_gp": 200,
+		"text": "*AC 17 · 60 lb.*"
+	},
+	{
+		"key": "bagpipes|xphb",
+		"name": "Bagpipes",
+		"source": "XPHB",
+		"type": "Instrument",
+		"rarity": null,
+		"price_gp": 30,
+		"text": "*6 lb.*\n\n- **Ability:.** Charisma\n- **Utilize:.** Play a known tune (10), or improvise a song (15)"
+	},
+	{
+		"key": "drum|xphb",
+		"name": "Drum",
+		"source": "XPHB",
+		"type": "Instrument",
+		"rarity": null,
+		"price_gp": 6,
+		"text": "*3 lb.*\n\n- **Ability:.** Charisma\n- **Utilize:.** Play a known tune (10), or improvise a song (15)"
+	},
+	{
+		"key": "dulcimer|xphb",
+		"name": "Dulcimer",
+		"source": "XPHB",
+		"type": "Instrument",
+		"rarity": null,
+		"price_gp": 25,
+		"text": "*10 lb.*\n\n- **Ability:.** Charisma\n- **Utilize:.** Play a known tune (10), or improvise a song (15)"
+	},
+	{
+		"key": "flute|xphb",
+		"name": "Flute",
+		"source": "XPHB",
+		"type": "Instrument",
+		"rarity": null,
+		"price_gp": 2,
+		"text": "*1 lb.*\n\n- **Ability:.** Charisma\n- **Utilize:.** Play a known tune (10), or improvise a song (15)"
+	},
+	{
+		"key": "horn|xphb",
+		"name": "Horn",
+		"source": "XPHB",
+		"type": "Instrument",
+		"rarity": null,
+		"price_gp": 3,
+		"text": "*2 lb.*\n\n- **Ability:.** Charisma\n- **Utilize:.** Play a known tune (10), or improvise a song (15)"
+	},
+	{
+		"key": "lute|xphb",
+		"name": "Lute",
+		"source": "XPHB",
+		"type": "Instrument",
+		"rarity": null,
+		"price_gp": 35,
+		"text": "*2 lb.*\n\n- **Ability:.** Charisma\n- **Utilize:.** Play a known tune (10), or improvise a song (15)"
+	},
+	{
+		"key": "lyre|xphb",
+		"name": "Lyre",
+		"source": "XPHB",
+		"type": "Instrument",
+		"rarity": null,
+		"price_gp": 30,
+		"text": "*2 lb.*\n\n- **Ability:.** Charisma\n- **Utilize:.** Play a known tune (10), or improvise a song (15)"
+	},
+	{
+		"key": "pan-flute|xphb",
+		"name": "Pan Flute",
+		"source": "XPHB",
+		"type": "Instrument",
+		"rarity": null,
+		"price_gp": 12,
+		"text": "*2 lb.*\n\n- **Ability:.** Charisma\n- **Utilize:.** Play a known tune (10), or improvise a song (15)"
+	},
+	{
+		"key": "shawm|xphb",
+		"name": "Shawm",
+		"source": "XPHB",
+		"type": "Instrument",
+		"rarity": null,
+		"price_gp": 2,
+		"text": "*1 lb.*\n\n- **Ability:.** Charisma\n- **Utilize:.** Play a known tune (10), or improvise a song (15)"
+	},
+	{
+		"key": "viol|xphb",
+		"name": "Viol",
+		"source": "XPHB",
+		"type": "Instrument",
+		"rarity": null,
+		"price_gp": 30,
+		"text": "*1 lb.*\n\n- **Ability:.** Charisma\n- **Utilize:.** Play a known tune (10), or improvise a song (15)"
+	},
+	{
+		"key": "leather-armor|xphb",
+		"name": "Leather Armor",
+		"source": "XPHB",
+		"type": "Light armor",
+		"rarity": null,
+		"price_gp": 10,
+		"text": "*AC 11 · 10 lb.*"
+	},
+	{
+		"key": "padded-armor|xphb",
+		"name": "Padded Armor",
+		"source": "XPHB",
+		"type": "Light armor",
+		"rarity": null,
+		"price_gp": 5,
+		"text": "*AC 11 · 8 lb.*"
+	},
+	{
+		"key": "studded-leather-armor|xphb",
+		"name": "Studded Leather Armor",
+		"source": "XPHB",
+		"type": "Light armor",
+		"rarity": null,
+		"price_gp": 45,
+		"text": "*AC 12 · 13 lb.*"
+	},
+	{
+		"key": "breastplate|xphb",
+		"name": "Breastplate",
+		"source": "XPHB",
+		"type": "Medium armor",
+		"rarity": null,
+		"price_gp": 400,
+		"text": "*AC 14 · 20 lb.*"
+	},
+	{
+		"key": "chain-shirt|xphb",
+		"name": "Chain Shirt",
+		"source": "XPHB",
+		"type": "Medium armor",
+		"rarity": null,
+		"price_gp": 50,
+		"text": "*AC 13 · 20 lb.*"
+	},
+	{
+		"key": "half-plate-armor|xphb",
+		"name": "Half Plate Armor",
+		"source": "XPHB",
+		"type": "Medium armor",
+		"rarity": null,
+		"price_gp": 750,
+		"text": "*AC 15 · 40 lb.*"
+	},
+	{
+		"key": "hide-armor|xphb",
+		"name": "Hide Armor",
+		"source": "XPHB",
+		"type": "Medium armor",
+		"rarity": null,
+		"price_gp": 10,
+		"text": "*AC 12 · 12 lb.*"
+	},
+	{
+		"key": "scale-mail|xphb",
+		"name": "Scale Mail",
+		"source": "XPHB",
+		"type": "Medium armor",
+		"rarity": null,
+		"price_gp": 50,
+		"text": "*AC 14 · 45 lb.*"
+	},
+	{
+		"key": "battleaxe|xphb",
+		"name": "Battleaxe",
+		"source": "XPHB",
+		"type": "Melee weapon",
+		"rarity": null,
+		"price_gp": 10,
+		"text": "*1d8 slashing · 4 lb.*"
+	},
+	{
+		"key": "club|xphb",
+		"name": "Club",
+		"source": "XPHB",
+		"type": "Melee weapon",
+		"rarity": null,
+		"price_gp": 0.1,
+		"text": "*1d4 bludgeoning · 2 lb.*"
+	},
+	{
+		"key": "dagger|xphb",
+		"name": "Dagger",
+		"source": "XPHB",
+		"type": "Melee weapon",
+		"rarity": null,
+		"price_gp": 2,
+		"text": "*1d4 piercing · 1 lb.*"
+	},
+	{
+		"key": "flail|xphb",
+		"name": "Flail",
+		"source": "XPHB",
+		"type": "Melee weapon",
+		"rarity": null,
+		"price_gp": 10,
+		"text": "*1d8 bludgeoning · 2 lb.*"
+	},
+	{
+		"key": "glaive|xphb",
+		"name": "Glaive",
+		"source": "XPHB",
+		"type": "Melee weapon",
+		"rarity": null,
+		"price_gp": 20,
+		"text": "*1d10 slashing · 6 lb.*"
+	},
+	{
+		"key": "greataxe|xphb",
+		"name": "Greataxe",
+		"source": "XPHB",
+		"type": "Melee weapon",
+		"rarity": null,
+		"price_gp": 30,
+		"text": "*1d12 slashing · 7 lb.*"
+	},
+	{
+		"key": "greatclub|xphb",
+		"name": "Greatclub",
+		"source": "XPHB",
+		"type": "Melee weapon",
+		"rarity": null,
+		"price_gp": 0.2,
+		"text": "*1d8 bludgeoning · 10 lb.*"
+	},
+	{
+		"key": "greatsword|xphb",
+		"name": "Greatsword",
+		"source": "XPHB",
+		"type": "Melee weapon",
+		"rarity": null,
+		"price_gp": 50,
+		"text": "*2d6 slashing · 6 lb.*"
+	},
+	{
+		"key": "halberd|xphb",
+		"name": "Halberd",
+		"source": "XPHB",
+		"type": "Melee weapon",
+		"rarity": null,
+		"price_gp": 20,
+		"text": "*1d10 slashing · 6 lb.*"
+	},
+	{
+		"key": "handaxe|xphb",
+		"name": "Handaxe",
+		"source": "XPHB",
+		"type": "Melee weapon",
+		"rarity": null,
+		"price_gp": 5,
+		"text": "*1d6 slashing · 2 lb.*"
+	},
+	{
+		"key": "javelin|xphb",
+		"name": "Javelin",
+		"source": "XPHB",
+		"type": "Melee weapon",
+		"rarity": null,
+		"price_gp": 0.5,
+		"text": "*1d6 piercing · 2 lb.*"
+	},
+	{
+		"key": "lance|xphb",
+		"name": "Lance",
+		"source": "XPHB",
+		"type": "Melee weapon",
+		"rarity": null,
+		"price_gp": 10,
+		"text": "*1d10 piercing · 6 lb.*\n\nA Lance requires two hands to wield when you aren't mounted."
+	},
+	{
+		"key": "light-hammer|xphb",
+		"name": "Light Hammer",
+		"source": "XPHB",
+		"type": "Melee weapon",
+		"rarity": null,
+		"price_gp": 2,
+		"text": "*1d4 bludgeoning · 2 lb.*"
+	},
+	{
+		"key": "longsword|xphb",
+		"name": "Longsword",
+		"source": "XPHB",
+		"type": "Melee weapon",
+		"rarity": null,
+		"price_gp": 15,
+		"text": "*1d8 slashing · 3 lb.*"
+	},
+	{
+		"key": "mace|xphb",
+		"name": "Mace",
+		"source": "XPHB",
+		"type": "Melee weapon",
+		"rarity": null,
+		"price_gp": 5,
+		"text": "*1d6 bludgeoning · 4 lb.*"
+	},
+	{
+		"key": "maul|xphb",
+		"name": "Maul",
+		"source": "XPHB",
+		"type": "Melee weapon",
+		"rarity": null,
+		"price_gp": 10,
+		"text": "*2d6 bludgeoning · 10 lb.*"
+	},
+	{
+		"key": "morningstar|xphb",
+		"name": "Morningstar",
+		"source": "XPHB",
+		"type": "Melee weapon",
+		"rarity": null,
+		"price_gp": 15,
+		"text": "*1d8 piercing · 4 lb.*"
+	},
+	{
+		"key": "pike|xphb",
+		"name": "Pike",
+		"source": "XPHB",
+		"type": "Melee weapon",
+		"rarity": null,
+		"price_gp": 5,
+		"text": "*1d10 piercing · 18 lb.*"
+	},
+	{
+		"key": "quarterstaff|xphb",
+		"name": "Quarterstaff",
+		"source": "XPHB",
+		"type": "Melee weapon",
+		"rarity": null,
+		"price_gp": 0.2,
+		"text": "*1d6 bludgeoning · 4 lb.*"
+	},
+	{
+		"key": "rapier|xphb",
+		"name": "Rapier",
+		"source": "XPHB",
+		"type": "Melee weapon",
+		"rarity": null,
+		"price_gp": 25,
+		"text": "*1d8 piercing · 2 lb.*"
+	},
+	{
+		"key": "scimitar|xphb",
+		"name": "Scimitar",
+		"source": "XPHB",
+		"type": "Melee weapon",
+		"rarity": null,
+		"price_gp": 25,
+		"text": "*1d6 slashing · 3 lb.*"
+	},
+	{
+		"key": "shortsword|xphb",
+		"name": "Shortsword",
+		"source": "XPHB",
+		"type": "Melee weapon",
+		"rarity": null,
+		"price_gp": 10,
+		"text": "*1d6 piercing · 2 lb.*"
+	},
+	{
+		"key": "sickle|xphb",
+		"name": "Sickle",
+		"source": "XPHB",
+		"type": "Melee weapon",
+		"rarity": null,
+		"price_gp": 1,
+		"text": "*1d4 slashing · 2 lb.*"
+	},
+	{
+		"key": "spear|xphb",
+		"name": "Spear",
+		"source": "XPHB",
+		"type": "Melee weapon",
+		"rarity": null,
+		"price_gp": 1,
+		"text": "*1d6 piercing · 3 lb.*"
+	},
+	{
+		"key": "trident|xphb",
+		"name": "Trident",
+		"source": "XPHB",
+		"type": "Melee weapon",
+		"rarity": null,
+		"price_gp": 5,
+		"text": "*1d8 piercing · 4 lb.*"
+	},
+	{
+		"key": "war-pick|xphb",
+		"name": "War Pick",
+		"source": "XPHB",
+		"type": "Melee weapon",
+		"rarity": null,
+		"price_gp": 5,
+		"text": "*1d8 piercing · 2 lb.*"
+	},
+	{
+		"key": "warhammer|xphb",
+		"name": "Warhammer",
+		"source": "XPHB",
+		"type": "Melee weapon",
+		"rarity": null,
+		"price_gp": 15,
+		"text": "*1d8 bludgeoning · 5 lb.*"
+	},
+	{
+		"key": "whip|xphb",
+		"name": "Whip",
+		"source": "XPHB",
+		"type": "Melee weapon",
+		"rarity": null,
+		"price_gp": 2,
+		"text": "*1d4 slashing · 3 lb.*"
+	},
+	{
+		"key": "camel|xphb",
+		"name": "Camel",
+		"source": "XPHB",
+		"type": "Mount",
+		"rarity": null,
+		"price_gp": 50,
+		"text": ""
+	},
+	{
+		"key": "donkey|phb",
+		"name": "Donkey",
+		"source": "PHB",
+		"type": "Mount",
+		"rarity": null,
+		"price_gp": 8,
+		"text": ""
+	},
+	{
+		"key": "draft-horse|xphb",
+		"name": "Draft Horse",
+		"source": "XPHB",
+		"type": "Mount",
+		"rarity": null,
+		"price_gp": 50,
+		"text": ""
+	},
+	{
+		"key": "elephant|xphb",
+		"name": "Elephant",
+		"source": "XPHB",
+		"type": "Mount",
+		"rarity": null,
+		"price_gp": 200,
+		"text": ""
+	},
+	{
+		"key": "mastiff|xphb",
+		"name": "Mastiff",
+		"source": "XPHB",
+		"type": "Mount",
+		"rarity": null,
+		"price_gp": 25,
+		"text": ""
+	},
+	{
+		"key": "mule|xphb",
+		"name": "Mule",
+		"source": "XPHB",
+		"type": "Mount",
+		"rarity": null,
+		"price_gp": 8,
+		"text": ""
+	},
+	{
+		"key": "pony|xphb",
+		"name": "Pony",
+		"source": "XPHB",
+		"type": "Mount",
+		"rarity": null,
+		"price_gp": 30,
+		"text": ""
+	},
+	{
+		"key": "riding-horse|xphb",
+		"name": "Riding Horse",
+		"source": "XPHB",
+		"type": "Mount",
+		"rarity": null,
+		"price_gp": 75,
+		"text": ""
+	},
+	{
+		"key": "warhorse|xphb",
+		"name": "Warhorse",
+		"source": "XPHB",
+		"type": "Mount",
+		"rarity": null,
+		"price_gp": 400,
+		"text": ""
+	},
+	{
+		"key": "elixir-of-health|xdmg",
+		"name": "Elixir of Health",
+		"source": "XDMG",
+		"type": "Potion or oil",
+		"rarity": "rare",
+		"price_gp": null,
+		"text": "*0.5 lb.*\n\nWhen you drink this potion, you are cured of all magical contagions. In addition, the following conditions end on you: Blinded, Deafened, Paralyzed, and Poisoned.\n\nThe clear, red liquid has tiny bubbles of light in it."
+	},
+	{
+		"key": "oil-of-etherealness|xdmg",
+		"name": "Oil of Etherealness",
+		"source": "XDMG",
+		"type": "Potion or oil",
+		"rarity": "rare",
+		"price_gp": null,
+		"text": "*0.5 lb.*\n\nOne vial of this oil can cover one Medium or smaller creature, along with the equipment it's wearing and carrying (one additional vial is required for each size category above Medium). Applying the oil takes 10 minutes. The affected creature then gains the effect of the Etherealness spell for 1 hour.\n\nBeads of this cloudy, gray oil form on the outside of its container and quickly evaporate."
+	},
+	{
+		"key": "oil-of-sharpness|xdmg",
+		"name": "Oil of Sharpness",
+		"source": "XDMG",
+		"type": "Potion or oil",
+		"rarity": "very rare",
+		"price_gp": null,
+		"text": "*0.5 lb.*\n\nOne vial of this oil can coat one Melee weapon or twenty pieces of ammunition, but only ammunition and Melee weapons that are nonmagical and deal Slashing or Piercing damage are affected. Applying the oil takes 1 minute, after which the oil magically seeps into whatever it coats, turning the coated weapon into a +3 Weapon or the coated ammunition into +3 Ammunition.\n\nThis clear, gelatinous oil sparkles with tiny, ultrathin silver shards."
+	},
+	{
+		"key": "oil-of-slipperiness|xdmg",
+		"name": "Oil of Slipperiness",
+		"source": "XDMG",
+		"type": "Potion or oil",
+		"rarity": "uncommon",
+		"price_gp": null,
+		"text": "*0.5 lb.*\n\nOne vial of this oil can cover one Medium or smaller creature, along with the equipment it's wearing and carrying (one additional vial is required for each size category above Medium). Applying the oil takes 10 minutes. The affected creature then gains the effect of the Freedom of Movement spell for 8 hours.\n\nAlternatively, the oil can be poured on the ground as a Magic action, where it covers a 10-foot square, duplicating the effect of the Grease spell in that area for 8 hours.\n\nThis sticky, black unguent is thick and heavy, but it flows quickly when poured."
+	},
+	{
+		"key": "philter-of-love|xdmg",
+		"name": "Philter of Love",
+		"source": "XDMG",
+		"type": "Potion or oil",
+		"rarity": "uncommon",
+		"price_gp": null,
+		"text": "*0.5 lb.*\n\nThe next time you see a creature within 10 minutes after drinking this philter, you are charmed by that creature and have the Charmed condition for 1 hour.\n\nThis rose-hued, effervescent liquid contains one easy-to-miss bubble shaped like a heart."
+	},
+	{
+		"key": "potion-of-acid-resistance|xdmg",
+		"name": "Potion of Acid Resistance",
+		"source": "XDMG",
+		"type": "Potion or oil",
+		"rarity": "uncommon",
+		"price_gp": null,
+		"text": "*0.5 lb.*\n\nWhen you drink this potion, you have Resistance to acid damage for 1 hour."
+	},
+	{
+		"key": "potion-of-animal-friendship|xdmg",
+		"name": "Potion of Animal Friendship",
+		"source": "XDMG",
+		"type": "Potion or oil",
+		"rarity": "uncommon",
+		"price_gp": null,
+		"text": "*0.5 lb.*\n\nWhen you drink this potion, you can cast the level 3 version of the Animal Friendship spell (save 13).\n\nAgitating this potion's muddy liquid brings little bits into view: a fish scale, a hummingbird feather, a cat claw, or a squirrel hair."
+	},
+	{
+		"key": "potion-of-clairvoyance|xdmg",
+		"name": "Potion of Clairvoyance",
+		"source": "XDMG",
+		"type": "Potion or oil",
+		"rarity": "rare",
+		"price_gp": null,
+		"text": "*0.5 lb.*\n\nWhen you drink this potion, you gain the effect of the Clairvoyance spell (no Concentration required).\n\nAn eyeball bobs in this potion's yellowish liquid but vanishes when the potion is opened."
+	},
+	{
+		"key": "potion-of-climbing|xdmg",
+		"name": "Potion of Climbing",
+		"source": "XDMG",
+		"type": "Potion or oil",
+		"rarity": "common",
+		"price_gp": null,
+		"text": "*0.5 lb.*\n\nWhen you drink this potion, you gain a Climb Speed equal to your Speed for 1 hour. During this time, you have Advantage on Strength (Athletics) checks to climb.\n\nThis potion is separated into brown, silver, and gray layers resembling bands of stone. Shaking the bottle fails to mix the colors."
+	},
+	{
+		"key": "potion-of-cloud-giant-strength|xdmg",
+		"name": "Potion of Cloud Giant Strength",
+		"source": "XDMG",
+		"type": "Potion or oil",
+		"rarity": "very rare",
+		"price_gp": null,
+		"text": "*0.5 lb.*\n\nWhen you drink this potion, your Strength score changes to 27 for 1 hour. The potion has no effect on you if your Strength is equal to or greater than that score.\n\nThis potion's transparent liquid has floating in it a sliver of fingernail from a cloud giant."
+	},
+	{
+		"key": "potion-of-cold-resistance|xdmg",
+		"name": "Potion of Cold Resistance",
+		"source": "XDMG",
+		"type": "Potion or oil",
+		"rarity": "uncommon",
+		"price_gp": null,
+		"text": "*0.5 lb.*\n\nWhen you drink this potion, you have Resistance to cold damage for 1 hour."
+	},
+	{
+		"key": "potion-of-comprehension|xdmg",
+		"name": "Potion of Comprehension",
+		"source": "XDMG",
+		"type": "Potion or oil",
+		"rarity": "common",
+		"price_gp": null,
+		"text": "*0.5 lb.*\n\nWhen you drink this potion, you gain the effect of the Comprehend Languages spell for 1 hour.\n\nThis potion's liquid is a clear concoction with bits of salt and soot swirling in it."
+	},
+	{
+		"key": "potion-of-diminution|xdmg",
+		"name": "Potion of Diminution",
+		"source": "XDMG",
+		"type": "Potion or oil",
+		"rarity": "rare",
+		"price_gp": null,
+		"text": "*0.5 lb.*\n\nWhen you drink this potion, you gain the \"reduce\" effect of the Enlarge/Reduce spell for 1d4 hours (no Concentration required).\n\nThe red in the potion's liquid continuously contracts to a tiny bead and then expands to color the clear liquid around it. Shaking the bottle fails to interrupt this process."
+	},
+	{
+		"key": "potion-of-fire-breath|xdmg",
+		"name": "Potion of Fire Breath",
+		"source": "XDMG",
+		"type": "Potion or oil",
+		"rarity": "uncommon",
+		"price_gp": null,
+		"text": "*0.5 lb.*\n\nAfter drinking this potion, you can take a Bonus Action to exhale fire at a target within 30 feet of yourself. The target makes a 13 Dexterity saving throw, taking 4d6 Fire damage on a failed save or half as much damage on a successful one. The effect ends after you exhale the fire three times or when 1 hour has passed.\n\nThis potion's orange liquid flickers, and smoke fills the top of the container and wafts out whenever it is opened."
+	},
+	{
+		"key": "potion-of-fire-giant-strength|xdmg",
+		"name": "Potion of Fire Giant Strength",
+		"source": "XDMG",
+		"type": "Potion or oil",
+		"rarity": "rare",
+		"price_gp": null,
+		"text": "*0.5 lb.*\n\nWhen you drink this potion, your Strength score changes to 25 for 1 hour. The potion has no effect on you if your Strength is equal to or greater than that score.\n\nThis potion's transparent liquid has floating in it a sliver of fingernail from a fire giant."
+	},
+	{
+		"key": "potion-of-fire-resistance|xdmg",
+		"name": "Potion of Fire Resistance",
+		"source": "XDMG",
+		"type": "Potion or oil",
+		"rarity": "uncommon",
+		"price_gp": null,
+		"text": "*0.5 lb.*\n\nWhen you drink this potion, you have Resistance to fire damage for 1 hour."
+	},
+	{
+		"key": "potion-of-flying|xdmg",
+		"name": "Potion of Flying",
+		"source": "XDMG",
+		"type": "Potion or oil",
+		"rarity": "very rare",
+		"price_gp": null,
+		"text": "*0.5 lb.*\n\nWhen you drink this potion, you gain a Fly Speed equal to your Speed for 1 hour and can hover. If you're in the air when the potion wears off, you fall unless you have some other means of staying aloft.\n\nThis potion's clear liquid floats at the top of its container and has cloudy white impurities drifting in it."
+	},
+	{
+		"key": "potion-of-force-resistance|xdmg",
+		"name": "Potion of Force Resistance",
+		"source": "XDMG",
+		"type": "Potion or oil",
+		"rarity": "uncommon",
+		"price_gp": null,
+		"text": "*0.5 lb.*\n\nWhen you drink this potion, you have Resistance to force damage for 1 hour."
+	},
+	{
+		"key": "potion-of-frost-giant-strength|xdmg",
+		"name": "Potion of Frost Giant Strength",
+		"source": "XDMG",
+		"type": "Potion or oil",
+		"rarity": "rare",
+		"price_gp": null,
+		"text": "*0.5 lb.*\n\nWhen you drink this potion, your Strength score changes to 23 for 1 hour. The potion has no effect on you if your Strength is equal to or greater than that score.\n\nThis potion's transparent liquid has floating in it a sliver of fingernail from a frost giant."
+	},
+	{
+		"key": "potion-of-gaseous-form|xdmg",
+		"name": "Potion of Gaseous Form",
+		"source": "XDMG",
+		"type": "Potion or oil",
+		"rarity": "rare",
+		"price_gp": null,
+		"text": "*0.5 lb.*\n\nWhen you drink this potion, you gain the effect of the Gaseous Form spell for 1 hour (no Concentration required) or until you end the effect as a Bonus Action.\n\nThis potion's container seems to hold fog that moves and pours like water."
+	},
+	{
+		"key": "potion-of-greater-healing|xdmg",
+		"name": "Potion of Greater Healing",
+		"source": "XDMG",
+		"type": "Potion or oil",
+		"rarity": "uncommon",
+		"price_gp": null,
+		"text": "*0.5 lb.*\n\nYou regain 4d4 + 4 Hit Points when you drink this potion. The potion's red liquid glimmers when agitated."
+	},
+	{
+		"key": "potion-of-greater-invisibility|xdmg",
+		"name": "Potion of Greater Invisibility",
+		"source": "XDMG",
+		"type": "Potion or oil",
+		"rarity": "very rare",
+		"price_gp": null,
+		"text": "*0.5 lb.*\n\nThis potion's container looks empty but feels as though it holds liquid. When you drink the potion, you have the Invisible condition for 1 hour."
+	},
+	{
+		"key": "potion-of-growth|xdmg",
+		"name": "Potion of Growth",
+		"source": "XDMG",
+		"type": "Potion or oil",
+		"rarity": "uncommon",
+		"price_gp": null,
+		"text": "*0.5 lb.*\n\nWhen you drink this potion, you gain the \"enlarge\" effect of the Enlarge/Reduce spell for 10 minutes (no Concentration required).\n\nThe red in the potion's liquid continuously expands from a tiny bead to color the clear liquid around it and then contracts. Shaking the bottle fails to interrupt this process."
+	},
+	{
+		"key": "potion-of-healing|xdmg",
+		"name": "Potion of Healing",
+		"source": "XDMG",
+		"type": "Potion or oil",
+		"rarity": "common",
+		"price_gp": 50,
+		"text": "*0.5 lb.*\n\nThis potion is a magic item. As a Bonus Action, you can drink it or administer it to another creature within 5 feet of yourself. The creature that drinks the magical red fluid in this vial regains 2d4 + 2 Hit Points. The potion's red liquid glimmers when agitated."
+	},
+	{
+		"key": "potion-of-heroism|xdmg",
+		"name": "Potion of Heroism",
+		"source": "XDMG",
+		"type": "Potion or oil",
+		"rarity": "rare",
+		"price_gp": null,
+		"text": "*0.5 lb.*\n\nWhen you drink this potion, you gain 10 Temporary Hit Points that last for 1 hour. For the same duration, you are under the effect of the Bless spell (no Concentration required).\n\nThis potion's blue liquid bubbles and steams as if boiling."
+	},
+	{
+		"key": "potion-of-hill-giant-strength|xdmg",
+		"name": "Potion of Hill Giant Strength",
+		"source": "XDMG",
+		"type": "Potion or oil",
+		"rarity": "uncommon",
+		"price_gp": null,
+		"text": "*0.5 lb.*\n\nWhen you drink this potion, your Strength score changes to 21 for 1 hour. The potion has no effect on you if your Strength is equal to or greater than that score.\n\nThis potion's transparent liquid has floating in it a sliver of fingernail from a hill giant."
+	},
+	{
+		"key": "potion-of-invisibility|xdmg",
+		"name": "Potion of Invisibility",
+		"source": "XDMG",
+		"type": "Potion or oil",
+		"rarity": "rare",
+		"price_gp": null,
+		"text": "*0.5 lb.*\n\nThis potion's container looks empty but feels as though it holds liquid. When you drink the potion, you have the Invisible condition for 1 hour. The effect ends early if you make an attack roll, deal damage, or cast a spell."
+	},
+	{
+		"key": "potion-of-invulnerability|xdmg",
+		"name": "Potion of Invulnerability",
+		"source": "XDMG",
+		"type": "Potion or oil",
+		"rarity": "rare",
+		"price_gp": null,
+		"text": "*0.5 lb.*\n\nFor 1 minute after you drink this potion, you have Resistance to all damage.\n\nThis potion's syrupy liquid looks like liquefied iron."
+	},
+	{
+		"key": "potion-of-lightning-resistance|xdmg",
+		"name": "Potion of Lightning Resistance",
+		"source": "XDMG",
+		"type": "Potion or oil",
+		"rarity": "uncommon",
+		"price_gp": null,
+		"text": "*0.5 lb.*\n\nWhen you drink this potion, you have Resistance to lightning damage for 1 hour."
+	},
+	{
+		"key": "potion-of-longevity|xdmg",
+		"name": "Potion of Longevity",
+		"source": "XDMG",
+		"type": "Potion or oil",
+		"rarity": "very rare",
+		"price_gp": null,
+		"text": "*0.5 lb.*\n\nWhen you drink this potion, your physical age is reduced by 1d6 + 6 years, to a minimum of 13 years. Each time you subsequently drink a Potion of Longevity, there is 10 percent cumulative chance that you instead age by 1d6 + 6 years.\n\nSuspended in this amber liquid is a tiny heart that, against all reason, is still beating. These ingredients vanish when the potion is opened."
+	},
+	{
+		"key": "potion-of-mind-reading|xdmg",
+		"name": "Potion of Mind Reading",
+		"source": "XDMG",
+		"type": "Potion or oil",
+		"rarity": "rare",
+		"price_gp": null,
+		"text": "*0.5 lb.*\n\nWhen you drink this potion, you gain the effect of the Detect Thoughts spell (save 13) for 10 minutes (no Concentration required).\n\nThis potion's dense, purple liquid has an ovoid cloud of pink floating in it."
+	},
+	{
+		"key": "potion-of-necrotic-resistance|xdmg",
+		"name": "Potion of Necrotic Resistance",
+		"source": "XDMG",
+		"type": "Potion or oil",
+		"rarity": "uncommon",
+		"price_gp": null,
+		"text": "*0.5 lb.*\n\nWhen you drink this potion, you have Resistance to necrotic damage for 1 hour."
+	},
+	{
+		"key": "potion-of-poison|xdmg",
+		"name": "Potion of Poison",
+		"source": "XDMG",
+		"type": "Potion or oil",
+		"rarity": "uncommon",
+		"price_gp": null,
+		"text": "*0.5 lb.*\n\nThis concoction looks, smells, and tastes like a Potion of Healing or another beneficial potion. However, it is actually poison masked by illusion magic. Identify reveals its true nature.\n\nIf you drink this potion, you take 4d6 Poison damage and must succeed on a 13 Constitution saving throw or have the Poisoned condition for 1 hour."
+	},
+	{
+		"key": "potion-of-poison-resistance|xdmg",
+		"name": "Potion of Poison Resistance",
+		"source": "XDMG",
+		"type": "Potion or oil",
+		"rarity": "uncommon",
+		"price_gp": null,
+		"text": "*0.5 lb.*\n\nWhen you drink this potion, you have Resistance to poison damage for 1 hour."
+	},
+	{
+		"key": "potion-of-psychic-resistance|xdmg",
+		"name": "Potion of Psychic Resistance",
+		"source": "XDMG",
+		"type": "Potion or oil",
+		"rarity": "uncommon",
+		"price_gp": null,
+		"text": "*0.5 lb.*\n\nWhen you drink this potion, you have Resistance to psychic damage for 1 hour."
+	},
+	{
+		"key": "potion-of-pugilism|xdmg",
+		"name": "Potion of Pugilism",
+		"source": "XDMG",
+		"type": "Potion or oil",
+		"rarity": "uncommon",
+		"price_gp": null,
+		"text": "*0.5 lb.*\n\nAfter you drink this potion, each Unarmed Strike you make deals an extra 1d6 Force damage on a hit. This effect lasts 10 minutes.\n\nThis potion is a thick green fluid that tastes like spinach."
+	},
+	{
+		"key": "potion-of-radiant-resistance|xdmg",
+		"name": "Potion of Radiant Resistance",
+		"source": "XDMG",
+		"type": "Potion or oil",
+		"rarity": "uncommon",
+		"price_gp": null,
+		"text": "*0.5 lb.*\n\nWhen you drink this potion, you have Resistance to radiant damage for 1 hour."
+	},
+	{
+		"key": "potion-of-speed|xdmg",
+		"name": "Potion of Speed",
+		"source": "XDMG",
+		"type": "Potion or oil",
+		"rarity": "very rare",
+		"price_gp": null,
+		"text": "*0.5 lb.*\n\nWhen you drink this potion, you gain the effect of the Haste spell for 1 minute (no Concentration required) without suffering the wave of lethargy that typically occurs when the effect ends.\n\nThis potion's yellow fluid is streaked with black and swirls on its own."
+	},
+	{
+		"key": "potion-of-stone-giant-strength|xdmg",
+		"name": "Potion of Stone Giant Strength",
+		"source": "XDMG",
+		"type": "Potion or oil",
+		"rarity": "rare",
+		"price_gp": null,
+		"text": "*0.5 lb.*\n\nWhen you drink this potion, your Strength score changes to 23 for 1 hour. The potion has no effect on you if your Strength is equal to or greater than that score.\n\nThis potion's transparent liquid has floating in it a sliver of fingernail from a stone giant."
+	},
+	{
+		"key": "potion-of-storm-giant-strength|xdmg",
+		"name": "Potion of Storm Giant Strength",
+		"source": "XDMG",
+		"type": "Potion or oil",
+		"rarity": "legendary",
+		"price_gp": null,
+		"text": "*0.5 lb.*\n\nWhen you drink this potion, your Strength score changes to 29 for 1 hour. The potion has no effect on you if your Strength is equal to or greater than that score.\n\nThis potion's transparent liquid has floating in it a sliver of fingernail from a storm giant."
+	},
+	{
+		"key": "potion-of-superior-healing|xdmg",
+		"name": "Potion of Superior Healing",
+		"source": "XDMG",
+		"type": "Potion or oil",
+		"rarity": "rare",
+		"price_gp": null,
+		"text": "*0.5 lb.*\n\nYou regain 8d4 + 8 Hit Points when you drink this potion. The potion's red liquid glimmers when agitated."
+	},
+	{
+		"key": "potion-of-supreme-healing|xdmg",
+		"name": "Potion of Supreme Healing",
+		"source": "XDMG",
+		"type": "Potion or oil",
+		"rarity": "very rare",
+		"price_gp": null,
+		"text": "*0.5 lb.*\n\nYou regain 10d4 + 20 Hit Points when you drink this potion. The potion's red liquid glimmers when agitated."
+	},
+	{
+		"key": "potion-of-thunder-resistance|xdmg",
+		"name": "Potion of Thunder Resistance",
+		"source": "XDMG",
+		"type": "Potion or oil",
+		"rarity": "uncommon",
+		"price_gp": null,
+		"text": "*0.5 lb.*\n\nWhen you drink this potion, you have Resistance to thunder damage for 1 hour."
+	},
+	{
+		"key": "potion-of-vitality|xdmg",
+		"name": "Potion of Vitality",
+		"source": "XDMG",
+		"type": "Potion or oil",
+		"rarity": "very rare",
+		"price_gp": null,
+		"text": "*0.5 lb.*\n\nWhen you drink this potion, it removes any Exhaustion levels you have and ends the Poisoned condition on you. For the next 24 hours, you regain the maximum number of Hit Points for any Hit Point Die you spend.\n\nThis potion's crimson liquid regularly pulses with dull light, calling to mind a heartbeat."
+	},
+	{
+		"key": "potion-of-water-breathing|xdmg",
+		"name": "Potion of Water Breathing",
+		"source": "XDMG",
+		"type": "Potion or oil",
+		"rarity": "uncommon",
+		"price_gp": null,
+		"text": "*0.5 lb.*\n\nYou can breathe underwater for 24 hours after drinking this potion.\n\nThis potion's cloudy green fluid smells of the sea and has a jellyfish-like bubble floating in it."
+	},
+	{
+		"key": "blowgun|xphb",
+		"name": "Blowgun",
+		"source": "XPHB",
+		"type": "Ranged weapon",
+		"rarity": null,
+		"price_gp": 10,
+		"text": "*1 piercing · 1 lb.*"
+	},
+	{
+		"key": "dart|xphb",
+		"name": "Dart",
+		"source": "XPHB",
+		"type": "Ranged weapon",
+		"rarity": null,
+		"price_gp": 0.05,
+		"text": "*1d4 piercing · 0.25 lb.*"
+	},
+	{
+		"key": "hand-crossbow|xphb",
+		"name": "Hand Crossbow",
+		"source": "XPHB",
+		"type": "Ranged weapon",
+		"rarity": null,
+		"price_gp": 75,
+		"text": "*1d6 piercing · 3 lb.*"
+	},
+	{
+		"key": "heavy-crossbow|xphb",
+		"name": "Heavy Crossbow",
+		"source": "XPHB",
+		"type": "Ranged weapon",
+		"rarity": null,
+		"price_gp": 50,
+		"text": "*1d10 piercing · 18 lb.*"
+	},
+	{
+		"key": "light-crossbow|xphb",
+		"name": "Light Crossbow",
+		"source": "XPHB",
+		"type": "Ranged weapon",
+		"rarity": null,
+		"price_gp": 25,
+		"text": "*1d8 piercing · 5 lb.*"
+	},
+	{
+		"key": "longbow|xphb",
+		"name": "Longbow",
+		"source": "XPHB",
+		"type": "Ranged weapon",
+		"rarity": null,
+		"price_gp": 50,
+		"text": "*1d8 piercing · 2 lb.*"
+	},
+	{
+		"key": "musket|xphb",
+		"name": "Musket",
+		"source": "XPHB",
+		"type": "Ranged weapon",
+		"rarity": null,
+		"price_gp": 500,
+		"text": "*1d12 piercing · 10 lb.*"
+	},
+	{
+		"key": "pistol|xphb",
+		"name": "Pistol",
+		"source": "XPHB",
+		"type": "Ranged weapon",
+		"rarity": null,
+		"price_gp": 250,
+		"text": "*1d10 piercing · 3 lb.*"
+	},
+	{
+		"key": "shortbow|xphb",
+		"name": "Shortbow",
+		"source": "XPHB",
+		"type": "Ranged weapon",
+		"rarity": null,
+		"price_gp": 25,
+		"text": "*1d6 piercing · 2 lb.*"
+	},
+	{
+		"key": "sling|xphb",
+		"name": "Sling",
+		"source": "XPHB",
+		"type": "Ranged weapon",
+		"rarity": null,
+		"price_gp": 0.1,
+		"text": "*1d4 bludgeoning*"
+	},
+	{
+		"key": "shield|xphb",
+		"name": "Shield",
+		"source": "XPHB",
+		"type": "Shield",
+		"rarity": null,
+		"price_gp": 10,
+		"text": "*AC 2 · 6 lb.*"
+	},
+	{
+		"key": "amulet|xphb",
+		"name": "Amulet",
+		"source": "XPHB",
+		"type": "Spellcasting focus",
+		"rarity": null,
+		"price_gp": 5,
+		"text": "*1 lb.*\n\nFor an Amulet to be an effective Holy Symbol, it must be worn or held."
+	},
+	{
+		"key": "crystal|xphb",
+		"name": "Crystal",
+		"source": "XPHB",
+		"type": "Spellcasting focus",
+		"rarity": null,
+		"price_gp": 10,
+		"text": "*1 lb.*"
+	},
+	{
+		"key": "emblem|xphb",
+		"name": "Emblem",
+		"source": "XPHB",
+		"type": "Spellcasting focus",
+		"rarity": null,
+		"price_gp": 5,
+		"text": "For an Emblem to be an effective Holy Symbol, it must be borne on fabric (such as a tabard or banner) or a Shield."
+	},
+	{
+		"key": "orb|xphb",
+		"name": "Orb",
+		"source": "XPHB",
+		"type": "Spellcasting focus",
+		"rarity": null,
+		"price_gp": 20,
+		"text": "*3 lb.*"
+	},
+	{
+		"key": "reliquary|xphb",
+		"name": "Reliquary",
+		"source": "XPHB",
+		"type": "Spellcasting focus",
+		"rarity": null,
+		"price_gp": 5,
+		"text": "*2 lb.*\n\nFor a Reliquary to be an effective Holy Symbol, it must be held."
+	},
+	{
+		"key": "rod|xphb",
+		"name": "Rod",
+		"source": "XPHB",
+		"type": "Spellcasting focus",
+		"rarity": null,
+		"price_gp": 10,
+		"text": "*2 lb.*"
+	},
+	{
+		"key": "sprig-of-mistletoe|xphb",
+		"name": "Sprig of Mistletoe",
+		"source": "XPHB",
+		"type": "Spellcasting focus",
+		"rarity": null,
+		"price_gp": 1,
+		"text": ""
+	},
+	{
+		"key": "staff|xphb",
+		"name": "Staff",
+		"source": "XPHB",
+		"type": "Spellcasting focus",
+		"rarity": null,
+		"price_gp": 5,
+		"text": "*1d6 bludgeoning · 4 lb.*"
+	},
+	{
+		"key": "totem|phb",
+		"name": "Totem",
+		"source": "PHB",
+		"type": "Spellcasting focus",
+		"rarity": null,
+		"price_gp": 1,
+		"text": ""
+	},
+	{
+		"key": "wand|xphb",
+		"name": "Wand",
+		"source": "XPHB",
+		"type": "Spellcasting focus",
+		"rarity": null,
+		"price_gp": 10,
+		"text": "*1 lb.*"
+	},
+	{
+		"key": "wooden-staff|xphb",
+		"name": "Wooden Staff",
+		"source": "XPHB",
+		"type": "Spellcasting focus",
+		"rarity": null,
+		"price_gp": 5,
+		"text": "*1d6 bludgeoning · 4 lb.*"
+	},
+	{
+		"key": "yew-wand|xphb",
+		"name": "Yew Wand",
+		"source": "XPHB",
+		"type": "Spellcasting focus",
+		"rarity": null,
+		"price_gp": 10,
+		"text": "*1 lb.*"
+	},
+	{
+		"key": "bit-and-bridle|phb",
+		"name": "Bit and bridle",
+		"source": "PHB",
+		"type": "Tack and harness",
+		"rarity": null,
+		"price_gp": 2,
+		"text": "*1 lb.*"
+	},
+	{
+		"key": "exotic-saddle|xphb",
+		"name": "Exotic Saddle",
+		"source": "XPHB",
+		"type": "Tack and harness",
+		"rarity": null,
+		"price_gp": 60,
+		"text": "*40 lb.*\n\nA saddle comes with a bit, a bridle, reins, and any other equipment needed to use the saddle. An Exotic Saddle is required for riding an aquatic or a flying mount."
+	},
+	{
+		"key": "feed-per-day|xphb",
+		"name": "Feed (per day)",
+		"source": "XPHB",
+		"type": "Tack and harness",
+		"rarity": null,
+		"price_gp": 0.05,
+		"text": "*10 lb.*"
+	},
+	{
+		"key": "military-saddle|xphb",
+		"name": "Military Saddle",
+		"source": "XPHB",
+		"type": "Tack and harness",
+		"rarity": null,
+		"price_gp": 20,
+		"text": "*30 lb.*\n\nA saddle comes with a bit, a bridle, reins, and any other equipment needed to use the saddle. A Military Saddle gives Advantage on any ability check you make to remain mounted."
+	},
+	{
+		"key": "pack-saddle|phb",
+		"name": "Pack Saddle",
+		"source": "PHB",
+		"type": "Tack and harness",
+		"rarity": null,
+		"price_gp": 5,
+		"text": "*15 lb.*"
+	},
+	{
+		"key": "riding-saddle|xphb",
+		"name": "Riding Saddle",
+		"source": "XPHB",
+		"type": "Tack and harness",
+		"rarity": null,
+		"price_gp": 10,
+		"text": "*25 lb.*\n\nA saddle comes with a bit, a bridle, reins, and any other equipment needed to use the saddle."
+	},
+	{
+		"key": "saddlebags|phb",
+		"name": "Saddlebags",
+		"source": "PHB",
+		"type": "Tack and harness",
+		"rarity": null,
+		"price_gp": 4,
+		"text": "*8 lb.*"
+	},
+	{
+		"key": "stabling-per-day|xphb",
+		"name": "Stabling (per day)",
+		"source": "XPHB",
+		"type": "Tack and harness",
+		"rarity": null,
+		"price_gp": 0.05,
+		"text": ""
+	},
+	{
+		"key": "disguise-kit|xphb",
+		"name": "Disguise Kit",
+		"source": "XPHB",
+		"type": "Tools",
+		"rarity": null,
+		"price_gp": 25,
+		"text": "*3 lb.*\n\n- **Ability:.** Charisma\n- **Utilize:.** Apply makeup (10)\n- **Craft:.** Costume"
+	},
+	{
+		"key": "forgery-kit|xphb",
+		"name": "Forgery Kit",
+		"source": "XPHB",
+		"type": "Tools",
+		"rarity": null,
+		"price_gp": 15,
+		"text": "*5 lb.*\n\n- **Ability:.** Dexterity\n- **Utilize:.** Mimic 10 or fewer words of someone else's handwriting (15), or duplicate a wax seal (20)"
+	},
+	{
+		"key": "herbalism-kit|xphb",
+		"name": "Herbalism Kit",
+		"source": "XPHB",
+		"type": "Tools",
+		"rarity": null,
+		"price_gp": 5,
+		"text": "*3 lb.*\n\n- **Ability:.** Intelligence\n- **Utilize:.** Identify a plant (10)\n- **Craft:.** Antitoxin, Candle, Healer's Kit, Potion of Healing"
+	},
+	{
+		"key": "navigator-s-tools|xphb",
+		"name": "Navigator's Tools",
+		"source": "XPHB",
+		"type": "Tools",
+		"rarity": null,
+		"price_gp": 25,
+		"text": "*2 lb.*\n\n- **Ability:.** Wisdom\n- **Utilize:.** Plot a course (10), or determine position by stargazing (15)"
+	},
+	{
+		"key": "poisoner-s-kit|xphb",
+		"name": "Poisoner's Kit",
+		"source": "XPHB",
+		"type": "Tools",
+		"rarity": null,
+		"price_gp": 50,
+		"text": "*2 lb.*\n\n- **Ability:.** Intelligence\n- **Utilize:.** Detect a poisoned object (10)\n- **Craft:.** Basic Poison"
+	},
+	{
+		"key": "thieves-tools|xphb",
+		"name": "Thieves' Tools",
+		"source": "XPHB",
+		"type": "Tools",
+		"rarity": null,
+		"price_gp": 25,
+		"text": "*1 lb.*\n\n- **Ability:.** Dexterity\n- **Utilize:.** Pick a lock (15), or disarm a trap (15)"
+	},
+	{
+		"key": "canvas-1-sq-yd|xdmg",
+		"name": "Canvas (1 sq. yd.)",
+		"source": "XDMG",
+		"type": "Trade good",
+		"rarity": null,
+		"price_gp": 0.1,
+		"text": ""
+	},
+	{
+		"key": "chicken|xdmg",
+		"name": "Chicken",
+		"source": "XDMG",
+		"type": "Trade good",
+		"rarity": null,
+		"price_gp": 0.02,
+		"text": ""
+	},
+	{
+		"key": "cinnamon|xdmg",
+		"name": "Cinnamon",
+		"source": "XDMG",
+		"type": "Trade good",
+		"rarity": null,
+		"price_gp": 2,
+		"text": "*1 lb.*"
+	},
+	{
+		"key": "cloves|xdmg",
+		"name": "Cloves",
+		"source": "XDMG",
+		"type": "Trade good",
+		"rarity": null,
+		"price_gp": 3,
+		"text": "*1 lb.*"
+	},
+	{
+		"key": "copper|xdmg",
+		"name": "Copper",
+		"source": "XDMG",
+		"type": "Trade good",
+		"rarity": null,
+		"price_gp": 0.5,
+		"text": "*1 lb.*"
+	},
+	{
+		"key": "cotton-cloth-1-sq-yd|xdmg",
+		"name": "Cotton Cloth (1 sq. yd.)",
+		"source": "XDMG",
+		"type": "Trade good",
+		"rarity": null,
+		"price_gp": 0.5,
+		"text": ""
+	},
+	{
+		"key": "cow|xdmg",
+		"name": "Cow",
+		"source": "XDMG",
+		"type": "Trade good",
+		"rarity": null,
+		"price_gp": 10,
+		"text": ""
+	},
+	{
+		"key": "flour|xdmg",
+		"name": "Flour",
+		"source": "XDMG",
+		"type": "Trade good",
+		"rarity": null,
+		"price_gp": 0.02,
+		"text": "*2 lb.*"
+	},
+	{
+		"key": "ginger|xdmg",
+		"name": "Ginger",
+		"source": "XDMG",
+		"type": "Trade good",
+		"rarity": null,
+		"price_gp": 1,
+		"text": "*1 lb.*"
+	},
+	{
+		"key": "goat|xdmg",
+		"name": "Goat",
+		"source": "XDMG",
+		"type": "Trade good",
+		"rarity": null,
+		"price_gp": 1,
+		"text": ""
+	},
+	{
+		"key": "gold|xdmg",
+		"name": "Gold",
+		"source": "XDMG",
+		"type": "Trade good",
+		"rarity": null,
+		"price_gp": 50,
+		"text": "*1 lb.*"
+	},
+	{
+		"key": "iron|xdmg",
+		"name": "Iron",
+		"source": "XDMG",
+		"type": "Trade good",
+		"rarity": null,
+		"price_gp": 0.1,
+		"text": "*1 lb.*"
+	},
+	{
+		"key": "linen-1-sq-yd|xdmg",
+		"name": "Linen (1 sq. yd.)",
+		"source": "XDMG",
+		"type": "Trade good",
+		"rarity": null,
+		"price_gp": 5,
+		"text": ""
+	},
+	{
+		"key": "ox|xdmg",
+		"name": "Ox",
+		"source": "XDMG",
+		"type": "Trade good",
+		"rarity": null,
+		"price_gp": 15,
+		"text": ""
+	},
+	{
+		"key": "pepper|xdmg",
+		"name": "Pepper",
+		"source": "XDMG",
+		"type": "Trade good",
+		"rarity": null,
+		"price_gp": 2,
+		"text": "*1 lb.*"
+	},
+	{
+		"key": "pig|xdmg",
+		"name": "Pig",
+		"source": "XDMG",
+		"type": "Trade good",
+		"rarity": null,
+		"price_gp": 3,
+		"text": ""
+	},
+	{
+		"key": "platinum|xdmg",
+		"name": "Platinum",
+		"source": "XDMG",
+		"type": "Trade good",
+		"rarity": null,
+		"price_gp": 500,
+		"text": "*1 lb.*"
+	},
+	{
+		"key": "saffron|xdmg",
+		"name": "Saffron",
+		"source": "XDMG",
+		"type": "Trade good",
+		"rarity": null,
+		"price_gp": 15,
+		"text": "*1 lb.*"
+	},
+	{
+		"key": "salt|xdmg",
+		"name": "Salt",
+		"source": "XDMG",
+		"type": "Trade good",
+		"rarity": null,
+		"price_gp": 0.05,
+		"text": "*1 lb.*"
+	},
+	{
+		"key": "sheep|xdmg",
+		"name": "Sheep",
+		"source": "XDMG",
+		"type": "Trade good",
+		"rarity": null,
+		"price_gp": 2,
+		"text": ""
+	},
+	{
+		"key": "silk|xdmg",
+		"name": "Silk",
+		"source": "XDMG",
+		"type": "Trade good",
+		"rarity": null,
+		"price_gp": 10,
+		"text": "*1 lb.*"
+	},
+	{
+		"key": "silver|xdmg",
+		"name": "Silver",
+		"source": "XDMG",
+		"type": "Trade good",
+		"rarity": null,
+		"price_gp": 5,
+		"text": "*1 lb.*"
+	},
+	{
+		"key": "wheat|xdmg",
+		"name": "Wheat",
+		"source": "XDMG",
+		"type": "Trade good",
+		"rarity": null,
+		"price_gp": 0.01,
+		"text": "*1 lb.*"
+	}
+]

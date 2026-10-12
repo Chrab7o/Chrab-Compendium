@@ -410,8 +410,7 @@ export default function DMSphereGridPage() {
   async function handleSaveIdeas(prompt, ideas, kindId) {
     setError(null)
     const { error: saveError } =
-      // With no kind there is nothing to tailor for, so the list itself changes.
-      !kindId || prompt.kind_id === kindId
+      prompt.kind_id === kindId
         ? await supabase.from('sphere_prompts').update({ ideas }).eq('id', prompt.id)
         : await supabase
             .from('sphere_kind_prompt_ideas')

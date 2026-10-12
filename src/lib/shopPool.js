@@ -177,8 +177,55 @@ export function toStockRow(item, shopId, position) {
     description: item.text,
     origin: '5etools',
     item_key: item.key,
+    price_gp: RARITY_PRICE_GP[item.rarity] ?? null,
   }
 }
+
+/**
+ * Default magic-item prices by rarity, in gp - the 2024 DMG's figures. A
+ * starting point the DM edits per item, not an economy.
+ */
+export const RARITY_PRICE_GP = {
+  common: 100,
+  uncommon: 400,
+  rare: 4000,
+  'very rare': 40000,
+  legendary: 200000,
+}
+
+// Priced mundane gear for 'store' shops, compiled by the same extract script.
+// DM-only, like the pool: players read the snapshot on each shop_items row.
+let cachedCatalog = null
+export async function loadCatalog() {
+  if (!cachedCatalog) cachedCatalog = (await import('../data/shop-items/catalog.json')).default
+  return cachedCatalog
+}
+
+/** A catalog record as a shop_items row, priced at its list price. */
+export function catalogToStockRow(item, shopId, position) {
+  return {
+    shop_id: shopId,
+    position,
+    name: item.name,
+    rarity: item.rarity,
+    source: item.source,
+    attunement: null,
+    description: item.text,
+    origin: '5etools',
+    item_key: item.key,
+    price_gp: item.price_gp,
+  }
+}
+
+/** Foundry/5e currency { pp, gp, ep, sp, cp } as a single gp figure. */
+export function currencyToGp(currency = {}) {
+  const n = (k) => Number(currency?.[k]) || 0
+  return n('pp') * 10 + n('gp') + n('ep') * 0.5 + n('sp') * 0.1 + n('cp') * 0.01
+}
+
+/** 1234.5 -> "1,234.5 gp" */
+export const formatGp = (gp) =>
+  `${Number(gp ?? 0).toLocaleString(undefined, { maximumFractionDigits: 2 })} gp`
 
 const RARITY_ORDER = Object.fromEntries(RARITIES.map((rarity, i) => [rarity, i]))
 

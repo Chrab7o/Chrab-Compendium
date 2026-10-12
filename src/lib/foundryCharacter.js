@@ -88,6 +88,13 @@ export function getSkills(actor) {
   })
 }
 
+// Exact AC when the actor's AC mode is "Flat" — Foundry stores that number
+// as-is. Null for every other mode, which Foundry computes live.
+export function getFlatAC(actor) {
+  const ac = actor.system?.attributes?.ac
+  return ac?.calc === 'flat' && typeof ac.flat === 'number' ? ac.flat : null
+}
+
 // Best-effort AC: base 10 + dex (uncapped) with no armor, or the highest
 // equipped body armor's base value + dex up to its cap, plus any equipped
 // shield's bonus and any flat magical AC bonuses on other equipped items.
@@ -122,6 +129,13 @@ export function estimateAC(actor) {
   return base + shieldBonus + magicalBonus
 }
 
+// Exact max HP when it was manually overridden in Foundry (hp.max is only
+// persisted for overrides; null means Foundry computes it live).
+export function getMaxHPOverride(actor) {
+  const max = actor.system?.attributes?.hp?.max
+  return typeof max === 'number' ? max : null
+}
+
 const HIT_DIE_AVERAGE = { d6: 4, d8: 5, d10: 6, d12: 7 }
 
 // Best-effort max HP from each class's HitPoints advancement entry (which
@@ -136,8 +150,9 @@ export function estimateMaxHP(actor) {
   for (const cls of classes) {
     const denomination = cls.system?.hd?.denomination
     const levels = cls.system?.levels ?? 0
+    // Plutonium-imported classes store the HitPoints entry without a `type`.
     const advancement = Object.values(cls.system?.advancement ?? {}).find(
-      (a) => a.type === 'HitPoints'
+      (a) => a.type === 'HitPoints' || (!a.type && a.value)
     )
     if (!denomination || !advancement) return null
 

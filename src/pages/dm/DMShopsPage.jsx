@@ -3,25 +3,33 @@ import { supabase } from '../../lib/supabaseClient'
 import {
   DEFAULT_SPEC,
   RARITIES,
+  RARITY_PRICE_GP,
   cycleProgress,
   missingCounts,
   totalMissing,
   SETTING_NEUTRAL_SOURCES,
   SOURCE_LABELS,
   attunementLabel,
+  catalogToStockRow,
+  formatGp,
   loadPool,
   rollStock,
   slugify,
   sortStock,
   toStockRow,
 } from '../../lib/shopPool'
+import CatalogPicker from '../../components/dm/shops/CatalogPicker'
+import ShopTransactions from '../../components/dm/shops/ShopTransactions'
 
-const emptyDraft = { name: '', slug: '', blurb: '', campaign_id: '', visibility: 'dm' }
-const emptyManual = { name: '', rarity: '', description: '' }
+const emptyDraft = { name: '', slug: '', blurb: '', campaign_id: '', visibility: 'dm', kind: 'exchange' }
+const emptyManual = { name: '', rarity: '', description: '', price: '' }
 
-// The rotating shop roller. A shop is a randomised list of magic items the
-// party can browse in character; the app does not sell anything, so there is
-// no gold or stock count here - see the migration for why.
+// Two kinds of shop share this page (see 20261019000000_tradeable_shops.sql):
+//
+// - 'exchange': the rotating magic-item roller. Trading happens at the table;
+//   the DM logs trades in the Trades panel so they reach Discord.
+// - 'store': a curated, priced shelf, mostly from the 5etools gear catalog,
+//   that players buy from and sell to on the shop page.
 //
 // Restocking is a total re-randomisation by design. Items the DM added on
 // purpose (homebrew from the Item Maker, or typed in by hand) are kept, since
@@ -39,6 +47,7 @@ export default function DMShopsPage() {
   const [draft, setDraft] = useState(emptyDraft)
   const [manual, setManual] = useState(emptyManual)
   const [showAdd, setShowAdd] = useState(false)
+  const [showCatalog, setShowCatalog] = useState(false)
   const [pool, setPool] = useState(null)
   // The rarity counts are edited locally and only written on blur. Keeping a
   // draft here (rather than reading straight from `spec`) means typing stays
@@ -135,6 +144,7 @@ export default function DMShopsPage() {
         blurb: draft.blurb.trim(),
         campaign_id: draft.campaign_id || null,
         visibility: draft.visibility,
+        kind: draft.kind,
         spec: DEFAULT_SPEC,
       })
       .select()
@@ -315,6 +325,23 @@ export default function DMShopsPage() {
     }
   }
 
+  // Price and quantity are edited in place and saved on blur.
+  async function patchStockRow(row, changes) {
+    const { error: updateError } = await supabase.from('shop_items').update(changes).eq('id', row.id)
+    if (updateError) setError(updateError.message)
+    else loadStock(selected.id)
+  }
+
+  const parseOptionalNumber = (value) => (value === '' ? null : Math.max(0, Number(value) || 0))
+
+  async function addFromCatalog(item) {
+    const { error: insertError } = await supabase
+      .from('shop_items')
+      .insert(catalogToStockRow(item, selected.id, stock.length))
+    if (insertError) setError(insertError.message)
+    else loadStock(selected.id)
+  }
+
   async function removeRow(row) {
     const { error: deleteError } = await supabase.from('shop_items').delete().eq('id', row.id)
     if (deleteError) setError(deleteError.message)
@@ -399,6 +426,7 @@ export default function DMShopsPage() {
       rarity: manual.rarity || null,
       description: manual.description.trim(),
       origin: 'manual',
+      price_gp: parseOptionalNumber(manual.price),
     })
   }
 
@@ -441,9 +469,9 @@ export default function DMShopsPage() {
       <div className="view-header">
         <h1>Shops</h1>
         <p className="view-subtitle">
-          Roll a shop's stock from the published wondrous items, then point players at it. Nothing here is
-          transactional — buying and bartering happen at the table. Restocking rerolls the random items and keeps
-          anything you added by hand.
+          An <strong>exchange</strong> rolls its stock from the published wondrous items and trades at the table —
+          log its trades in the Trades panel so they reach Discord. A <strong>store</strong> is a priced shelf
+          players buy from and sell to on the page. Either can be closed without hiding it.
         </p>
       </div>
 
@@ -470,6 +498,13 @@ export default function DMShopsPage() {
                 placeholder={draft.name ? slugify(draft.name) : 'gilded-astrolabe'}
               />
             </label>
+            <label>
+              Kind
+              <select value={draft.kind} onChange={(e) => setDraft({ ...draft, kind: e.target.value })}>
+                <option value="exchange">Exchange (rolled magic items, trades at the table)</option>
+                <option value="store">Store (priced, players trade on the page)</option>
+              </select>
+            </label>
           </div>
           <div className="dm-form-actions">
             <button type="submit" disabled={saving || !draft.name.trim()}>
@@ -489,6 +524,8 @@ export default function DMShopsPage() {
               onClick={() => setSelectedId(shop.id)}
             >
               {shop.name}
+              {shop.kind === 'store' && <span className="badge badge-own">store</span>}
+              {!shop.is_open && <span className="badge badge-closed">closed</span>}
               {shop.visibility === 'dm' && <span className="badge badge-dm">DM only</span>}
             </button>
           ))}
@@ -527,6 +564,42 @@ export default function DMShopsPage() {
                     <option value="public">Visible to players</option>
                   </select>
                 </label>
+                <label>
+                  Kind
+                  <select value={selected.kind} onChange={(e) => patchShop({ kind: e.target.value })}>
+                    <option value="exchange">Exchange (trades at the table)</option>
+                    <option value="store">Store (players trade on the page)</option>
+                  </select>
+                </label>
+                {selected.kind === 'store' && (
+                  <label>
+                    Pays for sold items (% of value)
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      defaultValue={Math.round(Number(selected.sell_rate ?? 0.5) * 100)}
+                      key={`sell-${selected.id}`}
+                      onBlur={(e) => {
+                        const rate = Math.max(0, Math.min(100, Number(e.target.value) || 0)) / 100
+                        if (rate !== Number(selected.sell_rate)) patchShop({ sell_rate: rate })
+                      }}
+                    />
+                  </label>
+                )}
+              </div>
+              <div className="shop-open-row">
+                <span className={`badge ${selected.is_open ? 'badge-open' : 'badge-closed'}`}>
+                  {selected.is_open ? 'Open' : 'Closed'}
+                </span>
+                <button type="button" className="secondary" onClick={() => patchShop({ is_open: !selected.is_open })}>
+                  {selected.is_open ? 'Close shop' : 'Open shop'}
+                </button>
+                <span className="dm-list-meta">
+                  {selected.is_open
+                    ? `Players can see the stock${selected.kind === 'store' ? ' and trade' : ''}.`
+                    : 'Players see a closed sign instead of the stock.'}
+                </span>
               </div>
               <label>
                 Blurb shown above the stock
@@ -554,6 +627,29 @@ export default function DMShopsPage() {
             </div>
           </div>
 
+          {selected.kind === 'store' && (
+            <div className="dm-panel">
+              <h2>What it stocks</h2>
+              <p className="view-subtitle">
+                Stock a store from the priced 5etools catalog, or add anything by hand. Leave a quantity blank for
+                unlimited.
+              </p>
+              <div className="dm-form-actions">
+                <button type="button" onClick={() => setShowCatalog(true)}>
+                  + Add from catalog
+                </button>
+                <button type="button" className="secondary" onClick={openAddPanel}>
+                  + Add an item by hand
+                </button>
+              </div>
+            </div>
+          )}
+
+          {selected.kind === 'store' && showCatalog && (
+            <CatalogPicker stock={stock} onAdd={addFromCatalog} onClose={() => setShowCatalog(false)} />
+          )}
+
+          {selected.kind === 'exchange' && (
           <div className="dm-panel">
             <h2>What it stocks</h2>
             <div className="dm-form">
@@ -655,6 +751,7 @@ export default function DMShopsPage() {
               {notice && <p className="status-message error">{notice}</p>}
             </div>
           </div>
+          )}
 
           {showAdd && (
             <div className="dm-panel">
@@ -682,6 +779,17 @@ export default function DMShopsPage() {
                         </option>
                       ))}
                     </select>
+                  </label>
+                  <label>
+                    Price (gp)
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={manual.price}
+                      onChange={(e) => setManual({ ...manual, price: e.target.value })}
+                      placeholder={manual.rarity ? String(RARITY_PRICE_GP[manual.rarity] ?? '') : 'none'}
+                    />
                   </label>
                 </div>
                 <label>
@@ -732,9 +840,46 @@ export default function DMShopsPage() {
                       <strong>{row.name}</strong>
                       {row.rarity && <span className={`badge rarity-${slugify(row.rarity)}`}>{row.rarity}</span>}
                       {row.origin !== '5etools' && <span className="badge badge-own">{row.origin}</span>}
+                      {selected.kind === 'store' && row.price_gp == null && (
+                        <span className="badge badge-closed">needs a price</span>
+                      )}
                       {row.attunement && <span className="shop-attune">{attunementLabel(row.attunement)}</span>}
                     </div>
                     <div className="dm-list-actions">
+                      <label className="shop-inline-field">
+                        gp
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          defaultValue={row.price_gp ?? ''}
+                          key={`price-${row.id}-${row.price_gp}`}
+                          placeholder="—"
+                          onBlur={(e) => {
+                            const price = parseOptionalNumber(e.target.value)
+                            if (price !== (row.price_gp == null ? null : Number(row.price_gp))) {
+                              patchStockRow(row, { price_gp: price })
+                            }
+                          }}
+                        />
+                      </label>
+                      {selected.kind === 'store' && (
+                        <label className="shop-inline-field">
+                          qty
+                          <input
+                            type="number"
+                            min="0"
+                            defaultValue={row.quantity ?? ''}
+                            key={`qty-${row.id}-${row.quantity}`}
+                            placeholder="∞"
+                            onBlur={(e) => {
+                              const raw = parseOptionalNumber(e.target.value)
+                              const quantity = raw == null ? null : Math.floor(raw)
+                              if (quantity !== row.quantity) patchStockRow(row, { quantity })
+                            }}
+                          />
+                        </label>
+                      )}
                       {row.item_key && (
                         <button type="button" className="secondary" onClick={() => banishRow(row)}>
                           Never stock
@@ -749,6 +894,13 @@ export default function DMShopsPage() {
               </ul>
             )}
           </div>
+
+          <ShopTransactions
+            key={selected.id}
+            shop={selected}
+            stock={stock}
+            onStockChange={() => loadStock(selected.id)}
+          />
         </>
       )}
     </section>
