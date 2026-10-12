@@ -3,12 +3,41 @@ import { Link } from 'react-router-dom'
 import { supabase } from '../../../lib/supabaseClient'
 import { summarizeActor, getCurrency } from '../../../lib/foundryCharacter'
 
+const normalize = (name) => (name ?? '').trim().toLowerCase()
+
+// Best guess at which existing character a Foundry actor is, by name: an
+// exact match, else a unique one-name-starts-with-the-other match ("Lunasear
+// Alvalium" vs "Lunasear Alvalium 2024"). Only a guess - the DM confirms it
+// in the row's dropdown before anything is written.
+function guessLink(actorName, candidates) {
+  const name = normalize(actorName)
+  if (!name) return ''
+  const exact = candidates.filter((c) => normalize(c.name) === name)
+  if (exact.length === 1) return exact[0].id
+  const prefix = candidates.filter((c) => {
+    const other = normalize(c.name)
+    return other.startsWith(name) || name.startsWith(other)
+  })
+  return prefix.length === 1 ? prefix[0].id : ''
+}
+
+// Imports Foundry actors, updating characters that already exist instead of
+// duplicating them. Updating only replaces the Foundry data (sheet, gold) -
+// the page, its id, player, campaign, skill-tree progress, notes and trade
+// history all stay - so re-importing is safe to do every session.
+//
+// A row targets an existing character in one of two ways:
+// - by Foundry actor id (characters.foundry_id) - automatic;
+// - by a link the DM confirms, for characters imported before ids were
+//   stored. Foundry's per-actor "Export Data" drops the actor's _id, so
+//   those rows have no id to match on. Linking saves the id, so the next
+//   import matches automatically.
 export default function FoundryImporter({ campaigns }) {
   const [players, setPlayers] = useState([])
-  // { file, exportedAt, actor, summary, existing, pendingTrades, campaignId, ownerId, status, error, characterId }
-  // `existing` is the characters already imported from this Foundry actor;
-  // when non-empty, importing updates them instead of creating a new page.
-  // `pendingTrades` are their shop trades not yet marked as applied in Foundry.
+  const [characters, setCharacters] = useState([])
+  // { file, exportedAt, actor, summary, existing, linkId, campaignId, ownerId, status, error, characterId }
+  // `existing`: characters matched by Foundry id. `linkId`: the character the
+  // DM has linked an id-less match to ('' = import as new).
   const [parsed, setParsed] = useState([])
 
   useEffect(() => {
@@ -19,18 +48,34 @@ export default function FoundryImporter({ campaigns }) {
       .then(({ data }) => setPlayers(data ?? []))
   }, [])
 
+  async function loadCharacters() {
+    const { data } = await supabase.from('characters').select('id, name, foundry_id').order('name')
+    setCharacters(data ?? [])
+    return data ?? []
+  }
+
+  useEffect(() => {
+    loadCharacters()
+  }, [])
+
+  // Characters that don't yet carry a Foundry id - the only ones a row can be
+  // linked to, since anything with an id is matched (or not) by that id.
+  const unlinked = characters.filter((c) => !c.foundry_id)
+
   async function handleFiles(e) {
     const files = Array.from(e.target.files)
     e.target.value = ''
+    const all = await loadCharacters()
+    const linkable = all.filter((c) => !c.foundry_id)
     const results = []
     for (const file of files) {
       try {
-        const text = await file.text()
-        const data = JSON.parse(text)
+        const data = JSON.parse(await file.text())
         // party.json from the party-export macro is an array of actors;
         // a single-actor "Export Data" file is one object.
         const actors = Array.isArray(data) ? data : [data]
         for (const actor of actors) {
+          const existing = actor._id ? all.filter((c) => c.foundry_id === actor._id) : []
           results.push({
             file: file.name,
             // When the macro saved the file - i.e. the moment the export
@@ -38,8 +83,8 @@ export default function FoundryImporter({ campaigns }) {
             exportedAt: new Date(file.lastModified).toISOString(),
             actor,
             summary: summarizeActor(actor),
-            existing: [],
-            pendingTrades: [],
+            existing,
+            linkId: existing.length > 0 ? '' : guessLink(actor.name, linkable),
             campaignId: '',
             ownerId: '',
             status: 'pending',
@@ -50,29 +95,6 @@ export default function FoundryImporter({ campaigns }) {
         results.push({ file: file.name, error: `Couldn't parse: ${err.message}`, status: 'error' })
       }
     }
-
-    const foundryIds = results.map((r) => r.actor?._id).filter(Boolean)
-    if (foundryIds.length > 0) {
-      const { data: existing } = await supabase
-        .from('characters')
-        .select('id, foundry_id, owner_id, campaign_id')
-        .in('foundry_id', foundryIds)
-      const existingIds = (existing ?? []).map((c) => c.id)
-      const { data: trades } = existingIds.length
-        ? await supabase
-            .from('shop_transactions')
-            .select('id, character_id, created_at')
-            .in('character_id', existingIds)
-            .is('settled_at', null)
-        : { data: [] }
-      for (const row of results) {
-        row.existing = (existing ?? []).filter((c) => c.foundry_id === row.actor?._id)
-        const ids = new Set(row.existing.map((c) => c.id))
-        row.pendingTrades = (trades ?? []).filter(
-          (t) => ids.has(t.character_id) && new Date(t.created_at) < new Date(row.exportedAt)
-        )
-      }
-    }
     setParsed((prev) => [...prev, ...results])
   }
 
@@ -80,39 +102,41 @@ export default function FoundryImporter({ campaigns }) {
     setParsed((prev) => prev.map((row, i) => (i === index ? { ...row, ...patch } : row)))
   }
 
+  const targetIds = (row) => (row.existing.length > 0 ? row.existing.map((c) => c.id) : row.linkId ? [row.linkId] : [])
+
   async function importRow(index) {
     const row = parsed[index]
-    updateRow(index, { status: 'saving' })
+    updateRow(index, { status: 'saving', error: null })
     const synced = {
-      name: row.actor.name,
       foundry_id: row.actor._id ?? null,
       currency: getCurrency(row.actor),
       raw_data: row.actor,
     }
+    const ids = targetIds(row)
 
-    if (row.existing.length > 0) {
-      // Owner and campaign are left alone - they were assigned on first import.
-      const { error } = await supabase
-        .from('characters')
-        .update(synced)
-        .in('id', row.existing.map((c) => c.id))
+    if (ids.length > 0) {
+      // Only the Foundry data changes. Name, player and campaign are the
+      // site's own and stay as they are, so a character renamed here (e.g.
+      // "... 2024") keeps its name.
+      const { error } = await supabase.from('characters').update(synced).in('id', ids)
       if (error) {
         updateRow(index, { status: 'error', error: error.message })
         return
       }
-      // The export now includes these trades, so they stop counting toward
-      // the balance on top of the imported gold.
-      if (row.pendingTrades.length > 0) {
-        const { error: settleError } = await supabase
-          .from('shop_transactions')
-          .update({ settled_at: new Date().toISOString() })
-          .in('id', row.pendingTrades.map((t) => t.id))
-        if (settleError) {
-          updateRow(index, { status: 'error', error: `Updated, but couldn't settle trades: ${settleError.message}` })
-          return
-        }
+      // Trades made before the export are now included in its gold, so they
+      // stop counting on top of it.
+      const { error: settleError } = await supabase
+        .from('shop_transactions')
+        .update({ settled_at: new Date().toISOString() })
+        .in('character_id', ids)
+        .is('settled_at', null)
+        .lt('created_at', row.exportedAt)
+      if (settleError) {
+        updateRow(index, { status: 'error', error: `Updated, but couldn't settle trades: ${settleError.message}` })
+        return
       }
-      updateRow(index, { status: 'done', characterId: row.existing[0].id })
+      updateRow(index, { status: 'done', characterId: ids[0] })
+      loadCharacters()
       return
     }
 
@@ -120,6 +144,7 @@ export default function FoundryImporter({ campaigns }) {
       .from('characters')
       .insert({
         ...synced,
+        name: row.actor.name,
         owner_id: row.ownerId || null,
         campaign_id: row.campaignId || null,
         source: 'foundry',
@@ -128,34 +153,40 @@ export default function FoundryImporter({ campaigns }) {
       .single()
 
     if (error) updateRow(index, { status: 'error', error: error.message })
-    else updateRow(index, { status: 'done', characterId: data.id })
+    else {
+      updateRow(index, { status: 'done', characterId: data.id })
+      loadCharacters()
+    }
   }
+
+  const updatable = parsed
+    .map((row, i) => ({ row, i }))
+    .filter(({ row }) => row.summary && row.status === 'pending' && targetIds(row).length > 0)
 
   async function updateAllExisting() {
-    const indexes = parsed
-      .map((row, i) => (row.summary && row.existing.length > 0 && row.status === 'pending' ? i : -1))
-      .filter((i) => i >= 0)
-    await Promise.all(indexes.map((i) => importRow(i)))
+    await Promise.all(updatable.map(({ i }) => importRow(i)))
   }
 
-  const pendingUpdates = parsed.filter(
-    (row) => row.summary && row.existing.length > 0 && row.status === 'pending'
-  ).length
+  // Two rows pointed at the same character would overwrite each other.
+  const linkCounts = {}
+  for (const row of parsed) if (row.status === 'pending' && row.linkId) linkCounts[row.linkId] = (linkCounts[row.linkId] ?? 0) + 1
+
+  const nameOf = (id) => characters.find((c) => c.id === id)?.name ?? 'that character'
 
   return (
     <div className="dm-panel">
       <h2>Import Foundry Characters</h2>
       <p className="view-subtitle">
-        Upload a party.json from the party-export macro, or one or more Actor export .json files
-        from FoundryVTT. Characters imported before are updated in place (sheet and gold); new ones
-        need a player and campaign assigned. Shop trades made before the file was exported are marked as
-        applied — so apply pending trades in Foundry before running the export macro.
+        Upload a party.json from the party-export macro, or Actor export .json files from FoundryVTT. Updating a
+        character only replaces its sheet and gold — its page, player, campaign, skill-tree progress and notes stay.
+        Shop trades made before the file was exported are marked as applied, so apply pending trades in Foundry
+        before running the export macro.
       </p>
       <input type="file" accept=".json" multiple onChange={handleFiles} />
 
-      {pendingUpdates > 0 && (
+      {updatable.length > 0 && (
         <button type="button" onClick={updateAllExisting}>
-          Update all {pendingUpdates} existing
+          Update all {updatable.length} existing
         </button>
       )}
 
@@ -181,42 +212,59 @@ export default function FoundryImporter({ campaigns }) {
                     <Link to={`/character/${row.characterId}`}>View sheet →</Link>
                   ) : row.existing.length > 0 ? (
                     <>
-                      <span className="dm-list-meta">
-                        Already imported
-                        {row.pendingTrades.length > 0 &&
-                          ` · settles ${row.pendingTrades.length} shop trade${row.pendingTrades.length === 1 ? '' : 's'}`}
-                      </span>
+                      <span className="dm-list-meta">Matched: {row.existing.map((c) => c.name).join(', ')}</span>
                       <button type="button" onClick={() => importRow(i)} disabled={row.status === 'saving'}>
                         {row.status === 'saving' ? 'Updating...' : 'Update'}
                       </button>
                     </>
                   ) : (
                     <>
-                      <select
-                        value={row.ownerId}
-                        onChange={(e) => updateRow(i, { ownerId: e.target.value })}
-                      >
-                        <option value="">No player assigned</option>
-                        {players.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.display_name}
-                          </option>
-                        ))}
-                      </select>
-                      <select
-                        value={row.campaignId}
-                        onChange={(e) => updateRow(i, { campaignId: e.target.value })}
-                      >
-                        <option value="">No campaign</option>
-                        {campaigns.map((c) => (
-                          <option key={c.id} value={c.id}>
-                            {c.name}
-                          </option>
-                        ))}
-                      </select>
-                      <button type="button" onClick={() => importRow(i)} disabled={row.status === 'saving'}>
-                        {row.status === 'saving' ? 'Importing...' : 'Import'}
-                      </button>
+                      <label className="import-link">
+                        Existing character
+                        <select value={row.linkId} onChange={(e) => updateRow(i, { linkId: e.target.value })}>
+                          <option value="">None — import as new</option>
+                          {unlinked.map((c) => (
+                            <option key={c.id} value={c.id}>
+                              {c.name}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      {row.linkId ? (
+                        <button type="button" onClick={() => importRow(i)} disabled={row.status === 'saving'}>
+                          {row.status === 'saving' ? 'Updating...' : `Update ${nameOf(row.linkId)}`}
+                        </button>
+                      ) : (
+                        <>
+                          <select value={row.ownerId} onChange={(e) => updateRow(i, { ownerId: e.target.value })}>
+                            <option value="">No player assigned</option>
+                            {players.map((p) => (
+                              <option key={p.id} value={p.id}>
+                                {p.display_name}
+                              </option>
+                            ))}
+                          </select>
+                          <select
+                            value={row.campaignId}
+                            onChange={(e) => updateRow(i, { campaignId: e.target.value })}
+                          >
+                            <option value="">No campaign</option>
+                            {campaigns.map((c) => (
+                              <option key={c.id} value={c.id}>
+                                {c.name}
+                              </option>
+                            ))}
+                          </select>
+                          <button type="button" onClick={() => importRow(i)} disabled={row.status === 'saving'}>
+                            {row.status === 'saving' ? 'Importing...' : 'Import as new'}
+                          </button>
+                        </>
+                      )}
+                      {row.linkId && linkCounts[row.linkId] > 1 && (
+                        <span className="status-message error">
+                          Another row is also linked to {nameOf(row.linkId)}.
+                        </span>
+                      )}
                     </>
                   )}
                   {row.error && <span className="status-message error">{row.error}</span>}
