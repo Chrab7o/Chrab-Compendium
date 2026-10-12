@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { generateOne, generatorLabel } from '../../../lib/nameSchemes'
-import { drawFromPool } from '../../../lib/sphereGrid'
-import { useTags } from '../../../contexts/TagContext'
+import { drawFromPool, kindTag } from '../../../lib/sphereGrid'
+import KindSelect from './KindSelect'
 import TagGroupPicker from '../../TagGroupPicker'
 
 // Same lazy loading as the Name Generator: syllable data only loads once a
@@ -18,14 +18,13 @@ const MAX_COUNT = 20
 // one press. Everything is drawn from curated pools or the installed syllable
 // schemes - nothing is invented, and no name already used by an entry
 // anywhere in the wiki comes back.
-export default function GeneratorPanel({ pools, existingNames, selectedSpheres, onCreate }) {
-  const { tags, groups } = useTags()
+export default function GeneratorPanel({ kinds, pools, existingNames, selectedSpheres, onCreate }) {
   const [source, setSource] = useState('')
   const [scheme, setScheme] = useState(null)
   const [schemeGen, setSchemeGen] = useState('')
   const [count, setCount] = useState(5)
   const [batchTags, setBatchTags] = useState([])
-  const [showTags, setShowTags] = useState(true)
+  const [kindId, setKindId] = useState(null)
   const [gmOnly, setGmOnly] = useState(true)
   const [draft, setDraft] = useState([])
   const [notice, setNotice] = useState(null)
@@ -108,24 +107,22 @@ export default function GeneratorPanel({ pools, existingNames, selectedSpheres, 
 
   const toCreate = draft.map((d) => d.name.trim()).filter(Boolean)
 
-  // Same rule as the entry editor: a tag from every required group (Type).
-  // With no required groups defined, at least one tag of any kind - a new
-  // entry should never start out tagless.
-  const owned = new Set(batchTags)
-  const missingGroups = groups
-    .filter((g) => g.required)
-    .filter((g) => !tags.some((t) => t.group_id === g.id && owned.has(t.value)))
-  const tagProblem = missingGroups.length
-    ? `Pick a ${missingGroups.map((g) => g.label).join(' and a ')} tag for the batch.`
-    : !batchTags.length
-      ? 'Pick at least one tag for the batch.'
-      : null
+  // A new entry should never start out with nothing describing it: a kind
+  // (which brings its own questions and tag) or at least one tag.
+  const tagProblem = !kindId && !batchTags.length ? 'Pick a kind or at least one tag for the batch.' : null
+
+  // Picking a kind adds its wiki tag to the batch, the same as on a sphere.
+  function changeKind(next) {
+    setKindId(next)
+    const tag = next ? kindTag(kinds, next) : null
+    if (tag) setBatchTags((current) => (current.includes(tag) ? current : [...current, tag]))
+  }
 
   async function handleCreate() {
     if (!toCreate.length || tagProblem) return
     setSaving(true)
     setError(null)
-    const err = await onCreate(toCreate, { tags: batchTags, visibility: gmOnly ? 'dm' : 'public' })
+    const err = await onCreate(toCreate, { tags: batchTags, visibility: gmOnly ? 'dm' : 'public', kindId })
     setSaving(false)
     if (err) setError(err)
     else {
@@ -200,26 +197,13 @@ export default function GeneratorPanel({ pools, existingNames, selectedSpheres, 
             GM-only
           </label>
         </div>
+        <label>
+          Kind for the batch
+          <KindSelect kinds={kinds} value={kindId} onChange={changeKind} />
+        </label>
         <div className="sg-tags">
-          <div className="sg-tags-head">
-            <span>Tags for the batch</span>
-            <button type="button" className="secondary sg-small" onClick={() => setShowTags((v) => !v)}>
-              {showTags ? 'Done' : 'Edit tags'}
-            </button>
-          </div>
-          {showTags ? (
-            <TagGroupPicker value={batchTags} onChange={setBatchTags} />
-          ) : batchTags.length ? (
-            <div className="sg-tag-chips">
-              {batchTags.map((v) => (
-                <span key={v} className="badge badge-tag">
-                  {tags.find((t) => t.value === v)?.label ?? v}
-                </span>
-              ))}
-            </div>
-          ) : (
-            <p className="status-message">No tags yet.</p>
-          )}
+          <span>Tags for the batch</span>
+          <TagGroupPicker showRequired={false} value={batchTags} onChange={setBatchTags} />
         </div>
         {tagProblem && draft.length > 0 && <p className="status-message error">{tagProblem}</p>}
         <div className="dm-form-actions">

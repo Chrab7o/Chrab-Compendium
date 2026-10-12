@@ -140,3 +140,151 @@ export function sphereKind(entryTags, tags, typeGroupId) {
   const tag = byValue.get(value) ?? { value, label: value }
   return { tag, color: tag.color || hashColor(value) }
 }
+
+// --- Guided prompts --------------------------------------------------------
+// Answers are written into an entry's markdown as `**Label:** answer` lines,
+// and a prompt counts as answered when its line is there. See the
+// sphere_prompts migration.
+
+// --- Kinds -----------------------------------------------------------------
+// Kinds nest (Location > Cave / Dungeon) through parent_id alone; everything
+// inherited is worked out here by walking up the chain.
+
+/** [kind, parent, grandparent, ...] - stops on a missing parent or a cycle. */
+export function kindChain(kinds, kindId) {
+  const byId = new Map(kinds.map((k) => [k.id, k]))
+  const chain = []
+  const seen = new Set()
+  let current = byId.get(kindId)
+  while (current && !seen.has(current.id)) {
+    seen.add(current.id)
+    chain.push(current)
+    current = byId.get(current.parent_id)
+  }
+  return chain
+}
+
+/** "Location › Cave / Dungeon" */
+export const kindPath = (kinds, kindId) =>
+  kindChain(kinds, kindId)
+    .reverse()
+    .map((k) => k.label)
+    .join(' › ')
+
+/** The wiki tag a kind adds: its own, else the nearest ancestor's. */
+export const kindTag = (kinds, kindId) => kindChain(kinds, kindId).find((k) => k.tag)?.tag ?? null
+
+/** Kinds in tree order with their depth, for indented pickers and lists. */
+export function kindTree(kinds) {
+  const children = new Map()
+  // Universal kinds ("Every sphere") aren't something a sphere can be.
+  for (const k of kinds.filter((x) => !x.universal)) {
+    const key = k.parent_id && kinds.some((p) => p.id === k.parent_id) ? k.parent_id : null
+    if (!children.has(key)) children.set(key, [])
+    children.get(key).push(k)
+  }
+  const out = []
+  const visit = (parentId, depth, seen) => {
+    const list = (children.get(parentId) ?? []).sort(
+      (a, b) => a.sort_order - b.sort_order || a.label.localeCompare(b.label)
+    )
+    for (const k of list) {
+      if (seen.has(k.id)) continue
+      out.push({ kind: k, depth })
+      visit(k.id, depth + 1, new Set([...seen, k.id]))
+    }
+  }
+  visit(null, 0, new Set())
+  return out
+}
+
+/** Every id at or below `kindId` - a kind can't be moved under one of these. */
+export function kindDescendants(kinds, kindId) {
+  const out = new Set([kindId])
+  let grew = true
+  while (grew) {
+    grew = false
+    for (const k of kinds) {
+      if (k.parent_id && out.has(k.parent_id) && !out.has(k.id)) {
+        out.add(k.id)
+        grew = true
+      }
+    }
+  }
+  return out
+}
+
+/**
+ * The questions a kind asks, grouped by the kind each one comes from (root
+ * first, the kind's own last). A question switched off on the kind or any
+ * kind between it and the question's source is marked `hidden`; pass
+ * `includeHidden` to keep those (the curation screen shows them greyed out).
+ *
+ * `overrides` are tailored idea lists (sphere_kind_prompt_ideas): for an
+ * inherited question, the nearest kind at or below this one that has its own
+ * list replaces the question's ideas. `tailoredAt` says which kind that was
+ * (null when the question's own ideas are showing).
+ */
+export function kindPrompts(kinds, prompts, hidden, kindId, { includeHidden = false, overrides = [] } = {}) {
+  // Universal kinds sit above every chain, as the root-most ancestor - so
+  // their questions show on every sphere (even one with no kind yet) and can
+  // be switched off or tailored like any other inherited question.
+  const chain = [
+    ...kindChain(kinds, kindId).filter((k) => !k.universal),
+    ...kinds.filter((k) => k.universal),
+  ]
+  const hiddenBy = new Map()
+  for (const h of hidden) {
+    if (!hiddenBy.has(h.prompt_id)) hiddenBy.set(h.prompt_id, new Set())
+    hiddenBy.get(h.prompt_id).add(h.kind_id)
+  }
+  const overrideFor = new Map(overrides.map((o) => [`${o.kind_id}|${o.prompt_id}`, o]))
+  return chain
+    .map((source, index) => {
+      // Only kinds below the source can switch its questions off or tailor
+      // their ideas; `below` runs nearest-first.
+      const below = chain.slice(0, index).map((k) => k.id)
+      const list = prompts
+        .filter((p) => p.kind_id === source.id)
+        .sort((a, b) => a.sort_order - b.sort_order)
+        .map((p) => {
+          const tailoredAt = below.find((id) => overrideFor.has(`${id}|${p.id}`)) ?? null
+          return {
+            ...p,
+            ideas: tailoredAt ? overrideFor.get(`${tailoredAt}|${p.id}`).ideas : p.ideas,
+            tailoredAt,
+            hidden: below.some((id) => hiddenBy.get(p.id)?.has(id)),
+          }
+        })
+        .filter((p) => includeHidden || !p.hidden)
+      return { kind: source, inherited: index > 0, prompts: list }
+    })
+    .reverse()
+    .filter((g) => g.prompts.length)
+}
+
+const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+/** Labels that already have a `**Label:**` line in the markdown. */
+export function answeredLabels(markdown, labels) {
+  const text = markdown ?? ''
+  return new Set(
+    labels.filter((label) => new RegExp(`^\\s*\\*\\*${escapeRegex(label)}:\\*\\*`, 'mi').test(text))
+  )
+}
+
+export const answerLine = (label, text) => `**${label}:** ${text.trim()}`
+
+/** Append a block to markdown with a blank line between. */
+export function appendMarkdown(markdown, block) {
+  const base = (markdown ?? '').replace(/\s+$/, '')
+  return base ? `${base}\n\n${block}` : block
+}
+
+/** A random idea, avoiding `exclude` (e.g. the one already showing) when possible. */
+export function pickIdea(ideas, exclude = [], rng = Math.random) {
+  const skip = new Set(exclude)
+  const fresh = ideas.filter((i) => !skip.has(i))
+  const from = fresh.length ? fresh : ideas
+  return from.length ? from[Math.floor(rng() * from.length)] : null
+}

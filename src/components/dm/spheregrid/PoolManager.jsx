@@ -11,7 +11,6 @@ const emptyDraft = { id: null, name: '', tags: [], text: '' }
 export default function PoolManager({ pools, onChanged }) {
   const { tags } = useTags()
   const [draft, setDraft] = useState(emptyDraft)
-  const [showTags, setShowTags] = useState(false)
   const [error, setError] = useState(null)
   const [saving, setSaving] = useState(false)
 
@@ -46,7 +45,6 @@ export default function PoolManager({ pools, onChanged }) {
       return
     }
     setDraft(emptyDraft)
-    setShowTags(false)
     onChanged()
   }
 
@@ -101,25 +99,8 @@ export default function PoolManager({ pools, onChanged }) {
           />
         </label>
         <div className="sg-tags">
-          <div className="sg-tags-head">
-            <span>Default tags for what it generates</span>
-            <button type="button" className="secondary sg-small" onClick={() => setShowTags((v) => !v)}>
-              {showTags ? 'Done' : 'Edit tags'}
-            </button>
-          </div>
-          {showTags ? (
-            <TagGroupPicker value={draft.tags} onChange={(next) => setDraft((d) => ({ ...d, tags: next }))} />
-          ) : draft.tags.length ? (
-            <div className="sg-tag-chips">
-              {draft.tags.map((v) => (
-                <span key={v} className="badge badge-tag">
-                  {labelOf(v)}
-                </span>
-              ))}
-            </div>
-          ) : (
-            <p className="status-message">None.</p>
-          )}
+          <span>Default tags for what it generates</span>
+          <TagGroupPicker showRequired={false} value={draft.tags} onChange={(next) => setDraft((d) => ({ ...d, tags: next }))} />
         </div>
         <label>
           Names — one per line ({lineCount})

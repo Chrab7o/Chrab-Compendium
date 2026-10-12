@@ -1,12 +1,23 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import { useTags } from '../../contexts/TagContext'
-import { adjacency, centroid, linkKey, nearestSphere, orderPair, placeNear, sphereKind } from '../../lib/sphereGrid'
+import {
+  adjacency,
+  centroid,
+  kindPath,
+  kindTag,
+  linkKey,
+  nearestSphere,
+  orderPair,
+  placeNear,
+  sphereKind,
+} from '../../lib/sphereGrid'
 import SphereBoard from '../../components/dm/spheregrid/SphereBoard'
 import SphereDetail from '../../components/dm/spheregrid/SphereDetail'
 import GeneratorPanel from '../../components/dm/spheregrid/GeneratorPanel'
 import PoolManager from '../../components/dm/spheregrid/PoolManager'
 import EntryAdder from '../../components/dm/spheregrid/EntryAdder'
+import KindManager from '../../components/dm/spheregrid/KindManager'
 
 const GRID_KEY = 'chrab.sphereGrid.grid'
 
@@ -32,6 +43,10 @@ export default function DMSphereGridPage() {
   const [entries, setEntries] = useState([])
   const [links, setLinks] = useState([])
   const [pools, setPools] = useState([])
+  const [prompts, setPrompts] = useState([])
+  const [kinds, setKinds] = useState([])
+  const [hiddenPrompts, setHiddenPrompts] = useState([])
+  const [ideaOverrides, setIdeaOverrides] = useState([])
   const [selection, setSelection] = useState(() => new Set())
   const [focusId, setFocusId] = useState(null)
   const [tab, setTab] = useState('generate')
@@ -72,19 +87,27 @@ export default function DMSphereGridPage() {
   }, [gridId])
 
   const load = useCallback(async () => {
-    const [entryRes, linkRes, poolRes, nodeRes] = await Promise.all([
-      supabase.from('entries').select('id, title, content, tags, visibility, is_stub, parent_entry_id'),
+    const [entryRes, linkRes, poolRes, promptRes, kindRes, hiddenRes, overrideRes, nodeRes] = await Promise.all([
+      supabase.from('entries').select('id, title, content, tags, visibility, is_stub, parent_entry_id, sphere_kind_id'),
       supabase.from('entry_links').select('*'),
       supabase.from('name_pools').select('*').order('name', { ascending: true }),
+      supabase.from('sphere_prompts').select('*').order('sort_order', { ascending: true }),
+      supabase.from('sphere_kinds').select('*'),
+      supabase.from('sphere_kind_hidden_prompts').select('*'),
+      supabase.from('sphere_kind_prompt_ideas').select('*'),
       gridId
         ? supabase.from('sphere_grid_nodes').select('*').eq('grid_id', gridId)
         : Promise.resolve({ data: [] }),
     ])
-    const firstError = [entryRes, linkRes, poolRes, nodeRes].find((r) => r.error)?.error
+    const firstError = [entryRes, linkRes, poolRes, promptRes, kindRes, hiddenRes, overrideRes, nodeRes].find((r) => r.error)?.error
     if (firstError) setError(firstError.message)
     setEntries(entryRes.data ?? [])
     setLinks(linkRes.data ?? [])
     setPools(poolRes.data ?? [])
+    setPrompts(promptRes.data ?? [])
+    setKinds(kindRes.data ?? [])
+    setHiddenPrompts(hiddenRes.data ?? [])
+    setIdeaOverrides(overrideRes.data ?? [])
     setNodes(nodeRes.data ?? [])
   }, [gridId])
 
@@ -113,13 +136,13 @@ export default function DMSphereGridPage() {
           is_stub: entry.is_stub,
           gm_only: entry.visibility === 'dm',
           color: kind.color,
-          kindLabel: kind.tag?.label ?? null,
+          kindLabel: entry.sphere_kind_id ? kindPath(kinds, entry.sphere_kind_id) : kind.tag?.label ?? null,
           tagLabels: (entry.tags ?? []).map(labelOf),
           hiddenLinks: [...neighbours].filter((id) => !onGrid.has(id) && entriesById.has(id)).length,
         }
       })
       .filter(Boolean)
-  }, [nodes, entriesById, links, tags, typeGroup, onGrid])
+  }, [nodes, entriesById, links, tags, typeGroup, onGrid, kinds])
 
   const spheresById = useMemo(() => new Map(spheres.map((s) => [s.id, s])), [spheres])
   const gridLinks = useMemo(() => links.filter((l) => onGrid.has(l.a) && onGrid.has(l.b)), [links, onGrid])
@@ -306,36 +329,103 @@ export default function DMSphereGridPage() {
     }
   }
 
-  // New entries land near the selection and link to every selected sphere -
-  // but not to each other.
-  async function handleCreate(names, { tags: batchTags, visibility }) {
-    setError(null)
-    const anchor = placementAnchor()
+  // Create stub entries, place them on this grid around `anchor`, and link
+  // each one to every id in `linkTo` - but not to each other. Returns the new
+  // ids, or an error message.
+  async function createAndPlace(names, { tags: batchTags, visibility, kindId = null }, { linkTo, anchor }) {
     const { data: created, error: insertError } = await supabase
       .from('entries')
-      .insert(names.map((title) => ({ title, content: '', tags: batchTags, visibility, is_stub: true })))
+      .insert(
+        names.map((title) => ({
+          title,
+          content: '',
+          tags: batchTags,
+          visibility,
+          is_stub: true,
+          sphere_kind_id: kindId,
+        }))
+      )
       .select('id')
-    if (insertError) return insertError.message
+    if (insertError) return { error: insertError.message }
 
     const ids = created.map((e) => e.id)
     const { error: nodeError } = await insertNodes(ids, anchor)
     if (nodeError) setError(`Entries created, but placing them failed: ${nodeError.message}`)
 
-    if (selectedSpheres.length) {
+    if (linkTo.length) {
       const rows = ids.flatMap((id) =>
-        selectedSpheres.map((anchorSphere) => {
-          const [a, b] = orderPair(id, anchorSphere.id)
+        linkTo.map((otherId) => {
+          const [a, b] = orderPair(id, otherId)
           return { a, b }
         })
       )
       const { error: linkError } = await supabase.from('entry_links').insert(rows)
       if (linkError) setError(`Entries created, but linking failed: ${linkError.message}`)
-    } else if (!spheres.length) {
+    }
+    return { ids }
+  }
+
+  // Generate: new entries land near the selection and link to every
+  // selected sphere.
+  async function handleCreate(names, options) {
+    setError(null)
+    const { ids, error: createError } = await createAndPlace(names, options, {
+      linkTo: selectedSpheres.map((s) => s.id),
+      anchor: placementAnchor(),
+    })
+    if (createError) return createError
+    if (!selectedSpheres.length && !spheres.length) {
       // The very first spheres on a grid become the selection, so the next
       // batch naturally grows out of them.
       setSelection(new Set(ids))
       setFocusId(ids.length === 1 ? ids[0] : null)
     }
+    await load()
+    return null
+  }
+
+  // A guided question's answer made into its own sphere: a DM-only stub of
+  // the prompt's kind (carrying that kind's tag), placed beside the open
+  // sphere and linked to it.
+  async function handleSpawn(name, spawnKindId) {
+    if (!focusSphere) return false
+    setError(null)
+    const { error: createError } = await createAndPlace(
+      [name],
+      { tags: [kindTag(kinds, spawnKindId)].filter(Boolean), visibility: 'dm', kindId: spawnKindId },
+      { linkTo: [focusSphere.id], anchor: focusSphere }
+    )
+    if (createError) {
+      setError(createError)
+      return false
+    }
+    setNotice(`Created ${name} and linked it to ${focusSphere.name}.`)
+    await load()
+    return true
+  }
+
+  // Ideas edited from inside a sphere land on that sphere's own kind: its own
+  // questions are edited directly, an inherited question gets a tailored
+  // list for this kind (and its sub-kinds) instead of changing the parent's.
+  async function handleSaveIdeas(prompt, ideas, kindId) {
+    setError(null)
+    const { error: saveError } =
+      // With no kind there is nothing to tailor for, so the list itself changes.
+      !kindId || prompt.kind_id === kindId
+        ? await supabase.from('sphere_prompts').update({ ideas }).eq('id', prompt.id)
+        : await supabase
+            .from('sphere_kind_prompt_ideas')
+            .upsert({ kind_id: kindId, prompt_id: prompt.id, ideas }, { onConflict: 'kind_id,prompt_id' })
+    if (saveError) setError(saveError.message)
+    await load()
+  }
+
+  async function handleAddQuestion(kindId, row) {
+    const last = prompts.filter((p) => p.kind_id === kindId).reduce((m, p) => Math.max(m, p.sort_order), -1)
+    const { error: insertError } = await supabase
+      .from('sphere_prompts')
+      .insert({ ...row, kind_id: kindId, sort_order: last + 1 })
+    if (insertError) return insertError.message
     await load()
     return null
   }
@@ -465,7 +555,6 @@ export default function DMSphereGridPage() {
         <div className="dm-panel sg-editor" ref={editorRef}>
           <SphereDetail
             key={focusEntry.id}
-            sphere={focusSphere}
             entry={focusEntry}
             linked={linkedToFocus}
             onUpdate={(changes) => handleUpdate(focusEntry.id, changes)}
@@ -474,6 +563,15 @@ export default function DMSphereGridPage() {
             onPlace={(ids) => handlePlace(ids, focusSphere)}
             onRemove={() => handleRemove([focusEntry.id])}
             onDeleteEntry={() => handleDeleteEntry(focusEntry.id)}
+            kinds={kinds}
+            prompts={prompts}
+            hidden={hiddenPrompts}
+            overrides={ideaOverrides}
+            pools={pools}
+            existingNames={existingNames}
+            onSpawn={handleSpawn}
+            onSaveIdeas={handleSaveIdeas}
+            onAddQuestion={handleAddQuestion}
             onClose={() => setFocusId(null)}
           />
         </div>
@@ -513,6 +611,7 @@ export default function DMSphereGridPage() {
             {[
               ['generate', 'Generate'],
               ['add', 'Add existing'],
+              ['questions', 'Questions'],
               ['pools', `Pools (${pools.length})`],
             ].map(([key, label]) => (
               <button
@@ -528,6 +627,7 @@ export default function DMSphereGridPage() {
 
           {tab === 'generate' && (
             <GeneratorPanel
+              kinds={kinds}
               pools={pools}
               existingNames={existingNames}
               selectedSpheres={selectedSpheres}
@@ -536,6 +636,17 @@ export default function DMSphereGridPage() {
           )}
 
           {tab === 'add' && <EntryAdder entries={entries} onGrid={onGrid} colorOf={colorOf} onPlace={handlePlace} />}
+
+          {tab === 'questions' && (
+            <KindManager
+              kinds={kinds}
+              prompts={prompts}
+              hidden={hiddenPrompts}
+              overrides={ideaOverrides}
+              pools={pools}
+              onChanged={load}
+            />
+          )}
 
           {tab === 'pools' && <PoolManager pools={pools} onChanged={load} />}
         </aside>

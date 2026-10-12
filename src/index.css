@@ -3584,6 +3584,140 @@ button.chip:hover {
   justify-self: start;
 }
 
+/* Search-box tag picker (TagGroupPicker): chosen tags as removable chips,
+   suggestions in a dropdown under the input. */
+.tag-picker {
+  gap: 0.6rem;
+}
+
+.tag-picker-chosen {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.tag-picker-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.3rem 0.2rem 0.7rem;
+  border-radius: 999px;
+  background: var(--chip-accent, var(--accent-2));
+  color: var(--on-accent-2);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.tag-picker-chip-group {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  opacity: 0.8;
+}
+
+.tag-picker-chip .tag-chip-dm {
+  color: inherit;
+}
+
+/* Plain-looking button: resets everything the base button rule sets, per
+   docs/ui-conventions.md. */
+button.tag-picker-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.2rem;
+  height: 1.2rem;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.18);
+  color: inherit;
+  font-size: 0.85rem;
+  line-height: 1;
+  box-shadow: none;
+}
+
+button.tag-picker-remove:hover {
+  background: var(--danger);
+  color: var(--on-danger);
+  filter: none;
+  box-shadow: none;
+  transform: none;
+}
+
+.tag-picker-search {
+  position: relative;
+}
+
+.tag-picker-search input {
+  width: 100%;
+}
+
+.tag-picker-options {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 0.25rem;
+  list-style: none;
+  max-height: 18rem;
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+}
+
+button.tag-picker-option {
+  display: flex;
+  width: 100%;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.4rem 0.6rem;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text);
+  font-weight: 500;
+  text-align: left;
+  box-shadow: none;
+}
+
+button.tag-picker-option:hover,
+button.tag-picker-option.is-active {
+  background: var(--surface-2);
+  filter: none;
+  box-shadow: none;
+  transform: none;
+}
+
+button.tag-picker-option.is-active {
+  outline: 2px solid var(--accent-2);
+  outline-offset: -2px;
+}
+
+button.tag-picker-option.is-create {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.tag-picker-option-group {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.tag-picker-missing {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--danger);
+}
+
 .tag-group-swatch {
   width: 0.85rem;
   height: 0.85rem;
@@ -4443,6 +4577,9 @@ button.sg-link-name:hover {
    same size as the full entry editor, everything else in a column beside it. */
 .sg-editor {
   margin-bottom: var(--space-4);
+  /* .dm-panel clips overflow; the tag picker's dropdown must be able to
+     hang past the panel's bottom edge. */
+  overflow: visible;
 }
 
 .sg-detail-head {
@@ -4564,6 +4701,311 @@ button.sg-small {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+}
+
+/* Guided questions above a sphere's text. Idea chips reuse .chip; an
+   answered question collapses to a muted check line. */
+.sg-prompts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.sg-prompts-empty {
+  margin: 0 0 var(--space-3);
+  padding: 0.55rem 0.8rem;
+  border-left: 4px solid var(--accent-purple);
+  background: var(--surface-2);
+}
+
+.sg-prompt-group {
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent-2);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+
+.sg-prompt-group > summary {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  padding: 0.55rem 0.8rem;
+  cursor: pointer;
+  list-style-position: inside;
+}
+
+.sg-prompt-group-name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--accent-2);
+}
+
+.sg-prompt-count {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.sg-prompt-count.is-complete {
+  color: var(--accent-2);
+  font-weight: 700;
+}
+
+.sg-prompt-list {
+  list-style: none;
+  margin: 0;
+  padding: 0 0.8rem 0.7rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.sg-prompt {
+  padding: 0.6rem 0.7rem;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.sg-prompt.is-answered {
+  background: transparent;
+  border-style: dashed;
+}
+
+.sg-prompt-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sg-prompt-question {
+  flex: 1;
+  font-weight: 600;
+}
+
+.sg-prompt.is-answered .sg-prompt-question {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.sg-prompt-check {
+  color: var(--accent-2);
+  font-weight: 700;
+}
+
+.sg-prompt-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.sg-prompt-ideas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.sg-prompt-ideas .chip {
+  font-size: var(--text-sm);
+}
+
+.sg-prompt-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.sg-prompt-row input {
+  flex: 1 1 14rem;
+  min-width: 0;
+}
+
+.sg-prompt-spawn {
+  padding-top: 0.4rem;
+  border-top: 1px dashed var(--border);
+}
+
+.sg-prompt-admin-group .sg-subhead {
+  margin-top: var(--space-3);
+}
+
+.sg-prompt-admin-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.dm-list li.is-editing {
+  outline: 2px solid var(--accent-2);
+}
+
+.sg-prompt-tailored {
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  background: var(--accent-purple);
+  color: var(--on-accent-purple);
+  font-size: var(--text-xs);
+  font-weight: 700;
+}
+
+.chip.sg-idea-editing {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding-right: 0.3rem;
+  border-style: dashed;
+  border-color: var(--danger);
+  color: var(--text);
+  cursor: default;
+}
+
+.chip.sg-idea-editing .tag-picker-remove {
+  background: var(--surface-2);
+  color: var(--danger);
+}
+
+.sg-prompt-scope {
+  margin: 0;
+  font-size: var(--text-xs);
+  font-style: italic;
+  color: var(--accent-purple);
+}
+
+button.sg-add-question {
+  align-self: flex-start;
+}
+
+.sg-add-question-form {
+  margin: 0;
+  padding: 0.75rem;
+  border: 1px dashed var(--accent-2);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+
+.sg-tailor {
+  flex-basis: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.sg-tailor label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  color: var(--text-muted);
+}
+
+.sg-prompt-inherited {
+  font-size: var(--text-xs);
+  font-style: italic;
+  color: var(--text-muted);
+}
+
+/* The sphere's Kind picker in the editor's meta column. */
+.dm-form label.sg-kind,
+label.sg-kind {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+/* Kind curation (Questions tab): an indented tree of kinds, then the
+   selected kind's settings and questions. */
+.sg-kinds {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.sg-kind-tree {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.sg-kind-tree li {
+  padding-left: calc(var(--depth, 0) * 1.1rem);
+}
+
+/* Plain-looking button: resets everything the base button rule sets, per
+   docs/ui-conventions.md. */
+button.sg-kind-node {
+  display: flex;
+  width: 100%;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.35rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text);
+  font-weight: 600;
+  text-align: left;
+  box-shadow: none;
+}
+
+button.sg-kind-node:hover {
+  background: var(--surface);
+  border-color: var(--accent-2);
+  filter: none;
+  box-shadow: none;
+  transform: none;
+}
+
+button.sg-kind-node.is-universal {
+  border-color: var(--accent-purple);
+  border-width: 2px;
+}
+
+button.sg-kind-node.is-selected {
+  background: var(--accent-2);
+  border-color: var(--accent-2);
+  color: var(--on-accent-2);
+}
+
+.sg-kind-node-meta {
+  font-size: var(--text-xs);
+  font-weight: 500;
+  opacity: 0.8;
+  white-space: nowrap;
+}
+
+.sg-kind-detail {
+  padding-top: var(--space-3);
+  border-top: 2px solid var(--border);
+}
+
+.sg-kind-detail .sg-subhead {
+  margin-top: 0;
+}
+
+.sg-kind-subhead {
+  margin: var(--space-3) 0 var(--space-2);
+  font-size: var(--text-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent-2);
+}
+
+.dm-list li.is-off {
+  opacity: 0.55;
+}
+
+button.sg-toggle.is-on {
+  background: var(--accent-2);
+  border-color: var(--accent-2);
+  color: var(--on-accent-2);
 }
 
 @media (max-width: 1100px) {

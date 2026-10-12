@@ -1,7 +1,10 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import TagGroupPicker from '../../TagGroupPicker'
 import RichTextEditor from '../../RichTextEditor'
+import SpherePrompts from './SpherePrompts'
+import KindSelect from './KindSelect'
+import { answerLine, answeredLabels, appendMarkdown, kindPrompts, kindTag } from '../../../lib/sphereGrid'
 
 // How long typing has to pause before the text autosaves.
 const SAVE_DELAY = 800
@@ -11,10 +14,22 @@ const SAVE_DELAY = 800
 // autosaves after a pause (and on switching spheres); the name saves on blur,
 // flags and tags on change. Keyed by entry id in the page, so switching
 // spheres remounts it with a fresh draft.
+//
+// Above the text sit the guided questions for the sphere's kind (its own and
+// every inherited one not switched off); answering one appends a
+// `**Label:** answer` line to the text.
 export default function SphereDetail({
-  sphere,
   entry,
   linked,
+  kinds,
+  prompts,
+  hidden,
+  overrides,
+  pools,
+  existingNames,
+  onSpawn,
+  onSaveIdeas,
+  onAddQuestion,
   onUpdate,
   onUnlink,
   onFocus,
@@ -24,10 +39,14 @@ export default function SphereDetail({
   onClose,
 }) {
   const [title, setTitle] = useState(entry.title)
-  const [showTags, setShowTags] = useState(false)
   const [saveState, setSaveState] = useState('saved')
   const pending = useRef(null)
   const timer = useRef(null)
+  // The latest markdown, typed or appended - the editor itself only reads
+  // its content on mount, so appending remounts it via editorKey.
+  const contentRef = useRef(entry.content ?? '')
+  const [liveContent, setLiveContent] = useState(entry.content ?? '')
+  const [editorKey, setEditorKey] = useState(0)
   const onUpdateRef = useRef(onUpdate)
   onUpdateRef.current = onUpdate
 
@@ -44,10 +63,53 @@ export default function SphereDetail({
   useEffect(() => () => flush(), [])
 
   function handleContent(markdown) {
+    contentRef.current = markdown
+    setLiveContent(markdown)
     pending.current = markdown
     setSaveState('saving')
     clearTimeout(timer.current)
     timer.current = setTimeout(flush, SAVE_DELAY)
+  }
+
+  function appendContent(block) {
+    clearTimeout(timer.current)
+    pending.current = null
+    const next = appendMarkdown(contentRef.current, block)
+    contentRef.current = next
+    setLiveContent(next)
+    setEditorKey((k) => k + 1)
+    setSaveState('saving')
+    Promise.resolve(onUpdateRef.current({ content: next })).then(() => setSaveState('saved'))
+  }
+
+  const promptGroups = useMemo(
+    () => kindPrompts(kinds, prompts, hidden, entry.sphere_kind_id, { overrides }),
+    [kinds, prompts, hidden, overrides, entry.sphere_kind_id]
+  )
+  const kindLabel = (id) => kinds.find((k) => k.id === id)?.label ?? null
+
+  // Picking a kind also adds its wiki tag, so the entry still turns up in
+  // tag search. Changing kind never removes tags - they may be wanted.
+  function changeKind(kindId) {
+    const changes = { sphere_kind_id: kindId }
+    const tag = kindId ? kindTag(kinds, kindId) : null
+    if (tag && !(entry.tags ?? []).includes(tag)) changes.tags = [...(entry.tags ?? []), tag]
+    onUpdate(changes)
+  }
+  const answered = useMemo(
+    () => answeredLabels(liveContent, promptGroups.flatMap((g) => g.prompts.map((p) => p.label))),
+    [liveContent, promptGroups]
+  )
+
+  function handleAnswer(prompt, text) {
+    appendContent(answerLine(prompt.label, text))
+  }
+
+  // Make the answer its own linked sphere, then record it in this one's text.
+  async function handleSpawn(prompt, name, idea) {
+    const ok = await onSpawn(name, prompt.spawn_kind_id)
+    if (ok) appendContent(answerLine(prompt.label, idea && idea !== name ? `${name} — ${idea}` : name))
+    return ok
   }
 
   function saveTitle() {
@@ -87,10 +149,28 @@ export default function SphereDetail({
 
       <div className="sg-detail-body">
         <div className="sg-detail-text">
-          <RichTextEditor content={entry.content ?? ''} onChange={handleContent} />
+          <SpherePrompts
+            groups={promptGroups}
+            answered={answered}
+            kindId={entry.sphere_kind_id}
+            kinds={kinds}
+            kindLabel={kindLabel}
+            pools={pools}
+            existingNames={existingNames}
+            onAnswer={handleAnswer}
+            onSpawn={handleSpawn}
+            onSaveIdeas={(prompt, ideas) => onSaveIdeas(prompt, ideas, entry.sphere_kind_id)}
+            onAddQuestion={(row) => onAddQuestion(entry.sphere_kind_id, row)}
+          />
+          <RichTextEditor key={editorKey} content={contentRef.current} onChange={handleContent} />
         </div>
 
         <div className="sg-detail-meta">
+          <label className="sg-kind">
+            Kind
+            <KindSelect kinds={kinds} value={entry.sphere_kind_id} onChange={changeKind} />
+          </label>
+
           <div className="sg-flags">
             <label className="sg-flag">
               <input type="checkbox" checked={entry.is_stub} onChange={(e) => onUpdate({ is_stub: e.target.checked })} />
@@ -107,25 +187,8 @@ export default function SphereDetail({
           </div>
 
           <div className="sg-tags">
-            <div className="sg-tags-head">
-              <span>Tags</span>
-              <button type="button" className="secondary sg-small" onClick={() => setShowTags((v) => !v)}>
-                {showTags ? 'Done' : 'Edit tags'}
-              </button>
-            </div>
-            {showTags ? (
-              <TagGroupPicker value={entry.tags ?? []} onChange={(tags) => onUpdate({ tags })} />
-            ) : sphere.tagLabels.length ? (
-              <div className="sg-tag-chips">
-                {sphere.tagLabels.map((label) => (
-                  <span key={label} className="badge badge-tag">
-                    {label}
-                  </span>
-                ))}
-              </div>
-            ) : (
-              <p className="status-message">Untagged.</p>
-            )}
+            <span>Tags</span>
+            <TagGroupPicker showRequired={false} value={entry.tags ?? []} onChange={(tags) => onUpdate({ tags })} />
           </div>
 
           <div className="sg-subhead-row">
