@@ -57,6 +57,40 @@ async function buildShowAllMessage() {
   return lines.join('\n')
 }
 
+const formatGp = (gp: number) => Number(gp).toLocaleString('en-US', { maximumFractionDigits: 2 })
+
+// /gold [character]: every player character's spendable gold - imported
+// Foundry gold plus shop trades not yet applied in Foundry - grouped by
+// campaign. party_gold() is execute-revoked from everyone but the service
+// role, so this bot is the only way to read it outside the site.
+async function buildGoldMessage(filter?: string) {
+  const { data: rows, error } = await supabase.rpc('party_gold')
+  if (error) return `Couldn't load gold: ${error.message}`
+
+  const needle = filter?.trim().toLowerCase()
+  const matches = (rows ?? []).filter((r) => !needle || r.character_name.toLowerCase().includes(needle))
+  if (matches.length === 0) return needle ? `No player character matches "${filter}".` : 'No player characters yet.'
+
+  const byCampaign = new Map<string, typeof matches>()
+  for (const r of matches) {
+    const key = r.campaign_name ?? 'No campaign'
+    if (!byCampaign.has(key)) byCampaign.set(key, [])
+    byCampaign.get(key)!.push(r)
+  }
+
+  const sections = [...byCampaign].map(([campaign, list]) => {
+    const lines = list.map((r) => {
+      const pending =
+        r.pending_trades > 0
+          ? ` _(${formatGp(r.imported_gp)} in Foundry, ${r.pending_trades} trade${r.pending_trades === 1 ? '' : 's'} not applied yet)_`
+          : ''
+      return `**${r.character_name}** — ${formatGp(r.balance_gp)} gp${pending}`
+    })
+    return byCampaign.size > 1 ? `__${campaign}__\n${lines.join('\n')}` : lines.join('\n')
+  })
+  return `💰 **Party gold**\n${sections.join('\n\n')}`
+}
+
 Deno.serve(async (req) => {
   const rawBody = await req.text()
 
@@ -76,6 +110,17 @@ Deno.serve(async (req) => {
       const content = await buildShowAllMessage()
       return Response.json({ type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE, data: { content } })
     }
+  }
+
+  if (interaction.type === InteractionType.APPLICATION_COMMAND && interaction.data?.name === 'gold') {
+    const filter = interaction.data.options?.find((o: { name: string }) => o.name === 'character')?.value
+    const content = await buildGoldMessage(filter)
+    // Ephemeral (flag 64): only whoever ran it sees the reply, so checking
+    // the party's purses doesn't post them to the channel.
+    return Response.json({
+      type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+      data: { content, flags: 64 },
+    })
   }
 
   return Response.json({
