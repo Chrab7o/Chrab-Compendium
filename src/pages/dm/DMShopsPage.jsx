@@ -20,6 +20,7 @@ import {
 } from '../../lib/shopPool'
 import CatalogPicker from '../../components/dm/shops/CatalogPicker'
 import ShopTransactions from '../../components/dm/shops/ShopTransactions'
+import ShopPreview from '../../components/dm/shops/ShopPreview'
 import ItemDialog from '../../components/shops/ItemDialog'
 
 const emptyDraft = { name: '', slug: '', blurb: '', campaign_id: '', visibility: 'dm', kind: 'exchange' }
@@ -641,6 +642,7 @@ export default function DMShopsPage() {
                   Copy
                 </button>
               </p>
+              <ShopPreview shop={selected} />
               <div className="dm-form-actions">
                 <button type="button" className="danger" onClick={handleDeleteShop}>
                   Delete shop

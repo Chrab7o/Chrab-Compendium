@@ -6,18 +6,20 @@ import SkillTreeProgress from '../components/SkillTreeProgress'
 import NotesPanel from '../components/NotesPanel'
 import AccountPanel from '../components/AccountPanel'
 import TagView from './TagView'
+import ShopList from '../components/shops/ShopList'
 
 const TABS = [
   { key: 'sheet', label: 'Character Sheet' },
   { key: 'skills', label: 'Feature Tree' },
+  { key: 'shops', label: 'Shops' },
   { key: 'notes', label: 'My Notes' },
   { key: 'session-notes', label: 'Session Notes' },
   { key: 'account', label: 'Account' },
 ]
 
 // The consolidated player hub at /character — character sheet, skill tree,
-// private notes, the DM's public session-note entries, and account
-// settings, as in-page tabs instead of four separate routes each re-mounting
+// the campaign's shops, private notes, the DM's public session-note entries,
+// and account settings, as in-page tabs instead of four separate routes each re-mounting
 // their own PlayerLayout sub-nav. (/character/:id, used by the DM to view
 // an arbitrary character directly, is a separate route/page — unaffected.)
 export default function CharacterHub() {
@@ -66,6 +68,7 @@ export default function CharacterHub() {
       <div className="character-hub-panel">
         {tab === 'sheet' && <CharacterSheet characterId={characterId} />}
         {tab === 'skills' && <SkillTreeProgress characterId={characterId} editable />}
+        {tab === 'shops' && <ShopList campaignId={campaignId} characterId={characterId} />}
         {tab === 'notes' && <NotesPanel />}
         {tab === 'session-notes' && <TagView tag="session-note" title="Session Notes" embedded />}
         {tab === 'account' && <AccountPanel />}
