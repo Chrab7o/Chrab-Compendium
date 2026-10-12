@@ -4366,6 +4366,130 @@ button.tag-picker-option.is-create {
   margin: 0 0 var(--space-3);
 }
 
+/* ---- Item details: clickable names and the details dialog ---- */
+
+/* An item's name, clickable to open its details. Reads as the heading/name it
+   replaces, with an accent underline as the affordance. Every property the
+   base button and button:hover rules set is cancelled, per the .link-button
+   note above - otherwise it puffs up into a glowing box on hover. */
+.shop-card-title,
+button.shop-card-title:hover {
+  background: none;
+  border: none;
+  box-shadow: none;
+  filter: none;
+  transform: none;
+}
+
+.shop-card-title {
+  padding: 0;
+  font: inherit;
+  font-weight: 700;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+
+button.shop-card-title:hover {
+  color: var(--accent);
+}
+
+.shop-card.is-clickable {
+  cursor: pointer;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+
+.shop-card.is-clickable:hover {
+  border-color: var(--accent);
+  box-shadow: var(--shadow-md);
+}
+
+/* A taste of the rules text; the dialog has the rest. A height cap with a
+   fade rather than line-clamp, since descriptions are several blocks
+   (paragraphs, lists, tables), which line-clamp doesn't handle. */
+.shop-card-preview {
+  max-height: 4.6em;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to bottom, #000 55%, transparent);
+  mask-image: linear-gradient(to bottom, #000 55%, transparent);
+}
+
+.shop-card-more {
+  display: inline-block;
+  margin-top: 0.35rem;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.item-dialog {
+  width: min(640px, calc(100% - 32px));
+  max-height: 85vh;
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-top: 4px solid var(--accent);
+  border-radius: var(--radius-frame);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-md);
+}
+
+.item-dialog::backdrop {
+  background: rgba(20, 12, 8, 0.6);
+}
+
+.item-dialog-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.item-dialog-header h2 {
+  margin: 0;
+}
+
+.item-dialog-header p {
+  margin: 0.2rem 0 0;
+}
+
+.item-dialog-tags {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: var(--space-3) 0 0.35rem;
+}
+
+.item-dialog-body {
+  margin-top: var(--space-3);
+}
+
+.item-dialog-body table {
+  width: 100%;
+  font-size: var(--text-sm);
+}
+
+.item-dialog-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: var(--space-4);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border);
+}
+
+.item-dialog-actions .shop-buy {
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
 /* Deck progress: how much of each rarity has been dealt since its last
    reshuffle. A bar rather than a bare fraction because the useful question
    is "are we near the end of the deck", not the exact count. */

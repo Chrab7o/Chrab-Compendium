@@ -20,6 +20,7 @@ import {
 } from '../../lib/shopPool'
 import CatalogPicker from '../../components/dm/shops/CatalogPicker'
 import ShopTransactions from '../../components/dm/shops/ShopTransactions'
+import ItemDialog from '../../components/shops/ItemDialog'
 
 const emptyDraft = { name: '', slug: '', blurb: '', campaign_id: '', visibility: 'dm', kind: 'exchange' }
 const emptyManual = { name: '', rarity: '', description: '', price: '' }
@@ -48,6 +49,7 @@ export default function DMShopsPage() {
   const [manual, setManual] = useState(emptyManual)
   const [showAdd, setShowAdd] = useState(false)
   const [showCatalog, setShowCatalog] = useState(false)
+  const [openStockId, setOpenStockId] = useState(null)
   const [pool, setPool] = useState(null)
   // The rarity counts are edited locally and only written on blur. Keeping a
   // draft here (rather than reading straight from `spec`) means typing stays
@@ -850,6 +852,7 @@ export default function DMShopsPage() {
 
           <div className="dm-panel">
             <h2>Current stock ({stock.length})</h2>
+            <ItemDialog item={stock.find((row) => row.id === openStockId) ?? null} onClose={() => setOpenStockId(null)} />
             {stock.length === 0 ? (
               <p className="status-message">Nothing on the shelf. Restock to roll the first batch.</p>
             ) : (
@@ -857,7 +860,9 @@ export default function DMShopsPage() {
                 {stock.map((row) => (
                   <li key={row.id}>
                     <div className="shop-stock-main">
-                      <strong>{row.name}</strong>
+                      <button type="button" className="shop-card-title" onClick={() => setOpenStockId(row.id)}>
+                        {row.name}
+                      </button>
                       {row.rarity && <span className={`badge rarity-${slugify(row.rarity)}`}>{row.rarity}</span>}
                       {row.origin !== '5etools' && <span className="badge badge-own">{row.origin}</span>}
                       {selected.kind === 'store' && row.price_gp == null && (

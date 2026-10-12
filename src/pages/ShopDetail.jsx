@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabaseClient'
 import { attunementLabel, formatGp, slugify } from '../lib/shopPool'
 import { useMyCharacter } from '../hooks/useMyCharacter'
 import { BuyControl, SellPanel, WalletBar, useStoreAccount } from '../components/shops/StoreTrading'
+import ItemDialog from '../components/shops/ItemDialog'
 
 // What a shop looks like to the party: a blurb and everything on the shelf.
 //
@@ -23,6 +24,9 @@ export default function ShopDetail() {
   // undefined = still loading, null = no such (visible) shop.
   const [shop, setShop] = useState(undefined)
   const [items, setItems] = useState([])
+  // By id, so the open dialog follows the row through reloads (a purchase
+  // changes its quantity) instead of showing a stale copy.
+  const [openId, setOpenId] = useState(null)
 
   const isStore = shop?.kind === 'store'
   const trading = isStore && shop.is_open && !!characterId
@@ -54,6 +58,8 @@ export default function ShopDetail() {
 
   if (shop === undefined) return <p className="status-message">Loading...</p>
   if (shop === null) return <p className="status-message error">Couldn't find that shop.</p>
+
+  const openItem = items.find((item) => item.id === openId) ?? null
 
   return (
     <section className="page shop-page">
@@ -88,9 +94,19 @@ export default function ShopDetail() {
                 const attune = attunementLabel(item.attunement)
                 const soldOut = item.quantity === 0
                 return (
-                  <article key={item.id} className={`shop-card${soldOut ? ' is-sold-out' : ''}`}>
+                  // The whole card opens the details on click; the title is
+                  // the real button, for keyboard and screen readers.
+                  <article
+                    key={item.id}
+                    className={`shop-card is-clickable${soldOut ? ' is-sold-out' : ''}`}
+                    onClick={() => setOpenId(item.id)}
+                  >
                     <header className="shop-card-header">
-                      <h2>{item.name}</h2>
+                      <h2>
+                        <button type="button" className="shop-card-title" onClick={() => setOpenId(item.id)}>
+                          {item.name}
+                        </button>
+                      </h2>
                       {item.rarity && <span className={`badge rarity-${slugify(item.rarity)}`}>{item.rarity}</span>}
                     </header>
                     {(item.price_gp != null || item.quantity != null) && (
@@ -102,17 +118,27 @@ export default function ShopDetail() {
                       </p>
                     )}
                     {attune && <p className="shop-attune">{attune}</p>}
-                    <div className="entry-content">
+                    <div className="entry-content shop-card-preview">
                       <ReactMarkdown remarkPlugins={[remarkGfm]}>{item.description}</ReactMarkdown>
                     </div>
+                    <span className="shop-card-more">Read more</span>
                     {trading && item.price_gp != null && !soldOut && (
-                      <BuyControl item={item} characterId={characterId} account={account} onTrade={afterTrade} />
+                      // Clicks here are for buying, not for opening the card.
+                      <div onClick={(e) => e.stopPropagation()}>
+                        <BuyControl item={item} characterId={characterId} account={account} onTrade={afterTrade} />
+                      </div>
                     )}
                   </article>
                 )
               })}
             </div>
           )}
+
+          <ItemDialog item={openItem} onClose={() => setOpenId(null)}>
+            {openItem && trading && openItem.price_gp != null && openItem.quantity !== 0 && (
+              <BuyControl item={openItem} characterId={characterId} account={account} onTrade={afterTrade} />
+            )}
+          </ItemDialog>
 
           {trading && <SellPanel shop={shop} items={items} characterId={characterId} account={account} onTrade={afterTrade} />}
         </>

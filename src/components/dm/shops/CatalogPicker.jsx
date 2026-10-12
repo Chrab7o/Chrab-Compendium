@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { formatGp, loadCatalog } from '../../../lib/shopPool'
+import ItemDialog from '../../shops/ItemDialog'
 
 const MAX_RESULTS = 60
 
@@ -11,6 +12,8 @@ export default function CatalogPicker({ stock, onAdd, onClose }) {
   const [query, setQuery] = useState('')
   const [type, setType] = useState('')
   const [error, setError] = useState(null)
+  const [openKey, setOpenKey] = useState(null)
+  const openItem = (catalog ?? []).find((item) => item.key === openKey) ?? null
 
   useEffect(() => {
     loadCatalog().then(setCatalog).catch((err) => setError(err.message))
@@ -30,6 +33,16 @@ export default function CatalogPicker({ stock, onAdd, onClose }) {
     <div className="dm-panel">
       <h2>Add from the 5etools catalog</h2>
       {error && <p className="status-message error">{error}</p>}
+      <ItemDialog item={openItem} onClose={() => setOpenKey(null)}>
+        {openItem &&
+          (onShelf.has(openItem.key) ? (
+            <span className="badge badge-own">on the shelf</span>
+          ) : (
+            <button type="button" onClick={() => onAdd(openItem)}>
+              Add to shop
+            </button>
+          ))}
+      </ItemDialog>
       <div className="dm-form-row">
         <label>
           Search
@@ -54,7 +67,10 @@ export default function CatalogPicker({ stock, onAdd, onClose }) {
           {results.map((item) => (
             <li key={item.key}>
               <span>
-                <strong>{item.name}</strong> <span className="dm-list-meta">{item.type} · {item.source}</span>
+                <button type="button" className="shop-card-title" onClick={() => setOpenKey(item.key)}>
+                  {item.name}
+                </button>{' '}
+                <span className="dm-list-meta">{item.type} · {item.source}</span>
               </span>
               <span className="shop-catalog-actions">
                 {item.price_gp != null ? (
