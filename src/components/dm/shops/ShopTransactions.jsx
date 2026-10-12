@@ -81,8 +81,9 @@ export default function ShopTransactions({ shop, stock, onStockChange }) {
           .update({ quantity: Math.max(0, matched.quantity - quantity) })
           .eq('id', matched.id)
       }
-      onStockChange?.()
     }
+    // Always: even without a shelf change, the trade moved the shop's purse.
+    onStockChange?.()
     setDraft({ ...emptyTrade, characterId: draft.characterId })
     setSaving(false)
     load()

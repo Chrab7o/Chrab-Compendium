@@ -116,6 +116,8 @@ export function SellPanel({ shop, items, characterId, account, onTrade }) {
   const [busyId, setBusyId] = useState(null)
   const [error, setError] = useState(null)
   const rate = Number(shop.sell_rate ?? 0.5)
+  // The shop's purse; null = unlimited. shop_sell() enforces it.
+  const coin = shop.coin_gp == null ? null : Number(shop.coin_gp)
 
   const sellable = useMemo(() => {
     if (!account) return []
@@ -168,6 +170,11 @@ export function SellPanel({ shop, items, characterId, account, onTrade }) {
         Pays {Math.round(rate * 100)}% of what an item is worth — no haggling on the page. Your inventory is as of
         the DM's last Foundry import.
       </p>
+      {coin != null && (
+        <p className="shop-purse">
+          The shopkeeper has <span className="shop-price">{formatGp(coin)}</span> on hand to buy with.
+        </p>
+      )}
       {error && <p className="status-message error">{error}</p>}
       {sellable.length === 0 ? (
         <p className="status-message">Nothing in your pack this shop will pay for.</p>
@@ -183,9 +190,13 @@ export function SellPanel({ shop, items, characterId, account, onTrade }) {
                 type="button"
                 className="secondary"
                 onClick={() => handleSell(item)}
-                disabled={busyId === item.id}
+                disabled={busyId === item.id || (coin != null && item.offer > coin)}
               >
-                {busyId === item.id ? 'Selling...' : `Sell · ${formatGp(item.offer)}`}
+                {busyId === item.id
+                  ? 'Selling...'
+                  : coin != null && item.offer > coin
+                    ? `Can't afford ${formatGp(item.offer)}`
+                    : `Sell · ${formatGp(item.offer)}`}
               </button>
             </li>
           ))}

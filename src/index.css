@@ -4362,6 +4362,10 @@ button.tag-picker-option.is-create {
   margin-top: var(--space-5);
 }
 
+.shop-purse {
+  margin: 0 0 var(--space-3);
+}
+
 /* Deck progress: how much of each rarity has been dealt since its last
    reshuffle. A bar rather than a bare fraction because the useful question
    is "are we near the end of the deck", not the exact count. */

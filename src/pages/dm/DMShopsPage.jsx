@@ -587,6 +587,26 @@ export default function DMShopsPage() {
                     />
                   </label>
                 )}
+                {selected.kind === 'store' && (
+                  <label>
+                    Coin on hand (gp)
+                    {/* Re-keyed on the stored value so the box follows trades
+                        made while the page is open. Blank = unlimited. */}
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder="unlimited"
+                      defaultValue={selected.coin_gp ?? ''}
+                      key={`coin-${selected.id}-${selected.coin_gp}`}
+                      onBlur={(e) => {
+                        const coin = e.target.value === '' ? null : Math.max(0, Number(e.target.value) || 0)
+                        const current = selected.coin_gp == null ? null : Number(selected.coin_gp)
+                        if (coin !== current) patchShop({ coin_gp: coin })
+                      }}
+                    />
+                  </label>
+                )}
               </div>
               <div className="shop-open-row">
                 <span className={`badge ${selected.is_open ? 'badge-open' : 'badge-closed'}`}>
@@ -899,7 +919,10 @@ export default function DMShopsPage() {
             key={selected.id}
             shop={selected}
             stock={stock}
-            onStockChange={() => loadStock(selected.id)}
+            onStockChange={() => {
+              loadStock(selected.id)
+              load()
+            }}
           />
         </>
       )}
