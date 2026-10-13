@@ -24,7 +24,7 @@ alter table sphere_kinds add column if not exists name_generator text;
 with recursive paths as (
   select id, label::text as path
   from sphere_kinds
-  where parent_id is null and not universal
+  where parent_id is null
   union all
   select k.id, p.path || ' > ' || k.label
   from sphere_kinds k
