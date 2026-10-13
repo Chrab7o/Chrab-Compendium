@@ -4691,6 +4691,30 @@ button.shop-card-title:hover {
   opacity: 1;
 }
 
+/* "Inside" links: solid ink with an arrowhead pointing at what's contained,
+   so a sphere's structure reads apart from its plain links. */
+.sg-link.is-directed {
+  stroke: var(--text);
+  stroke-width: 2.5;
+  opacity: 0.75;
+}
+
+.sg-link.is-directed.is-lit {
+  stroke: var(--accent-2);
+  stroke-width: 3.5;
+  opacity: 1;
+}
+
+.sg-arrow {
+  fill: var(--text);
+  opacity: 0.75;
+}
+
+.sg-arrow.is-lit {
+  fill: var(--accent-2);
+  opacity: 1;
+}
+
 .sg-link-preview {
   stroke-width: 3;
   stroke-dasharray: 8 6;
@@ -4712,22 +4736,51 @@ button.shop-card-title:hover {
   cursor: grabbing;
 }
 
+/* Where a sphere sits in the "inside" hierarchy fills it; with no direction
+   it stays parchment. The legend swatches use the same colors. */
+:root {
+  --sg-role-parent: #c8102e;
+  --sg-role-child: #1565d8;
+  --sg-role-both: #7b1fa2;
+}
+
+.sg-sphere.is-role-parent,
+.sg-swatch.is-role-parent {
+  --sg-role: var(--sg-role-parent);
+}
+
+.sg-sphere.is-role-child,
+.sg-swatch.is-role-child {
+  --sg-role: var(--sg-role-child);
+}
+
+.sg-sphere.is-role-both,
+.sg-swatch.is-role-both {
+  --sg-role: var(--sg-role-both);
+}
+
 .sg-sphere-body {
-  fill: var(--sg-color, var(--surface-2));
-  stroke: color-mix(in srgb, var(--sg-color, var(--border)) 70%, black);
-  stroke-width: 2.5;
+  fill: var(--sg-role, var(--surface-2));
+  stroke: color-mix(in srgb, var(--sg-role, var(--border)) 65%, black);
+  stroke-width: 2;
   transition: fill-opacity var(--transition);
 }
 
-.sg-sphere.is-untagged .sg-sphere-body {
-  fill: var(--surface-2);
-  stroke: var(--border);
+/* The Type tag color, as a thick ring hugging the body. */
+.sg-sphere-type {
+  fill: none;
+  stroke: var(--sg-color);
+  stroke-width: 5;
 }
 
 .sg-sphere.is-stub .sg-sphere-body {
   fill-opacity: 0.35;
-  stroke: var(--sg-color, var(--border));
+  stroke: var(--sg-role, var(--border));
   stroke-dasharray: 5 4;
+}
+
+.sg-sphere.is-stub .sg-sphere-type {
+  stroke-dasharray: 6 4;
 }
 
 .sg-sphere:hover .sg-sphere-body {
@@ -4901,6 +4954,19 @@ button.sg-link-name:hover {
   background: var(--surface-2);
 }
 
+.sg-swatch.is-role-parent,
+.sg-swatch.is-role-child,
+.sg-swatch.is-role-both {
+  background: var(--sg-role);
+  border-color: color-mix(in srgb, var(--sg-role) 65%, black);
+}
+
+/* A parchment dot inside a thick ring, like a sphere's Type ring. */
+.sg-swatch.is-type-ring {
+  background: var(--surface-2);
+  border: 3px solid var(--accent-2);
+}
+
 .sg-detail-actions {
   margin-top: var(--space-4);
 }
@@ -4937,8 +5003,20 @@ button.sg-link-name:hover {
 
 .sg-draft li {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.4rem;
+}
+
+/* What a generated place name means, on its own line under the name. */
+.sg-draft-meaning {
+  order: 1;
+  flex-basis: 100%;
+  margin-top: -0.2rem;
+  padding-left: 0.2rem;
+  font-size: var(--text-sm);
+  font-style: italic;
+  color: var(--accent-strong);
 }
 
 .sg-draft li input {
@@ -5132,6 +5210,47 @@ button.sg-small {
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
+}
+
+/* "New spheres are [inside] Town" - one sentence, the picker inline. */
+label.sg-relation {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+label.sg-relation select {
+  width: auto;
+  padding: 0.2rem 0.4rem;
+}
+
+/* A sphere's links, grouped: Inside / Contains / Linked. */
+.sg-link-group + .sg-link-group {
+  margin-top: var(--space-2, 0.6rem);
+}
+
+.sg-link-group-head {
+  margin: 0.2rem 0 0.35rem;
+  font-size: var(--text-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent-2);
+}
+
+.sg-link-group.is-parent .sg-link-group-head {
+  color: var(--accent);
+}
+
+.sg-link-count {
+  color: var(--text);
+  font-weight: 400;
+}
+
+select.sg-link-role {
+  width: auto;
+  padding: 0.2rem 0.4rem;
+  font-size: var(--text-sm);
 }
 
 .sg-links li.is-off-grid {

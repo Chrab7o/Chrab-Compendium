@@ -47,17 +47,36 @@ const capitalize = (s) =>
   )
 
 // A `lit:` entry in a branch is fixed text ("lit: of the "), not a pool name.
-const resolvePart = (scheme, part, rng) =>
-  part.startsWith('lit:') ? part.slice(4) : pick(scheme.parts[part] ?? [''], rng)
-
-/** One name from `scheme`'s `generator`. `row` selects position-dependent branches. */
-export function generateOne(scheme, generator, { row = 0, rng = Math.random } = {}) {
-  const gen = scheme.generators?.[generator]
-  if (!gen?.branches?.length) return ''
-  const branch = pickBranch(gen.branches, row, rng)
-  const out = branch.seq.map((part) => resolvePart(scheme, part, rng)).join('')
-  return capitalize(out.trim())
+// A pool item is a plain string, or `{ t, m }` when the word carries its own
+// meaning; `scheme.meanings[pool]` gives one meaning to every word in a pool.
+function resolvePart(scheme, part, rng) {
+  if (part.startsWith('lit:')) return { text: part.slice(4) }
+  const item = pick(scheme.parts[part] ?? [''], rng)
+  if (typeof item === 'string') return { text: item, meaning: scheme.meanings?.[part] }
+  return { text: item.t, meaning: item.m }
 }
+
+/**
+ * One name from `scheme`'s `generator`, plus what it means when its parts
+ * carry meanings ("silver lake" for Vael + mir), else ''. `row` selects
+ * position-dependent branches.
+ */
+export function generateNamed(scheme, generator, { row = 0, rng = Math.random } = {}) {
+  const gen = scheme.generators?.[generator]
+  if (!gen?.branches?.length) return { name: '', meaning: '' }
+  const branch = pickBranch(gen.branches, row, rng)
+  const parts = branch.seq.map((part) => resolvePart(scheme, part, rng))
+  const out = parts.reduce((acc, { text }) => {
+    // Merge a vowel doubled where two parts meet (Ilya + athar -> Ilyathar).
+    const doubled = scheme.elide && /[aeiouy]$/i.test(acc) && acc.slice(-1).toLowerCase() === text[0]?.toLowerCase()
+    return acc + (doubled ? text.slice(1) : text)
+  }, '')
+  // A lone meaning ("city" on an invented name) says nothing worth keeping.
+  const meanings = parts.map((p) => p.meaning).filter(Boolean)
+  return { name: capitalize(out.trim()), meaning: meanings.length > 1 ? meanings.join(' ') : '' }
+}
+
+export const generateOne = (scheme, generator, options) => generateNamed(scheme, generator, options).name
 
 /** `count` distinct names. Falls back to fewer if the scheme can't produce that many. */
 export function generateNames(scheme, generator, { count = 10, rng = Math.random } = {}) {

@@ -9,6 +9,13 @@ import { answerLine, answeredLabels, appendMarkdown, kindPrompts, kindTag } from
 // How long typing has to pause before the text autosaves.
 const SAVE_DELAY = 800
 
+// Links grouped by what the other sphere is to this one.
+const LINK_GROUPS = [
+  { role: 'parent', heading: 'Inside' },
+  { role: 'child', heading: 'Contains' },
+  { role: 'peer', heading: 'Linked' },
+]
+
 // The editor for the entry behind a sphere, shown full-width above the grid.
 // The text uses the same rich markdown editor as the full entry page and
 // autosaves after a pause (and on switching spheres); the name saves on blur,
@@ -18,6 +25,10 @@ const SAVE_DELAY = 800
 // Above the text sit the guided questions for the sphere's kind (its own and
 // every inherited one not switched off); answering one appends a
 // `**Label:** answer` line to the text.
+//
+// Below, its links are grouped by direction - what it's inside, what it
+// contains, what it's simply linked to - and each one's direction can be
+// changed from here.
 export default function SphereDetail({
   entry,
   linked,
@@ -32,6 +43,8 @@ export default function SphereDetail({
   onAddQuestion,
   onUpdate,
   onUnlink,
+  onSetRole,
+  onArrangeChildren,
   onFocus,
   onPlace,
   onRemove,
@@ -192,7 +205,7 @@ export default function SphereDetail({
           </div>
 
           <div className="sg-subhead-row">
-            <h3 className="sg-subhead">Linked to ({linked.length})</h3>
+            <h3 className="sg-subhead">Links ({linked.length})</h3>
             {offGrid.length > 0 && (
               <button type="button" className="secondary sg-small" onClick={() => onPlace(offGrid.map((l) => l.other.id))}>
                 Place {offGrid.length} on grid
@@ -200,36 +213,70 @@ export default function SphereDetail({
             )}
           </div>
           {linked.length ? (
-            <ul className="dm-list sg-links">
-              {linked.map(({ link, other, color, onGrid }) => (
-                <li key={link.id} className={onGrid ? '' : 'is-off-grid'}>
-                  <span className="sg-swatch" style={color ? { background: color } : undefined} />
-                  {onGrid ? (
-                    <button type="button" className="sg-link-name" onClick={() => onFocus(other.id)}>
-                      {other.title}
-                    </button>
-                  ) : (
-                    <span className="sg-link-name is-off-grid">{other.title}</span>
-                  )}
-                  <div className="dm-list-actions">
-                    {!onGrid && (
-                      <button type="button" className="secondary sg-small" onClick={() => onPlace([other.id])}>
-                        Place
+            LINK_GROUPS.map(({ role, heading }) => {
+              const group = linked.filter((l) => l.role === role)
+              if (!group.length) return null
+              const childrenOnGrid = role === 'child' ? group.filter((l) => l.onGrid).length : 0
+              return (
+                <div key={role} className={`sg-link-group is-${role}`}>
+                  <div className="sg-subhead-row">
+                    <h4 className="sg-link-group-head">
+                      {heading} <span className="sg-link-count">{group.length}</span>
+                    </h4>
+                    {childrenOnGrid > 1 && (
+                      <button
+                        type="button"
+                        className="secondary sg-small"
+                        onClick={onArrangeChildren}
+                        title="Fan what this contains out below it on the grid"
+                      >
+                        Arrange below
                       </button>
                     )}
-                    <button
-                      type="button"
-                      className="icon-button"
-                      onClick={() => onUnlink(link.id)}
-                      aria-label={`Unlink ${other.title}`}
-                      title="Unlink"
-                    >
-                      ×
-                    </button>
                   </div>
-                </li>
-              ))}
-            </ul>
+                  <ul className="dm-list sg-links">
+                    {group.map(({ link, other, color, onGrid }) => (
+                      <li key={link.id} className={onGrid ? '' : 'is-off-grid'}>
+                        <span className="sg-swatch" style={color ? { background: color } : undefined} />
+                        {onGrid ? (
+                          <button type="button" className="sg-link-name" onClick={() => onFocus(other.id)}>
+                            {other.title}
+                          </button>
+                        ) : (
+                          <span className="sg-link-name is-off-grid">{other.title}</span>
+                        )}
+                        <div className="dm-list-actions">
+                          <select
+                            className="sg-link-role"
+                            value={role}
+                            onChange={(e) => onSetRole(link, e.target.value)}
+                            aria-label={`How ${other.title} relates to ${entry.title}`}
+                          >
+                            <option value="parent">▲ This is inside it</option>
+                            <option value="child">▼ Inside this</option>
+                            <option value="peer">— Just linked</option>
+                          </select>
+                          {!onGrid && (
+                            <button type="button" className="secondary sg-small" onClick={() => onPlace([other.id])}>
+                              Place
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            className="icon-button"
+                            onClick={() => onUnlink(link.id)}
+                            aria-label={`Unlink ${other.title}`}
+                            title="Unlink"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )
+            })
           ) : (
             <p className="status-message">No links yet. Drag another sphere onto this one to link them.</p>
           )}

@@ -12,6 +12,67 @@ export function orderPair(id1, id2) {
 
 export const linkKey = (id1, id2) => orderPair(id1, id2).join('|')
 
+// A link can name one end as its `parent`: the end that contains the other
+// ("the tavern is inside the town"). Null is a plain link.
+
+/** What `otherId` is to `id` across `link`: 'parent' (contains it), 'child' (inside it) or 'peer'. */
+export function linkRole(link, id) {
+  if (!link.parent) return 'peer'
+  return link.parent === id ? 'child' : 'parent'
+}
+
+/** The link's ends as { parent, child }, or null for a plain link. */
+export function linkEnds(link) {
+  if (!link.parent) return null
+  return { parent: link.parent, child: link.parent === link.a ? link.b : link.a }
+}
+
+/**
+ * Would putting `childId` inside `parentId` make a loop - is `parentId`
+ * already inside `childId`, at any depth? `ignoreLinkId` skips the link being
+ * changed, so flipping an existing direction is judged without it.
+ */
+export function wouldCycle(links, parentId, childId, ignoreLinkId = null) {
+  const children = new Map()
+  for (const l of links) {
+    const ends = l.id !== ignoreLinkId && linkEnds(l)
+    if (!ends) continue
+    if (!children.has(ends.parent)) children.set(ends.parent, [])
+    children.get(ends.parent).push(ends.child)
+  }
+  const seen = new Set()
+  const stack = [childId]
+  while (stack.length) {
+    const id = stack.pop()
+    if (id === parentId) return true
+    if (seen.has(id)) continue
+    seen.add(id)
+    stack.push(...(children.get(id) ?? []))
+  }
+  return false
+}
+
+/**
+ * Map of sphere id -> its place in the hierarchy: 'parent' (contains
+ * something), 'child' (is inside something) or 'both'. Spheres in no directed
+ * link are left out.
+ */
+export function hierarchyRoles(links) {
+  const contains = new Set()
+  const inside = new Set()
+  for (const l of links) {
+    const ends = linkEnds(l)
+    if (!ends) continue
+    contains.add(ends.parent)
+    inside.add(ends.child)
+  }
+  const roles = new Map()
+  for (const id of new Set([...contains, ...inside])) {
+    roles.set(id, contains.has(id) && inside.has(id) ? 'both' : contains.has(id) ? 'parent' : 'child')
+  }
+  return roles
+}
+
 /** Map of sphere id -> Set of linked sphere ids. */
 export function adjacency(links) {
   const map = new Map()
@@ -37,23 +98,34 @@ export function nearestSphere(spheres, point) {
   return best
 }
 
+// Arcs for `placeNear`: what a container holds hangs below it, what contains
+// a sphere sits above it. Angles are SVG ones, so +y (pi/2) points down.
+export const ARC_BELOW = { center: Math.PI / 2, spread: Math.PI * 0.8 }
+export const ARC_ABOVE = { center: -Math.PI / 2, spread: Math.PI * 0.8 }
+
 /**
  * Board positions for `count` new spheres. They land in a loose ring around
- * `anchor` (roughly `distance` away), and each one is nudged until it keeps
- * `minSpacing` from everything already on the board - including the ones
+ * `anchor` (roughly `distance` away) - or fanned along `arc` ({ center,
+ * spread } in radians) when given - and each one is nudged until it keeps
+ * `minSpacing` from everything already on the board, including the ones
  * placed earlier in the same batch.
  */
-export function placeNear(anchor, count, occupied, { distance = 150, minSpacing = 80, rng = Math.random } = {}) {
+export function placeNear(anchor, count, occupied, { distance = 150, minSpacing = 80, arc = null, rng = Math.random } = {}) {
   const taken = occupied.map((p) => ({ x: p.x, y: p.y }))
   const out = []
   const startAngle = rng() * Math.PI * 2
+  const baseAngle = (i) =>
+    arc
+      ? arc.center + (count > 1 ? (i / (count - 1) - 0.5) * arc.spread : 0)
+      : startAngle + (i / Math.max(count, 1)) * Math.PI * 2
   for (let i = 0; i < count; i++) {
     let best = null
     let bestClearance = -Infinity
     for (let attempt = 0; attempt < 40; attempt++) {
       // Widen the ring as attempts fail, so a crowded spot still resolves.
+      // An arc jitters less, so the batch keeps its side.
       const ring = distance * (1 + Math.floor(attempt / 10) * 0.6)
-      const angle = startAngle + (i / Math.max(count, 1)) * Math.PI * 2 + (attempt ? (rng() - 0.5) * 1.6 : 0)
+      const angle = baseAngle(i) + (attempt ? (rng() - 0.5) * (arc ? 0.6 : 1.6) : 0)
       const r = ring * (0.85 + rng() * 0.3)
       const candidate = { x: anchor.x + Math.cos(angle) * r, y: anchor.y + Math.sin(angle) * r }
       const clearance = taken.reduce((min, p) => Math.min(min, Math.hypot(p.x - candidate.x, p.y - candidate.y)), Infinity)

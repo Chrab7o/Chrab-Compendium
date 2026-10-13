@@ -3,7 +3,8 @@ import { supabase } from '../../../lib/supabaseClient'
 import { kindDescendants, kindPath, kindPrompts, kindTree, parsePoolText } from '../../../lib/sphereGrid'
 import { tagsByGroup, ungroupedTags } from '../../../lib/tags'
 import { useTags } from '../../../contexts/TagContext'
-import GeneratorOptions from './GeneratorOptions'
+import { parsePlaceSource, placeSource } from '../../../lib/placeNames'
+import GeneratorOptions, { LanguageOptions } from './GeneratorOptions'
 import KindSelect from './KindSelect'
 
 const emptyKind = { label: '', parent_id: null, tag: '' }
@@ -27,6 +28,9 @@ export default function KindManager({ kinds, prompts, hidden, overrides, pools, 
   const tree = useMemo(() => kindTree(kinds), [kinds])
   const selected = kinds.find((k) => k.id === selectedId) ?? null
   const tagLabel = (v) => tags.find((t) => t.value === v)?.label ?? v
+  // The draft's generator split for its two pickers: place:ruins@old shows as
+  // "Ruins" + "Old Tongue".
+  const draftPlace = parsePlaceSource(kindDraft?.name_generator)
 
   const groupsForKind = useMemo(
     () => (selected ? kindPrompts(kinds, prompts, hidden, selected.id, { includeHidden: true, overrides }) : []),
@@ -337,13 +341,32 @@ export default function KindManager({ kinds, prompts, hidden, overrides, pools, 
             <label>
               Names from
               <select
-                value={kindDraft.name_generator}
-                onChange={(e) => setKindDraft({ ...kindDraft, name_generator: e.target.value })}
+                value={draftPlace ? placeSource(draftPlace.generator) : kindDraft.name_generator}
+                onChange={(e) => {
+                  // Switching between place generators keeps the language.
+                  const next = parsePlaceSource(e.target.value)
+                  const value = next ? placeSource(next.generator, draftPlace?.language) : e.target.value
+                  setKindDraft({ ...kindDraft, name_generator: value })
+                }}
               >
                 <option value="">{kindDraft.parent_id ? '— Same as parent —' : '— None —'}</option>
                 <GeneratorOptions pools={pools} />
               </select>
             </label>
+            {draftPlace && (
+              <label>
+                In language
+                <select
+                  value={draftPlace.language ?? ''}
+                  onChange={(e) =>
+                    setKindDraft({ ...kindDraft, name_generator: placeSource(draftPlace.generator, e.target.value) })
+                  }
+                >
+                  <option value="">— Whichever is picked when generating —</option>
+                  <LanguageOptions />
+                </select>
+              </label>
+            )}
             <div className="dm-form-actions">
               <button type="submit" disabled={saving}>
                 Save kind

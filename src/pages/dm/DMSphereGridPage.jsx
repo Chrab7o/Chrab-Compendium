@@ -2,15 +2,20 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import { useTags } from '../../contexts/TagContext'
 import {
+  ARC_ABOVE,
+  ARC_BELOW,
   adjacency,
   centroid,
+  hierarchyRoles,
   kindPath,
   kindTag,
   linkKey,
+  linkRole,
   nearestSphere,
   orderPair,
   placeNear,
   sphereKind,
+  wouldCycle,
 } from '../../lib/sphereGrid'
 import SphereBoard from '../../components/dm/spheregrid/SphereBoard'
 import SphereDetail from '../../components/dm/spheregrid/SphereDetail'
@@ -121,6 +126,9 @@ export default function DMSphereGridPage() {
 
   const spheres = useMemo(() => {
     const adj = adjacency(links)
+    // From every link, not just this grid's: a town whose taverns aren't
+    // placed here is still a container.
+    const roles = hierarchyRoles(links)
     const labelOf = (v) => tags.find((t) => t.value === v)?.label ?? v
     return nodes
       .map((n) => {
@@ -136,6 +144,7 @@ export default function DMSphereGridPage() {
           is_stub: entry.is_stub,
           gm_only: entry.visibility === 'dm',
           color: kind.color,
+          role: roles.get(entry.id) ?? null,
           kindLabel: entry.sphere_kind_id ? kindPath(kinds, entry.sphere_kind_id) : kind.tag?.label ?? null,
           tagLabels: (entry.tags ?? []).map(labelOf),
           hiddenLinks: [...neighbours].filter((id) => !onGrid.has(id) && entriesById.has(id)).length,
@@ -159,7 +168,15 @@ export default function DMSphereGridPage() {
       .filter((l) => l.a === focusEntry.id || l.b === focusEntry.id)
       .map((link) => {
         const other = entriesById.get(link.a === focusEntry.id ? link.b : link.a)
-        return other && { link, other, color: colorOf(other), onGrid: onGrid.has(other.id) }
+        return (
+          other && {
+            link,
+            other,
+            role: linkRole(link, focusEntry.id),
+            color: colorOf(other),
+            onGrid: onGrid.has(other.id),
+          }
+        )
       })
       .filter(Boolean)
       .sort((x, y) => Number(y.onGrid) - Number(x.onGrid) || x.other.title.localeCompare(y.other.title))
@@ -199,12 +216,14 @@ export default function DMSphereGridPage() {
     return center
   }
 
-  async function insertNodes(entryIds, anchor) {
+  // `arc` fans the new spheres to one side of the anchor (ARC_BELOW for what
+  // it contains) instead of a full ring.
+  async function insertNodes(entryIds, anchor, arc = null) {
     let positions
     if (!spheres.length && entryIds.length === 1) {
       positions = [{ x: Math.round(anchor.x), y: Math.round(anchor.y) }]
     } else {
-      positions = placeNear(anchor, entryIds.length, spheres, spheres.length ? {} : { distance: 110 })
+      positions = placeNear(anchor, entryIds.length, spheres, { arc, ...(spheres.length ? {} : { distance: 110 }) })
     }
     return supabase
       .from('sphere_grid_nodes')
@@ -269,6 +288,43 @@ export default function DMSphereGridPage() {
     [links, entriesById, load]
   )
 
+  // Set which end of a link contains the other, from the open sphere's side:
+  // `role` is what the other sphere becomes ('parent', 'child' or 'peer').
+  async function handleSetRole(link, selfId, role) {
+    setError(null)
+    const otherId = link.a === selfId ? link.b : link.a
+    const parent = role === 'parent' ? otherId : role === 'child' ? selfId : null
+    if (parent) {
+      const child = parent === selfId ? otherId : selfId
+      if (wouldCycle(links, parent, child, link.id)) {
+        const p = entriesById.get(parent)?.title
+        const c = entriesById.get(child)?.title
+        setError(`${p} is already inside ${c}, so ${c} can't go inside ${p}.`)
+        return
+      }
+    }
+    setLinks((rows) => rows.map((l) => (l.id === link.id ? { ...l, parent } : l)))
+    const { error: updateError } = await supabase.from('entry_links').update({ parent }).eq('id', link.id)
+    if (updateError) {
+      setError(updateError.message)
+      load()
+    }
+  }
+
+  // Fan everything on this grid that `id` contains out below it.
+  function handleArrangeChildren(id) {
+    const container = spheresById.get(id)
+    if (!container) return
+    const childIds = new Set(
+      links.filter((l) => l.parent === id).map((l) => (l.a === id ? l.b : l.a)).filter((c) => spheresById.has(c))
+    )
+    if (!childIds.size) return
+    const others = spheres.filter((s) => !childIds.has(s.id))
+    const ids = [...childIds].sort((x, y) => spheresById.get(x).x - spheresById.get(y).x)
+    const positions = placeNear(container, ids.length, others, { arc: ARC_BELOW })
+    handleMove(ids.map((childId, i) => ({ id: childId, ...positions[i] })))
+  }
+
   async function handleUnlink(linkId) {
     const { error: deleteError } = await supabase.from('entry_links').delete().eq('id', linkId)
     if (deleteError) setError(deleteError.message)
@@ -332,13 +388,21 @@ export default function DMSphereGridPage() {
   // Create stub entries, place them on this grid around `anchor`, and link
   // each one to every id in `linkTo` - but not to each other. Returns the new
   // ids, or an error message.
-  async function createAndPlace(names, { tags: batchTags, visibility, kindId = null }, { linkTo, anchor }) {
+  // `relation` says how the new entries stand to `linkTo`: 'inside' them (and
+  // placed below), 'containing' them (placed above) or plain 'linked'.
+  async function createAndPlace(
+    names,
+    { tags: batchTags, visibility, kindId = null, relation = 'linked' },
+    { linkTo, anchor }
+  ) {
     const { data: created, error: insertError } = await supabase
       .from('entries')
       .insert(
-        names.map((title) => ({
-          title,
-          content: '',
+        // A name is a title, or { title, content } when it arrives with text
+        // of its own (a generated place name's meaning).
+        names.map((name) => ({
+          title: typeof name === 'string' ? name : name.title,
+          content: typeof name === 'string' ? '' : name.content ?? '',
           tags: batchTags,
           visibility,
           is_stub: true,
@@ -349,14 +413,16 @@ export default function DMSphereGridPage() {
     if (insertError) return { error: insertError.message }
 
     const ids = created.map((e) => e.id)
-    const { error: nodeError } = await insertNodes(ids, anchor)
+    const arc = !linkTo.length ? null : relation === 'inside' ? ARC_BELOW : relation === 'containing' ? ARC_ABOVE : null
+    const { error: nodeError } = await insertNodes(ids, anchor, arc)
     if (nodeError) setError(`Entries created, but placing them failed: ${nodeError.message}`)
 
     if (linkTo.length) {
       const rows = ids.flatMap((id) =>
         linkTo.map((otherId) => {
           const [a, b] = orderPair(id, otherId)
-          return { a, b }
+          const parent = relation === 'inside' ? otherId : relation === 'containing' ? id : null
+          return { a, b, parent }
         })
       )
       const { error: linkError } = await supabase.from('entry_links').insert(rows)
@@ -558,6 +624,8 @@ export default function DMSphereGridPage() {
             linked={linkedToFocus}
             onUpdate={(changes) => handleUpdate(focusEntry.id, changes)}
             onUnlink={handleUnlink}
+            onSetRole={(link, role) => handleSetRole(link, focusEntry.id, role)}
+            onArrangeChildren={() => handleArrangeChildren(focusEntry.id)}
             onFocus={(id) => handleSelectionChange(new Set([id]), id)}
             onPlace={(ids) => handlePlace(ids, focusSphere)}
             onRemove={() => handleRemove([focusEntry.id])}
@@ -652,7 +720,22 @@ export default function DMSphereGridPage() {
       </div>
 
       <div className="sg-legend">
-        <span className="sg-legend-item">Color = the entry's Type tag</span>
+        <span className="sg-legend-item">
+          <span className="sg-swatch is-role-parent" />
+          Contains others
+        </span>
+        <span className="sg-legend-item">
+          <span className="sg-swatch is-role-child" />
+          Inside another
+        </span>
+        <span className="sg-legend-item">
+          <span className="sg-swatch is-role-both" />
+          Both
+        </span>
+        <span className="sg-legend-item">
+          <span className="sg-swatch is-type-ring" />
+          Ring = the entry's Type tag
+        </span>
         <span className="sg-legend-item">
           <span className="sg-swatch is-stub" />
           Stub

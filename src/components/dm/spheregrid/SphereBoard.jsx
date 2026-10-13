@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { SPHERE_RADIUS, centroid, linkKey } from '../../../lib/sphereGrid'
+import { SPHERE_RADIUS, centroid, linkEnds, linkKey } from '../../../lib/sphereGrid'
 
 const MIN_ZOOM = 0.25
 const MAX_ZOOM = 2.5
@@ -20,6 +20,11 @@ const isTyping = (el) =>
 // sphere it links (or, if already linked, unlinks) and the dragged spheres
 // snap back; released anywhere else it is a move. Dragging a selected sphere
 // carries the whole selection with it, for both.
+//
+// A link with a direction is drawn from container to contained, ending in an
+// arrowhead at the contained sphere's edge; a plain link is a bare line.
+// A sphere's fill says where it sits in that hierarchy (red contains, blue is
+// inside, purple both) and its outer ring carries its Type tag color.
 export default function SphereBoard({
   spheres,
   links,
@@ -267,23 +272,45 @@ export default function SphereBoard({
           >
             <circle cx={1.5} cy={1.5} r={1.3} className="sg-grid-dot" />
           </pattern>
+          {/* In board units, so arrowheads zoom with the spheres. */}
+          {['', '-lit'].map((suffix) => (
+            <marker
+              key={suffix}
+              id={`sg-arrow${suffix}`}
+              viewBox="0 0 10 10"
+              refX="10"
+              refY="5"
+              markerWidth="13"
+              markerHeight="13"
+              markerUnits="userSpaceOnUse"
+              orient="auto"
+            >
+              <path d="M0,0 L10,5 L0,10 z" className={`sg-arrow${suffix ? ' is-lit' : ''}`} />
+            </marker>
+          ))}
         </defs>
         <rect width="100%" height="100%" fill="url(#sg-grid)" />
 
         <g transform={`translate(${view.x} ${view.y}) scale(${view.k})`}>
           {links.map((l) => {
-            const p1 = pos.get(l.a)
-            const p2 = pos.get(l.b)
+            const ends = linkEnds(l)
+            const p1 = pos.get(ends ? ends.parent : l.a)
+            const p2 = pos.get(ends ? ends.child : l.b)
             if (!p1 || !p2) return null
             const lit = focusId && (l.a === focusId || l.b === focusId)
+            // Stop a directed line outside the child's Type ring, so the
+            // arrowhead shows.
+            const len = Math.hypot(p2.x - p1.x, p2.y - p1.y)
+            const trim = ends && len > R * 2 ? (R + 8) / len : 0
             return (
               <line
                 key={l.id}
                 x1={p1.x}
                 y1={p1.y}
-                x2={p2.x}
-                y2={p2.y}
-                className={`sg-link${lit ? ' is-lit' : ''}`}
+                x2={p2.x - (p2.x - p1.x) * trim}
+                y2={p2.y - (p2.y - p1.y) * trim}
+                className={`sg-link${ends ? ' is-directed' : ''}${lit ? ' is-lit' : ''}`}
+                markerEnd={trim ? `url(#sg-arrow${lit ? '-lit' : ''})` : undefined}
               />
             )
           })}
@@ -314,6 +341,7 @@ export default function SphereBoard({
             const classes = [
               'sg-sphere',
               s.color ? 'is-tagged' : 'is-untagged',
+              s.role && `is-role-${s.role}`,
               s.is_stub && 'is-stub',
               selected && 'is-selected',
               focusId === s.id && 'is-focus',
@@ -331,8 +359,9 @@ export default function SphereBoard({
                 onPointerEnter={() => setHoverId(s.id)}
                 onPointerLeave={() => setHoverId((h) => (h === s.id ? null : h))}
               >
-                {selected && <circle r={R + 7} className="sg-sphere-ring" />}
-                {isTarget && <circle r={R + 12} className={`sg-sphere-drop is-${dropMode}`} />}
+                {selected && <circle r={R + 10} className="sg-sphere-ring" />}
+                {isTarget && <circle r={R + 15} className={`sg-sphere-drop is-${dropMode}`} />}
+                {s.color && <circle r={R + 3} className="sg-sphere-type" />}
                 <circle r={R} className="sg-sphere-body" />
                 {s.gm_only && (
                   <g transform={`translate(${R * 0.72} ${-R * 0.72})`} className="sg-sphere-gm">
@@ -354,6 +383,7 @@ export default function SphereBoard({
                 <title>
                   {s.name}
                   {s.kindLabel ? ` · ${s.kindLabel}` : ' · untagged'}
+                  {s.role === 'parent' ? ' · contains others' : s.role === 'child' ? ' · inside another' : s.role === 'both' ? ' · inside another, contains others' : ''}
                   {s.is_stub ? ' · stub' : ''}
                   {s.gm_only ? ' · GM-only' : ''}
                   {s.hiddenLinks ? ` · ${s.hiddenLinks} linked entr${s.hiddenLinks === 1 ? 'y' : 'ies'} not on this grid` : ''}
