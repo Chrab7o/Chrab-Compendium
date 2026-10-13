@@ -266,6 +266,32 @@ export function answeredLabels(markdown, labels) {
   )
 }
 
+const answerLineRegex = (label) => new RegExp(`^\\s*\\*\\*${escapeRegex(label)}:\\*\\*\\s*(.*)$`, 'i')
+
+/** The answers written for one label, in the order they appear. */
+export function answersFor(markdown, label) {
+  const re = answerLineRegex(label)
+  return (markdown ?? '')
+    .split('\n')
+    .map((line) => line.match(re))
+    .filter(Boolean)
+    .map((m) => m[1].trim())
+}
+
+/** Drop the `index`th answer line for a label, plus the blank line it leaves. */
+export function removeAnswer(markdown, label, index) {
+  const re = answerLineRegex(label)
+  const lines = (markdown ?? '').split('\n')
+  let seen = -1
+  const at = lines.findIndex((line) => re.test(line) && ++seen === index)
+  if (at === -1) return markdown ?? ''
+  lines.splice(at, 1)
+  const blank = (i) => i >= 0 && i < lines.length && !lines[i].trim()
+  if (blank(at) && (at === 0 || blank(at - 1))) lines.splice(at, 1)
+  else if (at === lines.length && blank(at - 1)) lines.splice(at - 1, 1)
+  return lines.join('\n')
+}
+
 export const answerLine = (label, text) => `**${label}:** ${text.trim()}`
 
 /** Append a block to markdown with a blank line between. */

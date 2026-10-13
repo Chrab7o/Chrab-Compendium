@@ -3,6 +3,7 @@ import { supabase } from '../../../lib/supabaseClient'
 import { kindDescendants, kindPath, kindPrompts, kindTree, parsePoolText } from '../../../lib/sphereGrid'
 import { tagsByGroup, ungroupedTags } from '../../../lib/tags'
 import { useTags } from '../../../contexts/TagContext'
+import GeneratorOptions from './GeneratorOptions'
 import KindSelect from './KindSelect'
 
 const emptyKind = { label: '', parent_id: null, tag: '' }
@@ -36,7 +37,7 @@ export default function KindManager({ kinds, prompts, hidden, overrides, pools, 
 
   function selectKind(kind) {
     setSelectedId(kind.id)
-    setKindDraft({ label: kind.label, parent_id: kind.parent_id, tag: kind.tag ?? '' })
+    setKindDraft({ label: kind.label, parent_id: kind.parent_id, tag: kind.tag ?? '', name_generator: kind.name_generator ?? '' })
     setQuestion(emptyQuestion)
     setTailoring(null)
     setNewKind(null)
@@ -105,7 +106,12 @@ export default function KindManager({ kinds, prompts, hidden, overrides, pools, 
     await run(
       supabase
         .from('sphere_kinds')
-        .update({ label, parent_id: kindDraft.parent_id, tag: kindDraft.tag || null })
+        .update({
+          label,
+          parent_id: kindDraft.parent_id,
+          tag: kindDraft.tag || null,
+          name_generator: kindDraft.name_generator || null,
+        })
         .eq('id', selected.id)
     )
   }
@@ -326,6 +332,16 @@ export default function KindManager({ kinds, prompts, hidden, overrides, pools, 
               <select value={kindDraft.tag} onChange={(e) => setKindDraft({ ...kindDraft, tag: e.target.value })}>
                 <option value="">{kindDraft.parent_id ? '— Same as parent —' : '— None —'}</option>
                 {tagOptions}
+              </select>
+            </label>
+            <label>
+              Names from
+              <select
+                value={kindDraft.name_generator}
+                onChange={(e) => setKindDraft({ ...kindDraft, name_generator: e.target.value })}
+              >
+                <option value="">{kindDraft.parent_id ? '— Same as parent —' : '— None —'}</option>
+                <GeneratorOptions pools={pools} />
               </select>
             </label>
             <div className="dm-form-actions">

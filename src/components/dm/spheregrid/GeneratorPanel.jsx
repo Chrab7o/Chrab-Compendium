@@ -1,23 +1,23 @@
 import { useEffect, useRef, useState } from 'react'
 import { generateOne, generatorLabel } from '../../../lib/nameSchemes'
-import { drawFromPool, kindTag } from '../../../lib/sphereGrid'
+import { drawFromPool, kindChain, kindTag } from '../../../lib/sphereGrid'
+import GeneratorOptions, { isKnownSource, placeNames } from './GeneratorOptions'
 import KindSelect from './KindSelect'
 import TagGroupPicker from '../../TagGroupPicker'
 
 // Same lazy loading as the Name Generator: syllable data only loads once a
 // scheme is actually picked.
 const SCHEME_MODULES = import.meta.glob('../../../data/name-schemes/*.json')
-const MANIFEST = import.meta.glob('../../../data/name-schemes/manifest.json', { eager: true })
-const manifest = Object.values(MANIFEST)[0]?.default ?? { races: [] }
 const pathFor = (id) => `../../../data/name-schemes/${id}.json`
 
 const MAX_COUNT = 20
 
 // The generation loop: pick a generator and a count, get a draft batch,
 // reroll all or one at a time (or type over any name), then create the lot in
-// one press. Everything is drawn from curated pools or the installed syllable
-// schemes - nothing is invented, and no name already used by an entry
-// anywhere in the wiki comes back.
+// one press. Everything is drawn from curated pools, the place-name word lists
+// or the installed syllable schemes - nothing is invented, and no name already
+// used by an entry anywhere in the wiki comes back. Picking a kind switches to
+// that kind's default generator, unless one was picked by hand.
 export default function GeneratorPanel({ kinds, pools, existingNames, selectedSpheres, onCreate }) {
   const [source, setSource] = useState('')
   const [scheme, setScheme] = useState(null)
@@ -31,9 +31,13 @@ export default function GeneratorPanel({ kinds, pools, existingNames, selectedSp
   const [error, setError] = useState(null)
   const [saving, setSaving] = useState(false)
   const nextKey = useRef(0)
+  // The source the last kind picked, so a later kind may replace it but a
+  // generator chosen by hand stays put.
+  const autoSource = useRef('')
 
   const pool = source.startsWith('pool:') ? pools.find((p) => p.id === source.slice(5)) : null
   const schemeId = source.startsWith('scheme:') ? source.slice(7) : null
+  const placeKey = source.startsWith('place:') && placeNames.generators[source.slice(6)] ? source.slice(6) : null
 
   // A pool's own tags are the default for what it generates.
   useEffect(() => {
@@ -62,15 +66,16 @@ export default function GeneratorPanel({ kinds, pools, existingNames, selectedSp
     }
   }, [schemeId])
 
-  const ready = Boolean(pool || (scheme && schemeGen))
+  const ready = Boolean(pool || placeKey || (scheme && schemeGen))
 
   function draw(n, exclude) {
     if (pool) return drawFromPool(pool.names, n, exclude)
-    if (!scheme || !schemeGen) return []
+    const [from, gen] = placeKey ? [placeNames, placeKey] : [scheme, schemeGen]
+    if (!from || !gen) return []
     const skip = new Set(exclude.map((x) => x.trim().toLowerCase()))
     const out = []
     for (let attempt = 0; attempt < n * 50 && out.length < n; attempt++) {
-      const name = generateOne(scheme, schemeGen, { row: out.length % 10 })
+      const name = generateOne(from, gen, { row: out.length % 10 })
       const key = name.toLowerCase()
       if (!name || skip.has(key)) continue
       skip.add(key)
@@ -111,11 +116,19 @@ export default function GeneratorPanel({ kinds, pools, existingNames, selectedSp
   // (which brings its own questions and tag) or at least one tag.
   const tagProblem = !kindId && !batchTags.length ? 'Pick a kind or at least one tag for the batch.' : null
 
-  // Picking a kind adds its wiki tag to the batch, the same as on a sphere.
+  // Picking a kind adds its wiki tag to the batch, the same as on a sphere,
+  // and switches to the nearest default generator up its chain.
   function changeKind(next) {
     setKindId(next)
     const tag = next ? kindTag(kinds, next) : null
     if (tag) setBatchTags((current) => (current.includes(tag) ? current : [...current, tag]))
+    const preferred = next
+      ? kindChain(kinds, next).map((k) => k.name_generator).find((g) => isKnownSource(g, pools))
+      : null
+    if (preferred && (!source || source === autoSource.current)) {
+      autoSource.current = preferred
+      setSource(preferred)
+    }
   }
 
   async function handleCreate() {
@@ -149,24 +162,7 @@ export default function GeneratorPanel({ kinds, pools, existingNames, selectedSp
           Generator
           <select value={source} onChange={(e) => setSource(e.target.value)}>
             <option value="">— Pick a generator —</option>
-            {pools.length > 0 && (
-              <optgroup label="Your pools">
-                {pools.map((p) => (
-                  <option key={p.id} value={`pool:${p.id}`}>
-                    {p.name} ({p.names.length})
-                  </option>
-                ))}
-              </optgroup>
-            )}
-            {manifest.races?.length > 0 && (
-              <optgroup label="Name schemes">
-                {manifest.races.map((r) => (
-                  <option key={r.key} value={`scheme:${r.scheme}`}>
-                    {r.label}
-                  </option>
-                ))}
-              </optgroup>
-            )}
+            <GeneratorOptions pools={pools} />
           </select>
         </label>
         {scheme && (

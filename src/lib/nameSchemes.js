@@ -19,8 +19,10 @@ const GENERATOR_LABELS = {
   nameNick: 'Nickname',
 }
 
-export const generatorLabel = (key) =>
-  GENERATOR_LABELS[key] ?? (key.replace(/^name/, '').replace(/([a-z])([A-Z])/g, '$1 $2') || key)
+export const generatorLabel = (key, scheme) =>
+  scheme?.generators?.[key]?.label ??
+  GENERATOR_LABELS[key] ??
+  (key.replace(/^name/, '').replace(/([a-z])([A-Z])/g, '$1 $2') || key)
 
 const pick = (arr, rng) => arr[(rng() * arr.length) | 0]
 
@@ -35,15 +37,25 @@ function pickBranch(branches, row, rng) {
   return pool[pool.length - 1]
 }
 
+// Joining words stay lowercase inside a name ("Temple of the Silent Flame",
+// "Ashford-on-the-Wold"), but not as its first word; so does a possessive 's.
+const SMALL_WORDS = new Set(['of', 'the', 'and', 'on', 'upon', 'in', 'under', 'by', 'at', 'to', 'a', 'an'])
+
 const capitalize = (s) =>
-  s.replace(/(^|[\s'-])(\p{Ll})/gu, (_, lead, ch) => lead + ch.toUpperCase())
+  s.replace(/(^|[\s'-])(\p{Ll}[\p{L}]*)/gu, (match, lead, word, offset) =>
+    (lead === "'" ? word === 's' : offset > 0 && SMALL_WORDS.has(word)) ? match : lead + word[0].toUpperCase() + word.slice(1),
+  )
+
+// A `lit:` entry in a branch is fixed text ("lit: of the "), not a pool name.
+const resolvePart = (scheme, part, rng) =>
+  part.startsWith('lit:') ? part.slice(4) : pick(scheme.parts[part] ?? [''], rng)
 
 /** One name from `scheme`'s `generator`. `row` selects position-dependent branches. */
 export function generateOne(scheme, generator, { row = 0, rng = Math.random } = {}) {
   const gen = scheme.generators?.[generator]
   if (!gen?.branches?.length) return ''
   const branch = pickBranch(gen.branches, row, rng)
-  const out = branch.seq.map((part) => pick(scheme.parts[part] ?? [''], rng)).join('')
+  const out = branch.seq.map((part) => resolvePart(scheme, part, rng)).join('')
   return capitalize(out.trim())
 }
 
@@ -65,7 +77,7 @@ export function schemeSize(scheme, generator) {
   const gen = scheme.generators?.[generator]
   if (!gen) return 0
   return gen.branches.reduce(
-    (total, b) => total + b.seq.reduce((n, p) => n * (scheme.parts[p]?.length || 1), 1),
+    (total, b) => total + b.seq.reduce((n, p) => n * (p.startsWith('lit:') ? 1 : scheme.parts[p]?.length || 1), 1),
     0,
   )
 }

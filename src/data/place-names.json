@@ -1,0 +1,597 @@
+{
+  "id": "places",
+  "note": "Original word lists for location names - ours, not compiled from anywhere. Same format as the name schemes (see src/lib/nameSchemes.js); one generator per Location kind, all sharing these parts.",
+  "parts": {
+    "root": [
+      "Alder", "Amber", "Ash", "Barrow", "Birch", "Black", "Bracken", "Bramble", "Briar", "Bright",
+      "Cinder", "Cold", "Copper", "Crow", "Deep", "Dun", "Elder", "Ember", "Fallow", "Fair",
+      "Fern", "Flint", "Fox", "Frost", "Glen", "Gold", "Green", "Grey", "Harrow", "Hawk",
+      "Hazel", "Heather", "High", "Holly", "Iron", "Ivy", "Kestrel", "Kettle", "King", "Lark",
+      "Long", "Maple", "Marsh", "Mill", "Moss", "Nettle", "North", "Oak", "Pebble", "Raven",
+      "Red", "Reed", "Rook", "Rose", "Rush", "Salt", "Sedge", "Silver", "Stag", "Stone",
+      "Storm", "Tarn", "Thistle", "Thorn", "West", "East", "South", "White", "Willow", "Wolf",
+      "Wren", "Yarrow", "Hollow", "Brindle", "Cloud", "Dusk", "Gull", "Heron", "Lantern", "Sorrow"
+    ],
+    "syl": [
+      "Bram", "Dor", "Gil", "Hal", "Kel", "Mor", "Pen", "Tre", "Wyn", "Ald",
+      "Bel", "Cal", "Dal", "Ell", "Fen", "Gar", "Hart", "Lin", "Mar", "Nor",
+      "Os", "Quen", "Ral", "Sel", "Tam", "Ul", "Ver", "Wil", "Yel", "Brey"
+    ],
+    "townEnd": [
+      "ford", "ton", "bury", "wick", "stead", "field", "brook", "haven", "mere", "dale",
+      "holm", "by", "thorpe", "worth", "ley", "ham", "well", "gate", "bridge", "cross",
+      "moor", "stow", "combe", "wood", "burn", "hurst", "minster", "water", "fell", "wold"
+    ],
+    "villageEnd": [
+      "ley", "ham", "by", "thorpe", "cote", "ditch", "end", "hollow", "nook", "field",
+      "well", "combe", "wick", "stead", "bottom", "green", "dell", "hithe", "lea", "worth"
+    ],
+    "hamletEnd": [
+      "cote", "end", "nook", "croft", "hollow", "ditch", "stile", "garth", "row", "wick",
+      "bottom", "hatch", "toft", "barn", "pightle"
+    ],
+    "cityEnd": [
+      "gard", "mouth", "port", "haven", "minster", "spire", "hold", "crown", "reach", "helm",
+      "fall", "gate", "mere", "march", "throne", "cliff", "keep", "bridge"
+    ],
+    "cityA": [
+      "Val", "Thal", "Mor", "Kael", "Ost", "Ard", "Cal", "Ser", "Bel", "Lor",
+      "Ves", "Zar", "Ith", "Aer", "Dra", "Esh", "Gal", "Hel", "Mir", "Quel",
+      "Sol", "Tir", "Ul", "Xan", "Ny", "Cor", "Ess", "Vael"
+    ],
+    "cityB": [
+      "oria", "andar", "ehold", "ador", "essa", "ithas", "oran", "umbar", "enhal", "avon",
+      "eth", "irith", "ondra", "ascar", "ima", "anthe", "ost", "arel", "imar", "esse",
+      "uvel", "ancia", "ethis", "onne"
+    ],
+    "townTag": ["Cross", "End", "Green", "Market", "Hill", "Bridge", "Common", "Heath", "Magna", "Parva"],
+    "landTail": ["Wold", "Water", "Marsh", "Hill", "Moor", "Sea", "Fell", "Weald", "Downs", "Mere"],
+    "placeMod": ["Upper ", "Lower ", "Nether ", "Great ", "Little ", "Long ", "Old ", "New ", "East ", "West "],
+    "homely": ["Rest", "Hollow", "Bend", "Crossing", "Corner", "Folly", "End", "Well", "Reach", "Comfort", "Landing", "Patch"],
+    "outpostWord": ["Watch", "Post", "Hold", "Lookout", "Station", "Stockade", "Bastion", "Picket", "Waypoint", "Redoubt", "Beacon", "Tollhouse"],
+    "outpostWhole": ["Last Light", "Farwatch", "Edge's End", "World's Rim", "Lonely Post", "Cold Comfort", "Hope's Edge", "Far Beacon", "Brink", "Thin Line"],
+    "campAdj": ["Smoky", "Broken", "Red", "Long", "Cold", "Seven", "Lantern", "Drifting", "Muddy", "Windy", "Last", "Ragged", "Painted", "Hungry", "Quiet"],
+    "campNoun": ["Fires", "Tents", "Wagons", "Hollow", "Hearths", "Wheel", "Banners", "Stakes", "Pennants", "Ashes", "Rest", "Ground", "Pickets", "Wagonring"],
+
+    "founder": [
+      "Varrick", "Holloway", "Dunmore", "Ashby", "Corwin", "Tessaly", "Marrow", "Brannock", "Aldane", "Kestrel",
+      "Harrowgate", "Vance", "Oakhart", "Pell", "Graymantle", "Stroud", "Morrow", "Carran", "Fenwick", "Lusk"
+    ],
+    "owner": [
+      "Mabel", "Old Tom", "Gunnar", "Bess", "Haldor", "Pip", "Marta", "Fennick", "Rosie", "Bartleby",
+      "Ingrid", "Dunstan", "Wilhelmina", "Tobin", "Greta", "Ozzie", "Hettie", "Bram", "Nell", "Corbin"
+    ],
+    "saint": ["Aldric", "Ysolde", "Berrin", "Maelis", "Oswin", "Corra", "Hesper", "Tamsin", "Edrin", "Vael", "Isolde", "Anselm", "Brigid", "Cuthric"],
+    "mage": ["Ozmund", "Velith", "Morvane", "Ilsabet", "Corvin", "Xandra", "Hollis", "Ebonar", "Quillith", "Seraphine", "Thaddeus", "Wyrdell"],
+    "ancA": ["Ul", "Kesh", "Thar", "Vor", "Ana", "Zeth", "Ir", "Mal", "Oth", "Sar", "Khem", "Ys", "Ner", "Azh", "Tol", "Qeth"],
+    "ancB": ["doran", "essar", "uun", "akhet", "ithar", "oth", "emnos", "arath", "ul", "inor", "ashka", "umet", "ireth", "azun", "olos"],
+
+    "templeWord": ["Temple", "Shrine", "Sanctum", "Chapel", "Cathedral", "Basilica", "Abbey", "Oratory", "Priory", "Sanctuary"],
+    "divineAdj": ["Silent", "Eternal", "Burning", "Weeping", "Radiant", "Hollow", "Sevenfold", "Gilded", "Morning", "Last", "Patient", "Veiled", "Unbroken", "Crimson", "Ivory", "Starlit", "Merciful", "Watchful"],
+    "divineNoun": ["Flame", "Mother", "Lantern", "Star", "Tide", "Hand", "Eye", "Bell", "Dawn", "Harvest", "Shepherd", "Throne", "Chalice", "Thorn", "Moon", "Veil", "Wound", "Seed", "Hearth", "Scale"],
+
+    "fortEnd": ["keep", "hold", "guard", "wall", "gate", "crag", "spire", "watch", "rock", "fast"],
+    "fortWord": ["Keep", "Hold", "Citadel", "Bastion", "Castle", "Fortress", "Stronghold", "Redoubt", "Tower", "Bulwark"],
+    "fortAdj": ["Black", "Iron", "Grey", "Broken", "Silent", "Sundered", "Stone", "High", "Red", "Old", "Last", "Crowned"],
+
+    "towerWord": ["Tower", "Spire", "Spindle", "Needle", "Pinnacle", "Steeple", "Observatory", "Turret", "Belfry", "Minaret"],
+    "towerAdj": ["Crooked", "Leaning", "Hollow", "Ninth", "Shattered", "Glass", "Bone", "Silver", "Whispering", "Lonely", "Starward", "Burnt", "Upturned", "Lightless"],
+
+    "ruinAdj": ["Fallen", "Broken", "Shattered", "Sunken", "Toppled", "Forgotten", "Burnt", "Hollow", "Crumbling", "Silent", "Overgrown", "Nameless"],
+    "ruinNoun": ["Halls", "Columns", "Stones", "Arches", "Walls", "Steps", "Spires", "Gates", "Court", "Bastion", "Colonnade", "Amphitheater"],
+
+    "tavAdj": [
+      "Rusty", "Prancing", "Drunken", "Golden", "Sleeping", "Laughing", "Crooked", "Salty", "Jolly", "Wandering",
+      "Thirsty", "Leaky", "Copper", "Gilded", "Merry", "One-Eyed", "Silver", "Lucky", "Blind", "Howling",
+      "Dancing", "Lame", "Gentle", "Bawdy", "Tipsy", "Grumpy", "Three-Legged", "Singing"
+    ],
+    "tavNoun": [
+      "Anchor", "Pony", "Dragon", "Goblin", "Stag", "Lantern", "Barrel", "Tankard", "Griffin", "Mermaid",
+      "Boar", "Fiddler", "Kettle", "Rooster", "Wyvern", "Hound", "Raven", "Cask", "Mule", "Owl",
+      "Bard", "Pig", "Badger", "Crown", "Flagon", "Gnome", "Toad", "Wench", "Ogre", "Eel"
+    ],
+    "tavPlace": ["Taproom", "Tavern", "Alehouse", "Rest", "Lodge", "Inn", "Taphouse", "Public House", "Cellar", "Hearth"],
+
+    "marketGoods": ["Copper", "Spice", "Silk", "Fish", "Lantern", "Salt", "Wool", "Grain", "Rag", "Thieves'", "Tinker's", "Coin", "Bone", "Candle", "Horse", "Night", "Flower", "Glass"],
+    "marketWord": ["Market", "Bazaar", "Row", "Square", "Exchange", "Fair", "Arcade", "Stalls", "Cross", "Yard", "Lanes", "Souk"],
+
+    "shopGoods": ["Curios", "Sundries", "Wares", "Remedies", "Oddities", "Provisions", "Tinctures", "Trinkets", "Ironworks", "Fineries", "Blades", "Maps & Charts", "Bindings", "Candles & Wicks", "Hats", "Locks & Keys"],
+    "shopAdj": ["Gilded", "Humble", "Curious", "Crooked", "Brass", "Silver", "Velvet", "Honest", "Wandering", "Hidden", "Dusty", "Little"],
+    "shopNoun": ["Needle", "Scale", "Quill", "Anvil", "Lamp", "Thimble", "Compass", "Key", "Mortar", "Spool", "Hourglass", "Satchel", "Bottle", "Ledger"],
+
+    "harborEnd": ["haven", "port", "mouth", "quay", "wharf", "hythe", "strand"],
+    "harborWord": ["Harbor", "Docks", "Quay", "Wharf", "Landing", "Moorings", "Anchorage", "Slips", "Piers"],
+    "seaAdj": ["Grey", "Salt", "Drowned", "Gull", "Wrecker's", "Calm", "Storm", "Tarred", "Foggy", "Low", "Sailor's"],
+
+    "graveWord": ["Cemetery", "Barrows", "Graves", "Boneyard", "Crypts", "Necropolis", "Churchyard", "Ossuary", "Tombs", "Mausoleum", "Burial Ground"],
+    "graveAdj": ["Quiet", "Weeping", "Restless", "Silent", "Sleeping", "Forgotten", "Ashen", "Mourning", "Pale", "Sunken", "Crooked", "Lantern-Lit"],
+
+    "mineMetal": ["Copper", "Iron", "Silver", "Gold", "Tin", "Salt", "Coal", "Gem", "Mithral", "Quartz", "Lead", "Opal", "Jet"],
+    "mineWord": ["Mine", "Pit", "Dig", "Shaft", "Delve", "Lode", "Quarry", "Hole", "Seam", "Diggings", "Workings"],
+    "mineNick": ["Folly", "Luck", "Gamble", "Hope", "Strike", "Ruin", "Fortune", "Grave", "Promise"],
+    "mineAdj": ["Deep", "Black", "Endless", "Weeping", "Sunken", "Old", "Rich", "Lucky", "Dark", "Collapsed", "Singing", "Dead"],
+
+    "forestEnd": ["wood", "holt", "weald", "grove", "shaw", "hurst", "thicket"],
+    "forestWord": ["Woods", "Forest", "Wood", "Weald", "Thicket", "Wilds", "Grove", "Tangle", "Greenwood", "Boughs", "Pines", "Wildwood"],
+    "forestAdj": ["Whispering", "Tangled", "Silent", "Black", "Elder", "Grey", "Thorned", "Hollow", "Weeping", "Shrouded", "Moonlit", "Sleeping", "Gloaming", "Ashen", "Hungry", "Wandering", "Emerald", "Bleak", "Old", "Deep"],
+
+    "lakeWord": ["Lake", "Mere", "Tarn", "Loch", "Pool", "Waters", "Basin", "Lough"],
+    "lakeAdj": ["Still", "Mirror", "Glass", "Sunken", "Drowned", "Silver", "Cold", "Deep", "Weeping", "Moonlit", "Black", "Blue", "Clear", "Misty", "Frozen", "Sapphire", "Quiet", "Bottomless"],
+
+    "riverEnd": ["water", "brook", "burn", "beck", "run", "flow", "rush", "rill", "bourne"],
+    "riverWord": ["River", "Run", "Water", "Brook", "Flow", "Rush", "Torrent", "Stream", "Rapids"],
+    "riverAdj": ["Winding", "Swift", "Silver", "Lazy", "Roaring", "Muddy", "Cold", "Bright", "Black", "Laughing", "Crooked", "Weeping", "Singing", "Red", "Wandering"],
+    "riverA": ["Tam", "Ser", "Ys", "Lor", "Ven", "Gal", "Ard", "Ess", "Mor", "Tir", "El", "Wen", "Av", "Sev", "Ond"],
+    "riverB": ["wen", "ith", "el", "ara", "isse", "ond", "uin", "eth", "ava", "ire", "ern", "ell", "ane"],
+
+    "peakEnd": ["peak", "crag", "horn", "fell", "spire", "tooth", "crown", "top", "pike", "head"],
+    "mtWord": ["Peaks", "Teeth", "Spires", "Heights", "Mountains", "Crags", "Fells", "Range", "Giants", "Pikes", "Horns"],
+    "mtAdj": ["Broken", "Grey", "Frozen", "Jagged", "Sleeping", "Iron", "Thundering", "White", "Howling", "Shattered", "Lonely", "Hungry", "Sawtooth", "Cloud-Piercing"],
+    "passWord": ["Pass", "Gap", "Notch", "Col", "Saddle", "Gate", "Cut", "Defile"],
+
+    "swampEnd": ["fen", "mire", "marsh", "bog", "moss", "slough"],
+    "swampWord": ["Fen", "Mire", "Marsh", "Bog", "Bayou", "Morass", "Slough", "Sinks", "Wallows", "Quag", "Fenlands", "Mudflats"],
+    "swampAdj": ["Drowning", "Sucking", "Rotting", "Weeping", "Grey", "Whispering", "Stinking", "Sunken", "Lanternlit", "Black", "Misty", "Hungry", "Festering", "Sallow", "Croaking"],
+
+    "desertWord": ["Wastes", "Sands", "Dunes", "Expanse", "Flats", "Barrens", "Saltpan", "Erg", "Badlands", "Dust"],
+    "desertAdj": ["Burning", "Endless", "Shifting", "Red", "Bleached", "Singing", "Glass", "Thirsting", "Sunscorched", "Bone", "White", "Howling", "Silent", "Copper"],
+    "desertA": ["Kha", "Zar", "Ash", "Qa", "Sum", "Tal", "Ma", "Ra", "Ib", "Ur", "Sha", "Dur", "Ha", "Nef"],
+    "desertB": ["rum", "ad", "ira", "ash", "dun", "ek", "ahn", "esh", "ara", "im", "uz", "et"],
+
+    "coastWord": ["Coast", "Shore", "Strand", "Isles", "Reach", "Cliffs", "Sands", "Shoals", "Point", "Cape", "Head", "Skerries"],
+    "coastAdj": ["Shattered", "Broken", "Pale", "Wrecker's", "Grey", "Singing", "Drowned", "Amber", "Salt", "Windward", "Lee", "Gull", "Smuggler's", "Sunken"],
+    "isleWord": ["Isle", "Island", "Rock", "Key", "Holm", "Atoll", "Skerry"],
+
+    "plainsWord": ["Plains", "Steppe", "Downs", "Grasslands", "Fields", "Reach", "Flats", "Meadows", "Prairie", "Heath", "Lea", "Sweep"],
+    "plainsAdj": ["Golden", "Endless", "Whispering", "Windswept", "Rolling", "Amber", "Green", "Long", "Open", "Tallgrass", "Sea-Grass", "Thundering", "Lonely", "Low"],
+
+    "roadGoods": ["Salt", "Silk", "Spice", "Amber", "Wine", "Copper", "Pilgrim's", "King's", "Merchant's", "Bone", "Drover's", "Queen's", "Tinker's", "Iron"],
+    "roadWord": ["Road", "Way", "Trail", "Route", "Highway", "Track", "Path", "Run", "Causeway", "Trace", "Post Road"],
+    "roadAdj": ["Long", "Old", "Sunken", "Winding", "Broken", "Lantern", "Hollow", "Grey", "Widow's", "Low", "High", "Narrow", "Gallows"],
+
+    "caveWord": ["Caves", "Cavern", "Grotto", "Hollow", "Hole", "Deeps", "Chasm", "Maw", "Throat", "Warren", "Pit", "Sinkhole"],
+    "caveAdj": ["Howling", "Dripping", "Echoing", "Glittering", "Black", "Whispering", "Hungry", "Sunless", "Weeping", "Crystal", "Gaping", "Bone", "Breathing", "Blind"],
+    "caveBeast": ["Bat", "Wyrm", "Troll", "Bear", "Spider", "Goblin", "Serpent", "Wolf", "Kobold", "Ogre", "Grub", "Ooze"],
+
+    "dungeonWord": ["Halls", "Vaults", "Catacombs", "Crypt", "Tomb", "Labyrinth", "Pits", "Dungeons", "Undercroft", "Barrow", "Sepulcher", "Warrens", "Oubliette"],
+    "dungeonAdj": ["Sunken", "Forgotten", "Shattered", "Endless", "Black", "Silent", "Screaming", "Flooded", "Burning", "Hollow", "Cursed", "Lightless"],
+    "dungeonTitle": ["Mad King", "Lich Lord", "Bone Queen", "Forgotten Saint", "Drowned Prince", "Iron Tyrant", "Hollow God", "Last Archmage", "Faceless Abbot", "Pale Warden", "Serpent Mother", "Weeping Knight"],
+
+    "tunnelWord": ["Tunnels", "Warrens", "Runs", "Burrows", "Underways", "Passages", "Galleries", "Delvings", "Veins", "Ways", "Sewers", "Crawlways"],
+    "tunnelAdj": ["Endless", "Twisting", "Smugglers'", "Dwarven", "Flooded", "Forgotten", "Crawling", "Narrow", "Ratcatcher's", "Old", "Knotted", "Whispering"],
+
+    "sunkenAdj": ["Sunken", "Drowned", "Flooded", "Silted", "Submerged", "Tidebound", "Waterlogged", "Swallowed"],
+
+    "vaultWord": ["Vault", "Hoard", "Reliquary", "Treasury", "Strongroom", "Cache", "Coffer", "Sanctum", "Undercroft", "Archive"],
+    "vaultAdj": ["Sealed", "Hidden", "Silent", "Lost", "Last", "Locked", "Forgotten", "Secret", "Nameless", "Gilded", "Buried", "Unopened"],
+
+    "feyWord": ["Glade", "Grove", "Bower", "Ring", "Hollow", "Dell", "Circle", "Garden", "Thicket", "Court", "Arbor", "Meadow"],
+    "feyAdj": ["Dreaming", "Laughing", "Moonlit", "Twilight", "Silver", "Glimmering", "Whispering", "Dancing", "Starlit", "Honeyed", "Drowsing", "Mirrored", "Gloaming", "Ever-Blooming", "Thousand-Bell"],
+    "feyName": ["Ellowyn", "Thistlewick", "Mirelle", "Faelan", "Sorrel", "Quillon", "Ninnet", "Briony", "Aubade", "Pennyroyal", "Lirrow", "Dewmist"],
+    "feyPlant": ["Toadstool", "Foxglove", "Bluebell", "Thistle", "Moonpetal", "Hawthorn", "Primrose", "Nightshade", "Elderflower", "Mistletoe", "Clover", "Honeysuckle"],
+
+    "portalWord": ["Gate", "Arch", "Door", "Threshold", "Circle", "Ring", "Mirror", "Stones", "Way", "Span", "Doorway", "Keyhole"],
+    "portalAdj": ["Shimmering", "Standing", "Silent", "Shattered", "Starlit", "Hollow", "Turning", "Waking", "Veiled", "Humming", "Weeping", "Ever-Open"],
+    "portalDest": ["Seven Skies", "Endless Night", "the Far Shore", "Burning Stars", "Mirrors", "Ten Thousand Doors", "the Drowned Sun", "Ash", "Elsewhere", "the Last Morning", "Silver Rain", "Shadows"],
+
+    "riftWord": ["Rift", "Tear", "Wound", "Scar", "Breach", "Fissure", "Maw", "Seam", "Fracture", "Crack", "Gash"],
+    "riftAdj": ["Bleeding", "Howling", "Screaming", "Burning", "Weeping", "Starless", "Hungry", "Unclosing", "Violet", "Black", "Endless", "Shrieking", "Humming", "Inverted"],
+
+    "impNoun": ["Staircase", "Library", "Market", "Garden", "House", "Street", "Orchard", "Lighthouse", "Bridge", "Clocktower", "Village", "Well", "Ballroom", "Forest"],
+    "impAdj": ["Upside-Down", "Inside-Out", "Folding", "Backward", "Endless", "Hollow", "Weightless", "Mirrored", "Unfinished", "Wandering", "Sideways", "Breathing", "Paper", "Twice-Built"],
+    "impClause": ["That Never Ends", "Where It Always Rains", "of Yesterday", "Beneath the Sky", "Without Shadows", "of Unfallen Snow", "That Remembers", "Between Hours", "Nobody Built", "That Moves at Night", "of Lost Things", "at the Bottom of the Sea"],
+
+    "realmA": ["Val", "Ester", "Ar", "Cael", "Mor", "Thal", "Bran", "Ys", "Lor", "Kel", "Dor", "Aust", "Wes", "Hal", "Ner", "Gal", "Sev", "Tor", "Eld", "Var", "Ros", "Ilm"],
+    "realmB": ["doria", "hal", "gard", "mark", "enne", "avia", "mont", "holm", "oria", "ethe", "land", "wyn", "ancia", "ador", "vell", "ost", "mere", "ia", "rath", "onne", "esse", "ica"],
+    "realmWord": ["Realm", "Kingdom", "Crown", "Dominion", "Throne", "Empire"],
+    "realmAdj": ["Sunward", "Iron", "Northern", "Twin", "Silver", "Broken", "Holy", "Free", "High", "Middle", "Ashen", "Golden", "Rose", "Thorn", "Winter"],
+
+    "terrWord": ["Reaches", "Wilds", "Wildlands", "Expanse", "Frontier", "Hinterlands", "Barrens", "Outlands", "Territories", "Waste", "Badlands", "Fastness"],
+    "terrAdj": ["Untamed", "Howling", "Unmapped", "Savage", "Lawless", "Far", "Outer", "Feral", "Shrouded", "Northern", "Sundered", "Grey", "Masterless", "Bitter"],
+
+    "compass": ["North", "South", "East", "West", "Northern", "Southern", "Eastern", "Western", "Border", "Iron", "Blood", "Ember", "Middle", "Thorn"]
+  },
+  "generators": {
+    "city": {
+      "label": "City",
+      "group": "Settlements",
+      "branches": [
+        { "seq": ["cityA", "cityB"], "weight": 35 },
+        { "seq": ["root", "cityEnd"], "weight": 30 },
+        { "seq": ["syl", "cityEnd"], "weight": 10 },
+        { "seq": ["lit:Port ", "cityA", "cityB"], "weight": 8 },
+        { "seq": ["lit:New ", "cityA", "cityB"], "weight": 5 },
+        { "seq": ["lit:Old ", "root", "cityEnd"], "weight": 5 },
+        { "seq": ["cityA", "cityB", "lit:'s ", "lit:Crown"], "weight": 3 },
+        { "seq": ["lit:High ", "cityA", "cityB"], "weight": 4 }
+      ]
+    },
+    "town": {
+      "label": "Town",
+      "group": "Settlements",
+      "branches": [
+        { "seq": ["root", "townEnd"], "weight": 50 },
+        { "seq": ["syl", "townEnd"], "weight": 15 },
+        { "seq": ["root", "townEnd", "lit: ", "townTag"], "weight": 12 },
+        { "seq": ["root", "lit:'s ", "homely"], "weight": 8 },
+        { "seq": ["root", "townEnd", "lit:-on-the-", "landTail"], "weight": 8 },
+        { "seq": ["placeMod", "root", "townEnd"], "weight": 7 }
+      ]
+    },
+    "village": {
+      "label": "Village",
+      "group": "Settlements",
+      "branches": [
+        { "seq": ["root", "villageEnd"], "weight": 50 },
+        { "seq": ["syl", "villageEnd"], "weight": 15 },
+        { "seq": ["placeMod", "root", "villageEnd"], "weight": 18 },
+        { "seq": ["root", "lit:'s ", "homely"], "weight": 10 },
+        { "seq": ["root", "villageEnd", "lit: ", "townTag"], "weight": 7 }
+      ]
+    },
+    "hamlet": {
+      "label": "Hamlet",
+      "group": "Settlements",
+      "branches": [
+        { "seq": ["root", "hamletEnd"], "weight": 45 },
+        { "seq": ["owner", "lit:'s ", "homely"], "weight": 25 },
+        { "seq": ["founder", "lit:'s ", "hamletEnd"], "weight": 15 },
+        { "seq": ["lit:Little ", "root", "hamletEnd"], "weight": 15 }
+      ]
+    },
+    "outpost": {
+      "label": "Outpost",
+      "group": "Settlements",
+      "branches": [
+        { "seq": ["root", "lit: ", "outpostWord"], "weight": 40 },
+        { "seq": ["lit:Fort ", "founder"], "weight": 25 },
+        { "seq": ["founder", "lit:'s ", "outpostWord"], "weight": 15 },
+        { "seq": ["outpostWhole"], "weight": 20 }
+      ]
+    },
+    "camp": {
+      "label": "Camp",
+      "group": "Settlements",
+      "branches": [
+        { "seq": ["lit:The ", "campAdj", "lit: ", "campNoun"], "weight": 35 },
+        { "seq": ["campAdj", "lit: ", "campNoun"], "weight": 25 },
+        { "seq": ["lit:Camp ", "founder"], "weight": 20 },
+        { "seq": ["root", "lit: Camp"], "weight": 10 },
+        { "seq": ["owner", "lit:'s ", "campNoun"], "weight": 10 }
+      ]
+    },
+
+    "temple": {
+      "label": "Temple / Shrine",
+      "group": "Structures & Sites",
+      "branches": [
+        { "seq": ["templeWord", "lit: of the ", "divineAdj", "lit: ", "divineNoun"], "weight": 40 },
+        { "seq": ["templeWord", "lit: of the ", "divineNoun"], "weight": 15 },
+        { "seq": ["lit:The ", "divineAdj", "lit: ", "templeWord"], "weight": 15 },
+        { "seq": ["lit:Saint ", "saint", "lit:'s ", "templeWord"], "weight": 20 },
+        { "seq": ["templeWord", "lit: of Saint ", "saint"], "weight": 10 }
+      ]
+    },
+    "fortress": {
+      "label": "Fortress / Castle",
+      "group": "Structures & Sites",
+      "branches": [
+        { "seq": ["root", "fortEnd"], "weight": 40 },
+        { "seq": ["founder", "lit: ", "fortWord"], "weight": 25 },
+        { "seq": ["lit:Castle ", "founder"], "weight": 15 },
+        { "seq": ["lit:The ", "fortAdj", "lit: ", "fortWord"], "weight": 20 }
+      ]
+    },
+    "tower": {
+      "label": "Tower",
+      "group": "Structures & Sites",
+      "branches": [
+        { "seq": ["lit:The ", "towerAdj", "lit: ", "towerWord"], "weight": 40 },
+        { "seq": ["mage", "lit:'s ", "towerWord"], "weight": 30 },
+        { "seq": ["root", "lit: ", "towerWord"], "weight": 20 },
+        { "seq": ["root", "lit:spire"], "weight": 10 }
+      ]
+    },
+    "ruins": {
+      "label": "Ruins",
+      "group": "Structures & Sites",
+      "branches": [
+        { "seq": ["lit:The Ruins of ", "ancA", "ancB"], "weight": 30 },
+        { "seq": ["lit:The ", "ruinAdj", "lit: ", "ruinNoun"], "weight": 30 },
+        { "seq": ["ancA", "ancB", "lit: ", "ruinNoun"], "weight": 20 },
+        { "seq": ["ancA", "ancB"], "weight": 10 },
+        { "seq": ["lit:Old ", "root", "townEnd"], "weight": 10 }
+      ]
+    },
+    "tavern": {
+      "label": "Tavern / Inn",
+      "group": "Structures & Sites",
+      "branches": [
+        { "seq": ["lit:The ", "tavAdj", "lit: ", "tavNoun"], "weight": 55 },
+        { "seq": ["lit:The ", "tavNoun", "lit: & ", "tavNoun"], "weight": 20 },
+        { "seq": ["owner", "lit:'s ", "tavPlace"], "weight": 15 },
+        { "seq": ["lit:The ", "tavAdj", "lit: ", "tavNoun", "lit: ", "tavPlace"], "weight": 10 }
+      ]
+    },
+    "market": {
+      "label": "Market",
+      "group": "Structures & Sites",
+      "branches": [
+        { "seq": ["marketGoods", "lit: ", "marketWord"], "weight": 55 },
+        { "seq": ["lit:The ", "marketGoods", "lit: ", "marketWord"], "weight": 20 },
+        { "seq": ["root", "lit: ", "marketWord"], "weight": 15 },
+        { "seq": ["owner", "lit:'s ", "marketWord"], "weight": 10 }
+      ]
+    },
+    "shop": {
+      "label": "Shop",
+      "group": "Structures & Sites",
+      "branches": [
+        { "seq": ["owner", "lit:'s ", "shopGoods"], "weight": 40 },
+        { "seq": ["lit:The ", "shopAdj", "lit: ", "shopNoun"], "weight": 40 },
+        { "seq": ["founder", "lit: & Sons ", "shopGoods"], "weight": 8 },
+        { "seq": ["shopAdj", "lit: ", "shopNoun", "lit: ", "shopGoods"], "weight": 12 }
+      ]
+    },
+    "harbor": {
+      "label": "Harbor / Port",
+      "group": "Structures & Sites",
+      "branches": [
+        { "seq": ["root", "harborEnd"], "weight": 35 },
+        { "seq": ["lit:Port ", "founder"], "weight": 20 },
+        { "seq": ["seaAdj", "lit: ", "harborWord"], "weight": 25 },
+        { "seq": ["lit:The ", "seaAdj", "lit: ", "harborWord"], "weight": 10 },
+        { "seq": ["founder", "lit:'s ", "harborWord"], "weight": 10 }
+      ]
+    },
+    "graveyard": {
+      "label": "Graveyard",
+      "group": "Structures & Sites",
+      "branches": [
+        { "seq": ["lit:The ", "graveAdj", "lit: ", "graveWord"], "weight": 35 },
+        { "seq": ["root", "lit: ", "graveWord"], "weight": 30 },
+        { "seq": ["lit:Saint ", "saint", "lit:'s ", "graveWord"], "weight": 20 },
+        { "seq": ["root", "lit:barrow"], "weight": 15 }
+      ]
+    },
+    "mine": {
+      "label": "Mine",
+      "group": "Structures & Sites",
+      "branches": [
+        { "seq": ["mineMetal", "lit: ", "mineWord"], "weight": 35 },
+        { "seq": ["founder", "lit:'s ", "mineNick"], "weight": 25 },
+        { "seq": ["lit:The ", "mineAdj", "lit: ", "mineWord"], "weight": 25 },
+        { "seq": ["mineMetal", "lit:deep"], "weight": 15 }
+      ]
+    },
+
+    "forest": {
+      "label": "Forest",
+      "group": "Wilderness",
+      "branches": [
+        { "seq": ["lit:The ", "forestAdj", "lit: ", "forestWord"], "weight": 40 },
+        { "seq": ["root", "forestEnd"], "weight": 30 },
+        { "seq": ["root", "lit: ", "forestWord"], "weight": 15 },
+        { "seq": ["syl", "forestEnd"], "weight": 15 }
+      ]
+    },
+    "lake": {
+      "label": "Lake",
+      "group": "Wilderness",
+      "branches": [
+        { "seq": ["lit:Lake ", "syl", "riverB"], "weight": 20 },
+        { "seq": ["root", "lit:mere"], "weight": 20 },
+        { "seq": ["lakeAdj", "lit: ", "lakeWord"], "weight": 20 },
+        { "seq": ["lit:The ", "lakeAdj", "lit: ", "lakeWord"], "weight": 15 },
+        { "seq": ["root", "lit: ", "lakeWord"], "weight": 15 },
+        { "seq": ["lit:Lake ", "saint"], "weight": 10 }
+      ]
+    },
+    "river": {
+      "label": "River",
+      "group": "Wilderness",
+      "branches": [
+        { "seq": ["lit:The ", "root", "riverEnd"], "weight": 30 },
+        { "seq": ["lit:River ", "riverA", "riverB"], "weight": 25 },
+        { "seq": ["lit:The ", "riverAdj", "lit: ", "riverWord"], "weight": 20 },
+        { "seq": ["riverA", "riverB"], "weight": 15 },
+        { "seq": ["root", "riverEnd"], "weight": 10 }
+      ]
+    },
+    "mountain": {
+      "label": "Mountain / Pass",
+      "group": "Wilderness",
+      "branches": [
+        { "seq": ["root", "peakEnd"], "weight": 30 },
+        { "seq": ["lit:Mount ", "cityA", "riverB"], "weight": 20 },
+        { "seq": ["lit:The ", "mtAdj", "lit: ", "mtWord"], "weight": 25 },
+        { "seq": ["root", "lit: ", "passWord"], "weight": 15 },
+        { "seq": ["founder", "lit:'s ", "passWord"], "weight": 10 }
+      ]
+    },
+    "swamp": {
+      "label": "Swamp",
+      "group": "Wilderness",
+      "branches": [
+        { "seq": ["lit:The ", "swampAdj", "lit: ", "swampWord"], "weight": 40 },
+        { "seq": ["root", "swampEnd"], "weight": 30 },
+        { "seq": ["root", "lit: ", "swampWord"], "weight": 20 },
+        { "seq": ["owner", "lit:'s ", "swampWord"], "weight": 10 }
+      ]
+    },
+    "desert": {
+      "label": "Desert",
+      "group": "Wilderness",
+      "branches": [
+        { "seq": ["lit:The ", "desertAdj", "lit: ", "desertWord"], "weight": 40 },
+        { "seq": ["desertA", "desertB", "lit: ", "desertWord"], "weight": 25 },
+        { "seq": ["lit:The ", "desertWord", "lit: of ", "desertA", "desertB"], "weight": 20 },
+        { "seq": ["desertA", "desertB"], "weight": 15 }
+      ]
+    },
+    "coast": {
+      "label": "Coast / Island",
+      "group": "Wilderness",
+      "branches": [
+        { "seq": ["lit:The ", "coastAdj", "lit: ", "coastWord"], "weight": 30 },
+        { "seq": ["root", "lit: ", "isleWord"], "weight": 20 },
+        { "seq": ["lit:Isle of ", "cityA", "cityB"], "weight": 15 },
+        { "seq": ["root", "harborEnd"], "weight": 15 },
+        { "seq": ["coastAdj", "lit: ", "coastWord"], "weight": 10 },
+        { "seq": ["saint", "lit:'s ", "isleWord"], "weight": 10 }
+      ]
+    },
+    "plains": {
+      "label": "Plains",
+      "group": "Wilderness",
+      "branches": [
+        { "seq": ["lit:The ", "plainsAdj", "lit: ", "plainsWord"], "weight": 45 },
+        { "seq": ["root", "lit: ", "plainsWord"], "weight": 30 },
+        { "seq": ["root", "lit:downs"], "weight": 10 },
+        { "seq": ["lit:The ", "plainsWord", "lit: of ", "realmA", "realmB"], "weight": 15 }
+      ]
+    },
+    "road": {
+      "label": "Road / Trade Route",
+      "group": "Wilderness",
+      "branches": [
+        { "seq": ["lit:The ", "roadGoods", "lit: ", "roadWord"], "weight": 40 },
+        { "seq": ["lit:The ", "roadAdj", "lit: ", "roadWord"], "weight": 30 },
+        { "seq": ["founder", "lit:'s ", "roadWord"], "weight": 15 },
+        { "seq": ["root", "lit: ", "roadWord"], "weight": 15 }
+      ]
+    },
+
+    "cave": {
+      "label": "Cave",
+      "group": "Underground & Hidden",
+      "branches": [
+        { "seq": ["lit:The ", "caveAdj", "lit: ", "caveWord"], "weight": 40 },
+        { "seq": ["caveBeast", "lit: ", "caveWord"], "weight": 25 },
+        { "seq": ["root", "lit: ", "caveWord"], "weight": 20 },
+        { "seq": ["owner", "lit:'s ", "caveWord"], "weight": 15 }
+      ]
+    },
+    "dungeon": {
+      "label": "Dungeon",
+      "group": "Underground & Hidden",
+      "branches": [
+        { "seq": ["lit:The ", "dungeonWord", "lit: of the ", "dungeonTitle"], "weight": 30 },
+        { "seq": ["lit:The ", "dungeonAdj", "lit: ", "dungeonWord"], "weight": 30 },
+        { "seq": ["lit:The ", "dungeonWord", "lit: of ", "ancA", "ancB"], "weight": 20 },
+        { "seq": ["ancA", "ancB", "lit:'s ", "dungeonWord"], "weight": 20 }
+      ]
+    },
+    "tunnels": {
+      "label": "Tunnel Network",
+      "group": "Underground & Hidden",
+      "branches": [
+        { "seq": ["lit:The ", "tunnelAdj", "lit: ", "tunnelWord"], "weight": 45 },
+        { "seq": ["root", "lit: ", "tunnelWord"], "weight": 25 },
+        { "seq": ["caveBeast", "lit: ", "tunnelWord"], "weight": 15 },
+        { "seq": ["ancA", "ancB", "lit: ", "tunnelWord"], "weight": 15 }
+      ]
+    },
+    "sunken": {
+      "label": "Sunken Ruin",
+      "group": "Underground & Hidden",
+      "branches": [
+        { "seq": ["lit:The ", "sunkenAdj", "lit: ", "ruinNoun"], "weight": 35 },
+        { "seq": ["sunkenAdj", "lit: ", "ancA", "ancB"], "weight": 30 },
+        { "seq": ["lit:The ", "sunkenAdj", "lit: ", "ruinNoun", "lit: of ", "ancA", "ancB"], "weight": 20 },
+        { "seq": ["ancA", "ancB", "lit: Below"], "weight": 15 }
+      ]
+    },
+    "vault": {
+      "label": "Hidden Vault",
+      "group": "Underground & Hidden",
+      "branches": [
+        { "seq": ["lit:The ", "vaultAdj", "lit: ", "vaultWord"], "weight": 40 },
+        { "seq": ["founder", "lit:'s ", "vaultWord"], "weight": 25 },
+        { "seq": ["lit:The ", "vaultWord", "lit: of ", "ancA", "ancB"], "weight": 20 },
+        { "seq": ["lit:The ", "vaultWord", "lit: of the ", "dungeonTitle"], "weight": 15 }
+      ]
+    },
+
+    "feyGrove": {
+      "label": "Fey Grove",
+      "group": "Strange Places",
+      "branches": [
+        { "seq": ["lit:The ", "feyAdj", "lit: ", "feyWord"], "weight": 40 },
+        { "seq": ["feyName", "lit:'s ", "feyWord"], "weight": 25 },
+        { "seq": ["feyPlant", "lit: ", "feyWord"], "weight": 25 },
+        { "seq": ["lit:The ", "feyWord", "lit: of ", "feyName"], "weight": 10 }
+      ]
+    },
+    "portal": {
+      "label": "Portal Site",
+      "group": "Strange Places",
+      "branches": [
+        { "seq": ["lit:The ", "portalAdj", "lit: ", "portalWord"], "weight": 35 },
+        { "seq": ["lit:The ", "portalWord", "lit: of ", "portalDest"], "weight": 35 },
+        { "seq": ["ancA", "ancB", "lit: ", "portalWord"], "weight": 20 },
+        { "seq": ["mage", "lit:'s ", "portalWord"], "weight": 10 }
+      ]
+    },
+    "rift": {
+      "label": "Planar Rift",
+      "group": "Strange Places",
+      "branches": [
+        { "seq": ["lit:The ", "riftAdj", "lit: ", "riftWord"], "weight": 45 },
+        { "seq": ["lit:The ", "riftWord", "lit: to ", "portalDest"], "weight": 25 },
+        { "seq": ["ancA", "ancB", "lit: ", "riftWord"], "weight": 15 },
+        { "seq": ["lit:The ", "riftWord", "lit: in the Sky"], "weight": 5 },
+        { "seq": ["lit:The ", "riftAdj", "lit: ", "riftWord", "lit: of ", "ancA", "ancB"], "weight": 10 }
+      ]
+    },
+    "impossible": {
+      "label": "Impossible Place",
+      "group": "Strange Places",
+      "branches": [
+        { "seq": ["lit:The ", "impAdj", "lit: ", "impNoun"], "weight": 50 },
+        { "seq": ["lit:The ", "impNoun", "lit: ", "impClause"], "weight": 50 }
+      ]
+    },
+
+    "kingdom": {
+      "label": "Kingdom",
+      "group": "Regions",
+      "branches": [
+        { "seq": ["realmA", "realmB"], "weight": 35 },
+        { "seq": ["lit:Kingdom of ", "realmA", "realmB"], "weight": 25 },
+        { "seq": ["lit:The ", "realmAdj", "lit: ", "realmWord"], "weight": 20 },
+        { "seq": ["lit:The ", "realmWord", "lit: of ", "realmA", "realmB"], "weight": 10 },
+        { "seq": ["cityA", "cityB"], "weight": 10 }
+      ]
+    },
+    "duchy": {
+      "label": "Duchy",
+      "group": "Regions",
+      "branches": [
+        { "seq": ["lit:Duchy of ", "root", "townEnd"], "weight": 35 },
+        { "seq": ["lit:Duchy of ", "realmA", "realmB"], "weight": 25 },
+        { "seq": ["root", "lit:shire"], "weight": 25 },
+        { "seq": ["founder", "lit: Duchy"], "weight": 15 }
+      ]
+    },
+    "territory": {
+      "label": "Wilderness Territory",
+      "group": "Regions",
+      "branches": [
+        { "seq": ["lit:The ", "terrAdj", "lit: ", "terrWord"], "weight": 50 },
+        { "seq": ["root", "lit: ", "terrWord"], "weight": 25 },
+        { "seq": ["lit:The ", "terrWord", "lit: of ", "ancA", "ancB"], "weight": 25 }
+      ]
+    },
+    "marches": {
+      "label": "Marches",
+      "group": "Regions",
+      "branches": [
+        { "seq": ["lit:The ", "compass", "lit: March"], "weight": 35 },
+        { "seq": ["lit:The ", "root", "lit: Marches"], "weight": 30 },
+        { "seq": ["root", "townEnd", "lit: March"], "weight": 20 },
+        { "seq": ["lit:The March of ", "realmA", "realmB"], "weight": 15 }
+      ]
+    }
+  }
+}
