@@ -9,3 +9,12 @@ backups.txt
 *.drawio.xml
 *.skilltree.json
 *.class.json
+
+# Local data / source material (imported via the UI, not used by the build)
+party.json
+classes/
+classies for import/
+IMPLEMENTATION.md
+
+# Personal Claude Code tooling
+.claude/skills/
