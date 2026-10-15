@@ -184,6 +184,7 @@ export const emptySubclassForm = () => ({
   id: null,
   name: '',
   description: '',
+  visibility: 'dm',
   features: [],
 })
 
@@ -206,6 +207,7 @@ export const emptyClassForm = {
   subclass_label: 'Subclass',
   subclass_levels: [3],
   campaign_id: '',
+  visibility: 'dm',
   features: [],
   tableColumns: [], // [{ id, name, valuesByLevel: { [level]: value } }]
   subclasses: [], // [emptySubclassForm(), ...]
@@ -222,6 +224,7 @@ export const emptyStandaloneSubclassForm = {
   slug: '',
   parent_class_name: '',
   description: '',
+  visibility: 'dm',
   features: [],
 }
 
@@ -232,6 +235,7 @@ export function standaloneSubclassToFormState(subclassRow, features) {
     slug: subclassRow.slug ?? '',
     parent_class_name: subclassRow.parent_class_name ?? '',
     description: subclassRow.description,
+    visibility: subclassRow.visibility ?? 'public',
     features: sortByLevel(features).map((f) => ({
       id: f.id,
       level: f.level,
@@ -242,6 +246,107 @@ export function standaloneSubclassToFormState(subclassRow, features) {
       choice_count: f.choice_count ?? null,
     })),
   }
+}
+
+// --- Races -----------------------------------------------------------------
+// A race is a fixed stat line (the fields below) plus a free trait list.
+// Traits reuse the feature row shape minus `level` - RepeatableRows and
+// NestedFeatureList work on them unchanged, including sub-features for
+// "choose one" traits like a subrace or a draconic ancestry.
+
+export const RACE_SIZES = ['Tiny', 'Small', 'Medium', 'Large']
+
+export const CREATURE_TYPES = [
+  'Aberration',
+  'Beast',
+  'Celestial',
+  'Construct',
+  'Dragon',
+  'Elemental',
+  'Fey',
+  'Fiend',
+  'Giant',
+  'Humanoid',
+  'Monstrosity',
+  'Ooze',
+  'Plant',
+  'Undead',
+]
+
+export const RACE_SPEEDS = [
+  { key: 'speed_fly', label: 'Fly' },
+  { key: 'speed_swim', label: 'Swim' },
+  { key: 'speed_climb', label: 'Climb' },
+  { key: 'speed_burrow', label: 'Burrow' },
+]
+
+export const LANGUAGE_OPTIONS = [
+  {
+    group: 'Standard',
+    options: ['Common', 'Dwarvish', 'Elvish', 'Giant', 'Gnomish', 'Goblin', 'Halfling', 'Orc'],
+  },
+  {
+    group: 'Exotic',
+    options: ['Abyssal', 'Celestial', 'Draconic', 'Deep Speech', 'Infernal', 'Primordial', 'Sylvan', 'Undercommon'],
+  },
+  { group: 'Choice', options: ['One extra language of your choice', 'Two extra languages of your choice'] },
+]
+
+export const emptyRaceForm = {
+  id: null,
+  name: '',
+  slug: '',
+  description: '',
+  creature_type: 'Humanoid',
+  sizes: ['Medium'],
+  speed_walk: 30,
+  speed_fly: null,
+  speed_swim: null,
+  speed_climb: null,
+  speed_burrow: null,
+  darkvision: null,
+  ability_bonuses: {},
+  ability_bonus_note: '',
+  languages: ['Common'],
+  visibility: 'dm',
+  traits: [],
+}
+
+export function raceToFormState(raceRow, traits) {
+  return {
+    ...emptyRaceForm,
+    ...raceRow,
+    ability_bonuses: raceRow.ability_bonuses ?? {},
+    traits: [...traits]
+      .sort((a, b) => a.sort_order - b.sort_order)
+      .map((t) => ({
+        id: t.id,
+        name: t.name,
+        description: t.description,
+        sort_order: t.sort_order,
+        choice_group: t.choice_group ?? '',
+        choice_count: t.choice_count ?? null,
+      })),
+  }
+}
+
+// "30 ft., fly 30 ft., swim 20 ft." - the walking speed is always shown,
+// the others only when set.
+export function formatRaceSpeed(race) {
+  const parts = [`${race.speed_walk} ft.`]
+  for (const { key, label } of RACE_SPEEDS) {
+    if (race[key] != null) parts.push(`${label.toLowerCase()} ${race[key]} ft.`)
+  }
+  return parts.join(', ')
+}
+
+// { STR: 2, WIS: 1 } + note -> "Strength +2, Wisdom +1; ...note", in the
+// standard STR..CHA order regardless of insertion order.
+export function formatAbilityBonuses(bonuses, note) {
+  const fixed = ABILITY_SCORES.filter((a) => bonuses?.[a])
+    .map((a) => `${ABILITY_LABELS[a]} ${bonuses[a] > 0 ? '+' : ''}${bonuses[a]}`)
+    .join(', ')
+  return [fixed, note?.trim()].filter(Boolean).join('; ')
 }
 
 // Sorted for display: by level first, then whatever order they were added
@@ -384,6 +489,7 @@ export function classToFormState(classRow, features, tableColumns, tableValues, 
     subclass_label: classRow.subclass_label,
     subclass_levels: classRow.subclass_levels ?? [],
     campaign_id: classRow.campaign_id ?? '',
+    visibility: classRow.visibility ?? 'public',
     features: sortByLevel(features).map((f) => ({
       id: f.id,
       level: f.level,
@@ -400,6 +506,7 @@ export function classToFormState(classRow, features, tableColumns, tableValues, 
       id: s.id,
       name: s.name,
       description: s.description,
+      visibility: s.visibility ?? 'public',
       features: sortByLevel(subclassFeaturesBySubclassId.get(s.id) ?? []).map((f) => ({
         id: f.id,
         level: f.level,
@@ -478,6 +585,7 @@ export function classJsonToFormState(json) {
     subclass_label: json.subclass_label ?? 'Subclass',
     subclass_levels: json.subclass_levels ?? [3],
     campaign_id: '',
+    visibility: 'dm',
     features: (json.features ?? []).map((f, i) => ({
       id: null,
       level: f.level,
@@ -492,6 +600,7 @@ export function classJsonToFormState(json) {
       id: null,
       name: s.name,
       description: s.description ?? '',
+      visibility: 'dm',
       features: (s.features ?? []).map((f, i) => ({
         id: null,
         level: f.level,
@@ -970,7 +1079,7 @@ export function fiveToolsJsonToClassForm(json) {
       if (!match) return [{ name: ref.name, level: ref.level, description: '', choice_group: '', choice_count: null }]
       return splitEntriesIntoChoiceRows(match.name.trim(), match.level, match.entries)
     })
-    return { id: null, name: sc.name.trim(), description: '', features: assignSortOrder(scFeatures) }
+    return { id: null, name: sc.name.trim(), description: '', visibility: 'dm', features: assignSortOrder(scFeatures) }
   })
 
   const subclassLevels = [...new Set(subclasses.flatMap((s) => s.features.map((f) => f.level)))].sort((a, b) => a - b)

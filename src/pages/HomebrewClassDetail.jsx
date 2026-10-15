@@ -107,7 +107,9 @@ export default function HomebrewClassDetail() {
   return (
     <section className="page homebrew-class-detail">
       <div className="view-header">
-        <h1>{cls.name}</h1>
+        <h1>
+          {cls.name} {cls.visibility === 'dm' && <span className="badge badge-dm">DM only</span>}
+        </h1>
         {cls.description && (
           <div className="view-subtitle homebrew-markdown">
             <ReactMarkdown remarkPlugins={[remarkGfm]}>{cls.description}</ReactMarkdown>
@@ -219,7 +221,9 @@ export default function HomebrewClassDetail() {
                       introducedSubclasses.add(subclassId)
                       return (
                         <div key={subclassId} className="homebrew-subclass-feature-block">
-                          <h4>{subclass?.name}</h4>
+                          <h4>
+                            {subclass?.name} {subclass?.visibility === 'dm' && <span className="badge badge-dm">DM only</span>}
+                          </h4>
                           {showIntro && subclass?.description && (
                             <div className="homebrew-markdown">
                               <ReactMarkdown remarkPlugins={[remarkGfm]}>{subclass.description}</ReactMarkdown>

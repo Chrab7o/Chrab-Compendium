@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../../../lib/supabaseClient'
 import { emptyStandaloneSubclassForm, standaloneSubclassToFormState } from '../../../lib/homebrew'
 import RepeatableRows from '../RepeatableRows'
+import VisibilitySelect from './VisibilitySelect'
 
 function slugify(name) {
   return name
@@ -59,6 +60,7 @@ export default function StandaloneSubclassEditor() {
       slug: form.slug || slugify(form.name),
       parent_class_name: form.parent_class_name,
       description: form.description,
+      visibility: form.visibility,
       class_id: null,
     }
 
@@ -128,6 +130,7 @@ export default function StandaloneSubclassEditor() {
               required
             />
           </label>
+          <VisibilitySelect value={form.visibility} onChange={(visibility) => setForm({ ...form, visibility })} />
         </div>
         <label>
           Slug (used in the URL, auto-generated if left blank)

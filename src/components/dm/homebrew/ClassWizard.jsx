@@ -22,6 +22,7 @@ import {
 } from '../../../lib/homebrew'
 import WizardShell from '../WizardShell'
 import RepeatableRows from '../RepeatableRows'
+import VisibilitySelect from './VisibilitySelect'
 import AbilityScorePicker from '../AbilityScorePicker'
 import OptionPicker from '../OptionPicker'
 
@@ -245,6 +246,7 @@ export default function ClassWizard() {
       subclass_label: form.subclass_label,
       subclass_levels: form.subclass_levels,
       campaign_id: form.campaign_id || null,
+      visibility: form.visibility,
     }
 
     let classId = form.id
@@ -327,7 +329,12 @@ export default function ClassWizard() {
 
     for (const subclass of form.subclasses) {
       let subclassId = subclass.id
-      const subclassPayload = { class_id: classId, name: subclass.name, description: subclass.description }
+      const subclassPayload = {
+        class_id: classId,
+        name: subclass.name,
+        description: subclass.description,
+        visibility: subclass.visibility ?? 'dm',
+      }
       if (subclassId) {
         const { error: subclassError } = await supabase
           .from('homebrew_subclasses')
@@ -525,6 +532,7 @@ export default function ClassWizard() {
                   ))}
                 </select>
               </label>
+              <VisibilitySelect value={form.visibility} onChange={(visibility) => setForm({ ...form, visibility })} />
             </div>
             <OptionPicker
               label="Primary Ability"
@@ -738,6 +746,10 @@ export default function ClassWizard() {
                     {form.subclass_label} Name
                     <input value={subclass.name} onChange={(e) => updateSubclass(i, { name: e.target.value })} />
                   </label>
+                  <VisibilitySelect
+                    value={subclass.visibility ?? 'dm'}
+                    onChange={(visibility) => updateSubclass(i, { visibility })}
+                  />
                   <button type="button" className="danger" onClick={() => removeSubclass(i)}>
                     Remove {form.subclass_label}
                   </button>

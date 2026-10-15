@@ -5727,3 +5727,15 @@ button.sg-toggle.is-on {
     max-height: none;
   }
 }
+
+/* Homebrew race editor: the six ability inputs + flexible-increase note sit
+   inside a .tag-checklist fieldset, which is a wrapping flex row - make both
+   take the full width so the grid lays out instead of squeezing inline. */
+.race-ability-grid,
+.race-ability-note {
+  width: 100%;
+}
+
+.race-ability-grid {
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+}

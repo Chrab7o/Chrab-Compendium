@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabaseClient'
+import { formatRaceSpeed } from '../../lib/homebrew'
 
 const TABS = [
   { key: 'classes', label: 'Classes' },
@@ -49,6 +50,7 @@ function ClassesTab() {
         {classes.map((cls) => (
           <li key={cls.id}>
             <span>{cls.name}</span>
+            {cls.visibility === 'dm' && <span className="badge badge-dm">DM only</span>}
             <span className="dm-list-meta">d{cls.hit_die} hit die</span>
             <div className="dm-list-actions">
               <Link to={`/dm/homebrew/classes/${cls.id}/edit`}>Edit</Link>
@@ -114,6 +116,7 @@ function SubclassesTab() {
         {subclasses.map((sc) => (
           <li key={sc.id}>
             <span>{sc.name}</span>
+            {sc.visibility === 'dm' && <span className="badge badge-dm">DM only</span>}
             <span className="dm-list-meta">{sc.parent_class_name}</span>
             <div className="dm-list-actions">
               <Link to={`/dm/homebrew/subclasses/${sc.id}/edit`}>Edit</Link>
@@ -129,8 +132,67 @@ function SubclassesTab() {
   )
 }
 
+function RacesTab() {
+  const [races, setRaces] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    const { data, error: loadError } = await supabase.from('homebrew_races').select('*').order('name', { ascending: true })
+    if (loadError) setError(loadError.message)
+    else setRaces(data ?? [])
+    setLoading(false)
+  }, [])
+
+  useEffect(() => {
+    load()
+  }, [load])
+
+  async function handleDelete(race) {
+    if (!confirm(`Delete "${race.name}"? This also deletes its traits.`)) return
+    const { error: deleteError } = await supabase.from('homebrew_races').delete().eq('id', race.id)
+    if (deleteError) setError(deleteError.message)
+    else load()
+  }
+
+  if (loading) return <p className="status-message">Loading...</p>
+
+  return (
+    <div className="dm-panel">
+      <div className="dm-panel-header">
+        <h2>Races</h2>
+        <Link to="/dm/homebrew/races/new" className="button-link">
+          + New Race
+        </Link>
+      </div>
+      {error && <p className="status-message error">{error}</p>}
+      <ul className="dm-list">
+        {races.map((race) => (
+          <li key={race.id}>
+            <span>{race.name}</span>
+            {race.visibility === 'dm' && <span className="badge badge-dm">DM only</span>}
+            <span className="dm-list-meta">
+              {race.sizes.join(' or ')} · {formatRaceSpeed(race)}
+            </span>
+            <div className="dm-list-actions">
+              <Link to={`/dm/homebrew/races/${race.id}/edit`}>Edit</Link>
+              <button type="button" className="danger" onClick={() => handleDelete(race)}>
+                Delete
+              </button>
+            </div>
+          </li>
+        ))}
+        {races.length === 0 && <li className="status-message">No races yet.</li>}
+      </ul>
+    </div>
+  )
+}
+
 export default function DMHomebrewPage() {
-  const [tab, setTab] = useState('classes')
+  const [searchParams, setSearchParams] = useSearchParams()
+  const tab = TABS.some((t) => t.key === searchParams.get('tab')) ? searchParams.get('tab') : 'classes'
+  const setTab = (key) => setSearchParams({ tab: key }, { replace: true })
 
   return (
     <section className="page-wide">
@@ -154,7 +216,8 @@ export default function DMHomebrewPage() {
 
       {tab === 'classes' && <ClassesTab />}
       {tab === 'subclasses' && <SubclassesTab />}
-      {tab !== 'classes' && tab !== 'subclasses' && <p className="status-message">Coming soon.</p>}
+      {tab === 'races' && <RacesTab />}
+      {(tab === 'feats' || tab === 'backgrounds') && <p className="status-message">Coming soon.</p>}
     </section>
   )
 }

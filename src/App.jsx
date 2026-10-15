@@ -32,9 +32,11 @@ import DMNameGeneratorPage from './pages/dm/DMNameGeneratorPage'
 import DMScreenPage from './pages/dm/DMScreenPage'
 import ClassWizard from './components/dm/homebrew/ClassWizard'
 import StandaloneSubclassEditor from './components/dm/homebrew/StandaloneSubclassEditor'
+import RaceEditor from './components/dm/homebrew/RaceEditor'
 import HomebrewIndex from './pages/HomebrewIndex'
 import HomebrewClassDetail from './pages/HomebrewClassDetail'
 import HomebrewSubclassDetail from './pages/HomebrewSubclassDetail'
+import HomebrewRaceDetail from './pages/HomebrewRaceDetail'
 import DMNotesPage from './pages/dm/DMNotesPage'
 import DMLayout from './components/dm/DMLayout'
 import RequireDM from './components/RequireDM'
@@ -62,6 +64,7 @@ export default function App() {
             <Route path="/homebrew" element={<HomebrewIndex />} />
             <Route path="/homebrew/classes/:slug" element={<HomebrewClassDetail />} />
             <Route path="/homebrew/subclasses/:slug" element={<HomebrewSubclassDetail />} />
+            <Route path="/homebrew/races/:slug" element={<HomebrewRaceDetail />} />
             <Route path="/session-notes" element={<TagView tag="session-note" title="Session Notes" />} />
             <Route path="/search" element={<SearchPage />} />
             <Route path="/login" element={<Login />} />
@@ -102,6 +105,8 @@ export default function App() {
               <Route path="homebrew/classes/:id/edit" element={<ClassWizard />} />
               <Route path="homebrew/subclasses/new" element={<StandaloneSubclassEditor />} />
               <Route path="homebrew/subclasses/:id/edit" element={<StandaloneSubclassEditor />} />
+              <Route path="homebrew/races/new" element={<RaceEditor />} />
+              <Route path="homebrew/races/:id/edit" element={<RaceEditor />} />
               <Route path="session-planner" element={<DMSessionPlannerPage />} />
               <Route path="session-planner/:id" element={<SessionPlanEditorPage />} />
               <Route path="long-term-planning" element={<DMLongTermPlanningPage />} />

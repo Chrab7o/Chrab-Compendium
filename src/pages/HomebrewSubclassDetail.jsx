@@ -58,7 +58,9 @@ export default function HomebrewSubclassDetail() {
   return (
     <section className="page homebrew-class-detail">
       <div className="view-header">
-        <h1>{subclass.name}</h1>
+        <h1>
+          {subclass.name} {subclass.visibility === 'dm' && <span className="badge badge-dm">DM only</span>}
+        </h1>
         <p className="view-subtitle">For {subclass.parent_class_name}</p>
         {subclass.description && (
           <div className="view-subtitle homebrew-markdown">
