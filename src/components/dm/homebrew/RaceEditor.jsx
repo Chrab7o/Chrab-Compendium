@@ -9,6 +9,8 @@ import {
   RACE_SIZES,
   RACE_SPEEDS,
   emptyRaceForm,
+  raceFormToExportJson,
+  raceJsonToFormState,
   raceToFormState,
 } from '../../../lib/homebrew'
 import OptionPicker from '../OptionPicker'
@@ -150,12 +152,47 @@ export default function RaceEditor() {
     navigate('/dm/homebrew?tab=races')
   }
 
+  function handleExport() {
+    const json = raceFormToExportJson(form)
+    const blob = new Blob([JSON.stringify(json, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${form.slug || slugify(form.name) || 'race'}.race.json`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  async function handleImport(e) {
+    const file = e.target.files[0]
+    e.target.value = ''
+    if (!file) return
+    setError(null)
+    try {
+      setForm(raceJsonToFormState(JSON.parse(await file.text())))
+    } catch (err) {
+      setError(`Import failed: ${err.message}`)
+    }
+  }
+
   if (loading) return <p className="status-message">Loading...</p>
 
   return (
     <section className="page-wide">
       <div className="view-header">
         <h1>{isNew ? 'New Race' : `Edit ${form.name}`}</h1>
+        <div className="dm-form-actions">
+          {isNew ? (
+            <label className="button-link">
+              Import JSON
+              <input type="file" accept="application/json" onChange={handleImport} style={{ display: 'none' }} />
+            </label>
+          ) : (
+            <button type="button" className="secondary" onClick={handleExport}>
+              Export JSON
+            </button>
+          )}
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className="dm-form">

@@ -330,6 +330,62 @@ export function raceToFormState(raceRow, traits) {
   }
 }
 
+// JSON export/import - same idea as classFormToExportJson below: the form's
+// own field names, minus ids/visibility, with traits as a flat list where a
+// sub-trait names its parent in choice_group.
+export function raceFormToExportJson(form) {
+  return {
+    name: form.name,
+    slug: form.slug,
+    description: form.description,
+    creature_type: form.creature_type,
+    sizes: form.sizes,
+    speed_walk: form.speed_walk,
+    speed_fly: form.speed_fly,
+    speed_swim: form.speed_swim,
+    speed_climb: form.speed_climb,
+    speed_burrow: form.speed_burrow,
+    darkvision: form.darkvision,
+    ability_bonuses: form.ability_bonuses,
+    ability_bonus_note: form.ability_bonus_note,
+    languages: form.languages,
+    traits: form.traits.map(({ name, description, choice_group, choice_count }) => ({
+      name,
+      description,
+      choice_group: choice_group || undefined,
+      choice_count: choice_group ? choice_count ?? undefined : undefined,
+    })),
+  }
+}
+
+export function raceJsonToFormState(json) {
+  return {
+    ...emptyRaceForm,
+    name: json.name ?? '',
+    slug: json.slug ?? '',
+    description: json.description ?? '',
+    creature_type: json.creature_type ?? emptyRaceForm.creature_type,
+    sizes: json.sizes ?? emptyRaceForm.sizes,
+    speed_walk: json.speed_walk ?? emptyRaceForm.speed_walk,
+    speed_fly: json.speed_fly ?? null,
+    speed_swim: json.speed_swim ?? null,
+    speed_climb: json.speed_climb ?? null,
+    speed_burrow: json.speed_burrow ?? null,
+    darkvision: json.darkvision ?? null,
+    ability_bonuses: json.ability_bonuses ?? {},
+    ability_bonus_note: json.ability_bonus_note ?? '',
+    languages: json.languages ?? emptyRaceForm.languages,
+    traits: (json.traits ?? []).map((t, i) => ({
+      id: null,
+      name: t.name,
+      description: t.description ?? '',
+      sort_order: i,
+      choice_group: t.choice_group ?? '',
+      choice_count: t.choice_count ?? null,
+    })),
+  }
+}
+
 // "30 ft., fly 30 ft., swim 20 ft." - the walking speed is always shown,
 // the others only when set.
 export function formatRaceSpeed(race) {
