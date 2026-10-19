@@ -5830,3 +5830,8 @@ button.sg-toggle.is-on {
   background: var(--border);
   box-shadow: inset 3px 0 0 var(--accent);
 }
+
+.sort-delete {
+  font-size: var(--text-sm);
+  padding: 0.35rem 0.8rem;
+}

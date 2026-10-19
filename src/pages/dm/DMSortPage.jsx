@@ -47,7 +47,7 @@ export default function DMSortPage() {
     setLoading(true)
     const { data, error: loadError } = await supabase
       .from('entries')
-      .select('id, title, tags, visibility')
+      .select('id, title, tags, visibility, parent_entry_id')
       .order('title', { ascending: true })
     if (loadError) setError(loadError.message)
     setEntries(data ?? [])
@@ -149,6 +149,28 @@ export default function DMSortPage() {
       return
     }
     setEntries((prev) => prev.map((e) => (e.id === entry.id ? { ...e, tags: next } : e)))
+  }
+
+  // Some of what the migration left behind is just junk worth throwing out.
+  // Sub-entries cascade with their parent, so the confirm says so - and a
+  // full reload afterwards picks up those vanished children too.
+  async function deleteEntry(entry) {
+    const children = entries.filter((e) => e.parent_entry_id === entry.id).length
+    const parts = [`Delete "${entry.title}" from the wiki?`]
+    if (children) parts.push(`It has ${children} sub-entr${children === 1 ? 'y' : 'ies'}, which will be deleted too.`)
+    parts.push('This cannot be undone.')
+    if (!confirm(parts.join(' '))) return
+
+    setSavingId(entry.id)
+    setError(null)
+    const { error: deleteError } = await supabase.from('entries').delete().eq('id', entry.id)
+    setSavingId(null)
+
+    if (deleteError) {
+      setError(deleteError.message)
+      return
+    }
+    load()
   }
 
   return (
@@ -277,6 +299,15 @@ export default function DMSortPage() {
                         </option>
                       ))}
                     </select>
+                    <button
+                      type="button"
+                      className="danger sort-delete"
+                      disabled={savingId === entry.id}
+                      onClick={() => deleteEntry(entry)}
+                      aria-label={`Delete ${entry.title}`}
+                    >
+                      Delete
+                    </button>
                   </li>
                 )
               })}
