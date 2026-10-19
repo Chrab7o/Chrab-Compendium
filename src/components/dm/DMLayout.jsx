@@ -4,6 +4,7 @@ const LINKS = [
   { to: '/dm', label: 'Overview', end: true },
   { to: '/dm/worlds', label: 'Worlds' },
   { to: '/dm/tags', label: 'Tags & Groups' },
+  { to: '/dm/sort', label: 'Sort Entries' },
   { to: '/dm/campaigns', label: 'Campaigns' },
   { to: '/dm/maps', label: 'Maps' },
   { to: '/dm/characters', label: 'Characters' },

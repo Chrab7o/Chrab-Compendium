@@ -5739,3 +5739,94 @@ button.sg-toggle.is-on {
 .race-ability-grid {
   grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
 }
+
+/* Sort Entries (/dm/sort): one collapsible block per old folder, path read
+   left to right with the folder the entries actually sat in picked out. */
+.sort-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.sort-progress {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.sort-progress strong {
+  color: var(--accent);
+  font-size: 1.2rem;
+}
+
+.sort-folder {
+  border: 1px solid var(--border);
+  border-left: 5px solid var(--accent-2);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  padding: 0.6rem 0.9rem 0.9rem;
+  margin-bottom: 0.9rem;
+}
+
+.sort-folder summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  cursor: pointer;
+  padding: 0.3rem 0;
+}
+
+.sort-folder:not([open]) summary {
+  padding-bottom: 0;
+}
+
+.sort-folder-path {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  color: var(--text-muted);
+}
+
+.sort-folder-path span + span::before {
+  content: '›';
+  margin: 0 0.45rem;
+  color: var(--accent-purple);
+  font-weight: 700;
+}
+
+.sort-folder-path .is-leaf {
+  color: var(--accent-2);
+  font-weight: 700;
+}
+
+.sort-folder-count {
+  background: var(--accent-2);
+  color: var(--on-accent-2);
+  border-radius: 999px;
+  padding: 0.1rem 0.6rem;
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
+.sort-select-folder {
+  margin: 0.4rem 0 0.7rem;
+  font-size: var(--text-sm);
+}
+
+.sort-entry-title {
+  font-weight: 600;
+  margin-right: auto;
+}
+
+.sort-type-select {
+  width: auto;
+  min-width: 9rem;
+}
+
+.sort-folder .dm-list li.is-selected {
+  background: var(--border);
+  box-shadow: inset 3px 0 0 var(--accent);
+}

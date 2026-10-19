@@ -16,6 +16,7 @@ import ImportPage from './pages/ImportPage'
 import DMHome from './pages/dm/DMHome'
 import DMCampaignsPage from './pages/dm/DMCampaignsPage'
 import DMTagsPage from './pages/dm/DMTagsPage'
+import DMSortPage from './pages/dm/DMSortPage'
 import DMWorldsPage from './pages/dm/DMWorldsPage'
 import DMMapsPage from './pages/dm/DMMapsPage'
 import DMCharactersPage from './pages/dm/DMCharactersPage'
@@ -95,6 +96,7 @@ export default function App() {
               <Route index element={<DMHome />} />
               <Route path="worlds" element={<DMWorldsPage />} />
               <Route path="tags" element={<DMTagsPage />} />
+              <Route path="sort" element={<DMSortPage />} />
               <Route path="campaigns" element={<DMCampaignsPage />} />
               <Route path="maps" element={<DMMapsPage />} />
               <Route path="characters" element={<DMCharactersPage />} />

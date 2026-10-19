@@ -59,6 +59,30 @@ export function typeTagValue(tags, groups, entryTags) {
   return tags.find((t) => t.group_id === typeGroup.id && owned.has(t.value))?.value ?? null
 }
 
+// How many entries carry each collection tag. The folder migration stamped
+// every entry with a collection tag for its folder *and every ancestor*, so a
+// parent folder's tag is always on at least as many entries as any child's —
+// that count is all it takes to put the old tree back in order.
+export function collectionCounts(entries, collectionValues) {
+  const counts = new Map([...collectionValues].map((v) => [v, 0]))
+  for (const entry of entries) {
+    for (const t of entry.tags ?? []) {
+      if (counts.has(t)) counts.set(t, counts.get(t) + 1)
+    }
+  }
+  return counts
+}
+
+// The folder path an entry used to live at, root first, rebuilt from its
+// collection tags: biggest membership is the outermost folder, smallest is
+// the one it actually sat in. Two folders with identical membership (a
+// folder whose only content was one subfolder) can come out in either order.
+export function oldFolderPath(entryTags, counts) {
+  return (entryTags ?? [])
+    .filter((t) => counts.has(t))
+    .sort((a, b) => counts.get(b) - counts.get(a))
+}
+
 // A campaign's mirror tag, kept in sync by the campaigns_sync_tag trigger.
 // entries.campaign_id stays authoritative for an entry's primary campaign;
 // these tags exist so an entry can *also* surface under other campaigns.
