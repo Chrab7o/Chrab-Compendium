@@ -990,11 +990,27 @@ export function classFormToFiveToolsJson(form) {
 // classFeatures/subclassFeatures reference-string arrays to be internally
 // consistent, since in practice they aren't always.
 
+// Tags are {@tag name|source|display}; the display segment, when present,
+// is what 5etools renders ("Proficiency|XPHB|Proficiency Bonus"). A few
+// tags put something else in later segments (filter params, book page
+// numbers). Tags nest, so this runs innermost-first until nothing changes.
+function tagDisplayText(tag, body) {
+  const parts = body.split('|')
+  if (tag === 'filter' || tag === 'quickref') return parts[0]
+  if (tag === 'book' || tag === 'adventure') return parts[3] || parts[0]
+  return parts[2] || parts[0]
+}
+
 function tagsToInlineMd(str) {
-  return String(str)
-    .replace(/\{@b ([^}]+)\}/g, '**$1**')
-    .replace(/\{@i ([^}]+)\}/g, '*$1*')
-    .replace(/\{@(\w+) ([^}]+)\}/g, (_, tag, body) => body.split('|')[0])
+  let out = String(str)
+  for (;;) {
+    const next = out
+      .replace(/\{@b ([^{}]+)\}/g, '**$1**')
+      .replace(/\{@i ([^{}]+)\}/g, '*$1*')
+      .replace(/\{@(\w+) ([^{}]+)\}/g, (_, tag, body) => tagDisplayText(tag, body))
+    if (next === out) return out
+    out = next
+  }
 }
 
 // One entry (string or typed object) -> a markdown-ish block. Reference
@@ -1164,4 +1180,506 @@ export function fiveToolsJsonToClassForm(json) {
     tableColumns,
     subclasses,
   }
+}
+
+// --- Feats & Backgrounds ----------------------------------------------------
+// Same shape as races: a fixed stat line on the parent row plus a free list
+// of child rows (a feat's benefits, a background's features) in the trait
+// row shape, so RepeatableRows and NestedFeatureList work on them unchanged.
+// Fields mirror 5etools' feats.json / backgrounds.json - see the 5etools
+// import/export at the end of this section.
+
+export const FEAT_CATEGORIES = ['General', 'Origin', 'Fighting Style', 'Epic Boon']
+
+export const emptyFeatForm = {
+  id: null,
+  name: '',
+  slug: '',
+  description: '',
+  category: 'General',
+  prerequisite: '',
+  repeatable: false,
+  ability_bonuses: {},
+  ability_bonus_note: '',
+  visibility: 'dm',
+  benefits: [],
+}
+
+export const emptyBackgroundForm = {
+  id: null,
+  name: '',
+  slug: '',
+  description: '',
+  ability_options: [],
+  ability_note: '',
+  feat: '',
+  skill_proficiencies: [],
+  tool_proficiencies: [],
+  languages: [],
+  equipment: '',
+  visibility: 'dm',
+  features: [],
+}
+
+// The stat-line columns each entity saves and exports - everything on the
+// form except id, visibility and the child list.
+export const FEAT_FIELDS = [
+  'name',
+  'slug',
+  'description',
+  'category',
+  'prerequisite',
+  'repeatable',
+  'ability_bonuses',
+  'ability_bonus_note',
+]
+
+export const BACKGROUND_FIELDS = [
+  'name',
+  'slug',
+  'description',
+  'ability_options',
+  'ability_note',
+  'feat',
+  'skill_proficiencies',
+  'tool_proficiencies',
+  'languages',
+  'equipment',
+]
+
+function pickFields(source, fields, defaults) {
+  return Object.fromEntries(fields.map((k) => [k, source?.[k] ?? defaults[k]]))
+}
+
+function childRowsFromDb(rows) {
+  return [...rows]
+    .sort((a, b) => a.sort_order - b.sort_order)
+    .map((r) => ({
+      id: r.id,
+      name: r.name,
+      description: r.description,
+      sort_order: r.sort_order,
+      choice_group: r.choice_group ?? '',
+      choice_count: r.choice_count ?? null,
+    }))
+}
+
+function childRowsToJson(rows) {
+  return rows.map(({ name, description, choice_group, choice_count }) => ({
+    name,
+    description,
+    choice_group: choice_group || undefined,
+    choice_count: choice_group ? choice_count ?? undefined : undefined,
+  }))
+}
+
+function childRowsFromJson(rows) {
+  return (rows ?? []).map((r, i) => ({
+    id: null,
+    name: r.name,
+    description: r.description ?? '',
+    sort_order: i,
+    choice_group: r.choice_group ?? '',
+    choice_count: r.choice_count ?? null,
+  }))
+}
+
+export function featToFormState(featRow, benefits) {
+  return { ...emptyFeatForm, ...featRow, ability_bonuses: featRow.ability_bonuses ?? {}, benefits: childRowsFromDb(benefits) }
+}
+
+export function backgroundToFormState(backgroundRow, features) {
+  return { ...emptyBackgroundForm, ...backgroundRow, features: childRowsFromDb(features) }
+}
+
+// Own-format JSON export/import - same idea as raceFormToExportJson: the
+// form's field names minus ids/visibility, children as a flat list.
+export function featFormToExportJson(form) {
+  return { ...pickFields(form, FEAT_FIELDS, emptyFeatForm), benefits: childRowsToJson(form.benefits) }
+}
+
+export function featJsonToFormState(json) {
+  return { ...emptyFeatForm, ...pickFields(json, FEAT_FIELDS, emptyFeatForm), benefits: childRowsFromJson(json.benefits) }
+}
+
+export function backgroundFormToExportJson(form) {
+  return { ...pickFields(form, BACKGROUND_FIELDS, emptyBackgroundForm), features: childRowsToJson(form.features) }
+}
+
+export function backgroundJsonToFormState(json) {
+  return {
+    ...emptyBackgroundForm,
+    ...pickFields(json, BACKGROUND_FIELDS, emptyBackgroundForm),
+    features: childRowsFromJson(json.features),
+  }
+}
+
+// ['CON', 'INT', 'WIS'] + note -> "Constitution, Intelligence, Wisdom; note".
+export function formatBackgroundAbilities(options, note) {
+  const listed = ABILITY_SCORES.filter((a) => options?.includes(a))
+    .map((a) => ABILITY_LABELS[a])
+    .join(', ')
+  return [listed, note?.trim()].filter(Boolean).join('; ')
+}
+
+// One-line summaries for list rows and index cards.
+export function formatFeatMeta(feat) {
+  return [feat.category ? `${feat.category} feat` : 'Feat', feat.prerequisite].filter(Boolean).join(' · ')
+}
+
+export function formatBackgroundMeta(background) {
+  return (
+    [background.ability_options.join('/'), background.skill_proficiencies.join(', ')].filter(Boolean).join(' · ') ||
+    'Background'
+  )
+}
+
+// --- 5etools feats/backgrounds ----------------------------------------------
+// Import reads one entry out of a 5etools file ({ feat: [...] } /
+// { background: [...] }) - which may be a single homebrew entry or the whole
+// official feats.json, hence fiveToolsEntryList + a picker in the editor.
+// 5etools' structured prerequisite/proficiency objects collapse into our
+// free-text and chip fields; nothing round-trips losslessly, but everything
+// lands somewhere readable.
+
+const FIVETOOLS_FEAT_CATEGORIES = {
+  G: 'General',
+  O: 'Origin',
+  FS: 'Fighting Style',
+  'FS:P': 'Fighting Style (Paladin)',
+  'FS:R': 'Fighting Style (Ranger)',
+  EB: 'Epic Boon',
+  D: 'Dragonmark',
+  DG: 'Dark Gift',
+}
+
+const NUMBER_WORDS = ['Zero', 'One', 'Two', 'Three', 'Four', 'Five']
+
+function countWord(n) {
+  return NUMBER_WORDS[n] ?? String(n)
+}
+
+const TITLE_SMALL_WORDS = new Set(['a', 'an', 'and', 'for', 'in', 'of', 'on', 'or', 'the', 'to', 'with'])
+
+// "initiate of high sorcery" -> "Initiate of High Sorcery". Only letters
+// after whitespace/brackets count as word starts, so the s after an
+// apostrophe stays lowercase ("Calligrapher's").
+function titleCase(s) {
+  return String(s).replace(/(^|[\s(/-])([a-z]+)/g, (match, pre, word, offset) =>
+    offset > 0 && TITLE_SMALL_WORDS.has(word) ? match : pre + word.charAt(0).toUpperCase() + word.slice(1)
+  )
+}
+
+// ['Strength'] / ['Strength', 'Dexterity'] / [...3+] -> "A", "A or B",
+// "A, B, or C".
+function joinOr(list) {
+  if (list.length <= 2) return list.join(' or ')
+  return `${list.slice(0, -1).join(', ')}, or ${list[list.length - 1]}`
+}
+
+function sentenceCase(s) {
+  const str = String(s)
+  return str.charAt(0).toUpperCase() + str.slice(1)
+}
+
+// "name|source|display" -> the display text if given, else the name.
+function fiveToolsRefName(ref) {
+  const parts = String(ref).split('|')
+  return titleCase(parts[2] || parts[0])
+}
+
+function abilityLabel(code) {
+  return ABILITY_LABELS[String(code).toUpperCase()] ?? titleCase(code)
+}
+
+export function fiveToolsEntryList(json, key) {
+  if (Array.isArray(json?.[key])) return json[key]
+  if (Array.isArray(json)) return json
+  if (json?.name) return [json]
+  throw new Error(`No "${key}" entries found in this file.`)
+}
+
+function prerequisitePartToText(key, value) {
+  switch (key) {
+    case 'level':
+      if (typeof value === 'number') return `Level ${value}+`
+      return value.class ? `${value.class.name} level ${value.level}+` : `Level ${value.level}+`
+    case 'ability':
+      return value
+        .map((obj) =>
+          Object.entries(obj)
+            .map(([a, n]) => `${abilityLabel(a)} ${n}+`)
+            .join(' and ')
+        )
+        .join(' or ')
+    case 'race':
+      return value
+        .map((r) => r.displayEntry ?? titleCase([r.name, r.subrace && `(${r.subrace})`].filter(Boolean).join(' ')))
+        .join(' or ')
+    case 'background':
+      return value.map((b) => b.displayEntry ?? titleCase(b.name)).join(' or ') + ' background'
+    case 'feat':
+      return value.map(fiveToolsRefName).join(' or ') + ' feat'
+    case 'feature':
+      return value.join(' or ') + ' feature'
+    case 'spellcasting':
+    case 'spellcasting2020':
+      return 'The ability to cast at least one spell'
+    case 'spellcastingFeature':
+      return 'Spellcasting or Pact Magic feature'
+    case 'proficiency':
+      return value
+        .map((obj) =>
+          Object.entries(obj)
+            .map(([kind, what]) => `Proficiency with ${what} ${kind}`)
+            .join(' and ')
+        )
+        .join(' or ')
+    case 'campaign':
+      return `${value.join(' or ')} campaign`
+    case 'other':
+      return value
+    case 'otherSummary':
+      return value.entrySummary ?? value.entry
+    default:
+      return null
+  }
+}
+
+// [{ level: 4, ability: [{ str: 13 }] }, ...alternatives] ->
+// "Level 4+, Strength 13+; or ..."
+function fiveToolsPrerequisiteToText(prereqs) {
+  return (prereqs ?? [])
+    .map((alt) =>
+      Object.entries(alt)
+        .map(([k, v]) => prerequisitePartToText(k, v))
+        .filter(Boolean)
+        .map(tagsToInlineMd)
+        .join(', ')
+    )
+    .filter(Boolean)
+    .join('; or ')
+}
+
+function describeAbilityChoice(alt) {
+  const { choose, max, hidden: _hidden, ...fixed } = alt
+  const parts = Object.entries(fixed).map(([a, n]) => `${abilityLabel(a)} +${n}`)
+  if (choose?.from) {
+    const amount = choose.amount ?? 1
+    const count = choose.count ?? 1
+    const from = choose.from.length === 6 ? 'any ability score' : joinOr(choose.from.map(abilityLabel))
+    parts.push(count > 1 ? `+${amount} to ${countWord(count).toLowerCase()} of ${from}` : `+${amount} to ${from}`)
+  }
+  const text = parts.join(', ')
+  return text && max ? `${text} (to a maximum of ${max})` : text
+}
+
+// A single fixed alternative ({ str: 1 }) fits ability_bonuses; anything
+// with a choice or several alternatives is prose, so it goes in the note.
+// `hidden` choices (the ASI feat) are described in the feat's own text.
+function fiveToolsFeatAbility(ability) {
+  const shown = (ability ?? []).filter((alt) => !alt.hidden)
+  if (shown.length === 1 && !shown[0].choose) {
+    const { max, ...fixed } = shown[0]
+    const bonuses = Object.fromEntries(Object.entries(fixed).map(([a, n]) => [a.toUpperCase(), n]))
+    return { ability_bonuses: bonuses, ability_bonus_note: max ? `To a maximum of ${max}` : '' }
+  }
+  return { ability_bonuses: {}, ability_bonus_note: shown.map(describeAbilityChoice).filter(Boolean).join('; or ') }
+}
+
+// A named `entries` section is one row; one with 2+ named sub-sections
+// becomes a parent plus choice rows, exactly as class features import.
+function fiveToolsEntriesToRows(entries, mapName = (n) => n) {
+  const named = (entries ?? []).filter((e) => e && typeof e === 'object' && e.type === 'entries' && e.name)
+  const rest = (entries ?? []).filter((e) => !named.includes(e))
+  const rows = assignSortOrder(
+    named.flatMap((section) =>
+      splitEntriesIntoChoiceRows(mapName(tagsToInlineMd(section.name).trim()), 0, section.entries)
+    )
+  ).map(({ level: _level, ...row }) => row)
+  return { description: entriesToMarkdown(rest), rows }
+}
+
+export function fiveToolsFeatToForm(feat) {
+  const { description, rows } = fiveToolsEntriesToRows(feat.entries)
+  return {
+    ...emptyFeatForm,
+    name: (feat.name ?? '').trim(),
+    description,
+    category: FIVETOOLS_FEAT_CATEGORIES[feat.category] ?? feat.category ?? '',
+    prerequisite: fiveToolsPrerequisiteToText(feat.prerequisite),
+    repeatable: Boolean(feat.repeatable),
+    ...fiveToolsFeatAbility(feat.ability),
+    benefits: rows,
+  }
+}
+
+function fiveToolsChoiceText(choose, nameFn) {
+  const from = (choose.from ?? []).map(nameFn).join(', ')
+  return `${countWord(choose.count ?? 1)} of: ${from}`
+}
+
+function fiveToolsSkills(list) {
+  const skillName = (k) => SKILLS.find((s) => s.name.toLowerCase() === k.toLowerCase())?.name ?? titleCase(k)
+  return Object.entries(list?.[0] ?? {}).map(([k, v]) => {
+    if (k === 'choose') return fiveToolsChoiceText(v, skillName)
+    if (k === 'any') return `${countWord(v)} skill${v === 1 ? '' : 's'} of your choice`
+    return skillName(k)
+  })
+}
+
+const FIVETOOLS_ANY_TOOL = {
+  anyArtisansTool: "artisan's tools",
+  anyGamingSet: 'gaming set',
+  anyMusicalInstrument: 'musical instrument',
+  anyTool: 'tool',
+}
+
+function fiveToolsTools(list) {
+  return Object.entries(list?.[0] ?? {}).map(([k, v]) => {
+    if (k === 'choose') return fiveToolsChoiceText(v, sentenceCase)
+    if (FIVETOOLS_ANY_TOOL[k]) return `${countWord(v)} type${v === 1 ? '' : 's'} of ${FIVETOOLS_ANY_TOOL[k]}`
+    return sentenceCase(k)
+  })
+}
+
+function fiveToolsLanguages(list) {
+  return Object.entries(list?.[0] ?? {}).map(([k, v]) => {
+    if (k === 'choose') return fiveToolsChoiceText(v, titleCase)
+    if (k === 'anyStandard') return `${countWord(v)} standard language${v === 1 ? '' : 's'} of your choice`
+    if (k === 'any') return `${countWord(v)} language${v === 1 ? '' : 's'} of your choice`
+    return titleCase(k)
+  })
+}
+
+// { "magic initiate; wizard|xphb": true } -> "Magic Initiate (Wizard)"
+function fiveToolsBackgroundFeat(feats) {
+  return Object.keys(feats?.[0] ?? {})
+    .map((key) => {
+      const [name, variant] = key
+        .split('|')[0]
+        .split(';')
+        .map((s) => s.trim())
+      return titleCase(variant ? `${name} (${variant})` : name)
+    })
+    .join(', ')
+}
+
+export function fiveToolsBackgroundToForm(bg) {
+  // The hanging summary list (Ability Scores:, Feat:, Skill
+  // Proficiencies:, Equipment:) restates the structured fields, so it's
+  // dropped - except Equipment, whose structured form isn't worth parsing.
+  const summary = (bg.entries ?? []).find((e) => e?.type === 'list' && String(e.style ?? '').startsWith('list-hang'))
+  const equipmentItem = summary?.items?.find((i) => /^equipment/i.test(i.name ?? ''))
+  const { description, rows } = fiveToolsEntriesToRows(
+    (bg.entries ?? []).filter((e) => e !== summary),
+    (name) => name.replace(/^Feature:\s*/i, '')
+  )
+  const weighted = bg.ability?.find((a) => a.choose?.weighted)?.choose.weighted.from
+  const plainChoice = bg.ability?.find((a) => a.choose?.from)?.choose.from
+  return {
+    ...emptyBackgroundForm,
+    name: (bg.name ?? '').trim(),
+    description,
+    ability_options: (weighted ?? plainChoice ?? []).map((a) => a.toUpperCase()),
+    feat: fiveToolsBackgroundFeat(bg.feats),
+    skill_proficiencies: fiveToolsSkills(bg.skillProficiencies),
+    tool_proficiencies: fiveToolsTools(bg.toolProficiencies),
+    languages: fiveToolsLanguages(bg.languageProficiencies),
+    equipment: equipmentItem ? tagsToInlineMd(equipmentItem.entry ?? entriesToMarkdown(equipmentItem.entries)) : '',
+    features: rows,
+  }
+}
+
+// Child rows -> named 5etools entries, sub-rows nested inside their parent.
+function childRowsToFiveToolsEntries(rows) {
+  return nestFeatureRows(rows.filter((r) => r.name.trim())).map((parent) => ({
+    type: 'entries',
+    name: parent.name,
+    entries: [
+      ...markdownToEntries(parent.description),
+      ...parent.children.map((c) => ({ type: 'entries', name: c.name, entries: markdownToEntries(c.description) })),
+    ],
+  }))
+}
+
+function fiveToolsWrapper(source, fullName, key, obj) {
+  return {
+    $schema: FIVETOOLS_SCHEMA_URL,
+    _meta: {
+      sources: [{ json: source, abbreviation: source, full: fullName, authors: ['Chrab Corner'], version: '1.0.0' }],
+    },
+    [key]: [obj],
+  }
+}
+
+export function featFormToFiveToolsJson(form) {
+  const source = deriveSourceAbbr(form.name)
+  const categoryCode = Object.keys(FIVETOOLS_FEAT_CATEGORIES).find((k) => FIVETOOLS_FEAT_CATEGORIES[k] === form.category)
+  const fixed = ABILITY_SCORES.filter((a) => form.ability_bonuses?.[a])
+  return fiveToolsWrapper(source, form.name, 'feat', {
+    name: form.name,
+    source,
+    page: 0,
+    category: categoryCode,
+    prerequisite: form.prerequisite.trim() ? [{ other: form.prerequisite.trim() }] : undefined,
+    repeatable: form.repeatable || undefined,
+    ability: fixed.length > 0 ? [Object.fromEntries(fixed.map((a) => [a.toLowerCase(), form.ability_bonuses[a]]))] : undefined,
+    entries: [
+      ...markdownToEntries(form.description),
+      ...(form.ability_bonus_note.trim()
+        ? [{ type: 'entries', name: 'Ability Score Increase', entries: [form.ability_bonus_note.trim()] }]
+        : []),
+      ...childRowsToFiveToolsEntries(form.benefits),
+    ],
+  })
+}
+
+// Only proficiencies that match a standard 5e name become structured
+// 5etools keys; custom ones still show in the summary list text.
+function knownKeys(list, known) {
+  const lowerKnown = known.map((k) => k.toLowerCase())
+  const keys = list.map((v) => v.toLowerCase()).filter((v) => lowerKnown.includes(v))
+  return keys.length > 0 ? [Object.fromEntries(keys.map((k) => [k, true]))] : undefined
+}
+
+export function backgroundFormToFiveToolsJson(form) {
+  const source = deriveSourceAbbr(form.name)
+  const abilities = ABILITY_SCORES.filter((a) => form.ability_options.includes(a)).map((a) => a.toLowerCase())
+  const summaryItems = [
+    ['Ability Scores:', formatBackgroundAbilities(form.ability_options, form.ability_note)],
+    ['Feat:', form.feat],
+    ['Skill Proficiencies:', form.skill_proficiencies.join(', ')],
+    ['Tool Proficiencies:', form.tool_proficiencies.join(', ')],
+    ['Languages:', form.languages.join(', ')],
+    ['Equipment:', form.equipment.replace(/\n+/g, ' ')],
+  ]
+    .filter(([, text]) => text.trim())
+    .map(([name, entry]) => ({ type: 'item', name, entry: inlineMdToTags(entry) }))
+  const allTools = TOOL_PROFICIENCY_OPTIONS.flatMap((g) => (typeof g === 'string' ? [g] : g.options))
+  const allLanguages = LANGUAGE_OPTIONS.filter((g) => g.group !== 'Choice').flatMap((g) => g.options)
+  return fiveToolsWrapper(source, form.name, 'background', {
+    name: form.name,
+    source,
+    page: 0,
+    edition: abilities.length > 0 ? 'one' : undefined,
+    ability:
+      abilities.length >= 2
+        ? [
+            { choose: { weighted: { from: abilities, weights: [2, 1] } } },
+            { choose: { weighted: { from: abilities, weights: abilities.map(() => 1) } } },
+          ]
+        : undefined,
+    skillProficiencies: knownKeys(
+      form.skill_proficiencies,
+      SKILLS.map((s) => s.name)
+    ),
+    toolProficiencies: knownKeys(form.tool_proficiencies, allTools),
+    languageProficiencies: knownKeys(form.languages, allLanguages),
+    entries: [
+      ...(summaryItems.length > 0 ? [{ type: 'list', style: 'list-hang-notitle', items: summaryItems }] : []),
+      ...markdownToEntries(form.description),
+      ...childRowsToFiveToolsEntries(form.features),
+    ],
+  })
 }

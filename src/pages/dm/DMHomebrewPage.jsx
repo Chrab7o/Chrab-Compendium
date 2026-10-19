@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabaseClient'
-import { formatRaceSpeed } from '../../lib/homebrew'
+import { formatBackgroundMeta, formatFeatMeta, formatRaceSpeed } from '../../lib/homebrew'
 
 const TABS = [
   { key: 'classes', label: 'Classes' },
@@ -132,26 +132,28 @@ function SubclassesTab() {
   )
 }
 
-function RacesTab() {
-  const [races, setRaces] = useState([])
+// Races, feats and backgrounds are all "one table, edit/delete per row" -
+// only the table, the labels and the meta line differ.
+function SimpleEntityTab({ table, path, title, singular, childLabel, meta }) {
+  const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
   const load = useCallback(async () => {
     setLoading(true)
-    const { data, error: loadError } = await supabase.from('homebrew_races').select('*').order('name', { ascending: true })
+    const { data, error: loadError } = await supabase.from(table).select('*').order('name', { ascending: true })
     if (loadError) setError(loadError.message)
-    else setRaces(data ?? [])
+    else setRows(data ?? [])
     setLoading(false)
-  }, [])
+  }, [table])
 
   useEffect(() => {
     load()
   }, [load])
 
-  async function handleDelete(race) {
-    if (!confirm(`Delete "${race.name}"? This also deletes its traits.`)) return
-    const { error: deleteError } = await supabase.from('homebrew_races').delete().eq('id', race.id)
+  async function handleDelete(row) {
+    if (!confirm(`Delete "${row.name}"? This also deletes its ${childLabel}.`)) return
+    const { error: deleteError } = await supabase.from(table).delete().eq('id', row.id)
     if (deleteError) setError(deleteError.message)
     else load()
   }
@@ -161,29 +163,27 @@ function RacesTab() {
   return (
     <div className="dm-panel">
       <div className="dm-panel-header">
-        <h2>Races</h2>
-        <Link to="/dm/homebrew/races/new" className="button-link">
-          + New Race
+        <h2>{title}</h2>
+        <Link to={`/dm/homebrew/${path}/new`} className="button-link">
+          + New {singular}
         </Link>
       </div>
       {error && <p className="status-message error">{error}</p>}
       <ul className="dm-list">
-        {races.map((race) => (
-          <li key={race.id}>
-            <span>{race.name}</span>
-            {race.visibility === 'dm' && <span className="badge badge-dm">DM only</span>}
-            <span className="dm-list-meta">
-              {race.sizes.join(' or ')} · {formatRaceSpeed(race)}
-            </span>
+        {rows.map((row) => (
+          <li key={row.id}>
+            <span>{row.name}</span>
+            {row.visibility === 'dm' && <span className="badge badge-dm">DM only</span>}
+            <span className="dm-list-meta">{meta(row)}</span>
             <div className="dm-list-actions">
-              <Link to={`/dm/homebrew/races/${race.id}/edit`}>Edit</Link>
-              <button type="button" className="danger" onClick={() => handleDelete(race)}>
+              <Link to={`/dm/homebrew/${path}/${row.id}/edit`}>Edit</Link>
+              <button type="button" className="danger" onClick={() => handleDelete(row)}>
                 Delete
               </button>
             </div>
           </li>
         ))}
-        {races.length === 0 && <li className="status-message">No races yet.</li>}
+        {rows.length === 0 && <li className="status-message">No {title.toLowerCase()} yet.</li>}
       </ul>
     </div>
   )
@@ -216,8 +216,39 @@ export default function DMHomebrewPage() {
 
       {tab === 'classes' && <ClassesTab />}
       {tab === 'subclasses' && <SubclassesTab />}
-      {tab === 'races' && <RacesTab />}
-      {(tab === 'feats' || tab === 'backgrounds') && <p className="status-message">Coming soon.</p>}
+      {tab === 'races' && (
+        <SimpleEntityTab
+          key="races"
+          table="homebrew_races"
+          path="races"
+          title="Races"
+          singular="Race"
+          childLabel="traits"
+          meta={(race) => `${race.sizes.join(' or ')} · ${formatRaceSpeed(race)}`}
+        />
+      )}
+      {tab === 'feats' && (
+        <SimpleEntityTab
+          key="feats"
+          table="homebrew_feats"
+          path="feats"
+          title="Feats"
+          singular="Feat"
+          childLabel="benefits"
+          meta={formatFeatMeta}
+        />
+      )}
+      {tab === 'backgrounds' && (
+        <SimpleEntityTab
+          key="backgrounds"
+          table="homebrew_backgrounds"
+          path="backgrounds"
+          title="Backgrounds"
+          singular="Background"
+          childLabel="features"
+          meta={formatBackgroundMeta}
+        />
+      )}
     </section>
   )
 }

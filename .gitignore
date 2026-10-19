@@ -10,6 +10,8 @@ backups.txt
 *.skilltree.json
 *.class.json
 *.race.json
+*.feat.json
+*.background.json
 
 # Local data / source material (imported via the UI, not used by the build)
 party.json

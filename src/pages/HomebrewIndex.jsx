@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
-import { formatRaceSpeed } from '../lib/homebrew'
+import { formatBackgroundMeta, formatFeatMeta, formatRaceSpeed } from '../lib/homebrew'
 
 const TABS = [
   { key: 'classes', label: 'Classes' },
@@ -16,6 +16,8 @@ export default function HomebrewIndex() {
   const [classes, setClasses] = useState([])
   const [subclasses, setSubclasses] = useState([])
   const [races, setRaces] = useState([])
+  const [feats, setFeats] = useState([])
+  const [backgrounds, setBackgrounds] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -23,10 +25,14 @@ export default function HomebrewIndex() {
       supabase.from('homebrew_classes').select('*').order('name', { ascending: true }),
       supabase.from('homebrew_subclasses').select('*').is('class_id', null).order('name', { ascending: true }),
       supabase.from('homebrew_races').select('*').order('name', { ascending: true }),
-    ]).then(([{ data: classData }, { data: subclassData }, { data: raceData }]) => {
+      supabase.from('homebrew_feats').select('*').order('name', { ascending: true }),
+      supabase.from('homebrew_backgrounds').select('*').order('name', { ascending: true }),
+    ]).then(([{ data: classData }, { data: subclassData }, { data: raceData }, { data: featData }, { data: bgData }]) => {
       setClasses(classData ?? [])
       setSubclasses(subclassData ?? [])
       setRaces(raceData ?? [])
+      setFeats(featData ?? [])
+      setBackgrounds(bgData ?? [])
       setLoading(false)
     })
   }, [])
@@ -99,7 +105,40 @@ export default function HomebrewIndex() {
           </div>
         </>
       )}
-      {(tab === 'feats' || tab === 'backgrounds') && <p className="status-message">Coming soon.</p>}
+      {tab === 'feats' && (
+        <>
+          {loading && <p className="status-message">Loading...</p>}
+          {!loading && feats.length === 0 && <p className="status-message">No feats published yet.</p>}
+          <div className="entry-grid">
+            {feats.map((feat) => (
+              <Link key={feat.id} to={`/homebrew/feats/${feat.slug}`} className="entry-card">
+                <div className="entry-card-header">
+                  <h3>{feat.name}</h3>
+                  {feat.visibility === 'dm' && <span className="badge badge-dm">DM only</span>}
+                </div>
+                <span className="entry-card-category">{formatFeatMeta(feat)}</span>
+              </Link>
+            ))}
+          </div>
+        </>
+      )}
+      {tab === 'backgrounds' && (
+        <>
+          {loading && <p className="status-message">Loading...</p>}
+          {!loading && backgrounds.length === 0 && <p className="status-message">No backgrounds published yet.</p>}
+          <div className="entry-grid">
+            {backgrounds.map((bg) => (
+              <Link key={bg.id} to={`/homebrew/backgrounds/${bg.slug}`} className="entry-card">
+                <div className="entry-card-header">
+                  <h3>{bg.name}</h3>
+                  {bg.visibility === 'dm' && <span className="badge badge-dm">DM only</span>}
+                </div>
+                <span className="entry-card-category">{formatBackgroundMeta(bg)}</span>
+              </Link>
+            ))}
+          </div>
+        </>
+      )}
     </section>
   )
 }

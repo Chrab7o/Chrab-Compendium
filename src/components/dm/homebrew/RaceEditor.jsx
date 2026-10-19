@@ -276,7 +276,7 @@ export default function RaceEditor() {
 
         <fieldset className="tag-checklist">
           <legend>Ability Score Increases</legend>
-          <div className="dm-form-row race-ability-grid">
+          <div className="dm-form-row homebrew-ability-grid">
             {ABILITY_SCORES.map((a) => (
               <label key={a}>
                 {ABILITY_LABELS[a]}
@@ -291,7 +291,7 @@ export default function RaceEditor() {
               </label>
             ))}
           </div>
-          <label className="race-ability-note">
+          <label className="homebrew-ability-note">
             Flexible increases (optional)
             <input
               value={form.ability_bonus_note}

@@ -34,10 +34,14 @@ import DMScreenPage from './pages/dm/DMScreenPage'
 import ClassWizard from './components/dm/homebrew/ClassWizard'
 import StandaloneSubclassEditor from './components/dm/homebrew/StandaloneSubclassEditor'
 import RaceEditor from './components/dm/homebrew/RaceEditor'
+import FeatEditor from './components/dm/homebrew/FeatEditor'
+import BackgroundEditor from './components/dm/homebrew/BackgroundEditor'
 import HomebrewIndex from './pages/HomebrewIndex'
 import HomebrewClassDetail from './pages/HomebrewClassDetail'
 import HomebrewSubclassDetail from './pages/HomebrewSubclassDetail'
 import HomebrewRaceDetail from './pages/HomebrewRaceDetail'
+import HomebrewFeatDetail from './pages/HomebrewFeatDetail'
+import HomebrewBackgroundDetail from './pages/HomebrewBackgroundDetail'
 import DMNotesPage from './pages/dm/DMNotesPage'
 import DMLayout from './components/dm/DMLayout'
 import RequireDM from './components/RequireDM'
@@ -66,6 +70,8 @@ export default function App() {
             <Route path="/homebrew/classes/:slug" element={<HomebrewClassDetail />} />
             <Route path="/homebrew/subclasses/:slug" element={<HomebrewSubclassDetail />} />
             <Route path="/homebrew/races/:slug" element={<HomebrewRaceDetail />} />
+            <Route path="/homebrew/feats/:slug" element={<HomebrewFeatDetail />} />
+            <Route path="/homebrew/backgrounds/:slug" element={<HomebrewBackgroundDetail />} />
             <Route path="/session-notes" element={<TagView tag="session-note" title="Session Notes" />} />
             <Route path="/search" element={<SearchPage />} />
             <Route path="/login" element={<Login />} />
@@ -109,6 +115,10 @@ export default function App() {
               <Route path="homebrew/subclasses/:id/edit" element={<StandaloneSubclassEditor />} />
               <Route path="homebrew/races/new" element={<RaceEditor />} />
               <Route path="homebrew/races/:id/edit" element={<RaceEditor />} />
+              <Route path="homebrew/feats/new" element={<FeatEditor />} />
+              <Route path="homebrew/feats/:id/edit" element={<FeatEditor />} />
+              <Route path="homebrew/backgrounds/new" element={<BackgroundEditor />} />
+              <Route path="homebrew/backgrounds/:id/edit" element={<BackgroundEditor />} />
               <Route path="session-planner" element={<DMSessionPlannerPage />} />
               <Route path="session-planner/:id" element={<SessionPlanEditorPage />} />
               <Route path="long-term-planning" element={<DMLongTermPlanningPage />} />
