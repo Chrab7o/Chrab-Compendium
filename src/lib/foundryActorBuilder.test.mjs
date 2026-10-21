@@ -19,9 +19,13 @@ import {
   emptyNpcItem,
   emptySpend,
   emptyNpcSpec,
+  emptyOverTimeRoll,
   npcActorToSpec,
+  npcRollData,
   proficiencyForCr,
 } from './foundryActorBuilder.js'
+import { ATTRIBUTE_CATALOG, attributeOptions, searchAttributes } from './foundryAttributes.js'
+import { conditionText, emptyCondition, emptyScript, scriptCode } from './foundryAutomation.js'
 
 const kraken = JSON.parse(readFileSync(new URL('./__fixtures__/kraken.actor.json', import.meta.url), 'utf8'))
 
@@ -336,7 +340,7 @@ test('effect changes use the v14 system.changes shape', () => {
   assert.deepEqual(venom.system.changes, [
     {
       key: 'flags.midi-qol.OverTime',
-      value: 'turn=end, label=Envenomed, saveAbility=con, saveDC=13, saveRemove=true, damageRoll=2d6+2, damageType=poison',
+      value: 'turn=end, label=Envenomed, saveAbility=con, saveDC=13, saveCount=1-, damageRoll=2d6+2, damageType=poison',
       type: 'override',
       phase: 'initial',
     },
@@ -371,4 +375,137 @@ test('averageFormula resolves dotted @references', () => {
   const data = { abilities: { str: { mod: 4 } }, prof: 3 }
   assert.equal(averageFormula('2d6 + @abilities.str.mod + @prof', data), 14)
   assert.equal(averageFormula('@nothing.here + 1', data), 1)
+})
+
+test('attribute catalog: unique paths, and the editor resolves the values it can know', () => {
+  const paths = ATTRIBUTE_CATALOG.map((e) => e.path)
+  assert.equal(new Set(paths).size, paths.length, 'duplicate paths')
+  for (const e of ATTRIBUTE_CATALOG) assert.match(e.use, /^[fes]+$/, e.path)
+
+  const spec = krakenSpec()
+  const data = npcRollData(spec)
+  // Kraken: WIS 18, Perception proficient, CR 23 (prof +7)
+  assert.equal(averageFormula('@skills.prc.total', data), 11)
+  assert.equal(averageFormula('@skills.prc.passive', data), 21)
+  assert.equal(averageFormula('@abilities.str.save.value', data), 17) // +10 STR, proficient
+  assert.equal(averageFormula('@abilities.int.save.value', data), 6) // +6 INT, not proficient
+  assert.equal(averageFormula('@abilities.con.dc', data), 23)
+  assert.equal(averageFormula('@attributes.movement.swim', data), 120)
+  assert.equal(averageFormula('@attributes.senses.ranges.truesight', data), 120)
+  assert.equal(averageFormula('@resources.legact.max', data), 3)
+  assert.equal(averageFormula('@attributes.init.total', data), 14)
+})
+
+test('attribute options: prefixes per use, and search', () => {
+  assert.ok(attributeOptions('formula').some((o) => o.ref === '@skills.ste.passive'))
+  // Effects apply before dnd5e derives totals, so derived paths aren't targets.
+  const effect = attributeOptions('effect').map((o) => o.ref)
+  assert.ok(effect.includes('system.abilities.dex.value'))
+  assert.ok(!effect.includes('system.skills.ste.total'))
+  assert.deepEqual(attributeOptions('spend').filter((o) => o.path === 'attributes.hp.value').map((o) => o.ref), ['attributes.hp.value'])
+  const hits = searchAttributes(attributeOptions('formula'), 'passive stealth').map((o) => o.ref)
+  assert.deepEqual(hits, ['@skills.ste.passive'])
+})
+
+// Midi-qol automation: a wyvern-ish NPC with an activity over time, target
+// conditions, conditional bonus damage via an "other" roll, and scripts.
+function automationSpec() {
+  const spec = { ...emptyNpcSpec(), name: 'Venom Drake', cr: 6, abilities: { str: 18, dex: 12, con: 16, int: 4, wis: 10, cha: 6 } }
+  const tick = act('save', {
+    name: 'Venom Tick',
+    saveAbility: 'con',
+    dcAbility: 'con',
+    onSave: 'none',
+    damage: [{ formula: '2d6', types: ['poison'] }],
+    overTime: { ...emptyOverTimeRoll(), turn: 'end', saveEnds: true },
+  })
+  const smite = act('damage', {
+    name: 'Holy Bane',
+    damage: [{ formula: '2d8', types: ['radiant'] }],
+    useConditions: [{ ...emptyCondition('typeIs'), types: ['undead', 'fiend'] }],
+  })
+  const sting = act('attack', {
+    name: 'Sting',
+    damage: [{ formula: '1d10 + @mod', types: ['piercing'] }],
+    otherKey: smite.key,
+    effectConditions: [{ ...emptyCondition('typeIsNot'), types: ['construct'] }, { ...emptyCondition('hpAtMost'), value: '40' }],
+    script: { ...emptyScript('targetStatDamage'), params: { stat: 'abilities.con.mod', multiplier: '2', damageType: 'poison', minimum: '0', label: 'Toxic' } },
+  })
+  const shove = act('save', {
+    name: 'Tail Sweep',
+    saveAbility: 'str',
+    dc: 15,
+    damage: [],
+    script: emptyScript('push'),
+  })
+  spec.items = [
+    {
+      ...emptyNpcItem('action'),
+      name: 'Venom Sting',
+      activities: [sting, smite, tick],
+      effects: [{ ...emptyEffect(), name: 'Envenomed', statuses: ['poisoned'], appliedBy: [sting.key] }],
+    },
+    { ...emptyNpcItem('action'), name: 'Tail Sweep', activities: [shove] },
+  ]
+  return spec
+}
+
+test('activity over time: tick wiring, DC from the NPC, no cost, effect link', () => {
+  const built = buildNpcActor(automationSpec())
+  const item = byName(built, 'Venom Sting')
+  const [sting, smite, tick] = Object.values(item.system.activities)
+  assert.equal(tick.isOverTimeFlag, true)
+  assert.deepEqual(tick.overTimeProperties, { turnChoice: 'end', saveRemoves: true, rollAs: 'source', postRemoveConditionText: '' })
+  assert.equal(tick.midiProperties.automationOnly, true)
+  assert.equal(tick.midiProperties.identifier, `over-time-${tick._id.toLowerCase()}`)
+  assert.equal(tick.activation.type, 'special')
+  assert.deepEqual(tick.consumption.targets, [])
+  assert.deepEqual(tick.save.dc, { calculation: 'con', formula: '' })
+  assert.deepEqual(tick.effects, []) // the tick never re-applies its own effect
+  const [envenomed] = item.effects
+  assert.deepEqual(envenomed.system.changes, [{ key: 'flags.midi-qol.ActivityOverTime', value: tick.midiProperties.identifier, type: 'override', phase: 'initial' }])
+  assert.deepEqual(sting.effects.map((e) => e._id), [envenomed._id])
+  assert.equal(smite.effects.length, 0)
+})
+
+test('target conditions and conditional bonus damage', () => {
+  const built = buildNpcActor(automationSpec())
+  const [sting, smite] = Object.values(byName(built, 'Venom Sting').system.activities)
+  assert.equal(sting.effectConditionText, '(!["construct"].includes(raceOrType)) && (target.attributes.hp.value <= 40)')
+  assert.equal(sting.otherActivityId, smite._id)
+  assert.equal(smite.useConditionText, '["undead","fiend"].includes(raceOrType)')
+  assert.equal(smite.midiProperties.automationOnly, true)
+  assert.equal(sting.useConditionText, undefined)
+  // save-margin preset reads the target's own save roll
+  assert.match(conditionText([{ ...emptyCondition('failedBy'), value: '5' }]), /workflow\.tokenSaves\?\.\[targetUuid\]\?\.total/)
+})
+
+test('scripts become activity macros wired through onUseMacroName', () => {
+  const built = buildNpcActor(automationSpec())
+  const sting = byName(built, 'Venom Sting')
+  const [stingAct] = Object.values(sting.system.activities)
+  assert.equal(sting.flags['midi-qol'].onUseMacroName, `[damageBonus]ActivityMacro-${stingAct._id}`)
+  assert.match(stingAct.macroData.command, /getProperty\(target\.actor\.getRollData\(\), "abilities\.con\.mod"\)/)
+  assert.match(stingAct.macroData.command, /stat \* 2/)
+  const sweep = byName(built, 'Tail Sweep')
+  const [sweepAct] = Object.values(sweep.system.activities)
+  assert.equal(sweep.flags['midi-qol'].onUseMacroName, `[postActiveEffects]ActivityMacro-${sweepAct._id}`)
+  // every generated script must at least parse as an async function body
+  for (const command of [stingAct.macroData.command, sweepAct.macroData.command, scriptCode(emptyScript('drain')), scriptCode(emptyScript('sizeDamage')), scriptCode(emptyScript('custom'))]) {
+    assert.doesNotThrow(() => new (Object.getPrototypeOf(async function () {}).constructor)('workflow', 'actor', 'token', command))
+  }
+  // hand-edited code wins over the recipe
+  assert.equal(scriptCode({ ...emptyScript('push'), code: 'return 1', edited: true }), 'return 1')
+})
+
+test('automation survives a round trip through npcActorToSpec', () => {
+  const first = buildNpcActor(automationSpec())
+  const again = buildNpcActor(npcActorToSpec(first))
+  for (const name of ['Venom Sting', 'Tail Sweep']) {
+    const a = byName(first, name)
+    const b = byName(again, name)
+    assert.deepEqual(b.system.activities, a.system.activities, name)
+    assert.deepEqual(b.effects.map((e) => e.system.changes), a.effects.map((e) => e.system.changes), name)
+    assert.deepEqual(b.flags, a.flags, name)
+  }
 })

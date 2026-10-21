@@ -23,7 +23,8 @@ import {
   saveDc,
 } from '../../../lib/foundryActorBuilder'
 import OptionPicker from '../OptionPicker'
-import FormulaInput, { NpcSpecContext } from './FormulaInput'
+import FormulaInput, { AttributePathInput, NpcSpecContext } from './FormulaInput'
+import { ConditionRows, OverTimeRollFields, ScriptEditor } from './AutomationFields'
 
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1)
 
@@ -160,7 +161,7 @@ function SpendRows({ rows, onChange, itemKey }) {
             </select>
           )}
           {row.source === 'attribute' && (
-            <input value={row.target} onChange={(e) => update(i, { target: e.target.value })} placeholder="e.g. resources.primary.value" aria-label="Attribute path" />
+            <AttributePathInput value={row.target} onChange={(target) => update(i, { target })} use="spend" placeholder="e.g. spells.spell1.value" ariaLabel="Attribute path" />
           )}
           <button type="button" className="icon-button" onClick={() => onChange(rows.filter((_, idx) => idx !== i))} aria-label="Remove cost">
             ×
@@ -182,32 +183,88 @@ function activityLabel(a, i) {
 // Midi-qol: after this roll, roll another of the item's activities against
 // the same targets (Stunning Strike style: hit, then the CON save).
 function TriggerFields({ activity, set, siblings }) {
-  const others = siblings.map((a, i) => ({ a, i })).filter(({ a }) => a.key !== activity.key)
+  const others = siblings.map((a, i) => ({ a, i })).filter(({ a }) => a.key !== activity.key && !a.overTime)
   if (!others.length) return null
   const onlyIf = activity.kind === 'attack' ? { key: 'hit', label: 'Only on a hit' } : activity.kind === 'save' ? { key: 'failedSave', label: 'Only if the save fails' } : null
   return (
-    <div className="dm-form-row">
-      <label>
-        Then roll (midi-qol)
-        <select value={activity.triggerKey ?? ''} onChange={(e) => set({ triggerKey: e.target.value, triggerOnlyIf: e.target.value ? activity.triggerOnlyIf || onlyIf?.key || '' : '' })}>
-          <option value="">Nothing</option>
-          {others.map(({ a, i }) => (
-            <option key={a.key} value={a.key}>
-              {activityLabel(a, i)}
-            </option>
-          ))}
-        </select>
-      </label>
-      {activity.triggerKey && onlyIf && (
+    <>
+      <div className="dm-form-row">
         <label>
-          When
-          <select value={activity.triggerOnlyIf ?? ''} onChange={(e) => set({ triggerOnlyIf: e.target.value })}>
-            <option value={onlyIf.key}>{onlyIf.label}</option>
-            <option value="">Always</option>
+          Then roll
+          <select
+            value={activity.triggerKey ?? ''}
+            onChange={(e) => set({ triggerKey: e.target.value, triggerOnlyIf: e.target.value ? activity.triggerOnlyIf || onlyIf?.key || '' : '', triggerConditions: e.target.value ? activity.triggerConditions ?? [] : [] })}
+          >
+            <option value="">Nothing</option>
+            {others.map(({ a, i }) => (
+              <option key={a.key} value={a.key}>
+                {activityLabel(a, i)}
+              </option>
+            ))}
           </select>
         </label>
+        {activity.triggerKey && onlyIf && (
+          <label>
+            When
+            <select value={activity.triggerOnlyIf ?? ''} onChange={(e) => set({ triggerOnlyIf: e.target.value })}>
+              <option value={onlyIf.key}>{onlyIf.label}</option>
+              <option value="">Always</option>
+            </select>
+          </label>
+        )}
+        {['attack', 'save'].includes(activity.kind) && (
+          <label>
+            Extra damage roll per {activity.kind === 'attack' ? 'hit' : 'target'}
+            <select value={activity.otherKey ?? ''} onChange={(e) => set({ otherKey: e.target.value })}>
+              <option value="">None</option>
+              {others.filter(({ a }) => a.kind === 'damage').map(({ a, i }) => (
+                <option key={a.key} value={a.key}>
+                  {activityLabel(a, i)}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+      </div>
+      {activity.triggerKey && (
+        <ConditionRows rows={activity.triggerConditions ?? []} onChange={(triggerConditions) => set({ triggerConditions })} slot="trigger" label="…and only for targets that" />
       )}
-    </div>
+    </>
+  )
+}
+
+// Midi-qol automation for one roll, collapsed until used.
+function AutomationSection({ activity, set, item }) {
+  const active = [
+    activity.triggerKey && 'trigger',
+    activity.otherKey && 'extra damage',
+    activity.useConditions?.length && 'use condition',
+    activity.effectConditions?.length && 'effect condition',
+    activity.overTime && 'over time',
+    activity.script && 'script',
+  ].filter(Boolean)
+  const hasEffects = item.effects.some((e) => !e.passive)
+  return (
+    <details className="npc-automation" open={active.length > 0 || undefined}>
+      <summary>
+        Midi-qol automation{active.length ? <span className="npc-badge">{active.join(' · ')}</span> : null}
+      </summary>
+      <div className="npc-automation-body">
+        <TriggerFields activity={activity} set={set} siblings={item.activities} />
+        <ConditionRows rows={activity.useConditions ?? []} onChange={(useConditions) => set({ useConditions })} slot="use" label="Can only be used if the target" />
+        {activity.useConditions?.length > 0 && (
+          <label>
+            Message when it can't be used
+            <input value={activity.useConditionReason ?? ''} onChange={(e) => set({ useConditionReason: e.target.value })} placeholder="e.g. Only works on undead." />
+          </label>
+        )}
+        {hasEffects && (
+          <ConditionRows rows={activity.effectConditions ?? []} onChange={(effectConditions) => set({ effectConditions })} slot="effect" label="Effects only land on targets that" />
+        )}
+        <OverTimeRollFields activity={activity} set={set} item={item} />
+        <ScriptEditor activity={activity} set={set} />
+      </div>
+    </details>
   )
 }
 
@@ -215,6 +272,7 @@ function ActivityEditor({ activity, onChange, onRemove, item, index }) {
   const set = (patch) => onChange({ ...activity, ...patch })
   const ctx = useContext(NpcSpecContext)
   const triggeredBy = item.activities.find((a) => a.triggerKey === activity.key)
+  const extraFor = item.activities.find((a) => a.otherKey === activity.key)
 
   // @mod inside an attack's damage is that attack's ability modifier.
   const attackAbility = activity.ability || (activity.attackType === 'ranged' ? 'dex' : 'str')
@@ -229,6 +287,8 @@ function ActivityEditor({ activity, onChange, onRemove, item, index }) {
         <div className="npc-activity-head">
           <span className="npc-activity-title">{activityLabel(activity, index)}</span>
           {triggeredBy && <span className="npc-badge">Rolled by {triggeredBy.name || 'another roll'} only</span>}
+          {extraFor && <span className="npc-badge">Extra damage for {extraFor.name || 'another roll'}</span>}
+          {activity.overTime && <span className="npc-badge">Repeats each turn</span>}
         </div>
         <div className="dm-form-row">
           <label>
@@ -368,7 +428,7 @@ function ActivityEditor({ activity, onChange, onRemove, item, index }) {
         )}
 
         <SpendRows rows={activity.spend ?? []} onChange={(spend) => set({ spend })} itemKey={item.key} />
-        <TriggerFields activity={activity} set={set} siblings={item.activities} />
+        <AutomationSection activity={activity} set={set} item={item} />
 
         <div className="repeatable-row-controls">
           <button type="button" className="danger npc-small-button" onClick={onRemove}>
@@ -505,7 +565,7 @@ function ChangeRow({ change, onChange, onRemove, item, effect }) {
           </select>
         )}
         {def.id === 'custom' && (
-          <input value={change.path} onChange={(e) => set({ path: e.target.value })} placeholder="system.attributes.ac.calc" aria-label="Attribute path" />
+          <AttributePathInput value={change.path} onChange={(path) => set({ path })} use="effect" placeholder="system.attributes.ac.calc" ariaLabel="Attribute path" />
         )}
         {types.length > 1 && (
           <select value={change.type} onChange={(e) => set({ type: e.target.value })} aria-label="How">
@@ -628,7 +688,8 @@ function ItemCard({ item, onChange, onRemove, onMove, isFirst, isLast }) {
     set({
       activities: item.activities
         .filter((_, idx) => idx !== i)
-        .map((a) => (a.triggerKey === gone ? { ...a, triggerKey: '', triggerOnlyIf: '' } : a)),
+        .map((a) => (a.triggerKey === gone ? { ...a, triggerKey: '', triggerOnlyIf: '', triggerConditions: [] } : a))
+        .map((a) => (a.otherKey === gone ? { ...a, otherKey: '' } : a)),
       effects: item.effects.map((e) => (e.appliedBy?.includes(gone) ? { ...e, appliedBy: e.appliedBy.filter((k) => k !== gone) } : e)),
     })
   }
@@ -721,7 +782,13 @@ function ItemCard({ item, onChange, onRemove, onMove, isFirst, isLast }) {
           effect={effect}
           item={item}
           onChange={(value) => updateList('effects', i, value)}
-          onRemove={() => set({ effects: item.effects.filter((_, idx) => idx !== i) })}
+          onRemove={() =>
+            set({
+              effects: item.effects.filter((_, idx) => idx !== i),
+              // an over-time roll tied to this effect falls back to the first one
+              activities: item.activities.map((a) => (a.overTime?.effectKey === effect.key ? { ...a, overTime: { ...a.overTime, effectKey: '' } } : a)),
+            })
+          }
         />
       ))}
 

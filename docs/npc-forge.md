@@ -56,8 +56,37 @@ Ground rules:
   - Curated midi-qol options: triggered activities, magical damage, `affects` enemy/ally auto-targeting, and
     OverTime. OverTime bakes its DC and damage into numbers, because midi evaluates it on the target.
 
-  The catalogs (`EFFECT_CHANGES`, `FORMULA_REFS`, `SPEND_SOURCES`) live in `foundryActorBuilder.js`. Foundry checks run
-  from the sandbox repo: `probes/custom-activities.md` and `scripts/build-probe.mjs`.
+  `EFFECT_CHANGES` and `SPEND_SOURCES` live in `foundryActorBuilder.js`. Foundry checks run from the sandbox repo:
+  `probes/custom-activities.md` and `scripts/build-probe.mjs`.
+- **Attribute catalog** (`src/lib/foundryAttributes.js`): 179 NPC attribute paths. Each one is tagged for where it can
+  be used:
+  - `f`: formula reference (roll data, including derived totals).
+  - `e`: effect change target (stored and bonus fields only, because effects apply before dnd5e derives totals).
+  - `s`: something an activity can spend.
+
+  One searchable menu serves the formula "@" button, the effect "Other attribute" path and the "Also spends" attribute
+  path. `npcRollData` computes the values the editor can know; spellcasting and slots show "—". To verify the paths
+  against a live `getRollData()` dump, run `scripts/check-attributes.mjs` in the sandbox.
+- **Midi-qol automation** (`src/lib/foundryAutomation.js`, editor in `AutomationFields.jsx`): each roll has a collapsed
+  "Midi-qol automation" section. Midi-qol 14 details are in the sandbox's `probes/midi-qol-v14-reference.md`.
+  - **Target conditions:** guided presets compile to midi condition text.
+    - Presets: creature type, HP at most, below half, size, has a condition, failed its save by N, or a custom
+      expression.
+    - Slots: `useConditionText`, `effectConditionText` (checked per target) and the trigger condition.
+    - "Extra damage roll per hit" sets `otherActivityId`.
+  - **Over time:** a roll can repeat each turn, using midi's activity over time.
+    - The roll gets `isOverTimeFlag`, `overTimeProperties` with `rollAs: "source"` (so the DC stays the NPC's), and an
+      `over-time-<id>` identifier. It's marked automation-only and costs nothing.
+    - The item's target effect gets a `flags.midi-qol.ActivityOverTime` change naming that roll.
+    - The over-time string row is still available, and now writes `saveCount=1-` instead of the deprecated
+      `saveRemove`.
+  - **Scripts:** activity macros.
+    - The code goes in `activity.macroData.command`; the item flag `flags["midi-qol"].onUseMacroName` is set to
+      `[pass]ActivityMacro-<id>`. This needs midi-qol only, not DAE.
+    - Recipes (`SCRIPT_RECIPES`) regenerate the code until it's edited by hand.
+    - **Scripts are JavaScript that runs in the GM's Foundry when the NPC uses the item.** Only DM accounts can write
+      NPC drafts (RLS), and Chrab Sync imports them as-is. Review a script before you send it.
+  - **Foundry check:** the sandbox's `probes/midi-automation.md` and `scripts/build-automation-probe.mjs`.
 
 ## Verify
 

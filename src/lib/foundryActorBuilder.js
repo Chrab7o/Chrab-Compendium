@@ -13,6 +13,8 @@
 // NPCs are always GM-only: ownership { default: 0 } on the actor and every
 // item, unlinked tokens, names and bars hidden from non-owners.
 
+import { conditionRows, conditionText, parseOnUseMacros, scriptCode, scriptPass } from './foundryAutomation.js'
+
 export const CORE_VERSION = '14.368'
 export const SYSTEM_ID = 'dnd5e'
 export const SYSTEM_VERSION = '5.3.3'
@@ -124,20 +126,6 @@ export const SPEND_SOURCES = [
   { key: 'legres', label: 'Legendary resistances', target: 'resources.legres.value' },
   { key: 'hp', label: 'Hit points', target: 'attributes.hp.value' },
   { key: 'attribute', label: 'Other attribute…' },
-]
-
-// @references a formula can use, resolved against this NPC's roll data.
-// dnd5e builds the same paths at roll time, so the formula stays live in
-// Foundry while the editor shows what it currently comes to.
-export const FORMULA_REFS = [
-  { ref: '@mod', label: 'This roll’s ability modifier', group: 'Roll' },
-  { ref: '@prof', label: 'Proficiency bonus', group: 'Creature' },
-  { ref: '@details.cr', label: 'Challenge rating', group: 'Creature' },
-  { ref: '@attributes.hp.max', label: 'Max hit points', group: 'Creature' },
-  ...['str', 'dex', 'con', 'int', 'wis', 'cha'].flatMap((a) => [
-    { ref: `@abilities.${a}.mod`, label: `${a.toUpperCase()} modifier`, group: 'Abilities' },
-    { ref: `@abilities.${a}.value`, label: `${a.toUpperCase()} score`, group: 'Abilities' },
-  ]),
 ]
 
 // v14 ActiveEffect change types (system.changes[].type). The numeric
@@ -350,11 +338,25 @@ export function emptyActivity(kind = 'attack') {
     // midi-qol
     triggerKey: '', // key of another activity on this item to roll after this one
     triggerOnlyIf: '', // '' always | 'hit' | 'failedSave'
+    triggerConditions: [], // foundryAutomation condition rows, on top of triggerOnlyIf
+    useConditions: [], // the roll can only be used if the (first) target passes
+    useConditionReason: '',
+    effectConditions: [], // effects land only on targets that pass
+    otherKey: '', // another roll on this item rolled as extra damage on each hit (midi "other activity")
+    overTime: null, // emptyOverTimeRoll(): repeats each turn on whoever has an effect from this item
+    script: null, // foundryAutomation emptyScript(): activity macro
   }
 }
 
 export function emptySpend() {
   return { key: randomId(), source: 'item', target: '', amount: '1' }
+}
+
+// A roll midi-qol repeats on each turn of whoever carries one of this item's
+// effects (midi's activity over time). effectKey '' = the item's first
+// effect that lands on a target.
+export function emptyOverTimeRoll() {
+  return { turn: 'end', saveEnds: true, once: false, effectKey: '' }
 }
 
 export function emptyEffect() {
@@ -434,16 +436,53 @@ export const emptyNpcSpec = () => ({
 
 // Flat ability mods (data.str) for the builder's own math, plus the nested
 // paths dnd5e's roll data uses (data.abilities.str.mod) for @references.
+// The derived values mirror what dnd5e computes at roll time, as far as the
+// spec can tell; anything it can't (spellcasting, slots) is left out and
+// shows as unknown in the editor.
 export function npcRollData(spec) {
+  const prof = proficiencyForCr(spec.cr)
+  const maxHp = npcMaxHp(spec)
+  const num = (v) => (v === null || v === '' || v === undefined ? undefined : Number(v))
   const data = {
-    prof: proficiencyForCr(spec.cr),
+    prof,
     abilities: {},
+    skills: {},
     details: { cr: Number(spec.cr) || 0 },
-    attributes: { hp: { max: npcMaxHp(spec) } },
+    attributes: {
+      ac: { value: Number(spec.ac) || 10, flat: Number(spec.ac) || 10 },
+      hp: { value: maxHp, max: maxHp, temp: 0, tempmax: 0 },
+      init: {},
+      movement: {},
+      senses: { ranges: {} },
+      exhaustion: 0,
+    },
+    resources: {
+      legact: { value: Number(spec.legendaryActions) || 0, max: Number(spec.legendaryActions) || 0 },
+      legres: { value: Number(spec.legendaryResistances) || 0, max: Number(spec.legendaryResistances) || 0 },
+    },
   }
   for (const a of NPC_ABILITIES) {
-    data[a] = abilityMod(spec.abilities?.[a])
-    data.abilities[a] = { mod: data[a], value: Number(spec.abilities?.[a]) || 10 }
+    const mod = abilityMod(spec.abilities?.[a])
+    data[a] = mod
+    data.abilities[a] = {
+      mod,
+      value: Number(spec.abilities?.[a]) || 10,
+      save: { value: mod + ((spec.saves ?? []).includes(a) ? prof : 0) },
+      dc: 8 + prof + mod,
+    }
+  }
+  for (const [key, skill] of Object.entries(NPC_SKILLS)) {
+    const total = data[skill.ability] + Math.floor(prof * (Number(spec.skills?.[key]) || 0))
+    data.skills[key] = { total, passive: 10 + total, value: Number(spec.skills?.[key]) || 0 }
+  }
+  data.attributes.init.total = num(spec.initiative) ?? data.dex
+  for (const key of ['walk', 'fly', 'swim', 'climb', 'burrow']) {
+    const v = num(spec.speed?.[key])
+    if (v !== undefined) data.attributes.movement[key] = v
+  }
+  for (const key of ['darkvision', 'blindsight', 'tremorsense', 'truesight']) {
+    const v = num(spec.senses?.[key])
+    if (v !== undefined) data.attributes.senses.ranges[key] = v
   }
   return data
 }
@@ -496,6 +535,8 @@ export function spendTarget(spend) {
 
 function consumptionFor(item, activity) {
   const targets = []
+  // A repeating roll is midi's doing each turn; it never costs anything.
+  if (activity?.overTime) return { scaling: { allowed: false }, spellSlot: false, targets }
   const legendary = (activity?.activation || item.section) === 'legendary'
   const spendsLegact = (activity?.spend ?? []).some((s) => s.source === 'legact')
   if (legendary && !spendsLegact) {
@@ -518,21 +559,34 @@ const TRIGGER_CONDITIONS = {
   failedSave: 'workflow.failedSaves.size > 0',
 }
 
-function midiPropertiesFor(item, activity, ids, triggered) {
+// triggerOnlyIf plus any extra condition rows, all required.
+export function triggerConditionText(activity) {
+  const parts = [TRIGGER_CONDITIONS[activity.triggerOnlyIf] ?? '', conditionText(activity.triggerConditions)].filter(Boolean)
+  return parts.length === 2 ? `(${parts[0]}) && (${parts[1]})` : parts[0] ?? ''
+}
+
+// The identifier an over-time roll is found by from its effect's
+// flags.midi-qol.ActivityOverTime change.
+export function overTimeIdentifier(activityId) {
+  return `over-time-${String(activityId).toLowerCase()}`
+}
+
+function midiPropertiesFor(item, activity, ids, automationOnly) {
   const props = {}
   if (item.magical) Object.assign(props, { magicDamage: true, magicEffect: true })
   const triggerId = activity.triggerKey && activity.triggerKey !== activity.key ? ids[activity.triggerKey] : null
   if (triggerId) {
     Object.assign(props, {
       triggeredActivityId: triggerId,
-      triggeredActivityConditionText: TRIGGER_CONDITIONS[activity.triggerOnlyIf] ?? '',
+      triggeredActivityConditionText: triggerConditionText(activity),
       triggeredActivityTargets: 'targets',
       triggeredActivityRollAs: 'self',
     })
   }
-  // A roll that only ever happens as another roll's trigger stays off the
-  // activity picker when the item is used.
-  if (triggered) props.automationOnly = true
+  if (activity.overTime) props.identifier = overTimeIdentifier(ids[activity.key])
+  // A roll that only ever happens through another one (a trigger, extra
+  // damage, an over-time tick) stays off the activity picker.
+  if (automationOnly) props.automationOnly = true
   return Object.keys(props).length ? props : null
 }
 
@@ -565,14 +619,14 @@ function damageParts(rows) {
   return (rows ?? []).filter((r) => String(r.formula ?? '').trim() !== '').map(damagePart)
 }
 
-function buildActivity(item, activity, effectRefs, index, ids = {}, triggered = false) {
+function buildActivity(item, activity, effectRefs, index, ids = {}, automationOnly = false) {
   const _id = ids[activity.key] ?? idFor(activity)
   const common = {
     _id,
     type: activity.kind,
     name: String(activity.name ?? '').trim(),
     sort: index * 100000,
-    activation: activationFor(item, activity),
+    activation: activity.overTime ? { type: 'special', override: false } : activationFor(item, activity),
     consumption: consumptionFor(item, activity),
     duration: { units: 'inst', concentration: false, override: false },
     range: rangeFor(activity),
@@ -580,8 +634,31 @@ function buildActivity(item, activity, effectRefs, index, ids = {}, triggered = 
     uses: { spent: 0, recovery: [] },
     effects: effectRefs,
   }
-  const midi = midiPropertiesFor(item, activity, ids, triggered)
+  const midi = midiPropertiesFor(item, activity, ids, automationOnly)
   if (midi) common.midiProperties = midi
+
+  // Midi-qol activity fields; DataModel defaults cover anything not set.
+  const useCondition = conditionText(activity.useConditions)
+  if (useCondition) {
+    common.useConditionText = useCondition
+    if (activity.useConditionReason) common.useConditionReason = activity.useConditionReason
+  }
+  const effectCondition = conditionText(activity.effectConditions)
+  if (effectCondition) common.effectConditionText = effectCondition
+  if (activity.otherKey && ids[activity.otherKey] && activity.otherKey !== activity.key) common.otherActivityId = ids[activity.otherKey]
+  if (activity.overTime) {
+    // rollAs "source": the tick is rolled by this NPC's copy of the item, so
+    // a save DC from its abilities stays the NPC's, not the target's.
+    common.isOverTimeFlag = true
+    common.overTimeProperties = {
+      turnChoice: activity.overTime.turn === 'start' ? 'start' : 'end',
+      saveRemoves: activity.kind === 'save' && activity.overTime.saveEnds !== false,
+      rollAs: 'source',
+      postRemoveConditionText: activity.overTime.once ? 'true' : '',
+    }
+  }
+  const code = scriptCode(activity.script)
+  if (code.trim()) common.macroData = { name: common.name || 'Chrab Corner script', command: code }
 
   switch (activity.kind) {
     case 'attack': {
@@ -661,7 +738,12 @@ export function spendText(spec, activity) {
 }
 
 export function activitySummary(spec, activity) {
-  const body = activityBody(spec, activity)
+  let body = activityBody(spec, activity)
+  if (activity.overTime && body) {
+    const ot = activity.overTime
+    const ends = ot.once ? ', once' : activity.kind === 'save' && ot.saveEnds !== false ? ', ending the effect on a success' : ''
+    body = `${body} This repeats at the ${ot.turn === 'start' ? 'start' : 'end'} of each of the affected creature's turns${ends}.`
+  }
   const name = String(activity.name ?? '').trim()
   const cost = spendText(spec, activity)
   const head = [name, cost && `(${cost})`].filter(Boolean).join(' ')
@@ -713,17 +795,20 @@ export function usesLabel(item, spec = null) {
 // Items and effects
 
 // Midi-qol's OverTime value, e.g. "turn=end, label=Venom, saveAbility=con,
-// saveDC=13, saveRemove=true, damageRoll=2d6, damageType=poison". Midi reads
+// saveDC=13, saveCount=1-, damageRoll=2d6, damageType=poison". Midi reads
 // it on the affected creature, so @references would resolve against the
 // target - the DC and damage are baked into numbers from this NPC instead. A
-// blank DC uses the item's first saving throw.
+// blank DC uses the item's first saving throw. saveCount=1- (remove on the
+// first success) replaced the deprecated saveRemove=true in midi 13.0.43;
+// "never ends on a save" still has no saveCount spelling, so it keeps the
+// deprecated saveRemove=false.
 export function overTimeValue(spec, item, effect, ot) {
   const data = npcRollData(spec)
-  const parts = [`turn=${ot.turn === 'start' ? 'start' : 'end'}`, `label=${(effect.name || item.name || 'Effect').replace(/[,=]/g, ' ')}`]
+  const parts = [`turn=${ot.turn === 'start' ? 'start' : 'end'}`, `label=${(effect.name || item.name || 'Effect').replace(/[,=#]/g, ' ')}`]
   if (ot.saveAbility) {
     const firstSave = (item.activities ?? []).find((a) => a.kind === 'save')
     const dc = String(ot.saveDc ?? '').trim() ? averageFormula(ot.saveDc, data) : firstSave ? saveDc(spec, firstSave) : 10
-    parts.push(`saveAbility=${ot.saveAbility}`, `saveDC=${dc}`, `saveRemove=${ot.saveRemoves !== false}`)
+    parts.push(`saveAbility=${ot.saveAbility}`, `saveDC=${dc}`, ot.saveRemoves !== false ? 'saveCount=1-' : 'saveRemove=false')
   }
   if (String(ot.damage ?? '').trim()) {
     parts.push(`damageRoll=${resolveRefs(ot.damage, data).replace(/\s+/g, '')}`)
@@ -809,13 +894,36 @@ export function buildNpcItem(spec, item, index = 0) {
       .filter(([e, built]) => !built.transfer && (!e.appliedBy?.length || e.appliedBy.includes(activity.key)))
       .map(([, built]) => ({ _id: built._id, level: {} }))
   // Ids first, so one activity can point at another (midi triggers).
-  const ids = Object.fromEntries((item.activities ?? []).map((a) => [a.key, idFor(a)]))
-  const triggeredKeys = new Set((item.activities ?? []).map((a) => a.triggerKey).filter(Boolean))
+  const acts = item.activities ?? []
+  const ids = Object.fromEntries(acts.map((a) => [a.key, idFor(a)]))
+  const reachedOnlyThroughOthers = new Set([
+    ...acts.map((a) => a.triggerKey),
+    ...acts.map((a) => a.otherKey),
+    ...acts.filter((a) => a.overTime).map((a) => a.key),
+  ].filter(Boolean))
+
+  // Over-time rolls: the effect that carries them gets the ActivityOverTime
+  // change, and the tick itself never re-applies that effect.
+  const tickedBy = new Map() // built effect id -> over-time activity key
+  for (const activity of acts.filter((a) => a.overTime)) {
+    const index = kept.findIndex((e, i) => (activity.overTime.effectKey ? e.key === activity.overTime.effectKey : !effects[i].transfer))
+    if (index < 0) continue
+    effects[index].system.changes.push({ key: 'flags.midi-qol.ActivityOverTime', value: overTimeIdentifier(ids[activity.key]), type: 'override', phase: 'initial' })
+    tickedBy.set(effects[index]._id, activity.key)
+  }
+
   const activities = {}
-  ;(item.activities ?? []).forEach((activity, i) => {
-    const built = buildActivity(item, activity, refsFor(activity), i, ids, triggeredKeys.has(activity.key))
+  acts.forEach((activity, i) => {
+    const refs = refsFor(activity).filter((ref) => !(activity.overTime && tickedBy.get(ref._id) === activity.key))
+    const built = buildActivity(item, activity, refs, i, ids, reachedOnlyThroughOthers.has(activity.key))
     activities[built._id] = built
   })
+
+  // Scripts: each roll's own macro, run only when that roll is used.
+  const onUse = acts
+    .filter((a) => scriptCode(a.script).trim())
+    .map((a) => `[${scriptPass(a.script)}]ActivityMacro-${ids[a.key]}`)
+    .join(',')
 
   const generated = (item.activities ?? []).map((a) => activitySummary(spec, a)).filter(Boolean).join(' ')
   const description = textToHtml(item.description) || (generated ? `<p>${escapeHtml(generated)}</p>` : '')
@@ -855,7 +963,7 @@ export function buildNpcItem(spec, item, index = 0) {
     effects,
     sort: index * 100000,
     ownership: { default: 0 },
-    flags: {},
+    flags: onUse ? { 'midi-qol': { onUseMacroName: onUse } } : {},
     _stats: { ...STATS },
   }
 }
@@ -1094,20 +1202,25 @@ function partToRow(part) {
 // Pre-v14 effects stored a numeric mode instead of a type.
 const LEGACY_CHANGE_MODES = ['custom', 'multiply', 'add', 'downgrade', 'upgrade', 'override']
 
+// Midi splits fields at ",key=" / "#key=" (commas inside a value are fine)
+// and treats a missing turn as "start".
 function parseOverTime(value) {
   const kv = Object.fromEntries(
     String(value ?? '')
-      .split(',')
-      .map((part) => part.split('=').map((s) => s.trim()))
+      .split(/\s*[,#\n]\s*(?=\w+\s*=)/)
+      .map((part) => {
+        const at = part.indexOf('=')
+        return [part.slice(0, at).trim(), part.slice(at + 1).trim().replace(/^"(.*)"$/, '$1')]
+      })
       .filter(([k]) => k),
   )
   return {
-    turn: kv.turn === 'start' ? 'start' : 'end',
+    turn: kv.turn === 'end' ? 'end' : 'start',
     saveAbility: kv.saveAbility ?? '',
     saveDc: kv.saveDC ?? '',
     damage: kv.damageRoll ?? '',
     damageType: kv.damageType ?? '',
-    saveRemoves: kv.saveRemove !== 'false',
+    saveRemoves: kv.saveCount ? kv.saveCount.includes('-') : kv.saveRemove !== 'false',
   }
 }
 
@@ -1135,12 +1248,13 @@ export function changeFromFoundry(change) {
   return row
 }
 
-const TRIGGER_CONDITION_KEYS = Object.fromEntries(Object.entries(TRIGGER_CONDITIONS).map(([k, v]) => [v, k]))
 
 function foundryItemToNpcItem(item) {
   const sys = item.system ?? {}
   const acts = Object.values(sys.activities ?? {}).sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0))
-  const section = ACTIVATION_TO_SECTION[acts[0]?.activation?.type] ?? 'trait'
+  // Over-time ticks are always "special"; the section comes from a real roll.
+  const sectionAct = acts.find((a) => !a.isOverTimeFlag) ?? acts[0]
+  const section = ACTIVATION_TO_SECTION[sectionAct?.activation?.type] ?? 'trait'
   const sectionActivation = ITEM_SECTIONS.find((s) => s.key === section)?.activation
   const recovery = sys.uses?.recovery?.[0]
   const keyForId = Object.fromEntries(acts.map((act) => [act._id, isFoundryId(act._id) ? act._id : randomId()]))
@@ -1156,7 +1270,7 @@ function foundryItemToNpcItem(item) {
     itemType: item.type === 'weapon' ? 'weapon' : 'feat',
     description: sys.description?.value ?? '',
     img: item.img ?? '',
-    legendaryCost: acts[0]?.activation?.value ?? 1,
+    legendaryCost: sectionAct?.activation?.value ?? 1,
     usesMax: recovery?.period === 'recharge' ? '' : sys.uses?.max ?? '',
     usesRecovery: recovery?.period ?? '',
     rechargeOn: recovery?.period === 'recharge' ? Number(recovery.formula) || 5 : 5,
@@ -1169,10 +1283,22 @@ function foundryItemToNpcItem(item) {
       passive: !!e.transfer,
       onSave: false,
       specialDuration: e.flags?.dae?.specialDuration ?? [],
-      changes: (e.system?.changes ?? e.changes ?? []).map(changeFromFoundry),
+      // ActivityOverTime links come back as the over-time roll's effectKey.
+      changes: (e.system?.changes ?? e.changes ?? []).filter((c) => c.key !== 'flags.midi-qol.ActivityOverTime').map(changeFromFoundry),
       appliedBy: e.transfer ? [] : appliedBy(e._id),
     })),
     activities: [],
+  }
+  const macroPasses = parseOnUseMacros(item.flags?.['midi-qol']?.onUseMacroName)
+  const identifierOf = (act) => act.midiProperties?.identifier || slugIdentifier(act.name)
+  // over-time activity id -> key of the effect whose ActivityOverTime change names it
+  const tickEffect = {}
+  for (const e of item.effects ?? []) {
+    for (const c of e.system?.changes ?? e.changes ?? []) {
+      if (c.key !== 'flags.midi-qol.ActivityOverTime') continue
+      const act = acts.find((x) => x._id === c.value || x.uuid === c.value || identifierOf(x) === c.value)
+      if (act) tickEffect[act._id] = isFoundryId(e._id) ? e._id : ''
+    }
   }
 
   for (const act of acts) {
@@ -1196,7 +1322,29 @@ function foundryItemToNpcItem(item) {
     const mp = act.midiProperties ?? {}
     if (mp.triggeredActivityId && mp.triggeredActivityId !== 'none' && keyForId[mp.triggeredActivityId]) {
       a.triggerKey = keyForId[mp.triggeredActivityId]
-      a.triggerOnlyIf = TRIGGER_CONDITION_KEYS[mp.triggeredActivityConditionText] ?? ''
+      const text = String(mp.triggeredActivityConditionText ?? '').trim()
+      const onlyIf = Object.entries(TRIGGER_CONDITIONS).find(([, t]) => text === t || text.startsWith(`(${t}) && (`))
+      a.triggerOnlyIf = onlyIf?.[0] ?? ''
+      const rest = !onlyIf ? text : text === onlyIf[1] ? '' : text.slice(onlyIf[1].length + 8, -1)
+      a.triggerConditions = conditionRows(rest)
+    }
+    a.useConditions = conditionRows(act.useConditionText)
+    a.useConditionReason = act.useConditionReason ?? ''
+    a.effectConditions = conditionRows(act.effectConditionText)
+    const other = act.otherActivityId && act.otherActivityId !== 'none' ? acts.find((x) => x._id === act.otherActivityId || identifierOf(x) === act.otherActivityId) : null
+    if (other && other._id !== act._id) a.otherKey = keyForId[other._id]
+    if (act.isOverTimeFlag) {
+      const ot = act.overTimeProperties ?? {}
+      a.activation = ''
+      a.overTime = {
+        turn: ot.turnChoice === 'end' ? 'end' : 'start',
+        saveEnds: ot.saveRemoves !== false,
+        once: String(ot.postRemoveConditionText ?? '').trim() === 'true',
+        effectKey: tickEffect[act._id] ?? '',
+      }
+    }
+    if (String(act.macroData?.command ?? '').trim()) {
+      a.script = { recipe: 'custom', pass: macroPasses[act._id] || 'postActiveEffects', params: {}, code: act.macroData.command, edited: true }
     }
     if (act.type === 'attack') {
       a.attackType = act.attack?.type?.value === 'ranged' ? 'ranged' : 'melee'
