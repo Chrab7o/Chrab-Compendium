@@ -1,0 +1,39 @@
+
+
+# Rodent Kin
+:
+
+## Background
+The Rodent Kin is an ancient ancestor to the modern day rat and mouse. They are larger in size and sport a well rounded skill set.
+
+
+
+
+
+
+## Features
+**Ability Score Increase:**                   :: Two different ability scores of your choice increase by 2 and 1 respectivily.
+:
+**Age:**     :: Rodent Kin have medium life spans. They reach maturity 18 and die at the age of 112- 120
+:
+**Alignment:** :: Rodent Kin are wise and cunning. They enjoy planning elaborate pranks on eachother, sneaking about parkour
+:
+**Size:**                   :: Medium or Small
+:
+**Speed**     :: You have a speed of 30
+:
+**Languages:** :: You can read speak and write common, and Arician.
+:
+**Utility Tail:** :: You can use your tail as an external arm. You can use it to hang on sufaces your hand would otherwise support. You can use it to hold a light weapon which can be used for action or bonus action attacks.
+:
+**Keen Senses:** :: You have advantage on perception checks related to smell
+
+**Acrobatic:** :: You have profiency in acrobatics, and can jump 15 ft without making an athletics check.
+
+**Smelly** :: You emit a hard to remove foul order. You must bathe every day or you will have disatvantage on charisma checks.
+
+
+
+
+
+

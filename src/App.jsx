@@ -31,6 +31,8 @@ import DMItemMakerPage from './pages/dm/DMItemMakerPage'
 import DMShopsPage from './pages/dm/DMShopsPage'
 import DMNameGeneratorPage from './pages/dm/DMNameGeneratorPage'
 import DMScreenPage from './pages/dm/DMScreenPage'
+import DMNpcForgePage from './pages/dm/DMNpcForgePage'
+import NpcEditor from './components/dm/npc/NpcEditor'
 import ClassWizard from './components/dm/homebrew/ClassWizard'
 import StandaloneSubclassEditor from './components/dm/homebrew/StandaloneSubclassEditor'
 import RaceEditor from './components/dm/homebrew/RaceEditor'
@@ -124,6 +126,9 @@ export default function App() {
               <Route path="long-term-planning" element={<DMLongTermPlanningPage />} />
               <Route path="sphere-grid" element={<DMSphereGridPage />} />
               <Route path="item-maker" element={<DMItemMakerPage />} />
+              <Route path="npc-forge" element={<DMNpcForgePage />} />
+              <Route path="npc-forge/new" element={<NpcEditor />} />
+              <Route path="npc-forge/:id/edit" element={<NpcEditor />} />
               <Route path="shops" element={<DMShopsPage />} />
               <Route path="name-generator" element={<DMNameGeneratorPage />} />
               <Route path="screen" element={<DMScreenPage />} />
