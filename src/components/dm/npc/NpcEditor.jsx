@@ -12,6 +12,7 @@ import {
   abilityMod,
   averageFormula,
   crLabel,
+  buildNpcActor,
   emptyNpcSpec,
   npcActorToSpec,
 } from '../../../lib/foundryActorBuilder'
@@ -61,6 +62,7 @@ export default function NpcEditor() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
   const [savedAt, setSavedAt] = useState(null)
+  const [syncStatus, setSyncStatus] = useState('draft')
 
   useEffect(() => {
     if (isNew) return
@@ -79,6 +81,7 @@ export default function NpcEditor() {
           // still get its default.
           setSpec({ ...emptyNpcSpec(), ...data.spec })
           setCampaignId(data.campaign_id ?? '')
+          setSyncStatus(data.sync_status ?? 'draft')
         }
         setLoading(false)
       })
@@ -95,10 +98,22 @@ export default function NpcEditor() {
     setSpec((s) => ({ ...s, [field]: { ...s[field], ...patch } }))
   }
 
-  async function save() {
+  // `queue` also hands the built actor to the Chrab Sync module: the next time
+  // the GM is in the Foundry world mapped to this campaign, it's offered for
+  // import (see docs/npc-forge-phase2.md). The actor is built here, at send
+  // time, so Foundry gets exactly what the preview showed.
+  async function save({ queue = false } = {}) {
     setSaving(true)
     setError(null)
     const payload = { name: spec.name || 'Untitled NPC', cr: Number(spec.cr) || 0, campaign_id: campaignId || null, spec }
+    if (queue) {
+      Object.assign(payload, {
+        queued_actor: buildNpcActor(spec, { draftId }),
+        // queued_at is stamped by the npc_drafts_touch_spec trigger.
+        sync_status: 'queued',
+        sync_error: null,
+      })
+    }
     const result = draftId
       ? await supabase.from('npc_drafts').update(payload).eq('id', draftId).select().single()
       : await supabase.from('npc_drafts').insert(payload).select().single()
@@ -109,8 +124,27 @@ export default function NpcEditor() {
     }
     setDraftId(result.data.id)
     setSavedAt(new Date())
+    setSyncStatus(result.data.sync_status)
+    // A brand-new draft has no id until the insert, so its first queued
+    // actor couldn't carry the npcDraftId flag the module matches on -
+    // rebuild it now that the id exists.
+    if (queue && !draftId) {
+      const fixed = await supabase
+        .from('npc_drafts')
+        .update({ queued_actor: buildNpcActor(spec, { draftId: result.data.id }) })
+        .eq('id', result.data.id)
+      if (fixed.error) setError(fixed.error.message)
+    }
     if (!draftId) navigate(`/dm/npc-forge/${result.data.id}/edit`, { replace: true })
     return result.data.id
+  }
+
+  async function handleSend() {
+    if (!campaignId) {
+      setError('Pick a campaign first - each Foundry world pulls only its own campaign.')
+      return
+    }
+    await save({ queue: true })
   }
 
   async function handleSubmit(e) {
@@ -154,6 +188,9 @@ export default function NpcEditor() {
           </label>
           <button type="button" className="secondary" onClick={handleDownload} disabled={saving}>
             Save &amp; download Foundry JSON
+          </button>
+          <button type="button" onClick={handleSend} disabled={saving} title={campaignId ? '' : 'Pick a campaign first'}>
+            {syncStatus === 'queued' ? 'Re-send to Foundry' : 'Send to Foundry'}
           </button>
         </div>
       </div>
@@ -456,7 +493,11 @@ export default function NpcEditor() {
             <button type="button" className="secondary" onClick={() => navigate('/dm/npc-forge')}>
               Back to list
             </button>
-            {savedAt && <span className="status-message">Saved {savedAt.toLocaleTimeString()}</span>}
+            {savedAt && (
+              <span className="status-message">
+                {syncStatus === 'queued' ? 'Saved and queued for Foundry' : 'Saved'} {savedAt.toLocaleTimeString()}
+              </span>
+            )}
           </div>
         </form>
 

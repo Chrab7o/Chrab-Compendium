@@ -1,0 +1,75 @@
+.chrab-sync .chrab-sync-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.chrab-sync .chrab-sync-body label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.chrab-sync .chrab-sync-body label.chrab-sync-inline,
+.chrab-sync .chrab-sync-row label {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.chrab-sync .chrab-sync-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.chrab-sync .chrab-sync-row {
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--color-border, #7a7971);
+  border-radius: 4px;
+}
+
+.chrab-sync .chrab-sync-meta {
+  opacity: 0.75;
+  font-size: 0.9em;
+}
+
+.chrab-sync .chrab-sync-result {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.9em;
+}
+
+.chrab-sync .chrab-sync-result.ok {
+  color: #2f8a3a;
+}
+
+.chrab-sync .chrab-sync-result.fail {
+  color: #c0392b;
+}
+
+.chrab-sync .chrab-sync-message {
+  margin: 0;
+  font-style: italic;
+}
+
+.chrab-sync .chrab-sync-footer {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.chrab-sync .chrab-sync-primary {
+  font-weight: bold;
+}
+
+.chrab-sync-open {
+  flex: 1 1 100%;
+}

@@ -32,6 +32,29 @@ jobs:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
+      # Chrab Sync Foundry module, served from the site so Foundry can install
+      # and update it by manifest URL from any machine:
+      #   https://compendium.chrab.us/foundry/chrab-sync/module.json
+      # config.json carries the same public Supabase URL + anon key the site
+      # bundle already ships (not secrets - RLS and the sync account protect
+      # the data). The version's patch number is the run number, so every
+      # deploy shows up in Foundry's "Check for updates".
+      - name: Package Chrab Sync module
+        env:
+          SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          RUN_NUMBER: ${{ github.run_number }}
+        run: |
+          set -euo pipefail
+          src=foundry/chrab-sync
+          out=dist/foundry/chrab-sync
+          mkdir -p "$out"
+          cp -r "$src/scripts" "$src/styles" "$out/"
+          jq -n --arg url "$SUPABASE_URL" --arg key "$SUPABASE_ANON_KEY" '{supabaseUrl: $url, anonKey: $key}' > "$out/config.json"
+          base=$(jq -r .version "$src/module.json")
+          jq --arg v "${base%.*}.$RUN_NUMBER" '.version = $v' "$src/module.json" > "$out/module.json"
+          (cd "$out" && zip -qr ../chrab-sync.zip .)
+
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

@@ -1,6 +1,6 @@
 # NPC Forge — branch `npc-forge` (Phase 1)
 
-## What this branch is
+## What this is
 
 The first piece of a Foundry VTT actor editor built into Chrab-Corner, so NPCs can be made (and later PCs edited)
 without having the Foundry page open. Target environment: Foundry **14.368**, dnd5e **5.3.3**, world
@@ -35,18 +35,18 @@ Ground rules:
 | `src/components/dm/npc/ActionBuilder.jsx` | Statblock items grouped by section (Traits, Actions, Bonus Actions, Reactions, Legendary, Lair). Each item has rolls (attack / save / damage / heal / utility) and effects (conditions, DAE special durations). |
 | `src/components/dm/npc/StatblockPreview.jsx` | Live 2024-style statblock using the builder's math. |
 | `src/components/dm/npc/downloadActor.js` | Blob download as `fvtt-Actor-<slug>.json`. |
-| `supabase/migrations/20261028000000_npc_drafts.sql` | `npc_drafts` (id, name, cr, campaign_id, spec jsonb, timestamps). DM-only RLS via `is_dm()`. |
+| `supabase/migrations/20261029000000_npc_drafts.sql` | `npc_drafts` (id, name, cr, campaign_id, spec jsonb, timestamps). DM-only RLS via `is_dm()`. |
 | `src/App.jsx`, `src/components/dm/DMLayout.jsx`, `src/pages/dm/DMHome.jsx` | Routes, DM nav link, dashboard card. |
 | `src/index.css` | `npc-*` styles appended at the end. |
 | `package.json` | `"test"` script. |
 
-## Status when handed off
+## Status
 
-- `npm test` was run with Node 24: **6/6 pass**.
-- The builder generated sample actors (the Kraken variant and a goblin) whose statblock text checked out.
-- **Not yet verified:** the React pages have never been compiled or rendered. The PC they were written on had no
-  Node install. Expect possible small JSX or import errors. This is the main thing to check.
-- **Not yet done:** the migration has not been pushed to Supabase. Nothing is committed beyond this branch.
+- Merged to `main` on 2026-10-21 (branch `npc-forge`, since deleted). Phase 2 is documented in
+  `docs/npc-forge-phase2.md`.
+- `npm test` covers the builder against the real Kraken export.
+- Since Phase 2, the draft flag is `flags['chrab-sync'].npcDraftId`. Phase 1 downloads used `chrab-corner`, and the
+  sync module still recognizes those.
 
 ## Verify
 

@@ -1,0 +1,4 @@
+{
+  "supabaseUrl": "https://YOUR-PROJECT.supabase.co",
+  "anonKey": "the public anon key (same as VITE_SUPABASE_ANON_KEY) - not the service_role key"
+}

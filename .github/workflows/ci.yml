@@ -1,0 +1,43 @@
+name: CI
+
+# Build + test every pull request before it can reach main (main deploys
+# straight to the live site via deploy.yml). This is also the only place code
+# gets compiled for work written on machines without Node - a red X here with
+# the log is the "does it even build" check.
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm test
+
+      - name: Check Chrab Sync module
+        run: |
+          set -euo pipefail
+          jq empty foundry/chrab-sync/module.json
+          for f in foundry/chrab-sync/scripts/*.mjs; do node --check "$f"; done
+
+      - run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
