@@ -21,7 +21,7 @@
   --idm-text: var(--text);
   --idm-text-muted: var(--text-muted);
 
-  font-family: 'Spectral', 'Georgia', 'Iowan Old Style', serif;
+  font-family: var(--font-body);
   background: var(--idm-bg);
   color: var(--idm-text);
 }

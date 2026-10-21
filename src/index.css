@@ -106,7 +106,8 @@
 
   --font-display: 'Cinzel', 'Georgia', serif;
   --font-nav: 'Cinzel Decorative', 'Cinzel', 'Georgia', serif;
-  font-family: 'Spectral', 'Georgia', 'Iowan Old Style', serif;
+  --font-body: 'Spectral', 'Georgia', 'Iowan Old Style', serif;
+  font-family: var(--font-body);
 }
 
 * {
@@ -425,7 +426,7 @@ h3 {
 }
 
 .session-toggle select {
-  font-family: 'Spectral', 'Georgia', 'Iowan Old Style', serif;
+  font-family: var(--font-body);
   font-size: 0.95rem;
   min-width: 130px;
 }
@@ -433,7 +434,7 @@ h3 {
 /* Matches .session-toggle select's scale so it reads as one toolbar
    instead of a bare link floating next to styled dropdowns. */
 .nav-signout {
-  font-family: 'Spectral', 'Georgia', 'Iowan Old Style', serif;
+  font-family: var(--font-body);
   font-size: 0.95rem;
   padding: 0.5rem 0.9rem;
   white-space: nowrap;
@@ -5966,4 +5967,182 @@ button.sg-toggle.is-on {
 
 .npc-statblock-abilities tbody tr:nth-child(odd) {
   background: var(--surface-2);
+}
+
+/* "Simple" view: a flat, dark, minimalist alternative to the Marginalia
+   parchment look, toggled from the nav (useTheme.js sets
+   data-theme="minimal" on <html>). Mostly a token swap - nearly every
+   color above reads a custom property - plus a handful of overrides that
+   strip the decorative layers (clouds, starfield, parchment, heading
+   flourishes) that tokens alone can't reach.
+
+   Every override is prefixed with :where(), which adds zero specificity,
+   so each one ties the rule it's replacing and wins only by coming later
+   in the file. That matters for `button` in particular: a plain
+   [data-theme] prefix would out-rank .link-button/.nav-hamburger and
+   friends and repaint every "plain" button as a solid accent block. */
+@layer base {
+
+:root[data-theme='minimal'] {
+  color-scheme: dark;
+
+  --backdrop: #0b0b0e;
+  --bg: #111116;
+  --surface: #18181f;
+  --surface-2: #212129;
+  --border: #33333f;
+  --text: #ececf3;
+  --text-muted: #a3a3c2;
+
+  --accent: #e11d48;
+  --accent-strong: #fb3b64;
+  --on-accent: #ffffff;
+
+  --accent-2: #15803d;
+  --accent-2-strong: #22c55e;
+  --on-accent-2: #ffffff;
+
+  --accent-red: #c2410c;
+  --accent-red-strong: #f97316;
+  --on-danger: #ffffff;
+
+  --accent-purple: #8b5cf6;
+  --accent-purple-strong: #a78bfa;
+  --on-accent-purple: #ffffff;
+
+  --shadow-glow-accent: 0 0 0 transparent;
+  --shadow-glow-accent-2: 0 0 0 transparent;
+  --shadow-glow-danger: 0 0 0 transparent;
+  --shadow-sm: 0 0 0 transparent;
+  --shadow-md: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.5);
+
+  --radius-md: 10px;
+  --radius-lg: 12px;
+
+  --font-body: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  --font-display: var(--font-body);
+  --font-nav: var(--font-body);
+}
+
+:where([data-theme='minimal']) body {
+  background-image: none;
+}
+
+:where([data-theme='minimal']) .cloud-backdrop,
+:where([data-theme='minimal']) .nav-starfield-viewport,
+:where([data-theme='minimal']) .view-header h1::before,
+:where([data-theme='minimal']) .view-header h1::after,
+:where([data-theme='minimal']) .home-section-header h2::before,
+:where([data-theme='minimal']) .home-section-header h2::after {
+  display: none;
+}
+
+:where([data-theme='minimal']) h1,
+:where([data-theme='minimal']) h2,
+:where([data-theme='minimal']) h3 {
+  letter-spacing: -0.01em;
+}
+
+:where([data-theme='minimal']) .view-header h1 {
+  margin-bottom: 0.5rem;
+  padding-bottom: 0;
+}
+
+/* Nav: a thin flat bar instead of the tall animated starfield strip. */
+:where([data-theme='minimal']) .nav {
+  padding: 1rem 2rem;
+  background: var(--backdrop);
+}
+
+:where([data-theme='minimal']) .nav-brand {
+  font-size: 1.2rem;
+  color: var(--text);
+}
+
+:where([data-theme='minimal']) .nav-brand:hover {
+  color: var(--accent-strong);
+  transform: none;
+}
+
+:where([data-theme='minimal']) .nav-links {
+  gap: 1.25rem;
+  font-size: 0.95rem;
+}
+
+:where([data-theme='minimal']) .nav-right {
+  font-size: 0.95rem;
+}
+
+:where([data-theme='minimal']) .nav-links a,
+:where([data-theme='minimal']) .nav-right a,
+:where([data-theme='minimal']) .dm-subnav a {
+  color: var(--text-muted);
+}
+
+:where([data-theme='minimal']) .nav-links a.active,
+:where([data-theme='minimal']) .nav-links a:hover,
+:where([data-theme='minimal']) .nav-right a.active,
+:where([data-theme='minimal']) .nav-right a:hover,
+:where([data-theme='minimal']) .dm-subnav a.active,
+:where([data-theme='minimal']) .dm-subnav a:hover {
+  color: var(--text);
+  transform: none;
+}
+
+:where([data-theme='minimal']) .nav-hamburger {
+  color: var(--text);
+}
+
+:where([data-theme='minimal']) .dm-subnav {
+  padding: 0.75rem 2rem;
+  background: var(--backdrop);
+}
+
+/* Pages: a plain dark column, no parchment sheet or drop shadow. */
+:where([data-theme='minimal']) .page,
+:where([data-theme='minimal']) .page-wide {
+  background: var(--bg);
+  box-shadow: none;
+}
+
+/* Buttons and cards: solid fills, no lift-on-hover. */
+:where([data-theme='minimal']) button {
+  background: var(--accent);
+  box-shadow: none;
+}
+
+:where([data-theme='minimal']) button:hover {
+  box-shadow: none;
+  transform: none;
+}
+
+:where([data-theme='minimal']) button.danger {
+  background: var(--danger);
+}
+
+:where([data-theme='minimal']) button.danger:hover {
+  box-shadow: none;
+}
+
+:where([data-theme='minimal']) .character-hub-tabs button.active {
+  background: var(--accent);
+}
+
+:where([data-theme='minimal']) .entry-card::before {
+  width: 3px;
+}
+
+:where([data-theme='minimal']) .entry-card:hover {
+  transform: none;
+}
+
+/* Matches .nav-signout so the two read as one toolbar. */
+.nav-theme-toggle {
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  padding: 0.5rem 0.9rem;
+  white-space: nowrap;
+}
+
 }

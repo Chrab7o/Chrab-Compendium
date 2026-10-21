@@ -5,6 +5,7 @@ import { useCampaignContext } from '../contexts/CampaignContext'
 import { useImpersonation } from '../contexts/ImpersonationContext'
 import { MenuIcon, CloseIcon } from './Icons'
 import NavStarfield from './NavStarfield'
+import { useTheme } from '../hooks/useTheme'
 
 export default function Nav() {
   const navigate = useNavigate()
@@ -14,6 +15,7 @@ export default function Nav() {
   const { impersonating, stopImpersonating } = useImpersonation()
   const worldCampaigns = campaigns.filter((c) => c.world_id === worldId)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const { theme, toggleTheme } = useTheme()
 
   // Nav persists across route changes, so the mobile menu needs an explicit
   // close on navigation rather than unmounting with the old page.
@@ -113,6 +115,14 @@ export default function Nav() {
               )}
             </div>
           )}
+          <button
+            type="button"
+            className="secondary nav-theme-toggle"
+            aria-pressed={theme === 'minimal'}
+            onClick={toggleTheme}
+          >
+            {theme === 'minimal' ? 'Classic view' : 'Simple view'}
+          </button>
           {(isDM || isPlayer) && (
             <button type="button" className="secondary nav-signout" onClick={signOut}>
               Sign out
