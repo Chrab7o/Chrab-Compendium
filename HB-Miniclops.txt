@@ -1,0 +1,37 @@
+
+
+# Miniclops
+:
+
+## Background
+The Miniclops is a slightly smaller varient of the cyclopse. Sporting high strength in exchange for reduced vision and reflexes.
+
+
+
+
+
+
+## Features
+**Ability Score Increase:**                   :: Two different ability scores of your choice increase by 2 and 1 respectivily.
+:
+**Age:**     :: Miniclops have  long life spans. They reach maturity around age 90 and die at 350 - 400 years old.
+:
+**Alignment:** :: Miniclops's are agressive. They are often chaotic and hot headed. They are staunch protectors of those who they respect, and quick to put disrespectful people in their place.
+:
+**Size:**                   :: Large
+:
+**Speed**     :: You have a speed of 20
+:
+**Languages:** :: You can read speak and write common, and Arician.
+:
+**One eyed:** :: You have disadvantage on hitting creatures with ranged attacks.
+:
+**Long armed:** :: When using a melee weapon or touch range spell you have a range of 10ft. Addtionally you deal an additonal 1d6 bludegoning damage.
+
+**Large Sized:** :: Being of a large size you might have a hard time fitting into cave entrances and low buildings. You cannot wear most armor types, and require custom armor. You have a native plus 2 to constitution.
+
+
+
+
+
+

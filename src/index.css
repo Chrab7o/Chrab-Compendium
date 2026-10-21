@@ -5835,3 +5835,135 @@ button.sg-toggle.is-on {
   font-size: var(--text-sm);
   padding: 0.35rem 0.8rem;
 }
+
+/* NPC Forge (/dm/npc-forge): editor form on the left, live statblock pinned
+   on the right; stacks below ~1100px so the form keeps usable widths. */
+.npc-forge-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 380px);
+  gap: 1.5rem;
+  align-items: start;
+}
+
+@media (max-width: 1100px) {
+  .npc-forge-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.npc-skill-grid {
+  width: 100%;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+
+.npc-section {
+  margin-bottom: 1rem;
+}
+
+.npc-section .dm-panel-header h3 {
+  margin: 0;
+}
+
+.npc-activity {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.75rem;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.npc-damage-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  align-items: flex-start;
+}
+
+.npc-damage-row {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.npc-small-button {
+  font-size: var(--text-sm);
+  padding: 0.3rem 0.7rem;
+}
+
+.npc-item-actions {
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.npc-item-actions-spacer {
+  flex: 1;
+}
+
+.npc-statblock {
+  position: sticky;
+  top: 1rem;
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-top: 4px solid var(--accent);
+  border-radius: var(--radius-sm);
+  padding: 1rem 1.2rem;
+  box-shadow: var(--shadow-sm);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.npc-statblock h2 {
+  margin: 0;
+  color: var(--accent);
+}
+
+.npc-statblock h3 {
+  margin: 0.9rem 0 0.3rem;
+  border-bottom: 1px solid var(--accent);
+  color: var(--accent);
+  font-size: 1rem;
+}
+
+.npc-statblock p {
+  margin: 0.25rem 0;
+}
+
+.npc-statblock hr {
+  border: 0;
+  border-top: 2px solid var(--accent);
+  margin: 0.5rem 0;
+}
+
+.npc-statblock-sub {
+  font-style: italic;
+  color: var(--text-muted);
+}
+
+.npc-statblock-muted {
+  color: var(--text-muted);
+}
+
+.npc-statblock-gap {
+  margin-left: 0.8rem;
+}
+
+.npc-statblock-abilities {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.5rem 0;
+  text-align: center;
+}
+
+.npc-statblock-abilities th,
+.npc-statblock-abilities td {
+  padding: 0.15rem 0.3rem;
+}
+
+.npc-statblock-abilities tbody tr:nth-child(odd) {
+  background: var(--surface-2);
+}
