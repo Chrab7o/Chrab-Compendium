@@ -434,7 +434,7 @@ export default function NpcEditor() {
           </div>
 
           <h2>Statblock</h2>
-          <ActionBuilder items={spec.items} onChange={(items) => set({ items })} />
+          <ActionBuilder spec={spec} items={spec.items} onChange={(items) => set({ items })} />
 
           <h2>Token &amp; art</h2>
           <p className="status-message">

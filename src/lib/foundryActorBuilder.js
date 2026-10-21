@@ -92,6 +92,114 @@ export const ACTIVITY_KINDS = [
 
 export const AREA_TYPES = ['radius', 'sphere', 'cylinder', 'cone', 'line', 'cube', 'square', 'wall']
 
+// An activity normally takes its activation from the item's section; these
+// let one roll differ (a Reaction tucked into an Action, say).
+export const ACTIVATION_TYPES = [
+  { key: '', label: 'Same as section' },
+  { key: 'action', label: 'Action' },
+  { key: 'bonus', label: 'Bonus action' },
+  { key: 'reaction', label: 'Reaction' },
+  { key: 'special', label: 'Special / free' },
+  { key: 'legendary', label: 'Legendary action' },
+  { key: 'lair', label: 'Lair action' },
+]
+
+// target.affects.type. Midi-qol reads enemy / ally to auto-target only those
+// tokens inside an area template.
+export const TARGET_TYPES = [
+  { key: 'creature', label: 'Any creature' },
+  { key: 'enemy', label: 'Enemies only' },
+  { key: 'ally', label: 'Allies only' },
+  { key: 'willing', label: 'Willing creature' },
+  { key: 'self', label: 'Self' },
+  { key: 'object', label: 'Object' },
+  { key: 'any', label: 'Anything' },
+]
+
+// What an activity can spend besides its own item's uses. 'item' points at
+// another item on this NPC by key (a shared pool like Ki or Focus Points).
+export const SPEND_SOURCES = [
+  { key: 'item', label: 'Another feature’s uses' },
+  { key: 'legact', label: 'Legendary actions', target: 'resources.legact.value' },
+  { key: 'legres', label: 'Legendary resistances', target: 'resources.legres.value' },
+  { key: 'hp', label: 'Hit points', target: 'attributes.hp.value' },
+  { key: 'attribute', label: 'Other attribute…' },
+]
+
+// @references a formula can use, resolved against this NPC's roll data.
+// dnd5e builds the same paths at roll time, so the formula stays live in
+// Foundry while the editor shows what it currently comes to.
+export const FORMULA_REFS = [
+  { ref: '@mod', label: 'This roll’s ability modifier', group: 'Roll' },
+  { ref: '@prof', label: 'Proficiency bonus', group: 'Creature' },
+  { ref: '@details.cr', label: 'Challenge rating', group: 'Creature' },
+  { ref: '@attributes.hp.max', label: 'Max hit points', group: 'Creature' },
+  ...['str', 'dex', 'con', 'int', 'wis', 'cha'].flatMap((a) => [
+    { ref: `@abilities.${a}.mod`, label: `${a.toUpperCase()} modifier`, group: 'Abilities' },
+    { ref: `@abilities.${a}.value`, label: `${a.toUpperCase()} score`, group: 'Abilities' },
+  ]),
+]
+
+// v14 ActiveEffect change types (system.changes[].type). The numeric
+// mode/priority pairs of older Foundry are gone.
+export const CHANGE_TYPES = [
+  { key: 'add', label: 'Add' },
+  { key: 'override', label: 'Set to' },
+  { key: 'upgrade', label: 'At least' },
+  { key: 'downgrade', label: 'At most' },
+  { key: 'multiply', label: 'Multiply by' },
+  { key: 'custom', label: 'Custom' },
+]
+
+export const MOVEMENT_TYPES = ['walk', 'fly', 'swim', 'climb', 'burrow']
+export const SENSE_TYPES = ['darkvision', 'blindsight', 'tremorsense', 'truesight']
+export const ATTACK_BONUS_KINDS = { mwak: 'Melee weapon', rwak: 'Ranged weapon', msak: 'Melee spell', rsak: 'Ranged spell' }
+
+// Guided effect changes. `path` may hold one {param} filled from `param`'s
+// option list; `value` says which input the editor shows. Midi-qol flags are
+// switches (value 1, type custom), as in the world's existing effects.
+export const EFFECT_CHANGES = [
+  { id: 'ac', group: 'Defense', label: 'AC bonus', path: 'system.attributes.ac.bonus', types: ['add'], value: 'formula', placeholder: '+2' },
+  { id: 'resist', group: 'Defense', label: 'Resistance', path: 'system.traits.dr.value', types: ['add'], value: 'damageType' },
+  { id: 'immune', group: 'Defense', label: 'Damage immunity', path: 'system.traits.di.value', types: ['add'], value: 'damageType' },
+  { id: 'vulnerable', group: 'Defense', label: 'Vulnerability', path: 'system.traits.dv.value', types: ['add'], value: 'damageType' },
+  { id: 'condImmune', group: 'Defense', label: 'Condition immunity', path: 'system.traits.ci.value', types: ['add'], value: 'condition' },
+  { id: 'saveAll', group: 'Defense', label: 'Bonus to all saving throws', path: 'system.bonuses.abilities.save', types: ['add'], value: 'formula', placeholder: '+1' },
+  { id: 'saveOne', group: 'Defense', label: 'Bonus to one saving throw', path: 'system.abilities.{param}.bonuses.save', param: 'ability', types: ['add'], value: 'formula', placeholder: '+2' },
+  { id: 'hpMax', group: 'Defense', label: 'Max HP bonus', path: 'system.attributes.hp.bonuses.overall', types: ['add'], value: 'formula', placeholder: '10' },
+
+  { id: 'attackBonus', group: 'Offense', label: 'Attack roll bonus', path: 'system.bonuses.{param}.attack', param: 'attackKind', types: ['add'], value: 'formula', placeholder: '+1' },
+  { id: 'damageBonus', group: 'Offense', label: 'Damage bonus', path: 'system.bonuses.{param}.damage', param: 'attackKind', types: ['add'], value: 'formula', placeholder: '1d4' },
+  { id: 'spellDc', group: 'Offense', label: 'Spell save DC bonus', path: 'system.bonuses.spell.dc', types: ['add'], value: 'formula', placeholder: '+1' },
+
+  { id: 'abilityScore', group: 'Abilities & movement', label: 'Ability score', path: 'system.abilities.{param}.value', param: 'ability', types: ['add', 'override', 'upgrade', 'downgrade'], value: 'number' },
+  { id: 'checkAll', group: 'Abilities & movement', label: 'Bonus to all ability checks', path: 'system.bonuses.abilities.check', types: ['add'], value: 'formula', placeholder: '+1' },
+  { id: 'init', group: 'Abilities & movement', label: 'Initiative bonus', path: 'system.attributes.init.bonus', types: ['add'], value: 'formula', placeholder: '+5' },
+  { id: 'speed', group: 'Abilities & movement', label: 'Speed', path: 'system.attributes.movement.{param}', param: 'movement', types: ['add', 'override', 'upgrade', 'multiply'], value: 'number' },
+  { id: 'sense', group: 'Abilities & movement', label: 'Sense range', path: 'system.attributes.senses.ranges.{param}', param: 'sense', types: ['upgrade', 'override'], value: 'number' },
+
+  { id: 'advAttack', group: 'Midi-QOL', label: 'Advantage on its attacks', path: 'flags.midi-qol.advantage.attack.all', types: ['custom'], value: 'flag' },
+  { id: 'disAttack', group: 'Midi-QOL', label: 'Disadvantage on its attacks', path: 'flags.midi-qol.disadvantage.attack.all', types: ['custom'], value: 'flag' },
+  { id: 'grantsAdv', group: 'Midi-QOL', label: 'Attacks against it have advantage', path: 'flags.midi-qol.grants.advantage.attack.all', types: ['custom'], value: 'flag' },
+  { id: 'grantsDis', group: 'Midi-QOL', label: 'Attacks against it have disadvantage', path: 'flags.midi-qol.grants.disadvantage.attack.all', types: ['custom'], value: 'flag' },
+  { id: 'grantsCrit', group: 'Midi-QOL', label: 'Hits against it are critical', path: 'flags.midi-qol.grants.critical.all', types: ['custom'], value: 'flag' },
+  { id: 'advSave', group: 'Midi-QOL', label: 'Advantage on saving throws', path: 'flags.midi-qol.advantage.ability.save.{param}', param: 'abilityOrAll', types: ['custom'], value: 'flag' },
+  { id: 'disSave', group: 'Midi-QOL', label: 'Disadvantage on saving throws', path: 'flags.midi-qol.disadvantage.ability.save.{param}', param: 'abilityOrAll', types: ['custom'], value: 'flag' },
+  { id: 'magicRes', group: 'Midi-QOL', label: 'Magic resistance (advantage vs. spells)', path: 'flags.midi-qol.magicResistance.all', types: ['custom'], value: 'flag' },
+  { id: 'superSaver', group: 'Midi-QOL', label: 'Evasion (no damage on a successful save)', path: 'flags.midi-qol.superSaver.{param}', param: 'abilityOrAll', types: ['custom'], value: 'flag' },
+  { id: 'overTime', group: 'Midi-QOL', label: 'Over time (save / damage each turn)', path: 'flags.midi-qol.OverTime', types: ['override'], value: 'overTime' },
+
+  { id: 'custom', group: 'Other', label: 'Other attribute (type the path)', path: '', types: CHANGE_TYPES.map((t) => t.key), value: 'text' },
+]
+
+export const CHANGE_PARAMS = {
+  ability: NPC_ABILITIES.map((a) => ({ key: a, label: a.toUpperCase() })),
+  abilityOrAll: [{ key: 'all', label: 'All' }, ...NPC_ABILITIES.map((a) => ({ key: a, label: a.toUpperCase() }))],
+  attackKind: Object.entries(ATTACK_BONUS_KINDS).map(([key, label]) => ({ key, label })),
+  movement: MOVEMENT_TYPES.map((m) => ({ key: m, label: m[0].toUpperCase() + m.slice(1) })),
+  sense: SENSE_TYPES.map((s) => ({ key: s, label: s[0].toUpperCase() + s.slice(1) })),
+}
+
 // Senses that also give the token a detection mode, so it sees what it should.
 const SENSE_DETECTION = { truesight: 'seeAll', blindsight: 'blindsight', tremorsense: 'feelTremor' }
 
@@ -142,10 +250,23 @@ export function crLabel(cr) {
 
 export const CR_OPTIONS = [0, 0.125, 0.25, 0.5, ...Array.from({ length: 30 }, (_, i) => i + 1)]
 
+function lookup(data, path) {
+  return path.split('.').reduce((obj, key) => (obj == null ? undefined : obj[key]), data)
+}
+
+// "@abilities.str.mod + 2" -> "4 + 2" with this creature's numbers. Unknown
+// references become 0, the same as Foundry rolls them.
+export function resolveRefs(formula, data = {}) {
+  return String(formula ?? '').replace(/@([\w.]+)/g, (_, path) => {
+    const value = lookup(data, path.replace(/\.$/, ''))
+    return String(typeof value === 'number' ? value : 0)
+  })
+}
+
 // "26d20 + 208" -> 481. Dice average rounds down per standard statblocks.
 export function averageFormula(formula, data = {}) {
   if (!formula) return 0
-  const expr = String(formula).replace(/@(\w+)/g, (_, key) => String(data[key] ?? 0))
+  const expr = resolveRefs(formula, data)
   let total = 0
   const terms = expr.replace(/\s+/g, '').match(/[+-]?[^+-]+/g) ?? []
   for (const term of terms) {
@@ -222,11 +343,40 @@ export function emptyActivity(kind = 'attack') {
     targetType: 'creature',
     areaType: '',
     areaSize: '',
+    // custom activities
+    name: '', // shown on the sheet and in chat; blank = Foundry's default ("Attack", "Save")
+    activation: '', // '' = from the item's section, else an ACTIVATION_TYPES key
+    spend: [], // emptySpend() rows, on top of the item's own uses
+    // midi-qol
+    triggerKey: '', // key of another activity on this item to roll after this one
+    triggerOnlyIf: '', // '' always | 'hit' | 'failedSave'
   }
 }
 
+export function emptySpend() {
+  return { key: randomId(), source: 'item', target: '', amount: '1' }
+}
+
 export function emptyEffect() {
-  return { key: randomId(), name: '', statuses: [], passive: false, onSave: false, specialDuration: [] }
+  // appliedBy: activity keys that apply this effect; empty = every roll on the item
+  return { key: randomId(), name: '', statuses: [], passive: false, onSave: false, specialDuration: [], changes: [], appliedBy: [] }
+}
+
+export function emptyOverTime() {
+  return { turn: 'end', saveAbility: 'con', saveDc: '', damage: '', damageType: '', saveRemoves: true }
+}
+
+export function emptyChange(id = 'ac') {
+  const def = EFFECT_CHANGES.find((c) => c.id === id) ?? EFFECT_CHANGES[0]
+  return {
+    key: randomId(),
+    id: def.id,
+    param: def.param ? CHANGE_PARAMS[def.param][0].key : '',
+    type: def.types[0],
+    value: '',
+    path: '', // custom only
+    overTime: def.value === 'overTime' ? emptyOverTime() : null,
+  }
 }
 
 export function emptyNpcItem(section = 'action') {
@@ -241,6 +391,7 @@ export function emptyNpcItem(section = 'action') {
     usesMax: '',
     usesRecovery: '', // '' | 'lr' | 'sr' | 'day' | 'recharge'
     rechargeOn: 5,
+    magical: false, // 'mgc' property + midi magicDamage/magicEffect on every roll
     activities: section === 'trait' ? [] : [emptyActivity('attack')],
     effects: [],
   }
@@ -281,9 +432,19 @@ export const emptyNpcSpec = () => ({
 // ---------------------------------------------------------------------------
 // Derived numbers the preview and the builder both use
 
+// Flat ability mods (data.str) for the builder's own math, plus the nested
+// paths dnd5e's roll data uses (data.abilities.str.mod) for @references.
 export function npcRollData(spec) {
-  const data = { prof: proficiencyForCr(spec.cr) }
-  for (const a of NPC_ABILITIES) data[a] = abilityMod(spec.abilities?.[a])
+  const data = {
+    prof: proficiencyForCr(spec.cr),
+    abilities: {},
+    details: { cr: Number(spec.cr) || 0 },
+    attributes: { hp: { max: npcMaxHp(spec) } },
+  }
+  for (const a of NPC_ABILITIES) {
+    data[a] = abilityMod(spec.abilities?.[a])
+    data.abilities[a] = { mod: data[a], value: Number(spec.abilities?.[a]) || 10 }
+  }
   return data
 }
 
@@ -315,23 +476,64 @@ export function saveDc(spec, activity) {
 // ---------------------------------------------------------------------------
 // Activities
 
-function activationFor(item) {
+function activationFor(item, activity) {
   const section = ITEM_SECTIONS.find((s) => s.key === item.section) ?? ITEM_SECTIONS[1]
-  const activation = { type: section.activation, value: 1, override: false }
-  if (section.activation === 'legendary') activation.value = Number(item.legendaryCost) || 1
-  if (section.activation === 'special') delete activation.value
+  const type = activity?.activation || section.activation
+  const activation = { type, value: 1, override: false }
+  if (type === 'legendary') activation.value = Number(item.legendaryCost) || 1
+  if (type === 'special') delete activation.value
   return activation
 }
 
-function consumptionFor(item) {
+// One "also spends" row -> a dnd5e consumption target.
+export function spendTarget(spend) {
+  const amount = String(spend.amount ?? '').trim() || '1'
+  if (spend.source === 'item') return spend.target ? { type: 'itemUses', target: spend.target, value: amount, scaling: {} } : null
+  const fixed = SPEND_SOURCES.find((s) => s.key === spend.source)?.target
+  const target = fixed ?? String(spend.target ?? '').trim().replace(/^@/, '').replace(/^system\./, '')
+  return target ? { type: 'attribute', target, value: amount, scaling: {} } : null
+}
+
+function consumptionFor(item, activity) {
   const targets = []
-  if (item.section === 'legendary') {
+  const legendary = (activity?.activation || item.section) === 'legendary'
+  const spendsLegact = (activity?.spend ?? []).some((s) => s.source === 'legact')
+  if (legendary && !spendsLegact) {
     targets.push({ type: 'attribute', target: 'resources.legact.value', value: String(Number(item.legendaryCost) || 1), scaling: {} })
   }
   if (item.usesRecovery || item.usesMax) {
     targets.push({ type: 'itemUses', target: '', value: '1', scaling: {} })
   }
+  for (const spend of activity?.spend ?? []) {
+    const target = spendTarget(spend)
+    if (target) targets.push(target)
+  }
   return { scaling: { allowed: false }, spellSlot: true, targets }
+}
+
+// Midi-qol's per-activity settings. Only what we set is written; midi's
+// DataModel fills the rest of its defaults on import.
+const TRIGGER_CONDITIONS = {
+  hit: 'workflow.hitTargets.size > 0',
+  failedSave: 'workflow.failedSaves.size > 0',
+}
+
+function midiPropertiesFor(item, activity, ids, triggered) {
+  const props = {}
+  if (item.magical) Object.assign(props, { magicDamage: true, magicEffect: true })
+  const triggerId = activity.triggerKey && activity.triggerKey !== activity.key ? ids[activity.triggerKey] : null
+  if (triggerId) {
+    Object.assign(props, {
+      triggeredActivityId: triggerId,
+      triggeredActivityConditionText: TRIGGER_CONDITIONS[activity.triggerOnlyIf] ?? '',
+      triggeredActivityTargets: 'targets',
+      triggeredActivityRollAs: 'self',
+    })
+  }
+  // A roll that only ever happens as another roll's trigger stays off the
+  // activity picker when the item is used.
+  if (triggered) props.automationOnly = true
+  return Object.keys(props).length ? props : null
 }
 
 function targetFor(activity) {
@@ -363,21 +565,23 @@ function damageParts(rows) {
   return (rows ?? []).filter((r) => String(r.formula ?? '').trim() !== '').map(damagePart)
 }
 
-function buildActivity(item, activity, effectRefs, index) {
-  const _id = idFor(activity)
+function buildActivity(item, activity, effectRefs, index, ids = {}, triggered = false) {
+  const _id = ids[activity.key] ?? idFor(activity)
   const common = {
     _id,
     type: activity.kind,
-    name: '',
+    name: String(activity.name ?? '').trim(),
     sort: index * 100000,
-    activation: activationFor(item),
-    consumption: consumptionFor(item),
+    activation: activationFor(item, activity),
+    consumption: consumptionFor(item, activity),
     duration: { units: 'inst', concentration: false, override: false },
     range: rangeFor(activity),
     target: targetFor(activity),
     uses: { spent: 0, recovery: [] },
     effects: effectRefs,
   }
+  const midi = midiPropertiesFor(item, activity, ids, triggered)
+  if (midi) common.midiProperties = midi
 
   switch (activity.kind) {
     case 'attack': {
@@ -431,7 +635,7 @@ function damageText(spec, activity, rows) {
   return (rows ?? [])
     .filter((r) => String(r.formula ?? '').trim() !== '')
     .map((r) => {
-      const shown = String(r.formula).replace(/@mod/g, String(rollData.mod)).replace(/\s+/g, ' ')
+      const shown = resolveRefs(r.formula, rollData).replace(/\s+/g, ' ').replace(/\+ -/g, '- ')
       const avg = averageFormula(r.formula, rollData)
       const types = (r.types ?? []).map((t) => t[0].toUpperCase() + t.slice(1)).join(' or ')
       return `${avg} (${shown})${types ? ` ${types}` : ''} damage`
@@ -439,7 +643,33 @@ function damageText(spec, activity, rows) {
     .join(' plus ')
 }
 
+// "Costs 2 Focus" for the rows an activity spends beyond its own uses.
+export function spendText(spec, activity) {
+  const parts = (activity.spend ?? [])
+    .map((s) => {
+      const amount = String(s.amount ?? '').trim() || '1'
+      if (s.source === 'item') {
+        const pool = (spec.items ?? []).find((i) => i.key === s.target)
+        return pool ? `${amount} ${pool.name || 'uses'}` : ''
+      }
+      if (s.source === 'attribute') return s.target ? `${amount} ${s.target}` : ''
+      const label = { legact: 'Legendary Actions', legres: 'Legendary Resistances', hp: 'Hit Points' }[s.source]
+      return label ? `${amount} ${label}` : ''
+    })
+    .filter(Boolean)
+  return parts.length ? `Costs ${parts.join(' and ')}` : ''
+}
+
 export function activitySummary(spec, activity) {
+  const body = activityBody(spec, activity)
+  const name = String(activity.name ?? '').trim()
+  const cost = spendText(spec, activity)
+  const head = [name, cost && `(${cost})`].filter(Boolean).join(' ')
+  if (!head) return body
+  return `${head}${name ? '.' : ''} ${body}`.trim()
+}
+
+function activityBody(spec, activity) {
   switch (activity.kind) {
     case 'attack': {
       const kind = `${activity.attackType === 'ranged' ? 'Ranged' : 'Melee'} ${activity.classification === 'spell' ? 'Spell ' : ''}Attack Roll`
@@ -461,33 +691,77 @@ export function activitySummary(spec, activity) {
       const dmg = damageText(spec, activity, activity.damage)
       return dmg ? `${dmg}.` : ''
     }
-    case 'heal':
-      return activity.healing ? `Regains ${averageFormula(activity.healing, npcRollData(spec))} (${activity.healing}) Hit Points.` : ''
+    case 'heal': {
+      const data = npcRollData(spec)
+      return activity.healing ? `Regains ${averageFormula(activity.healing, data)} (${resolveRefs(activity.healing, data)}) Hit Points.` : ''
+    }
     default:
       return ''
   }
 }
 
-export function usesLabel(item) {
+// Uses max may be a formula ("@prof"); the label shows what it comes to.
+export function usesLabel(item, spec = null) {
   if (item.usesRecovery === 'recharge') return `Recharge ${item.rechargeOn >= 6 ? '6' : `${item.rechargeOn || 5}–6`}`
   if (!item.usesMax) return ''
   const per = { lr: 'Long Rest', sr: 'Short Rest', day: 'Day' }[item.usesRecovery] ?? 'Day'
-  return `${item.usesMax}/${per}`
+  const max = spec && /[@d]/.test(String(item.usesMax)) ? averageFormula(item.usesMax, npcRollData(spec)) : item.usesMax
+  return `${max}/${per}`
 }
 
 // ---------------------------------------------------------------------------
 // Items and effects
 
-function buildEffect(effect, item) {
+// Midi-qol's OverTime value, e.g. "turn=end, label=Venom, saveAbility=con,
+// saveDC=13, saveRemove=true, damageRoll=2d6, damageType=poison". Midi reads
+// it on the affected creature, so @references would resolve against the
+// target - the DC and damage are baked into numbers from this NPC instead. A
+// blank DC uses the item's first saving throw.
+export function overTimeValue(spec, item, effect, ot) {
+  const data = npcRollData(spec)
+  const parts = [`turn=${ot.turn === 'start' ? 'start' : 'end'}`, `label=${(effect.name || item.name || 'Effect').replace(/[,=]/g, ' ')}`]
+  if (ot.saveAbility) {
+    const firstSave = (item.activities ?? []).find((a) => a.kind === 'save')
+    const dc = String(ot.saveDc ?? '').trim() ? averageFormula(ot.saveDc, data) : firstSave ? saveDc(spec, firstSave) : 10
+    parts.push(`saveAbility=${ot.saveAbility}`, `saveDC=${dc}`, `saveRemove=${ot.saveRemoves !== false}`)
+  }
+  if (String(ot.damage ?? '').trim()) {
+    parts.push(`damageRoll=${resolveRefs(ot.damage, data).replace(/\s+/g, '')}`)
+    if (ot.damageType) parts.push(`damageType=${ot.damageType}`)
+  }
+  return parts.join(', ')
+}
+
+export function changePath(change) {
+  if (change.id === 'custom') return String(change.path ?? '').trim()
+  const def = EFFECT_CHANGES.find((c) => c.id === change.id)
+  return def ? def.path.replace('{param}', change.param || '') : ''
+}
+
+function buildChange(spec, item, effect, change) {
+  const def = EFFECT_CHANGES.find((c) => c.id === change.id)
+  const key = changePath(change)
+  if (!def || !key) return null
+  let value
+  if (def.value === 'flag') value = '1'
+  else if (def.value === 'overTime') value = overTimeValue(spec, item, effect, change.overTime ?? emptyOverTime())
+  else value = String(change.value ?? '').trim()
+  if (value === '') return null
+  const type = def.types.includes(change.type) ? change.type : def.types[0]
+  return { key, value, type, phase: 'initial' }
+}
+
+function buildEffect(spec, effect, item) {
   const flags = {}
   if (effect.specialDuration?.length) flags.dae = { specialDuration: effect.specialDuration }
+  const changes = (effect.changes ?? []).map((c) => buildChange(spec, item, effect, c)).filter(Boolean)
   return {
     _id: idFor(effect),
     name: effect.name || item.name,
     img: effect.img || item.img || 'icons/svg/aura.svg',
     description: '',
     type: 'base',
-    system: { changes: [] },
+    system: { changes },
     statuses: (effect.statuses ?? []).filter((s) => CONDITIONS.includes(s)),
     disabled: false,
     transfer: !!effect.passive,
@@ -525,11 +799,21 @@ function defaultImg(item) {
 }
 
 export function buildNpcItem(spec, item, index = 0) {
-  const effects = (item.effects ?? []).filter((e) => e.name || e.statuses?.length).map((e) => buildEffect(e, item))
-  const effectRefs = effects.filter((e) => !e.transfer).map((e) => ({ _id: e._id, level: {} }))
+  const kept = (item.effects ?? []).filter((e) => e.name || e.statuses?.length || e.changes?.length)
+  const effects = kept.map((e) => buildEffect(spec, e, item))
+  // An effect lands from every roll unless appliedBy names the ones it
+  // belongs to (the Stun save, not the Strike that triggers it).
+  const refsFor = (activity) =>
+    kept
+      .map((e, i) => [e, effects[i]])
+      .filter(([e, built]) => !built.transfer && (!e.appliedBy?.length || e.appliedBy.includes(activity.key)))
+      .map(([, built]) => ({ _id: built._id, level: {} }))
+  // Ids first, so one activity can point at another (midi triggers).
+  const ids = Object.fromEntries((item.activities ?? []).map((a) => [a.key, idFor(a)]))
+  const triggeredKeys = new Set((item.activities ?? []).map((a) => a.triggerKey).filter(Boolean))
   const activities = {}
   ;(item.activities ?? []).forEach((activity, i) => {
-    const built = buildActivity(item, activity, effectRefs, i)
+    const built = buildActivity(item, activity, refsFor(activity), i, ids, triggeredKeys.has(activity.key))
     activities[built._id] = built
   })
 
@@ -544,7 +828,7 @@ export function buildNpcItem(spec, item, index = 0) {
     identifier: slugIdentifier(item.name),
     uses: usesFor(item),
     activities,
-    properties: [],
+    properties: item.magical ? ['mgc'] : [],
   }
   if (isWeapon) {
     Object.assign(system, {
@@ -807,11 +1091,64 @@ function partToRow(part) {
   return { formula, types: part?.types ?? [] }
 }
 
+// Pre-v14 effects stored a numeric mode instead of a type.
+const LEGACY_CHANGE_MODES = ['custom', 'multiply', 'add', 'downgrade', 'upgrade', 'override']
+
+function parseOverTime(value) {
+  const kv = Object.fromEntries(
+    String(value ?? '')
+      .split(',')
+      .map((part) => part.split('=').map((s) => s.trim()))
+      .filter(([k]) => k),
+  )
+  return {
+    turn: kv.turn === 'start' ? 'start' : 'end',
+    saveAbility: kv.saveAbility ?? '',
+    saveDc: kv.saveDC ?? '',
+    damage: kv.damageRoll ?? '',
+    damageType: kv.damageType ?? '',
+    saveRemoves: kv.saveRemove !== 'false',
+  }
+}
+
+// A Foundry change back onto the guided catalog, or the "Other" row.
+export function changeFromFoundry(change) {
+  const type = change.type ?? LEGACY_CHANGE_MODES[change.mode] ?? 'add'
+  const value = String(change.value ?? '')
+  const row = { ...emptyChange('custom'), type, value, path: change.key ?? '' }
+  for (const def of EFFECT_CHANGES) {
+    if (def.id === 'custom') continue
+    const pattern = new RegExp(`^${def.path.replace(/\./g, '\\.').replace('{param}', '(\\w+)')}$`)
+    const m = String(change.key ?? '').match(pattern)
+    if (!m) continue
+    if (def.param && !CHANGE_PARAMS[def.param].some((p) => p.key === m[1])) continue
+    return {
+      ...row,
+      id: def.id,
+      param: def.param ? m[1] : '',
+      type: def.types.includes(type) ? type : def.types[0],
+      value: def.value === 'flag' || def.value === 'overTime' ? '' : value,
+      path: '',
+      overTime: def.value === 'overTime' ? parseOverTime(value) : null,
+    }
+  }
+  return row
+}
+
+const TRIGGER_CONDITION_KEYS = Object.fromEntries(Object.entries(TRIGGER_CONDITIONS).map(([k, v]) => [v, k]))
+
 function foundryItemToNpcItem(item) {
   const sys = item.system ?? {}
   const acts = Object.values(sys.activities ?? {}).sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0))
   const section = ACTIVATION_TO_SECTION[acts[0]?.activation?.type] ?? 'trait'
+  const sectionActivation = ITEM_SECTIONS.find((s) => s.key === section)?.activation
   const recovery = sys.uses?.recovery?.[0]
+  const keyForId = Object.fromEntries(acts.map((act) => [act._id, isFoundryId(act._id) ? act._id : randomId()]))
+  // Rolls that apply an effect; empty when every roll does.
+  const appliedBy = (effectId) => {
+    const using = acts.filter((act) => (act.effects ?? []).some((ref) => ref._id === effectId))
+    return using.length === acts.length ? [] : using.map((act) => keyForId[act._id])
+  }
   const out = {
     key: isFoundryId(item._id) ? item._id : randomId(),
     name: item.name,
@@ -823,6 +1160,7 @@ function foundryItemToNpcItem(item) {
     usesMax: recovery?.period === 'recharge' ? '' : sys.uses?.max ?? '',
     usesRecovery: recovery?.period ?? '',
     rechargeOn: recovery?.period === 'recharge' ? Number(recovery.formula) || 5 : 5,
+    magical: (sys.properties ?? []).includes('mgc') || acts.some((a) => a.midiProperties?.magicDamage),
     effects: (item.effects ?? []).map((e) => ({
       key: isFoundryId(e._id) ? e._id : randomId(),
       name: e.name ?? '',
@@ -831,13 +1169,35 @@ function foundryItemToNpcItem(item) {
       passive: !!e.transfer,
       onSave: false,
       specialDuration: e.flags?.dae?.specialDuration ?? [],
+      changes: (e.system?.changes ?? e.changes ?? []).map(changeFromFoundry),
+      appliedBy: e.transfer ? [] : appliedBy(e._id),
     })),
     activities: [],
   }
 
   for (const act of acts) {
     const a = { ...emptyActivity(act.type === 'attack' || act.type === 'save' || act.type === 'damage' || act.type === 'heal' ? act.type : 'utility') }
-    a.key = isFoundryId(act._id) ? act._id : randomId()
+    a.key = keyForId[act._id]
+    a.name = act.name ?? ''
+    const actType = act.activation?.type
+    if (actType && actType !== sectionActivation && ACTIVATION_TYPES.some((t) => t.key === actType)) a.activation = actType
+    // Consumption beyond what the builder adds by itself (own uses, the
+    // section's legendary action cost) becomes "also spends" rows.
+    a.spend = (act.consumption?.targets ?? [])
+      .filter((t) => !(t.type === 'itemUses' && !t.target))
+      .filter((t) => !(t.type === 'attribute' && t.target === 'resources.legact.value' && (a.activation || sectionActivation) === 'legendary'))
+      .filter((t) => !(t.type === 'attribute' && t.target === 'resources.legres.value' && item.name === 'Legendary Resistance'))
+      .filter((t) => t.type === 'itemUses' || t.type === 'attribute')
+      .map((t) => {
+        const fixed = SPEND_SOURCES.find((s) => s.target && s.target === t.target)
+        const source = t.type === 'itemUses' ? 'item' : fixed ? fixed.key : 'attribute'
+        return { ...emptySpend(), source, target: fixed ? '' : t.target, amount: String(t.value ?? '1') }
+      })
+    const mp = act.midiProperties ?? {}
+    if (mp.triggeredActivityId && mp.triggeredActivityId !== 'none' && keyForId[mp.triggeredActivityId]) {
+      a.triggerKey = keyForId[mp.triggeredActivityId]
+      a.triggerOnlyIf = TRIGGER_CONDITION_KEYS[mp.triggeredActivityConditionText] ?? ''
+    }
     if (act.type === 'attack') {
       a.attackType = act.attack?.type?.value === 'ranged' ? 'ranged' : 'melee'
       a.classification = act.attack?.type?.classification || 'weapon'

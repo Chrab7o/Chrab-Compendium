@@ -8,11 +8,16 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import {
+  activitySummary,
   averageFormula,
   buildNpcActor,
+  changeFromFoundry,
   damagePart,
   emptyActivity,
+  emptyChange,
+  emptyEffect,
   emptyNpcItem,
+  emptySpend,
   emptyNpcSpec,
   npcActorToSpec,
   proficiencyForCr,
@@ -206,4 +211,164 @@ test('draft flag is scoped to the Chrab Sync module id, so the module can find t
   const actor = buildNpcActor(krakenSpec(), { draftId: 'draft-123' })
   assert.equal(actor.flags[moduleJson.id]?.npcDraftId, 'draft-123')
   assert.deepEqual(buildNpcActor(krakenSpec()).flags, {})
+})
+
+// A monk-style NPC using the custom-activity features: a shared Focus pool,
+// named rolls that spend from it, a reaction inside an Action item, a midi
+// trigger, guided effect changes and an over-time poison.
+function monkSpec() {
+  const spec = { ...emptyNpcSpec(), name: 'Drunken Master', cr: 5, abilities: { str: 10, dex: 18, con: 14, int: 10, wis: 16, cha: 10 } }
+  const focus = { ...emptyNpcItem('trait'), name: 'Focus', usesMax: '@prof', usesRecovery: 'sr', activities: [] }
+  const stun = act('save', { name: 'Stun', saveAbility: 'con', dcAbility: 'wis', onSave: 'none', damage: [] })
+  const strike = act('attack', {
+    name: 'Strike',
+    ability: 'dex',
+    damage: [{ formula: '1d8 + @abilities.dex.mod', types: ['bludgeoning'] }],
+    triggerKey: stun.key,
+    triggerOnlyIf: 'hit',
+  })
+  const deflect = act('heal', { name: 'Deflect', activation: 'reaction', healing: '1d10 + @abilities.dex.mod' })
+  const fist = {
+    ...emptyNpcItem('action'),
+    name: 'Stunning Fist',
+    magical: true,
+    activities: [strike, stun, deflect],
+    effects: [{ ...emptyEffect(), name: 'Stunned', statuses: ['stunned'], specialDuration: ['turnStartSource'], appliedBy: [stun.key] }],
+  }
+  const launch = {
+    ...emptyNpcItem('bonus'),
+    name: 'Launch',
+    activities: [1, 2].map((n) =>
+      act('damage', {
+        name: `${n * 10}ft Moved`,
+        damage: [{ formula: `${n}d4`, types: ['bludgeoning'] }],
+        spend: [{ ...emptySpend(), target: focus.key, amount: String(n) }],
+      })
+    ),
+  }
+  const venom = {
+    ...emptyNpcItem('action'),
+    name: 'Venom Dart',
+    activities: [act('save', { saveAbility: 'con', dc: 13, damage: [] })],
+    effects: [
+      {
+        ...emptyEffect(),
+        name: 'Envenomed',
+        changes: [
+          {
+            ...emptyChange('overTime'),
+            overTime: { turn: 'end', saveAbility: 'con', saveDc: '', damage: '2d6 + @abilities.con.mod', damageType: 'poison', saveRemoves: true },
+          },
+        ],
+      },
+    ],
+  }
+  const iron = {
+    ...emptyNpcItem('trait'),
+    name: 'Iron Body',
+    effects: [
+      {
+        ...emptyEffect(),
+        passive: true,
+        name: 'Iron Body',
+        changes: [
+          { ...emptyChange('ac'), value: '+2' },
+          { ...emptyChange('resist'), value: 'poison' },
+          { ...emptyChange('speed'), param: 'walk', type: 'upgrade', value: '40' },
+          { ...emptyChange('advSave'), param: 'dex' },
+          { ...emptyChange('custom'), path: 'system.attributes.hp.bonuses.level', type: 'add', value: '2' },
+          { ...emptyChange('ac'), value: '' }, // blank rows are dropped
+        ],
+      },
+    ],
+  }
+  spec.items = [focus, fist, launch, venom, iron]
+  return spec
+}
+
+test('custom activities: names, per-activity activation, spending from a shared pool', () => {
+  const spec = monkSpec()
+  const built = buildNpcActor(spec)
+  const focus = byName(built, 'Focus')
+  assert.equal(focus.system.uses.max, '@prof')
+
+  const launch = Object.values(byName(built, 'Launch').system.activities)
+  assert.deepEqual(launch.map((a) => a.name), ['10ft Moved', '20ft Moved'])
+  assert.deepEqual(launch[1].consumption.targets, [{ type: 'itemUses', target: focus._id, value: '2', scaling: {} }])
+  assert.equal(launch[0].activation.type, 'bonus')
+
+  const fist = Object.values(byName(built, 'Stunning Fist').system.activities)
+  assert.equal(fist[0].activation.type, 'action')
+  assert.equal(fist[2].activation.type, 'reaction')
+  assert.equal(activitySummary(spec, spec.items[2].activities[1]), '20ft Moved (Costs 2 Focus). 5 (2d4) Bludgeoning damage.')
+})
+
+test('midi-qol: triggers, automation-only targets, magical damage', () => {
+  const built = buildNpcActor(monkSpec())
+  const fist = byName(built, 'Stunning Fist')
+  const [strike, stun, deflect] = Object.values(fist.system.activities)
+  assert.equal(strike.midiProperties.triggeredActivityId, stun._id)
+  assert.equal(strike.midiProperties.triggeredActivityConditionText, 'workflow.hitTargets.size > 0')
+  assert.equal(stun.midiProperties.automationOnly, true)
+  assert.equal(strike.midiProperties.magicDamage, true)
+  assert.equal(deflect.midiProperties.automationOnly, undefined)
+  // Stunned lands from the Stun save only, not the Strike that triggers it.
+  assert.deepEqual([strike, stun, deflect].map((a) => a.effects.length), [0, 1, 0])
+  assert.equal(stun.effects[0].onSave, false)
+  assert.deepEqual(fist.system.properties, ['mgc'])
+  // Untouched items carry no midi block at all.
+  assert.equal(Object.values(byName(built, 'Launch').system.activities)[0].midiProperties, undefined)
+})
+
+test('effect changes use the v14 system.changes shape', () => {
+  const built = buildNpcActor(monkSpec())
+  const [iron] = byName(built, 'Iron Body').effects
+  assert.equal(iron.transfer, true)
+  assert.deepEqual(iron.system.changes, [
+    { key: 'system.attributes.ac.bonus', value: '+2', type: 'add', phase: 'initial' },
+    { key: 'system.traits.dr.value', value: 'poison', type: 'add', phase: 'initial' },
+    { key: 'system.attributes.movement.walk', value: '40', type: 'upgrade', phase: 'initial' },
+    { key: 'flags.midi-qol.advantage.ability.save.dex', value: '1', type: 'custom', phase: 'initial' },
+    { key: 'system.attributes.hp.bonuses.level', value: '2', type: 'add', phase: 'initial' },
+  ])
+  // Over time bakes this NPC's numbers in: DC from the item's save, +2 CON.
+  const [venom] = byName(built, 'Venom Dart').effects
+  assert.deepEqual(venom.system.changes, [
+    {
+      key: 'flags.midi-qol.OverTime',
+      value: 'turn=end, label=Envenomed, saveAbility=con, saveDC=13, saveRemove=true, damageRoll=2d6+2, damageType=poison',
+      type: 'override',
+      phase: 'initial',
+    },
+  ])
+})
+
+test('custom features survive a round trip through npcActorToSpec', () => {
+  const first = buildNpcActor(monkSpec())
+  const again = buildNpcActor(npcActorToSpec(first))
+  for (const name of ['Focus', 'Stunning Fist', 'Launch', 'Venom Dart', 'Iron Body']) {
+    const a = byName(first, name)
+    const b = byName(again, name)
+    assert.deepEqual(b.system.activities, a.system.activities, name)
+    assert.deepEqual(b.effects.map((e) => e.system.changes), a.effects.map((e) => e.system.changes), name)
+    assert.deepEqual(b.system.properties, a.system.properties, name)
+  }
+})
+
+test('changeFromFoundry maps shapes seen in the world onto the guided catalog', () => {
+  // Shapes from the world's exports (Tough, Unarmored Defense, Plutonium midi flags).
+  assert.equal(changeFromFoundry({ key: 'system.traits.dr.value', value: 'fire', type: 'add' }).id, 'resist')
+  const sv = changeFromFoundry({ key: 'flags.midi-qol.superSaver.dex', value: '1', type: 'custom' })
+  assert.deepEqual([sv.id, sv.param], ['superSaver', 'dex'])
+  const ac = changeFromFoundry({ key: 'system.attributes.ac.calc', value: 'unarmoredMonk', type: 'override' })
+  assert.deepEqual([ac.id, ac.path, ac.type, ac.value], ['custom', 'system.attributes.ac.calc', 'override', 'unarmoredMonk'])
+  assert.equal(changeFromFoundry({ key: 'system.bonuses.mwak.attack', value: '+2', mode: 2 }).type, 'add') // pre-v14 mode
+  const ot = changeFromFoundry({ key: 'flags.midi-qol.OverTime', value: 'turn=start, saveAbility=wis, saveDC=15, saveRemove=false', type: 'override' })
+  assert.deepEqual(ot.overTime, { turn: 'start', saveAbility: 'wis', saveDc: '15', damage: '', damageType: '', saveRemoves: false })
+})
+
+test('averageFormula resolves dotted @references', () => {
+  const data = { abilities: { str: { mod: 4 } }, prof: 3 }
+  assert.equal(averageFormula('2d6 + @abilities.str.mod + @prof', data), 14)
+  assert.equal(averageFormula('@nothing.here + 1', data), 1)
 })

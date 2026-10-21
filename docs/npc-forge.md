@@ -47,6 +47,17 @@ Ground rules:
 - `npm test` covers the builder against the real Kraken export.
 - Since Phase 2, the draft flag is `flags['chrab-sync'].npcDraftId`. Phase 1 downloads used `chrab-corner`, and the
   sync module still recognizes those.
+- **Custom activities** (branch `npc-forge-activities`) add these to the builder:
+  - An "@" reference picker on formula fields, with live resolved values.
+  - Per-roll labels and activation.
+  - "Also spends" rows: another feature's uses as a shared pool, legendary actions, HP, or any attribute.
+  - Per-effect "applied by" rolls.
+  - Guided effect changes written as v14 `system.changes`: `{ key, value, type, phase }`, no numeric mode.
+  - Curated midi-qol options: triggered activities, magical damage, `affects` enemy/ally auto-targeting, and
+    OverTime. OverTime bakes its DC and damage into numbers, because midi evaluates it on the target.
+
+  The catalogs (`EFFECT_CHANGES`, `FORMULA_REFS`, `SPEND_SOURCES`) live in `foundryActorBuilder.js`. Foundry checks run
+  from the sandbox repo: `probes/custom-activities.md` and `scripts/build-probe.mjs`.
 
 ## Verify
 

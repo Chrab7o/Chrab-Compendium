@@ -144,7 +144,7 @@ export default function StatblockPreview({ spec }) {
               </p>
             )}
             {items.map((item) => {
-              const uses = usesLabel(item)
+              const uses = usesLabel(item, spec)
               const cost = section.key === 'legendary' && Number(item.legendaryCost) > 1 ? `Costs ${item.legendaryCost} Actions` : ''
               const tag = [uses, cost].filter(Boolean).join('; ')
               const text = stripHtml(item.description) || (item.activities ?? []).map((a) => activitySummary(spec, a)).filter(Boolean).join(' ')
