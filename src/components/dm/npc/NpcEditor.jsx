@@ -109,7 +109,7 @@ export default function NpcEditor() {
     if (queue) {
       Object.assign(payload, {
         queued_actor: buildNpcActor(spec, { draftId }),
-        queued_at: new Date().toISOString(),
+        // queued_at is stamped by the npc_drafts_touch_spec trigger.
         sync_status: 'queued',
         sync_error: null,
       })

@@ -43,6 +43,10 @@ alter table npc_drafts
   -- changed - updated_at also moves when a sync result is recorded.
   add column if not exists spec_updated_at timestamptz not null default now();
 
+-- queued_at is stamped here too, not by the browser: a Send from the editor
+-- saves the spec and queues in one update, and both stamps must come from the
+-- same clock (now() is fixed per transaction) or the draft would read as
+-- "Changed since sent" the moment Foundry applies it.
 create or replace function public.npc_drafts_touch_spec()
 returns trigger
 language plpgsql
@@ -50,6 +54,13 @@ as $$
 begin
   if tg_op = 'INSERT' or new.spec is distinct from old.spec then
     new.spec_updated_at = now();
+  end if;
+  if new.sync_status = 'queued' and (
+    tg_op = 'INSERT'
+    or old.sync_status is distinct from 'queued'
+    or new.queued_actor is distinct from old.queued_actor
+  ) then
+    new.queued_at = now();
   end if;
   return new;
 end;

@@ -95,7 +95,7 @@ export default function DMNpcForgePage() {
       .from('npc_drafts')
       .update({
         queued_actor: buildNpcActor(draft.spec, { draftId: draft.id }),
-        queued_at: new Date().toISOString(),
+        // queued_at is stamped by the npc_drafts_touch_spec trigger.
         sync_status: 'queued',
         sync_error: null,
       })
