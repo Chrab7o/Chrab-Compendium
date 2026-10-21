@@ -200,3 +200,10 @@ test('proficiencyForCr follows the DMG table', () => {
   const expected = { 0: 2, 4: 2, 5: 3, 8: 3, 9: 4, 12: 4, 13: 5, 17: 6, 21: 7, 23: 7, 25: 8, 29: 9, 30: 9 }
   for (const [cr, prof] of Object.entries(expected)) assert.equal(proficiencyForCr(Number(cr)), prof, `CR ${cr}`)
 })
+
+test('draft flag is scoped to the Chrab Sync module id, so the module can find the actor again', () => {
+  const moduleJson = JSON.parse(readFileSync(new URL('../../foundry/chrab-sync/module.json', import.meta.url), 'utf8'))
+  const actor = buildNpcActor(krakenSpec(), { draftId: 'draft-123' })
+  assert.equal(actor.flags[moduleJson.id]?.npcDraftId, 'draft-123')
+  assert.deepEqual(buildNpcActor(krakenSpec()).flags, {})
+})

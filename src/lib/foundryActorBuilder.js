@@ -722,7 +722,10 @@ export function buildNpcActor(spec, { draftId = null } = {}) {
     items,
     effects: [],
     ownership: { default: 0 },
-    flags: draftId ? { 'chrab-corner': { npcDraftId: draftId } } : {},
+    // Scoped to the Chrab Sync module's id - Foundry's getFlag() only accepts
+    // scopes of active packages - so the module can find this actor again
+    // and update it in place on a re-send.
+    flags: draftId ? { 'chrab-sync': { npcDraftId: draftId } } : {},
     _stats: { ...STATS },
   }
 }

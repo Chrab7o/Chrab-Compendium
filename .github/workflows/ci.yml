@@ -31,6 +31,12 @@ jobs:
 
       - run: npm test
 
+      - name: Check Chrab Sync module
+        run: |
+          set -euo pipefail
+          jq empty foundry/chrab-sync/module.json
+          for f in foundry/chrab-sync/scripts/*.mjs; do node --check "$f"; done
+
       - run: npm run build
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
