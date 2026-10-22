@@ -107,7 +107,7 @@ export default function ShopTransactions({ shop, stock, onStockChange }) {
       <p className="view-subtitle">
         Log a trade made at the table — it posts to Discord.{' '}
         {shop.kind === 'store' && 'Players trading on the page are logged automatically. '}
-        Pending trades still need applying in Foundry; the next import settles them.
+        Pending trades still need applying in Foundry; settle them there from the Chrab Sync window (or with the next manual import).
       </p>
       {error && <p className="status-message error">{error}</p>}
 

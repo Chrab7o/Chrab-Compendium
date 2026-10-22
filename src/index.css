@@ -6084,6 +6084,118 @@ button.sg-toggle.is-on {
   align-self: center;
 }
 
+/* Spellcasting panel */
+.npc-spellcasting {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.npc-slot-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+  gap: 0.5rem;
+}
+
+.npc-spell-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.75rem;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.npc-spell-picker h4 {
+  margin: 0;
+  color: var(--accent);
+}
+
+.npc-spell-results {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 360px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.npc-spell-results li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 0.6rem;
+  align-items: center;
+  padding: 0.3rem 0.45rem;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+
+.npc-spell-result-name {
+  font-weight: 700;
+}
+
+.npc-spell-group h4 {
+  margin: 0.4rem 0;
+  font-family: var(--font-display);
+  color: var(--accent);
+}
+
+.npc-spell-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.npc-spell-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  padding: 0.55rem 0.8rem;
+  border: 0;
+  border-radius: 0;
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: none;
+}
+
+.npc-spell-head:hover,
+.npc-spell-head[aria-expanded='true'] {
+  background: var(--surface);
+  filter: none;
+  box-shadow: inset 4px 0 0 var(--accent);
+  transform: none;
+}
+
+.npc-spell-name {
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.npc-spell-head .npc-badge {
+  margin-left: auto;
+}
+
+.npc-spell-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.8rem;
+}
+
+.npc-statblock-spell-line {
+  display: block;
+  margin-left: 0.8rem;
+}
+
 /* Midi-qol automation section inside a roll */
 .npc-automation {
   border: 1px solid var(--accent-purple);

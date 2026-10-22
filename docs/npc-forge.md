@@ -87,6 +87,21 @@ Ground rules:
     - **Scripts are JavaScript that runs in the GM's Foundry when the NPC uses the item.** Only DM accounts can write
       NPC drafts (RLS), and Chrab Sync imports them as-is. Review a script before you send it.
   - **Foundry check:** the sandbox's `probes/midi-automation.md` and `scripts/build-automation-probe.mjs`.
+- **Spells** (`SpellcastingPanel.jsx`, `src/lib/fiveToolsSpells.js`, spell builders in `foundryActorBuilder.js`):
+  - **Where spells come from:**
+    - "+ From 5etools" searches the bundled catalog: 580 spells, 2024 versions where reprinted. It's compiled by
+      `scripts/5etools-spells/extract.mjs` and lazy-loaded.
+    - "Import homebrew spells…" reads a 5etools JSON file.
+    - "+ Custom spell" starts from scratch.
+  - **Editing:** spells reuse the roll, effect and midi-qol editors.
+  - **Casting:** each spell is **At will**, **N per day** (both dnd5e `method: "innate"`, per-day uses recovering
+    daily) or **Spell slot** (`method: "spell"`, spends slots).
+    - Slots also set `attributes.spell.level` and `spells.spellN.override`.
+    - A generated **Spellcasting** feature carries the statblock text. It's placed under Actions (2024 style) or
+      Traits (slot casters), and is regenerated on import rather than kept as an item.
+  - **Upcasting:** `upcast` becomes `scaling.mode: "whole"` on the first damage or healing part only. Formulas
+    that scale themselves (`@item.level`) are left alone, and cantrips scale with the caster.
+  - **Foundry check:** the sandbox's `probes/spells.md` and `scripts/build-spell-probe.mjs`.
 
 ## Verify
 

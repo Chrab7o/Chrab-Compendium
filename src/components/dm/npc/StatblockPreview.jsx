@@ -8,6 +8,7 @@ import {
   crLabel,
   npcMaxHp,
   npcRollData,
+  spellcastingText,
   usesLabel,
 } from '../../../lib/foundryActorBuilder'
 
@@ -128,7 +129,10 @@ export default function StatblockPreview({ spec }) {
       {ITEM_SECTIONS.map((section) => {
         const items = (spec.items ?? []).filter((i) => i.section === section.key)
         const extraLr = section.key === 'trait' && Number(spec.legendaryResistances) > 0 && !items.some((i) => i.name === 'Legendary Resistance')
-        if (!items.length && !extraLr) return null
+        // The generated Spellcasting entry: Traits for slot casters, else where the editor put it.
+        const castingSection = spec.spellcasting?.slots ? 'trait' : spec.spellcasting?.section || 'action'
+        const casting = (spec.spells ?? []).length && castingSection === section.key ? spellcastingText(spec).split('\n') : null
+        if (!items.length && !extraLr && !casting) return null
         return (
           <section key={section.key} className="npc-statblock-section">
             <h3>{section.label}</h3>
@@ -141,6 +145,19 @@ export default function StatblockPreview({ spec }) {
                   <em>Legendary Resistance ({spec.legendaryResistances}/Day).</em>
                 </strong>{' '}
                 If {spec.name || 'the creature'} fails a saving throw, it can choose to succeed instead.
+              </p>
+            )}
+            {casting && (
+              <p>
+                <strong>
+                  <em>Spellcasting.</em>
+                </strong>{' '}
+                {casting[0]}
+                {casting.slice(1).map((line) => (
+                  <span key={line} className="npc-statblock-spell-line">
+                    {line}
+                  </span>
+                ))}
               </p>
             )}
             {items.map((item) => {

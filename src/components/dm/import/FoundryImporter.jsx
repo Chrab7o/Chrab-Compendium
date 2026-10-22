@@ -177,7 +177,9 @@ export default function FoundryImporter({ campaigns }) {
     <div className="dm-panel">
       <h2>Import Foundry Characters</h2>
       <p className="view-subtitle">
-        Upload a party.json from the party-export macro, or Actor export .json files from FoundryVTT. Updating a
+        With the Chrab Sync module, characters already imported here sync from Foundry automatically — this page is
+        for adding new characters (or linking old ones) once. Upload a party.json from the party-export macro, or
+        Actor export .json files from FoundryVTT. Updating a
         character only replaces its sheet and gold — its page, player, campaign, skill-tree progress and notes stay.
         Shop trades made before the file was exported are marked as applied, so apply pending trades in Foundry
         before running the export macro.

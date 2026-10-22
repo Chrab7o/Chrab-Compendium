@@ -1,9 +1,10 @@
 // Chrab Sync: pulls NPCs built in the Chrab Compendium's NPC Forge into this
-// world. Everything here runs for GMs only - players' browsers register the
+// world, and pushes player character sheets back (characters.mjs). Everything here runs for GMs only - players' browsers register the
 // settings (Foundry requires it) and then do nothing.
 // See docs/npc-forge-phase2.md in the Chrab Compendium repo.
 
 import { ConfigApp, SyncApp } from './apps.mjs'
+import { syncOnLoad, watchCharacters } from './characters.mjs'
 import { DEFAULT_FOLDER, MODULE_ID } from './constants.mjs'
 import { checkQueue, state } from './queue.mjs'
 
@@ -32,6 +33,14 @@ Hooks.once('init', () => {
     type: Boolean,
     default: true,
   })
+  game.settings.register(MODULE_ID, 'syncCharacters', {
+    name: 'Sync player characters to the Compendium',
+    hint: 'When a signed-in GM loads the world, and shortly after any change while playing, push player character sheets and gold to their Compendium pages. Only characters already imported on the site are updated. Shop trades are never settled automatically.',
+    scope: 'world',
+    config: true,
+    type: Boolean,
+    default: true,
+  })
   game.settings.registerMenu(MODULE_ID, 'account', {
     name: 'Chrab Sync account & campaign',
     label: 'Open',
@@ -44,6 +53,11 @@ Hooks.once('init', () => {
 
 Hooks.once('ready', () => {
   if (!game.user.isGM) return
+  watchCharacters()
+  syncOnLoad().catch((err) => {
+    console.warn(`${MODULE_ID} |`, err)
+    ui.notifications.warn(`Chrab Sync: ${err.message}`)
+  })
   if (!game.settings.get(MODULE_ID, 'checkOnLogin')) return
   checkQueue({ notify: true }).catch((err) => {
     console.warn(`${MODULE_ID} |`, err)

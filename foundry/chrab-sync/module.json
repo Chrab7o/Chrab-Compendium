@@ -1,7 +1,7 @@
 {
   "id": "chrab-sync",
   "title": "Chrab Sync",
-  "description": "Pulls NPCs built in the Chrab Compendium NPC Forge into this world. GM only.",
+  "description": "Pulls NPCs built in the Chrab Compendium NPC Forge into this world and pushes player character sheets back to the Compendium. GM only.",
   "version": "0.1.0",
   "authors": [{ "name": "Chrab7o" }],
   "compatibility": {

@@ -20,6 +20,7 @@ import { useCampaignContext } from '../../../contexts/CampaignContext'
 import AbilityScorePicker from '../AbilityScorePicker'
 import OptionPicker from '../OptionPicker'
 import ActionBuilder from './ActionBuilder'
+import SpellcastingPanel from './SpellcastingPanel'
 import StatblockPreview from './StatblockPreview'
 import { downloadNpcActor } from './downloadActor'
 
@@ -435,6 +436,9 @@ export default function NpcEditor() {
 
           <h2>Statblock</h2>
           <ActionBuilder spec={spec} items={spec.items} onChange={(items) => set({ items })} />
+
+          <h2>Spellcasting</h2>
+          <SpellcastingPanel spec={spec} onChange={set} />
 
           <h2>Token &amp; art</h2>
           <p className="status-message">

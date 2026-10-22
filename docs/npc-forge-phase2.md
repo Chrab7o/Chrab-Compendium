@@ -15,8 +15,8 @@ NPC editor ─ Send to Foundry ─▶  npc_drafts.queued_actor, status=queued
 List page ◀─ Waiting / In Foundry / Changed since sent / Failed
 ```
 
-Out of scope: PC edits and syncing PCs back into `characters.raw_data` (Phase 3), and compendium refs or Chris's
-Premades automation (Phase 4).
+Out of scope: PC edits from the site (Phase 3), and compendium refs or Chris's Premades automation (Phase 4).
+Syncing PCs back into `characters.raw_data` was added later; see [Character sync](#character-sync).
 
 ## Security model
 
@@ -112,6 +112,27 @@ the backups cover mistakes.
 - [ ] Two worlds mapped to different campaigns each only see their own NPCs.
 - [ ] A failing NPC shows its error in the window and as **Sync failed** on the site, without stopping the rest of
       the batch.
+
+## Character sync
+
+The module also does what the party-export macro and manual import did, for characters the site already has.
+
+- **When:** when a signed-in GM loads the world, it pushes every player character (`type: character`, has a player
+  owner) whose sheet changed since that browser last pushed it. While playing, a changed character is pushed 30 s
+  after its first change. You can turn it off with the module setting *Sync player characters to the Compendium*.
+  **Sync characters now** in the Chrab Sync window forces a full push.
+- **Matching:** by Foundry actor id (`characters.foundry_id`) only. A sheet only overwrites `raw_data` and
+  `currency`; name, player, campaign and skill trees stay. Actors with no matching row are listed as "not on the
+  site yet". Import those once with the site's importer (which can also link an old row), and they sync from then on.
+- **Shop trades are never settled automatically.** A push can't know whether a trade was applied in Foundry yet.
+  The Chrab Sync window lists unsettled trades per character. Apply them to the sheet, then click
+  **Applied in Foundry — sync & settle**. That pushes the sheet and settles exactly the trades shown.
+  - Between applying a trade and settling it, an automatic push can briefly double-count it in the site balance.
+- **RPCs** (`supabase/migrations/20261031000000_sync_characters.sql`): `sync_push_character(actor, settle_trade_ids)`
+  and `sync_pending_trades()`, with the same `is_sync() or is_dm()` gate. This widens the leaked-session worst case:
+  existing characters' sheets and gold can be overwritten (never created, deleted or reassigned), and pending trades
+  read or settled.
+- **Setup:** `npx supabase db push`, then redeploy so Foundry picks up the new module version.
 
 ## Unverified assumptions (check on the first real run)
 

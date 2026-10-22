@@ -11,6 +11,8 @@ import {
   ITEM_SECTIONS,
   NPC_ABILITIES,
   SPEND_SOURCES,
+  spellSaveDc,
+  spellcastingAbility,
   TARGET_TYPES,
   emptyActivity,
   emptyChange,
@@ -79,7 +81,27 @@ function DamageRows({ rows, onChange, withMod, label = 'Damage' }) {
   )
 }
 
-function AreaFields({ activity, set }) {
+function AreaFields({ activity, set, inSpell = false }) {
+  if (inSpell) {
+    return (
+      <>
+        <label>
+          Targets
+          <input type="number" min="1" value={activity.targetCount} placeholder="any" onChange={(e) => set({ targetCount: e.target.value })} />
+        </label>
+        <label>
+          Affects
+          <select value={activity.targetType ?? 'creature'} onChange={(e) => set({ targetType: e.target.value })}>
+            {TARGET_TYPES.map((t) => (
+              <option key={t.key} value={t.key}>
+                {t.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      </>
+    )
+  }
   return (
     <>
       <label>
@@ -268,17 +290,21 @@ function AutomationSection({ activity, set, item }) {
   )
 }
 
-function ActivityEditor({ activity, onChange, onRemove, item, index }) {
+// inSpell: a roll inside a spell - the spell owns activation, range and
+// area, and @mod / "Auto" mean the spellcasting ability.
+export function ActivityEditor({ activity, onChange, onRemove, item, index, inSpell = false }) {
   const set = (patch) => onChange({ ...activity, ...patch })
   const ctx = useContext(NpcSpecContext)
   const triggeredBy = item.activities.find((a) => a.triggerKey === activity.key)
   const extraFor = item.activities.find((a) => a.otherKey === activity.key)
 
-  // @mod inside an attack's damage is that attack's ability modifier.
-  const attackAbility = activity.ability || (activity.attackType === 'ranged' ? 'dex' : 'str')
+  const castingAbility = spellcastingAbility(ctx.spec)
+  const autoAbility = activity.classification === 'spell' || inSpell ? castingAbility : activity.attackType === 'ranged' ? 'dex' : 'str'
+  // @mod: an attack's ability modifier, or in a spell the spellcasting one.
+  const modAbility = activity.kind === 'attack' ? activity.ability || autoAbility : inSpell ? castingAbility : null
   const scoped = useMemo(
-    () => ({ ...ctx, rollData: { ...ctx.rollData, mod: activity.kind === 'attack' ? ctx.rollData[attackAbility] ?? 0 : 0 } }),
-    [ctx, activity.kind, attackAbility]
+    () => ({ ...ctx, rollData: { ...ctx.rollData, mod: modAbility ? ctx.rollData[modAbility] ?? 0 : 0 } }),
+    [ctx, modAbility]
   )
 
   return (
@@ -305,16 +331,18 @@ function ActivityEditor({ activity, onChange, onRemove, item, index }) {
             Label
             <input value={activity.name ?? ''} onChange={(e) => set({ name: e.target.value })} placeholder="optional, e.g. 30ft Moved" />
           </label>
-          <label>
-            Takes
-            <select value={activity.activation ?? ''} onChange={(e) => set({ activation: e.target.value })}>
-              {ACTIVATION_TYPES.map((t) => (
-                <option key={t.key} value={t.key}>
-                  {t.label}
-                </option>
-              ))}
-            </select>
-          </label>
+          {!inSpell && (
+            <label>
+              Takes
+              <select value={activity.activation ?? ''} onChange={(e) => set({ activation: e.target.value })}>
+                {ACTIVATION_TYPES.map((t) => (
+                  <option key={t.key} value={t.key}>
+                    {t.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
         </div>
 
         <div className="dm-form-row">
@@ -337,7 +365,9 @@ function ActivityEditor({ activity, onChange, onRemove, item, index }) {
               <label>
                 Ability
                 <select value={activity.ability} onChange={(e) => set({ ability: e.target.value })}>
-                  <option value="">Auto ({activity.attackType === 'ranged' ? 'DEX' : 'STR'})</option>
+                  <option value="">
+                    {activity.classification === 'spell' || inSpell ? `Spellcasting (${castingAbility.toUpperCase()})` : `Auto (${autoAbility.toUpperCase()})`}
+                  </option>
                   {NPC_ABILITIES.map((a) => (
                     <option key={a} value={a}>
                       {a.toUpperCase()}
@@ -349,7 +379,7 @@ function ActivityEditor({ activity, onChange, onRemove, item, index }) {
                 To-hit override
                 <input type="number" value={activity.toHit} placeholder="auto" onChange={(e) => set({ toHit: e.target.value })} />
               </label>
-              {activity.attackType === 'ranged' ? (
+              {inSpell ? null : activity.attackType === 'ranged' ? (
                 <>
                   <label>
                     Range (ft.)
@@ -385,6 +415,7 @@ function ActivityEditor({ activity, onChange, onRemove, item, index }) {
                 DC from
                 <select value={activity.dcAbility} onChange={(e) => set({ dcAbility: e.target.value })}>
                   <option value="">Fixed number</option>
+                  <option value="spellcasting">Spellcasting DC ({spellSaveDc(ctx.spec ?? {})})</option>
                   {NPC_ABILITIES.map((a) => (
                     <option key={a} value={a}>
                       8 + prof + {a.toUpperCase()}
@@ -412,19 +443,19 @@ function ActivityEditor({ activity, onChange, onRemove, item, index }) {
           {activity.kind === 'heal' && (
             <label className="npc-wide-field">
               Healing
-              <FormulaInput value={activity.healing} onChange={(healing) => set({ healing })} placeholder="e.g. 2d8 + @abilities.con.mod" ariaLabel="Healing formula" />
+              <FormulaInput value={activity.healing} onChange={(healing) => set({ healing })} placeholder={inSpell ? "e.g. 2d8 + @mod" : "e.g. 2d8 + @abilities.con.mod"} ariaLabel="Healing formula" withMod={inSpell} />
             </label>
           )}
         </div>
 
         {activity.kind !== 'attack' && (
           <div className="dm-form-row">
-            <AreaFields activity={activity} set={set} />
+            <AreaFields activity={activity} set={set} inSpell={inSpell} />
           </div>
         )}
 
         {['attack', 'save', 'damage'].includes(activity.kind) && (
-          <DamageRows rows={activity.damage} onChange={(damage) => set({ damage })} withMod={activity.kind === 'attack'} />
+          <DamageRows rows={activity.damage} onChange={(damage) => set({ damage })} withMod={activity.kind === 'attack' || inSpell} />
         )}
 
         <SpendRows rows={activity.spend ?? []} onChange={(spend) => set({ spend })} itemKey={item.key} />
@@ -589,7 +620,7 @@ function ChangeRow({ change, onChange, onRemove, item, effect }) {
   )
 }
 
-function EffectEditor({ effect, onChange, onRemove, item }) {
+export function EffectEditor({ effect, onChange, onRemove, item }) {
   const set = (patch) => onChange({ ...effect, ...patch })
   const changes = effect.changes ?? []
   const updateChange = (i, value) => set({ changes: changes.map((c, idx) => (idx === i ? value : c)) })

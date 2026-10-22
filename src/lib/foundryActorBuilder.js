@@ -253,7 +253,9 @@ export function resolveRefs(formula, data = {}) {
 
 // A dice count taken from a reference: "@attributes.movement.fly d8" or
 // "(@attributes.movement.fly)d8".
-const DICE_COUNT_REF = /\(?(@[\w.]*\w)\)?\s*d(\d)/gi
+// Only a bare reference directly before the "d" - one already inside
+// brackets ("(@x)d8", "(5 * @item.level)d1") is left alone.
+const DICE_COUNT_REF = /(^|[^(\w.@])(@[\w.]*\w)\s*d(\d)/gi
 
 export function hasDiceCountRef(formula) {
   return new RegExp(DICE_COUNT_REF.source, 'i').test(String(formula ?? ''))
@@ -268,7 +270,7 @@ export function hasDiceCountRef(formula) {
 export function normalizeFormula(formula) {
   return String(formula ?? '')
     .trim()
-    .replace(DICE_COUNT_REF, (_, ref, faces) => `(${ref})d${faces}`)
+    .replace(DICE_COUNT_REF, (_, before, ref, faces) => `${before}(${ref})d${faces}`)
     .replace(/(\d|\))\s+d(\d)/gi, '$1d$2')
 }
 
@@ -455,7 +457,212 @@ export const emptyNpcSpec = () => ({
   biography: '',
   token: { img: '', disposition: 'hostile', appendNumber: true, scale: 1 },
   items: [],
+  spellcasting: emptySpellcasting(),
+  spells: [],
 })
+
+// 2024 statblocks cast innately (At Will / N per Day, no slots); slots are
+// optional for classic caster NPCs. key: the generated Spellcasting entry's id.
+export function emptySpellcasting() {
+  return { key: randomId(), ability: 'int', slots: false, casterLevel: 1, slotCounts: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0 }, section: 'action' }
+}
+
+export const SPELL_SCHOOLS = {
+  abj: 'Abjuration', con: 'Conjuration', div: 'Divination', enc: 'Enchantment',
+  evo: 'Evocation', ill: 'Illusion', nec: 'Necromancy', trs: 'Transmutation',
+}
+
+// How an NPC casts one spell: at will, N per day (both innate), or with slots.
+export const SPELL_METHODS = [
+  { key: 'atwill', label: 'At will' },
+  { key: 'perDay', label: 'Per day' },
+  { key: 'slots', label: 'Spell slot' },
+]
+
+export function emptyNpcSpell() {
+  return {
+    key: randomId(),
+    name: '',
+    img: '',
+    level: 1,
+    school: 'evo',
+    method: 'atwill',
+    usesPerDay: 1,
+    activation: { type: 'action', value: 1, condition: '' },
+    range: { value: '60', units: 'ft' },
+    area: { type: '', size: '' }, // a template, e.g. a 20-ft. sphere
+    duration: { value: '', units: 'inst' },
+    concentration: false,
+    ritual: false,
+    components: { v: true, s: true, m: false },
+    materials: '',
+    description: '', // HTML (from 5etools) or plain text
+    upcast: '', // what each slot level above adds to the first damage/healing roll, e.g. "1d6"
+    source: { book: '', page: '' },
+    fiveTools: '', // "name|source" of the 5etools spell it came from
+    activities: [{ ...emptyActivity('save'), dcAbility: 'spellcasting' }],
+    effects: [],
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Spells and the Spellcasting entry
+
+const SPELL_ICONS = {
+  abj: 'icons/svg/shield.svg', con: 'icons/svg/aura.svg', div: 'icons/svg/eye.svg', enc: 'icons/svg/daze.svg',
+  evo: 'icons/svg/fire.svg', ill: 'icons/svg/eye.svg', nec: 'icons/svg/skull.svg', trs: 'icons/svg/lightning.svg',
+}
+
+const ORDINALS = ['Cantrip', '1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th']
+
+export function spellLevelLabel(level) {
+  return ORDINALS[Number(level) || 0] ?? `${level}th`
+}
+
+// What each spell's activities look like to the shared activity builder: a
+// pseudo item whose "uses" are the spell's per-day casts.
+function spellAsItem(spell) {
+  return {
+    key: spell.key,
+    name: spell.name,
+    img: spell.img,
+    section: 'action',
+    legendaryCost: 1,
+    usesMax: spell.method === 'perDay' ? String(Number(spell.usesPerDay) || 1) : '',
+    usesRecovery: spell.method === 'perDay' ? 'day' : '',
+    magical: false,
+    activities: spell.activities ?? [],
+    effects: spell.effects ?? [],
+  }
+}
+
+function spellProperties(spell) {
+  const props = []
+  if (spell.components?.v) props.push('vocal')
+  if (spell.components?.s) props.push('somatic')
+  if (spell.components?.m) props.push('material')
+  if (spell.concentration) props.push('concentration')
+  if (spell.ritual) props.push('ritual')
+  return props
+}
+
+// Damage/healing that grows with the slot: "whole" scaling adds `upcast`
+// per level above the spell's own (cantrips scale with the caster).
+function spellScaling(spell, part) {
+  if (Number(spell.level) === 0) return { mode: 'whole', number: 1 }
+  const step = normalizeFormula(spell.upcast)
+  if (!step) return part.scaling
+  const sameDie = step.match(/^1d(\d+)$/i)
+  if (sameDie && Number(sameDie[1]) === part.denomination) return { mode: 'whole', number: 1 }
+  return { mode: 'whole', number: 1, formula: step }
+}
+
+export function buildNpcSpellItem(spec, spell, index = 0) {
+  const asItem = spellAsItem(spell)
+  const built = buildNpcItem(spec, asItem, index, { inSpell: true })
+  const slotted = spell.method === 'slots' && Number(spell.level) > 0
+  for (const activity of Object.values(built.system.activities)) {
+    // Spells drive their own activation, range and target; activities inherit.
+    activity.activation = { type: spell.activation?.type || 'action', value: Number(spell.activation?.value) || 1, override: false }
+    activity.range = { override: false }
+    activity.target = { ...activity.target, override: false }
+    activity.consumption.spellSlot = slotted
+    // Upcasting grows the first roll only (Ice Storm's 4d6 bludgeoning doesn't),
+    // and never a formula that already scales itself ("(@item.level - 2)d10").
+    // Cantrips scale every plain part with the caster.
+    const scales = (part, i) => !/@/.test(part.custom?.enabled ? part.custom.formula : '') && (i === 0 || Number(spell.level) === 0)
+    ;(activity.damage?.parts ?? []).forEach((part, i) => {
+      if (scales(part, i)) part.scaling = spellScaling(spell, part)
+    })
+    if (activity.healing && scales(activity.healing, 0)) activity.healing.scaling = spellScaling(spell, activity.healing)
+  }
+  const template = { contiguous: false, stationary: false, units: 'ft', count: '', type: spell.area?.type || '', size: String(spell.area?.size ?? ''), width: '', height: '' }
+  const firstActivity = spell.activities?.[0]
+  const { type: _featType, ...system } = built.system
+  return {
+    ...built,
+    type: 'spell',
+    img: spell.img || SPELL_ICONS[spell.school] || 'icons/svg/book.svg',
+    system: {
+      ...system,
+      description: { value: textToHtml(spell.description) || system.description.value, chat: '' },
+      source: spell.source?.book
+        ? { book: spell.source.book, page: String(spell.source.page ?? ''), custom: '', rules: '2024' }
+        : { custom: 'Chrab Corner', rules: '2024' },
+      level: Number(spell.level) || 0,
+      school: spell.school || 'evo',
+      properties: spellProperties(spell),
+      materials: { value: spell.components?.m ? spell.materials ?? '' : '', consumed: false, cost: 0, supply: 0 },
+      activation: { type: spell.activation?.type || 'action', value: Number(spell.activation?.value) || 1, condition: spell.activation?.condition ?? '' },
+      range: { value: String(spell.range?.value ?? ''), units: spell.range?.units || 'self', special: '' },
+      target: {
+        template,
+        affects: {
+          count: firstActivity?.targetCount === '' || firstActivity?.targetCount == null ? '' : String(firstActivity.targetCount),
+          type: firstActivity?.targetType ?? 'creature',
+          choice: false,
+          special: '',
+        },
+      },
+      duration: { value: String(spell.duration?.value ?? ''), units: spell.duration?.units || 'inst' },
+      // dnd5e 5.x: innate for At Will / N per Day, prepared spells for slots.
+      method: slotted || (spell.method === 'slots' && Number(spell.level) === 0) ? 'spell' : 'innate',
+      prepared: 1,
+    },
+  }
+}
+
+function spellCastingLine(spec, spells) {
+  return spells.map((s) => s.name || 'Unnamed').sort((a, b) => a.localeCompare(b)).join(', ')
+}
+
+// The 2024-style Spellcasting entry ("casts one of the following spells,
+// requiring no Material components...") or the classic slot list.
+export function spellcastingText(spec) {
+  const spells = spec.spells ?? []
+  if (!spells.length) return ''
+  const sc = spec.spellcasting ?? emptySpellcasting()
+  const who = spec.name || 'The creature'
+  const abilityName = { str: 'Strength', dex: 'Dexterity', con: 'Constitution', int: 'Intelligence', wis: 'Wisdom', cha: 'Charisma' }[spellcastingAbility(spec)]
+  const numbers = `spell save DC ${spellSaveDc(spec)}, ${signed(spellAttackBonus(spec))} to hit with spell attacks`
+  const lines = []
+  const atWill = spells.filter((s) => s.method === 'atwill')
+  if (atWill.length) lines.push(`At Will: ${spellCastingLine(spec, atWill)}`)
+  const perDay = spells.filter((s) => s.method === 'perDay')
+  for (const n of [...new Set(perDay.map((s) => Number(s.usesPerDay) || 1))].sort((a, b) => b - a)) {
+    const group = perDay.filter((s) => (Number(s.usesPerDay) || 1) === n)
+    lines.push(`${n}/Day${group.length > 1 ? ' Each' : ''}: ${spellCastingLine(spec, group)}`)
+  }
+  const slotted = spells.filter((s) => s.method === 'slots')
+  for (let level = 0; level <= 9; level++) {
+    const group = slotted.filter((s) => (Number(s.level) || 0) === level)
+    if (!group.length) continue
+    const slots = Number(sc.slotCounts?.[level]) || 0
+    const label = level === 0 ? 'Cantrips (at will)' : `${spellLevelLabel(level)} level (${slots} slot${slots === 1 ? '' : 's'})`
+    lines.push(`${label}: ${spellCastingLine(spec, group)}`)
+  }
+  const intro = slotted.length && !atWill.length && !perDay.length
+    ? `${who} is a level ${Number(sc.casterLevel) || 1} spellcaster that uses ${abilityName} as its spellcasting ability (${numbers}). It has the following spells prepared:`
+    : `${who} casts one of the following spells${slotted.length ? '' : ', requiring no Material components'}, using ${abilityName} as the spellcasting ability (${numbers}):`
+  return [intro, ...lines].join('\n')
+}
+
+function spellcastingItem(spec) {
+  const sc = spec.spellcasting ?? emptySpellcasting()
+  return {
+    key: sc.key,
+    name: 'Spellcasting',
+    section: sc.slots ? 'trait' : sc.section || 'action',
+    itemType: 'feat',
+    description: spellcastingText(spec),
+    img: 'icons/svg/book.svg',
+    legendaryCost: 1,
+    usesMax: '',
+    usesRecovery: '',
+    activities: [],
+    effects: [],
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Derived numbers the preview and the builder both use
@@ -519,18 +726,36 @@ export function npcMaxHp(spec) {
   return averageFormula(spec.hpFormula) || 1
 }
 
-function attackAbility(activity) {
+function attackAbility(activity, spec = null) {
   if (activity.ability) return activity.ability
+  // Spell attacks default to the spellcasting ability, as dnd5e rolls them.
+  if (activity.classification === 'spell' && spec) return spellcastingAbility(spec)
   return activity.attackType === 'ranged' ? 'dex' : 'str'
+}
+
+// dnd5e's NPC default when none is set is Intelligence.
+export function spellcastingAbility(spec) {
+  return spec?.spellcasting?.ability || 'int'
+}
+
+export function spellSaveDc(spec) {
+  const data = npcRollData(spec)
+  return 8 + data.prof + data[spellcastingAbility(spec)]
+}
+
+export function spellAttackBonus(spec) {
+  const data = npcRollData(spec)
+  return data.prof + data[spellcastingAbility(spec)]
 }
 
 export function attackToHit(spec, activity) {
   if (activity.toHit !== '' && activity.toHit != null) return Number(activity.toHit)
   const data = npcRollData(spec)
-  return data[attackAbility(activity)] + data.prof
+  return data[attackAbility(activity, spec)] + data.prof
 }
 
 export function saveDc(spec, activity) {
+  if (activity.dcAbility === 'spellcasting') return spellSaveDc(spec)
   if (activity.dcAbility) {
     const data = npcRollData(spec)
     return 8 + data.prof + data[activity.dcAbility]
@@ -696,7 +921,8 @@ function buildActivity(item, activity, effectRefs, index, ids = {}, automationOn
         attack: {
           flat,
           type: { value: activity.attackType === 'ranged' ? 'ranged' : 'melee', classification: activity.classification || 'weapon' },
-          ability: attackAbility(activity),
+          // '' lets dnd5e use the spellcasting ability for spell attacks.
+          ability: activity.ability || (activity.classification === 'spell' ? '' : attackAbility(activity)),
           bonus: flat ? String(activity.toHit) : '',
           critical: {},
         },
@@ -731,9 +957,17 @@ function signed(n) {
   return n >= 0 ? `+${n}` : String(n)
 }
 
-function damageText(spec, activity, rows) {
+export const signedNumber = signed
+
+// @mod in a roll: the attack's ability, or for a spell the spellcasting one.
+function modAbility(spec, activity, inSpell) {
+  if (activity.kind === 'attack') return attackAbility(activity, spec)
+  return inSpell ? spellcastingAbility(spec) : null
+}
+
+function damageText(spec, activity, rows, inSpell = false) {
   const data = npcRollData(spec)
-  const ability = activity.kind === 'attack' ? attackAbility(activity) : null
+  const ability = modAbility(spec, activity, inSpell)
   const rollData = { ...data, mod: ability ? data[ability] : 0 }
   return (rows ?? [])
     .filter((r) => String(r.formula ?? '').trim() !== '')
@@ -763,8 +997,9 @@ export function spendText(spec, activity) {
   return parts.length ? `Costs ${parts.join(' and ')}` : ''
 }
 
-export function activitySummary(spec, activity) {
-  let body = activityBody(spec, activity)
+// inSpell: the roll belongs to a spell, so @mod is the spellcasting modifier.
+export function activitySummary(spec, activity, inSpell = false) {
+  let body = activityBody(spec, activity, inSpell)
   if (activity.overTime && body) {
     const ot = activity.overTime
     const ends = ot.once ? ', once' : activity.kind === 'save' && ot.saveEnds !== false ? ', ending the effect on a success' : ''
@@ -777,7 +1012,7 @@ export function activitySummary(spec, activity) {
   return `${head}${name ? '.' : ''} ${body}`.trim()
 }
 
-function activityBody(spec, activity) {
+function activityBody(spec, activity, inSpell) {
   switch (activity.kind) {
     case 'attack': {
       const kind = `${activity.attackType === 'ranged' ? 'Ranged' : 'Melee'} ${activity.classification === 'spell' ? 'Spell ' : ''}Attack Roll`
@@ -785,22 +1020,24 @@ function activityBody(spec, activity) {
         activity.attackType === 'ranged'
           ? `range ${activity.range || 30}${activity.longRange ? `/${activity.longRange}` : ''} ft.`
           : `reach ${activity.reach || 5} ft.`
-      const hit = damageText(spec, activity, activity.damage)
+      const hit = damageText(spec, activity, activity.damage, inSpell)
       return `${kind}: ${signed(attackToHit(spec, activity))}, ${reach}${hit ? ` Hit: ${hit}.` : ''}`
     }
     case 'save': {
       const label = activity.saveAbility?.toUpperCase() ?? 'DEX'
       const area = activity.areaType ? ` ${activity.areaSize || 0}-foot ${activity.areaType}.` : ''
-      const dmg = damageText(spec, activity, activity.damage)
+      const dmg = damageText(spec, activity, activity.damage, inSpell)
       const onSave = activity.onSave === 'half' ? ' Success: Half damage.' : ''
       return `${label} Saving Throw: DC ${saveDc(spec, activity)}.${area}${dmg ? ` Failure: ${dmg}.${onSave}` : ''}`
     }
     case 'damage': {
-      const dmg = damageText(spec, activity, activity.damage)
+      const dmg = damageText(spec, activity, activity.damage, inSpell)
       return dmg ? `${dmg}.` : ''
     }
     case 'heal': {
-      const data = npcRollData(spec)
+      const ability = modAbility(spec, activity, inSpell)
+      const data = { ...npcRollData(spec) }
+      data.mod = ability ? data[ability] : 0
       return activity.healing ? `Regains ${averageFormula(activity.healing, data)} (${bakeFormula(activity.healing, data)}) Hit Points.` : ''
     }
     default:
@@ -909,7 +1146,7 @@ function defaultImg(item) {
   return item.itemType === 'weapon' ? 'icons/svg/sword.svg' : 'icons/svg/combat.svg'
 }
 
-export function buildNpcItem(spec, item, index = 0) {
+export function buildNpcItem(spec, item, index = 0, { inSpell = false } = {}) {
   const kept = (item.effects ?? []).filter((e) => e.name || e.statuses?.length || e.changes?.length)
   const effects = kept.map((e) => buildEffect(spec, e, item))
   // An effect lands from every roll unless appliedBy names the ones it
@@ -951,7 +1188,7 @@ export function buildNpcItem(spec, item, index = 0) {
     .map((a) => `[${scriptPass(a.script)}]ActivityMacro-${ids[a.key]}`)
     .join(',')
 
-  const generated = (item.activities ?? []).map((a) => activitySummary(spec, a)).filter(Boolean).join(' ')
+  const generated = (item.activities ?? []).map((a) => activitySummary(spec, a, inSpell)).filter(Boolean).join(' ')
   const description = textToHtml(item.description) || (generated ? `<p>${escapeHtml(generated)}</p>` : '')
 
   const isWeapon = item.itemType === 'weapon'
@@ -1074,6 +1311,19 @@ export function buildNpcActor(spec, { draftId = null } = {}) {
     items.push(lr)
   }
 
+  // Spells, plus the statblock entry listing them.
+  const spells = spec.spells ?? []
+  if (spells.length) {
+    items.push(buildNpcItem(spec, spellcastingItem(spec), items.length))
+    spells.forEach((spell, i) => items.push(buildNpcSpellItem(spec, spell, items.length + i)))
+  }
+  const sc = spec.spellcasting ?? emptySpellcasting()
+  const slots = {}
+  for (let level = 1; level <= 9; level++) {
+    const n = sc.slots ? Number(sc.slotCounts?.[level]) || 0 : 0
+    slots[`spell${level}`] = { value: n, override: n || null }
+  }
+
   const detectionModes = {}
   for (const [sense, mode] of Object.entries(SENSE_DETECTION)) {
     if (senseRanges[sense]) detectionModes[mode] = { range: senseRanges[sense], enabled: true }
@@ -1096,7 +1346,10 @@ export function buildNpcActor(spec, { draftId = null } = {}) {
         init,
         movement,
         senses: { ranges: senseRanges, units: 'ft', special: spec.senses?.special ?? '' },
+        spellcasting: spells.length ? spellcastingAbility(spec) : '',
+        spell: { level: sc.slots ? Number(sc.casterLevel) || 1 : 0 },
       },
+      spells: slots,
       details: {
         cr: Number(spec.cr) || 0,
         alignment: spec.alignment ?? '',
@@ -1207,12 +1460,80 @@ export function npcActorToSpec(actor) {
     scale: token.texture?.scaleX ?? 1,
   }
 
+  const spellItems = (actor?.items ?? []).filter((item) => item.type === 'spell')
+  spec.spells = spellItems.map(foundrySpellToNpcSpell)
+  const castingFeat = spellItems.length
+    ? (actor?.items ?? []).find((i) => i.type === 'feat' && /^spellcasting/i.test(i.name ?? '') && !Object.keys(i.system?.activities ?? {}).length)
+    : null
+  spec.spellcasting = { ...emptySpellcasting(), ability: s.attributes?.spellcasting || 'int' }
+  if (castingFeat) {
+    // The entry is regenerated from the spell list; keep its id and section.
+    if (isFoundryId(castingFeat._id)) spec.spellcasting.key = castingFeat._id
+    spec.spellcasting.section = foundryItemToNpcItem(castingFeat).section === 'trait' ? 'trait' : 'action'
+  }
+  for (let level = 1; level <= 9; level++) {
+    const n = Number(s.spells?.[`spell${level}`]?.override ?? 0) || 0
+    spec.spellcasting.slotCounts[level] = n
+    if (n) spec.spellcasting.slots = true
+  }
+  if (spec.spellcasting.slots) spec.spellcasting.casterLevel = Number(s.attributes?.spell?.level) || 1
+
   spec.items = (actor?.items ?? [])
     .filter((item) => item.type === 'feat' || item.type === 'weapon')
+    .filter((item) => item !== castingFeat)
     .filter((item) => item.name !== 'Legendary Resistance' || !spec.legendaryResistances)
     .filter((item) => item.name !== 'Legendary Actions')
     .map((item) => foundryItemToNpcItem(item))
   return spec
+}
+
+const SPELL_RANGE_UNITS = ['ft', 'mi', 'self', 'touch', 'spec', 'any']
+
+// A Foundry spell item -> editor spell. Rolls and effects read the same way
+// as any item's; the spell's own fields come off system.
+export function foundrySpellToNpcSpell(item) {
+  const sys = item.system ?? {}
+  const asItem = foundryItemToNpcItem({ ...item, type: 'feat' })
+  const uses = sys.uses ?? {}
+  const perDay = sys.method !== 'spell' && sys.method !== 'pact' && uses.max
+  const props = new Set(sys.properties ?? [])
+  const legacyMode = sys.preparation?.mode // dnd5e 4.x exports
+  const innate = sys.method === 'innate' || sys.method === 'atwill' || legacyMode === 'innate' || legacyMode === 'atwill'
+  return {
+    ...emptyNpcSpell(),
+    key: asItem.key,
+    name: item.name ?? '',
+    img: item.img ?? '',
+    level: Number(sys.level) || 0,
+    school: sys.school || 'evo',
+    method: perDay ? 'perDay' : innate ? 'atwill' : 'slots',
+    usesPerDay: perDay ? Number(uses.max) || 1 : 1,
+    activation: { type: sys.activation?.type || 'action', value: Number(sys.activation?.value) || 1, condition: sys.activation?.condition ?? '' },
+    range: { value: sys.range?.value ?? '', units: SPELL_RANGE_UNITS.includes(sys.range?.units) ? sys.range.units : 'self' },
+    area: { type: sys.target?.template?.type ?? '', size: sys.target?.template?.size ?? '' },
+    duration: { value: sys.duration?.value ?? '', units: sys.duration?.units || 'inst' },
+    concentration: props.has('concentration'),
+    ritual: props.has('ritual'),
+    components: { v: props.has('vocal'), s: props.has('somatic'), m: props.has('material') },
+    materials: sys.materials?.value ?? '',
+    description: sys.description?.value ?? '',
+    upcast: spellUpcastFromParts(sys),
+    source: { book: sys.source?.book ?? '', page: sys.source?.page ?? '' },
+    activities: asItem.activities.map((a) => ({ ...a, activation: '', spend: (a.spend ?? []).filter((x) => x.source !== 'item' || x.target) })),
+    effects: asItem.effects,
+  }
+}
+
+// The per-level step of the first scaled damage/healing part.
+function spellUpcastFromParts(sys) {
+  for (const act of Object.values(sys.activities ?? {})) {
+    for (const part of [...(act.damage?.parts ?? []), ...(act.healing ? [act.healing] : [])]) {
+      if (part.scaling?.mode !== 'whole') continue
+      if (part.scaling.formula) return part.scaling.formula
+      if (part.denomination) return `${Number(part.scaling.number) || 1}d${part.denomination}`
+    }
+  }
+  return ''
 }
 
 const ACTIVATION_TO_SECTION = { action: 'action', bonus: 'bonus', reaction: 'reaction', legendary: 'legendary', lair: 'lair' }
@@ -1386,7 +1707,7 @@ function foundryItemToNpcItem(item) {
     }
     if (act.type === 'save') {
       a.saveAbility = act.save?.ability?.[0] ?? 'dex'
-      if (act.save?.dc?.calculation && act.save.dc.calculation !== 'spellcasting') a.dcAbility = act.save.dc.calculation
+      if (act.save?.dc?.calculation) a.dcAbility = act.save.dc.calculation // an ability key or 'spellcasting'
       else a.dc = act.save?.dc?.formula ?? ''
       a.onSave = act.damage?.onSave ?? 'half'
     }

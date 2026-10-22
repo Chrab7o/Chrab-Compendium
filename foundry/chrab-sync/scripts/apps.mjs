@@ -1,5 +1,6 @@
 // The two Chrab Sync windows, both GM-only:
 //   SyncApp   - the queue: NPCs sent from the Compendium, checkboxes, Apply.
+//               Below it, player character sync and pending shop trades.
 //   ConfigApp - sync account sign-in/out and the world -> campaign mapping.
 //
 // Built on ApplicationV2 rendering raw HTML (_renderHTML/_replaceHTML) with
@@ -7,6 +8,7 @@
 // lean on as little of the window API as possible.
 
 import { applyQueuedNpc, findDraftActor } from './apply.mjs'
+import { characterState, partyActors, pendingTrades, pushCharacter, pushCharacters } from './characters.mjs'
 import { MODULE_ID } from './constants.mjs'
 import { checkQueue } from './queue.mjs'
 import { currentEmail, isSignedIn, listCampaigns, rpc, signIn, signOut } from './supabase.mjs'
@@ -32,11 +34,15 @@ export class SyncApp extends ApplicationV2 {
       apply: SyncApp.#onApply,
       settings: SyncApp.#onSettings,
       toggleAll: SyncApp.#onToggleAll,
+      syncCharacters: SyncApp.#onSyncCharacters,
+      settle: SyncApp.#onSettle,
     },
   }
 
   entries = []
   results = {} // draft id -> { ok, text }
+  trades = [] // unsettled shop trades, from sync_pending_trades
+  tradeMessage = ''
   message = ''
   busy = false
   loaded = false
@@ -59,9 +65,73 @@ export class SyncApp extends ApplicationV2 {
       this.entries = []
       this.message = err.message
     }
+    await this.loadTrades()
     this.busy = false
     this.loaded = true
     this.render()
+  }
+
+  async loadTrades() {
+    if (!isSignedIn()) {
+      this.trades = []
+      return
+    }
+    try {
+      this.trades = (await pendingTrades()) ?? []
+      this.tradeMessage = ''
+    } catch (err) {
+      this.trades = []
+      this.tradeMessage = err.message
+    }
+  }
+
+  // Player characters: last push, a Sync now button, and unsettled shop
+  // trades grouped by character, each group with its own Sync & settle.
+  #charactersHTML() {
+    if (!isSignedIn()) return ''
+    const last = characterState.last
+    const status = last
+      ? `Last sync ${esc(last.at.toLocaleTimeString())}: ${last.counts.updated} updated, ${last.counts.unchanged} unchanged` +
+        (last.counts.failed ? `, <span class="chrab-sync-result fail">${last.counts.failed} failed</span>` : '') +
+        (last.unmatched.length ? `<br>Not on the site yet (import once there): ${esc(last.unmatched.join(', '))}` : '')
+      : game.settings.get(MODULE_ID, 'syncCharacters')
+        ? 'Not synced yet this session.'
+        : 'Automatic sync is off (module settings).'
+    const groups = new Map()
+    for (const t of this.trades) {
+      if (!groups.has(t.actor_id)) groups.set(t.actor_id, [])
+      groups.get(t.actor_id).push(t)
+    }
+    const tradeRows = [...groups.entries()]
+      .map(([actorId, trades]) => {
+        const inWorld = !!game.actors.get(actorId)
+        const lines = trades
+          .map((t) => `<li>${t.kind === 'buy' ? 'Bought' : 'Sold'} ${t.quantity > 1 ? `${esc(t.quantity)}× ` : ''}${esc(t.item_name)} — ${t.kind === 'buy' ? '−' : '+'}${esc(Number(t.total_gp))} gp <span class="chrab-sync-meta">${esc(t.shop_name)}${t.note ? ` · ${esc(t.note)}` : ''}</span></li>`)
+          .join('')
+        return `
+          <li class="chrab-sync-row">
+            <strong>${esc(trades[0].character_name)}</strong>
+            <ul class="chrab-sync-trades">${lines}</ul>
+            ${
+              inWorld
+                ? `<button type="button" data-action="settle" data-actor="${esc(actorId)}" ${this.busy ? 'disabled' : ''}><i class="fa-solid fa-check"></i> Applied in Foundry — sync &amp; settle</button>`
+                : `<span class="chrab-sync-meta">Not in this world.</span>`
+            }
+          </li>`
+      })
+      .join('')
+    return `
+      <h3 class="chrab-sync-heading">Player characters</h3>
+      <p class="chrab-sync-meta">${status}</p>
+      ${this.tradeMessage ? `<p class="chrab-sync-message">${esc(this.tradeMessage)}</p>` : ''}
+      ${
+        tradeRows
+          ? `<p>Pending shop trades. Apply them to the sheet first; settling pushes the sheet and stops them counting on top of its gold.</p><ul class="chrab-sync-list">${tradeRows}</ul>`
+          : ''
+      }
+      <footer class="chrab-sync-footer">
+        <button type="button" data-action="syncCharacters" ${this.busy ? 'disabled' : ''}><i class="fa-solid fa-users"></i> Sync characters now</button>
+      </footer>`
   }
 
   async _renderHTML() {
@@ -93,6 +163,7 @@ export class SyncApp extends ApplicationV2 {
             <i class="fa-solid fa-download"></i> Apply selected
           </button>
         </footer>
+        ${this.#charactersHTML()}
       </section>`
   }
 
@@ -103,6 +174,41 @@ export class SyncApp extends ApplicationV2 {
   static async #onRefresh() {
     this.results = {}
     await this.load()
+  }
+
+  static async #onSyncCharacters() {
+    this.busy = true
+    this.render()
+    try {
+      await pushCharacters(partyActors(), { force: true })
+    } catch (err) {
+      ui.notifications.warn(`Chrab Sync: ${err.message}`)
+    }
+    await this.loadTrades()
+    this.busy = false
+    this.render()
+  }
+
+  static async #onSettle(event, target) {
+    const actor = game.actors.get(target.dataset.actor)
+    if (!actor) return
+    // Exactly the trades shown, so one made on the site since this window
+    // loaded stays pending.
+    const ids = this.trades.filter((t) => t.actor_id === actor.id).map((t) => t.trade_id)
+    this.busy = true
+    this.render()
+    let message = ''
+    try {
+      const result = await pushCharacter(actor, { settleTradeIds: ids })
+      if (result === 'unmatched') message = `${actor.name} isn't linked on the site.`
+      else ui.notifications.info(`Chrab Sync: ${actor.name} synced, ${ids.length} trade${ids.length === 1 ? '' : 's'} settled.`)
+    } catch (err) {
+      message = err.message
+    }
+    await this.loadTrades()
+    if (message) this.tradeMessage = message
+    this.busy = false
+    this.render()
   }
 
   static #onSettings() {
