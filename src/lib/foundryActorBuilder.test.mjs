@@ -20,6 +20,7 @@ import {
   emptySpend,
   emptyNpcSpec,
   emptyOverTimeRoll,
+  normalizeFormula,
   npcActorToSpec,
   npcRollData,
   proficiencyForCr,
@@ -508,4 +509,21 @@ test('automation survives a round trip through npcActorToSpec', () => {
     assert.deepEqual(b.effects.map((e) => e.system.changes), a.effects.map((e) => e.system.changes), name)
     assert.deepEqual(b.flags, a.flags, name)
   }
+})
+
+test('a dice count from a reference is exported in parentheses (Desert Devourer bug)', () => {
+  // Tested in the world 2026-10-22: "@attributes.movement.fly d8" fails dnd5e's
+  // import validation; "(@attributes.movement.fly)d8" imports and rolls 5d8.
+  const data = { attributes: { movement: { fly: 5 } } }
+  assert.equal(normalizeFormula('@attributes.movement.fly  d8'), '(@attributes.movement.fly)d8')
+  assert.equal(normalizeFormula('(@attributes.movement.fly)d8 + 2'), '(@attributes.movement.fly)d8 + 2')
+  assert.equal(normalizeFormula('2 d6 + @mod'), '2d6 + @mod')
+  assert.equal(normalizeFormula('1d10 + @abilities.dex.mod'), '1d10 + @abilities.dex.mod')
+  assert.equal(averageFormula('@attributes.movement.fly d8', data), 22)
+
+  const spec = { ...emptyNpcSpec(), speed: { walk: 60, fly: 5, swim: null, climb: null, burrow: 60, hover: false } }
+  spec.items = [{ ...emptyNpcItem('action'), name: 'Maw', activities: [act('save', { dc: 17, damage: [{ formula: '@attributes.movement.fly d8', types: ['piercing'] }] })] }]
+  const [maw] = Object.values(buildNpcActor(spec).items[0].system.activities)
+  assert.deepEqual(maw.damage.parts[0].custom, { enabled: true, formula: '(@attributes.movement.fly)d8' })
+  assert.match(activitySummary(spec, spec.items[0].activities[0]), /22 \(5d8\) Piercing damage/)
 })

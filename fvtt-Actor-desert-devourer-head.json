@@ -1,0 +1,423 @@
+{
+  "name": "Desert Devourer (head)",
+  "type": "npc",
+  "img": "icons/svg/mystery-man.svg",
+  "system": {
+    "abilities": {
+      "str": {
+        "value": 20,
+        "proficient": 1
+      },
+      "dex": {
+        "value": 18,
+        "proficient": 1
+      },
+      "con": {
+        "value": 17,
+        "proficient": 0
+      },
+      "int": {
+        "value": 12,
+        "proficient": 0
+      },
+      "wis": {
+        "value": 8,
+        "proficient": 0
+      },
+      "cha": {
+        "value": 8,
+        "proficient": 0
+      }
+    },
+    "skills": {},
+    "attributes": {
+      "ac": {
+        "calc": "flat",
+        "flat": 20
+      },
+      "hp": {
+        "value": 300,
+        "max": 300,
+        "temp": 0,
+        "tempmax": 0,
+        "formula": ""
+      },
+      "init": {
+        "ability": "dex"
+      },
+      "movement": {
+        "units": "ft",
+        "hover": false,
+        "walk": "60",
+        "fly": "5",
+        "burrow": "60"
+      },
+      "senses": {
+        "ranges": {
+          "darkvision": 60,
+          "tremorsense": 120
+        },
+        "units": "ft",
+        "special": ""
+      }
+    },
+    "details": {
+      "cr": 7,
+      "alignment": "",
+      "type": {
+        "value": "monstrosity",
+        "subtype": ""
+      },
+      "biography": {
+        "value": "",
+        "public": ""
+      }
+    },
+    "resources": {
+      "legact": {
+        "max": 0,
+        "spent": 0
+      },
+      "legres": {
+        "max": 0,
+        "spent": 0
+      },
+      "lair": {
+        "value": false
+      }
+    },
+    "traits": {
+      "size": "lg",
+      "di": {
+        "value": [],
+        "custom": "",
+        "bypasses": []
+      },
+      "dr": {
+        "value": [
+          "piercing",
+          "bludgeoning",
+          "slashing"
+        ],
+        "custom": "",
+        "bypasses": []
+      },
+      "dv": {
+        "value": [],
+        "custom": "",
+        "bypasses": []
+      },
+      "ci": {
+        "value": [
+          "blinded"
+        ],
+        "custom": ""
+      },
+      "languages": {
+        "value": [],
+        "custom": "Abyssal",
+        "communication": {}
+      }
+    },
+    "source": {
+      "custom": "Chrab Corner",
+      "rules": "2024"
+    }
+  },
+  "prototypeToken": {
+    "name": "Desert Devourer (head)",
+    "actorLink": false,
+    "appendNumber": true,
+    "width": 2,
+    "height": 2,
+    "texture": {
+      "src": "icons/svg/mystery-man.svg",
+      "scaleX": 1,
+      "scaleY": 1,
+      "fit": "contain"
+    },
+    "disposition": -1,
+    "displayName": 20,
+    "displayBars": 40,
+    "bar1": {
+      "attribute": "attributes.hp"
+    },
+    "bar2": {
+      "attribute": null
+    },
+    "sight": {
+      "enabled": false,
+      "range": 60,
+      "visionMode": "darkvision"
+    },
+    "detectionModes": {
+      "feelTremor": {
+        "range": 120,
+        "enabled": true
+      }
+    }
+  },
+  "items": [
+    {
+      "_id": "hgFHmXT99BeXbp32",
+      "name": "Shredding Maw",
+      "type": "feat",
+      "img": "icons/svg/combat.svg",
+      "system": {
+        "description": {
+          "value": "<p>When making contact with a player the player must make a DC 17 dex saving throw, or get eaten by the worm. On a successful save they will avoid all damage, but must move 5ft perpendicular of the worm. On a failed save the player is eaten taking a number of d8 piercing damage equal to the number of sections left on the worm. At the end of the worms turn all eaten players who are not dead will be tossed 15ft away in a random 1d4 direction relative to the furthest segment.</p>",
+          "chat": ""
+        },
+        "source": {
+          "custom": "Chrab Corner",
+          "rules": "2024"
+        },
+        "identifier": "shredding-maw",
+        "uses": {
+          "max": "",
+          "spent": 0,
+          "recovery": []
+        },
+        "activities": {
+          "f0GUEsjbGE54QgDm": {
+            "_id": "f0GUEsjbGE54QgDm",
+            "type": "save",
+            "name": "",
+            "sort": 0,
+            "activation": {
+              "type": "action",
+              "value": 1,
+              "override": false
+            },
+            "consumption": {
+              "scaling": {
+                "allowed": false
+              },
+              "spellSlot": true,
+              "targets": []
+            },
+            "duration": {
+              "units": "inst",
+              "concentration": false,
+              "override": false
+            },
+            "range": {
+              "units": "self",
+              "override": false
+            },
+            "target": {
+              "prompt": true,
+              "override": false,
+              "template": {
+                "contiguous": false,
+                "stationary": false,
+                "units": "ft",
+                "count": "",
+                "type": "",
+                "size": "",
+                "width": "",
+                "height": ""
+              },
+              "affects": {
+                "count": "",
+                "type": "creature",
+                "choice": false,
+                "special": ""
+              }
+            },
+            "uses": {
+              "spent": 0,
+              "recovery": []
+            },
+            "effects": [],
+            "macroData": {
+              "name": "Chrab Corner script",
+              "command": "// Push 15 ft. (failed saves)\nif (!token) return;\nfor (const target of workflow.failedSaves) {\n  await MidiQOL.moveTokenAwayFromPoint(target, 15, token.center);\n}\n"
+            },
+            "save": {
+              "ability": [
+                "dex"
+              ],
+              "dc": {
+                "calculation": "",
+                "formula": "18"
+              }
+            },
+            "damage": {
+              "onSave": "none",
+              "parts": [
+                {
+                  "types": [
+                    "piercing"
+                  ],
+                  "scaling": {
+                    "mode": "",
+                    "number": 1
+                  },
+                  "custom": {
+                    "enabled": false,
+                    "formula": ""
+                  },
+                  "number": 5,
+                  "denomination": 8,
+                  "bonus": ""
+                }
+              ],
+              "critical": {
+                "allow": false
+              }
+            }
+          }
+        },
+        "properties": [],
+        "type": {
+          "value": "monster",
+          "subtype": ""
+        }
+      },
+      "effects": [],
+      "sort": 0,
+      "ownership": {
+        "default": 0
+      },
+      "flags": {
+        "midi-qol": {
+          "onUseMacroName": "[postActiveEffects]ActivityMacro-f0GUEsjbGE54QgDm"
+        }
+      },
+      "_stats": {
+        "coreVersion": "14.368",
+        "systemId": "dnd5e",
+        "systemVersion": "5.3.3"
+      }
+    },
+    {
+      "_id": "t8ysWADgsjTH0Iw7",
+      "name": "Turn",
+      "type": "feat",
+      "img": "icons/svg/combat.svg",
+      "system": {
+        "description": {
+          "value": "<p>Melee Attack Roll: +8, reach 5 ft.</p>",
+          "chat": ""
+        },
+        "source": {
+          "custom": "Chrab Corner",
+          "rules": "2024"
+        },
+        "identifier": "turn",
+        "uses": {
+          "max": "",
+          "spent": 0,
+          "recovery": []
+        },
+        "activities": {
+          "O3GlZC4kHHePKzyE": {
+            "_id": "O3GlZC4kHHePKzyE",
+            "type": "attack",
+            "name": "",
+            "sort": 0,
+            "activation": {
+              "type": "legendary",
+              "value": 1,
+              "override": false
+            },
+            "consumption": {
+              "scaling": {
+                "allowed": false
+              },
+              "spellSlot": true,
+              "targets": [
+                {
+                  "type": "attribute",
+                  "target": "resources.legact.value",
+                  "value": "1",
+                  "scaling": {}
+                }
+              ]
+            },
+            "duration": {
+              "units": "inst",
+              "concentration": false,
+              "override": false
+            },
+            "range": {
+              "units": "self",
+              "override": false
+            },
+            "target": {
+              "prompt": true,
+              "override": false,
+              "template": {
+                "contiguous": false,
+                "stationary": false,
+                "units": "ft",
+                "count": "",
+                "type": "",
+                "size": "",
+                "width": "",
+                "height": ""
+              },
+              "affects": {
+                "count": "",
+                "type": "creature",
+                "choice": false,
+                "special": ""
+              }
+            },
+            "uses": {
+              "spent": 0,
+              "recovery": []
+            },
+            "effects": [],
+            "attack": {
+              "flat": false,
+              "type": {
+                "value": "melee",
+                "classification": "weapon"
+              },
+              "ability": "str",
+              "bonus": "",
+              "critical": {}
+            },
+            "damage": {
+              "parts": [],
+              "critical": {},
+              "includeBase": true
+            }
+          }
+        },
+        "properties": [],
+        "type": {
+          "value": "monster",
+          "subtype": ""
+        }
+      },
+      "effects": [],
+      "sort": 100000,
+      "ownership": {
+        "default": 0
+      },
+      "flags": {},
+      "_stats": {
+        "coreVersion": "14.368",
+        "systemId": "dnd5e",
+        "systemVersion": "5.3.3"
+      }
+    }
+  ],
+  "effects": [],
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "chrab-sync": {
+      "npcDraftId": "53ed4ee4-c0bf-4042-a68d-8381b7957955"
+    }
+  },
+  "_stats": {
+    "coreVersion": "14.368",
+    "systemId": "dnd5e",
+    "systemVersion": "5.3.3"
+  }
+}

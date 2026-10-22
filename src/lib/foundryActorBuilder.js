@@ -251,10 +251,36 @@ export function resolveRefs(formula, data = {}) {
   })
 }
 
+// A dice count taken from a reference: "@attributes.movement.fly d8" or
+// "(@attributes.movement.fly)d8".
+const DICE_COUNT_REF = /\(?(@[\w.]*\w)\)?\s*d(\d)/gi
+
+export function hasDiceCountRef(formula) {
+  return new RegExp(DICE_COUNT_REF.source, 'i').test(String(formula ?? ''))
+}
+
+// Foundry 14 / dnd5e 5.3 only accept a dice count from a reference in
+// parentheses: "@attributes.movement.fly d8" fails import validation
+// ("Expected [%*/], [+\-], or end of input but "d" found") while
+// "(@attributes.movement.fly)d8" imports and rolls live (tested in the world
+// 2026-10-22, sandbox probes/dice-count-formula.md). Spaces before a "d"
+// are closed up too ("2 d6" -> "2d6").
+export function normalizeFormula(formula) {
+  return String(formula ?? '')
+    .trim()
+    .replace(DICE_COUNT_REF, (_, ref, faces) => `(${ref})d${faces}`)
+    .replace(/(\d|\))\s+d(\d)/gi, '$1d$2')
+}
+
+// A formula with this creature's numbers filled in: "(@x)d8" -> "5d8".
+export function bakeFormula(formula, data = {}) {
+  return resolveRefs(normalizeFormula(formula), data).replace(/\((\d+)\)d/g, '$1d')
+}
+
 // "26d20 + 208" -> 481. Dice average rounds down per standard statblocks.
 export function averageFormula(formula, data = {}) {
   if (!formula) return 0
-  const expr = resolveRefs(formula, data)
+  const expr = resolveRefs(normalizeFormula(formula), data).replace(/\((\d+)\)/g, '$1')
   let total = 0
   const terms = expr.replace(/\s+/g, '').match(/[+-]?[^+-]+/g) ?? []
   for (const term of terms) {
@@ -272,7 +298,7 @@ export function averageFormula(formula, data = {}) {
 // number/denomination fields so the sheet can scale it; anything fancier
 // ("2d8 + 1d6") falls back to a custom formula, which dnd5e also accepts.
 export function damagePart(row) {
-  const formula = String(row?.formula ?? '').trim()
+  const formula = normalizeFormula(row?.formula)
   const types = (row?.types ?? []).filter((t) => DAMAGE_TYPES.includes(t) || t === 'healing' || t === 'temphp')
   const base = { types, scaling: { mode: '', number: 1 }, custom: { enabled: false } }
   const match = formula.match(/^(\d+)\s*d\s*(\d+)\s*(?:([+-])\s*(.+))?$/i)
@@ -616,7 +642,7 @@ function rangeFor(activity) {
 }
 
 function damageParts(rows) {
-  return (rows ?? []).filter((r) => String(r.formula ?? '').trim() !== '').map(damagePart)
+  return (rows ?? []).filter((r) => String(r.formula ?? '').trim() !== '').map((row) => damagePart(row))
 }
 
 function buildActivity(item, activity, effectRefs, index, ids = {}, automationOnly = false) {
@@ -712,7 +738,7 @@ function damageText(spec, activity, rows) {
   return (rows ?? [])
     .filter((r) => String(r.formula ?? '').trim() !== '')
     .map((r) => {
-      const shown = resolveRefs(r.formula, rollData).replace(/\s+/g, ' ').replace(/\+ -/g, '- ')
+      const shown = bakeFormula(r.formula, rollData).replace(/\s+/g, ' ').replace(/\+ -/g, '- ')
       const avg = averageFormula(r.formula, rollData)
       const types = (r.types ?? []).map((t) => t[0].toUpperCase() + t.slice(1)).join(' or ')
       return `${avg} (${shown})${types ? ` ${types}` : ''} damage`
@@ -775,7 +801,7 @@ function activityBody(spec, activity) {
     }
     case 'heal': {
       const data = npcRollData(spec)
-      return activity.healing ? `Regains ${averageFormula(activity.healing, data)} (${resolveRefs(activity.healing, data)}) Hit Points.` : ''
+      return activity.healing ? `Regains ${averageFormula(activity.healing, data)} (${bakeFormula(activity.healing, data)}) Hit Points.` : ''
     }
     default:
       return ''
@@ -811,7 +837,7 @@ export function overTimeValue(spec, item, effect, ot) {
     parts.push(`saveAbility=${ot.saveAbility}`, `saveDC=${dc}`, ot.saveRemoves !== false ? 'saveCount=1-' : 'saveRemove=false')
   }
   if (String(ot.damage ?? '').trim()) {
-    parts.push(`damageRoll=${resolveRefs(ot.damage, data).replace(/\s+/g, '')}`)
+    parts.push(`damageRoll=${bakeFormula(ot.damage, data).replace(/\s+/g, '')}`)
     if (ot.damageType) parts.push(`damageType=${ot.damageType}`)
   }
   return parts.join(', ')
@@ -864,7 +890,7 @@ function usesFor(item) {
   }
   if (item.usesMax) {
     const period = item.usesRecovery || 'day'
-    return { max: String(item.usesMax), spent: 0, recovery: [{ period, type: 'recoverAll' }] }
+    return { max: normalizeFormula(item.usesMax), spent: 0, recovery: [{ period, type: 'recoverAll' }] }
   }
   return { max: '', spent: 0, recovery: [] }
 }

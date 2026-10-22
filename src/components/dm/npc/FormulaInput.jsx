@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
-import { averageFormula, resolveRefs } from '../../../lib/foundryActorBuilder'
+import { averageFormula, bakeFormula, hasDiceCountRef, normalizeFormula } from '../../../lib/foundryActorBuilder'
 import { ATTRIBUTE_GROUPS, attributeOptions, searchAttributes } from '../../../lib/foundryAttributes'
 
 // The NPC being edited, so formula fields deep in the action builder can
@@ -123,7 +123,11 @@ export default function FormulaInput({ value, onChange, placeholder, ariaLabel, 
   const text = String(value ?? '').trim()
   const data = { ...rollData, mod: rollData.mod ?? 0 }
   const hasDice = /\d*d\d/i.test(text)
-  const hint = text && (text.includes('@') || hasDice) ? `= ${resolveRefs(text, data).replace(/\s+/g, ' ')}${hasDice ? `, avg ${averageFormula(text, data)}` : ''}` : ''
+  const hint = text && (text.includes('@') || hasDice) ? `= ${bakeFormula(text, data).replace(/\s+/g, ' ')}${hasDice ? `, avg ${averageFormula(text, data)}` : ''}` : ''
+  // A dice count from a reference only imports in parentheses; the builder
+  // adds them on export - show the spelling Foundry will get.
+  const exported = normalizeFormula(text)
+  const rewritten = hasDiceCountRef(text) && exported !== text ? exported : ''
 
   return (
     <div className="npc-formula" ref={wrapRef}>
@@ -134,6 +138,11 @@ export default function FormulaInput({ value, onChange, placeholder, ariaLabel, 
         </BrowseButton>
       </div>
       {showHint && hint && <span className="npc-hint">{hint}</span>}
+      {rewritten && (
+        <span className="npc-hint">
+          Exported as <code>{rewritten}</code> - Foundry needs a dice count from a reference in parentheses.
+        </span>
+      )}
       {open && <AttributeMenu use="formula" withMod={withMod} onPick={insert} />}
     </div>
   )
