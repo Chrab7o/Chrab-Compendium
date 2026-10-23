@@ -23,6 +23,8 @@ import {
 import WizardShell from '../WizardShell'
 import RepeatableRows from '../RepeatableRows'
 import VisibilitySelect from './VisibilitySelect'
+import { useAutomationOptions } from './useAutomationOptions'
+import { republishQuietly } from '../../../lib/homebrewFeedPublish'
 import AbilityScorePicker from '../AbilityScorePicker'
 import OptionPicker from '../OptionPicker'
 
@@ -75,6 +77,7 @@ export default function ClassWizard() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
   const [newSubclassLevel, setNewSubclassLevel] = useState('')
+  const automationOptions = useAutomationOptions()
 
   // Autosaves to localStorage as the DM works through the wizard, so
   // closing the tab, a crash, or navigating away mid-edit doesn't lose
@@ -282,6 +285,7 @@ export default function ClassWizard() {
           sort_order: i,
           choice_group: f.choice_group ?? '',
           choice_count: f.choice_group ? f.choice_count ?? null : null,
+          feature_draft_id: f.feature_draft_id || null,
         }))
       )
       if (featuresError) {
@@ -371,6 +375,7 @@ export default function ClassWizard() {
             sort_order: i,
             choice_group: f.choice_group ?? '',
             choice_count: f.choice_group ? f.choice_count ?? null : null,
+            feature_draft_id: f.feature_draft_id || null,
           }))
         )
         if (subFeatureError) {
@@ -382,8 +387,11 @@ export default function ClassWizard() {
     }
 
     clearDraft()
+    // The Plutonium feed always reflects what's saved (a newly hidden class
+    // drops out of it too).
+    const notice = await republishQuietly()
     setSaving(false)
-    navigate('/dm/homebrew')
+    navigate('/dm/homebrew', notice ? { state: { notice } } : undefined)
   }
 
   function downloadJson(json, filename) {
@@ -695,6 +703,7 @@ export default function ClassWizard() {
               withLevel
               withSubFeatures
               addLabel="+ Add Feature"
+              automationOptions={automationOptions}
             />
           </div>
         )}
@@ -769,6 +778,7 @@ export default function ClassWizard() {
                   allowedLevels={form.subclass_levels}
                   withSubFeatures
                   addLabel="+ Add Feature"
+                  automationOptions={automationOptions}
                 />
               </div>
             ))}

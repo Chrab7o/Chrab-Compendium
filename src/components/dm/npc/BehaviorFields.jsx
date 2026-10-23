@@ -6,6 +6,7 @@ import {
   behaviorSummary,
   emptyBehavior,
   emptyBehaviorRule,
+  eventForOutcome,
   ruleOutcomeFits,
   ruleSummary,
 } from '../../../lib/foundryBehaviors'
@@ -26,6 +27,8 @@ const WHEN_HELP = [
   ['c.hits, c.dealt', 'targets hit / HP damage dealt (after it lands)'],
   ['c.target.actor', 'the first target hit (a token)'],
   ['c.actor, c.item, c.activity', 'the owner, this feature, the roll being made'],
+  ['c.level', 'the level tiers count (class or character level)'],
+  ['c.incoming', '“would drop to 0”: the damage about to land (midi damage item)'],
   ['c.workflow.isCritical', 'and anything else on the midi workflow'],
 ]
 
@@ -42,15 +45,25 @@ function DamageTypeSelect({ value, onChange, allowNone = true }) {
   )
 }
 
-function RuleEditor({ rule, onChange, onRemove }) {
+function RuleEditor({ rule, toggle, onChange, onRemove }) {
   const set = (patch) => onChange({ ...rule, ...patch })
   const event = BEHAVIOR_EVENTS.find((e) => e.key === rule.event) ?? BEHAVIOR_EVENTS[0]
   const attackish = event.attack || rule.event === 'damage' || rule.event === 'dealt'
+  const downed = rule.event === 'downed'
   const hasType = rule.outcome === 'bonusDamage' || rule.outcome === 'damageSelf'
 
   function setOutcome(outcome) {
-    // Bonus damage only exists on the damage roll, so pick that event for it.
-    set({ outcome, event: outcome === 'bonusDamage' ? 'damage' : rule.event, damageType: outcome === 'bonusDamage' || outcome === 'damageSelf' ? rule.damageType || 'necrotic' : '' })
+    // Bonus damage only exists on the damage roll (staying up only when
+    // you'd drop), so pick that event for it.
+    const damageType = outcome === 'bonusDamage' || outcome === 'damageSelf' ? rule.damageType || 'necrotic' : ''
+    const formula = outcome === 'stayUp' && rule.outcome !== 'stayUp' ? emptyBehaviorRule('stayUp').formula : rule.formula
+    set({ outcome, event: eventForOutcome(outcome, rule.event), damageType, formula, spendHitDie: outcome === 'stayUp' ? rule.spendHitDie !== false : rule.spendHitDie })
+  }
+
+  function setEvent(key) {
+    const next = BEHAVIOR_EVENTS.find((e) => e.key === key)
+    if (next?.outcomes && !next.outcomes.includes(rule.outcome)) return setOutcome(next.outcomes[0])
+    set({ event: key })
   }
 
   return (
@@ -58,7 +71,7 @@ function RuleEditor({ rule, onChange, onRemove }) {
       <div className="dm-form-row">
         <label>
           When
-          <select value={rule.event} onChange={(e) => set({ event: e.target.value })}>
+          <select value={rule.event} onChange={(e) => setEvent(e.target.value)}>
             {BEHAVIOR_EVENTS.map((ev) => (
               <option key={ev.key} value={ev.key}>
                 {ev.label}
@@ -117,12 +130,24 @@ function RuleEditor({ rule, onChange, onRemove }) {
         <FormulaInput
           value={rule.formula}
           onChange={(formula) => set({ formula })}
-          placeholder={rule.outcome === 'bonusDamage' ? 'e.g. 1d10' : 'e.g. 1d10 + @abilities.con.mod'}
-          ariaLabel="Amount"
+          placeholder={rule.outcome === 'bonusDamage' ? 'e.g. 1d10' : rule.outcome === 'stayUp' ? 'e.g. @hitDie + @abilities.con.mod' : 'e.g. 1d10 + @abilities.con.mod'}
+          ariaLabel={rule.outcome === 'stayUp' ? 'Hit points left' : 'Amount'}
         />
         {hasType ? <DamageTypeSelect value={rule.damageType} onChange={(damageType) => set({ damageType })} /> : <span />}
         <span />
       </div>
+      {rule.outcome === 'stayUp' && (
+        <div className="dm-form-row">
+          <label className="tag-checklist-item">
+            <input type="checkbox" checked={!!rule.spendHitDie} onChange={(e) => set({ spendHitDie: e.target.checked })} />
+            Spend one of my hit dice (none left: I fall)
+          </label>
+          <p className="npc-hint">
+            The amount is the hit points you&apos;re left with. <code>@hitDie</code> is your biggest unspent hit die
+            (1d10 for a d10 class), so <code>@hitDie + @abilities.con.mod</code> is a normal hit die spend.
+          </p>
+        </div>
+      )}
       {rule.outcome === 'bonusDamage' && (
         <div className="dm-form-row">
           <label>
@@ -140,17 +165,39 @@ function RuleEditor({ rule, onChange, onRemove }) {
       )}
 
       <div className="dm-form-row">
-        <label className="tag-checklist-item">
-          <input type="checkbox" checked={!!rule.ask} onChange={(e) => set({ ask: e.target.checked })} />
-          Ask first (the player chooses each time)
+        <label>
+          From level
+          <input type="number" min="1" max="20" value={rule.minLevel ?? ''} placeholder="any" onChange={(e) => set({ minLevel: e.target.value })} />
         </label>
+        <label>
+          Up to level
+          <input type="number" min="1" max="20" value={rule.maxLevel ?? ''} placeholder="any" onChange={(e) => set({ maxLevel: e.target.value })} />
+        </label>
+        {!downed && (
+          <label className="tag-checklist-item">
+            <input type="checkbox" checked={!!rule.ask} onChange={(e) => set({ ask: e.target.checked })} />
+            Ask first (the player chooses each time)
+          </label>
+        )}
         <label className="tag-checklist-item">
           <input type="checkbox" checked={!!rule.oncePerTurn} onChange={(e) => set({ oncePerTurn: e.target.checked })} />
           Once per turn
         </label>
+        {toggle && (
+          <label className="tag-checklist-item">
+            <input type="checkbox" checked={!!rule.oncePerStance} onChange={(e) => set({ oncePerStance: e.target.checked })} />
+            Once each time the stance turns on
+          </label>
+        )}
       </div>
+      {downed && (
+        <p className="npc-hint">
+          This runs inside the attacker&apos;s roll, so it never asks: it&apos;s used automatically. It also catches
+          this feature&apos;s own costs (“I take the same damage”).
+        </p>
+      )}
 
-      <ConditionRows rows={rule.targetConditions ?? []} onChange={(targetConditions) => set({ targetConditions })} slot="use" label="Only if the target" />
+      {!downed && <ConditionRows rows={rule.targetConditions ?? []} onChange={(targetConditions) => set({ targetConditions })} slot="use" label="Only if the target" />}
       <details className="npc-cheatsheet">
         <summary>Custom condition (JavaScript){rule.when ? ': on' : ''}</summary>
         <input
@@ -175,7 +222,14 @@ function RuleEditor({ rule, onChange, onRemove }) {
       {ruleOutcomeFits(rule) ? (
         <p className="npc-hint">{ruleSummary(rule)}</p>
       ) : (
-        <p className="npc-hint npc-behavior-warn">Extra damage only works with “I roll damage”. This rule is skipped until the event changes.</p>
+        <p className="npc-hint npc-behavior-warn">
+          {rule.outcome === 'bonusDamage'
+            ? 'Extra damage only works with “I roll damage”.'
+            : downed || rule.outcome === 'stayUp'
+              ? 'Staying up only goes with “I would drop to 0 hit points”.'
+              : 'This outcome doesn’t fit this event.'}{' '}
+          This rule is skipped until that changes.
+        </p>
       )}
       <div className="repeatable-row-controls">
         <button type="button" className="danger npc-small-button" onClick={onRemove}>
@@ -200,6 +254,10 @@ function ToggleFields({ toggle, set }) {
               </option>
             ))}
           </select>
+        </label>
+        <label>
+          Lasts (minutes)
+          <input type="number" min="0" value={toggle.duration ?? ''} placeholder="until turned off" onChange={(e) => set({ duration: e.target.value })} />
         </label>
         <label>
           Button name
@@ -290,6 +348,7 @@ export default function BehaviorFields({ item, onChange }) {
               <RuleEditor
                 key={rule.key}
                 rule={rule}
+                toggle={behavior.mode === 'toggle'}
                 onChange={(value) => set({ rules: rules.map((r, idx) => (idx === i ? value : r)) })}
                 onRemove={() => set({ rules: rules.filter((_, idx) => idx !== i) })}
               />
@@ -301,7 +360,27 @@ export default function BehaviorFields({ item, onChange }) {
               <button type="button" className="secondary npc-small-button" onClick={() => set({ rules: [...rules, emptyBehaviorRule('bonusDamage')] })}>
                 + Rule: extra damage
               </button>
+              <button type="button" className="secondary npc-small-button" onClick={() => set({ rules: [...rules, emptyBehaviorRule('stayUp')] })}>
+                + Rule: refuse to fall
+              </button>
             </div>
+            {(behavior.levelClass || rules.some((r) => r.minLevel || r.maxLevel)) && (
+              <div className="dm-form-row">
+                <label className="npc-wide-field">
+                  Level tiers count levels in class
+                  <input
+                    className="npc-code-input"
+                    value={behavior.levelClass ?? ''}
+                    onChange={(e) => set({ levelClass: e.target.value })}
+                    placeholder="character level - or a class identifier, e.g. the-dark-knight"
+                  />
+                </label>
+                <p className="npc-hint">
+                  The class&apos;s identifier on its Foundry item (Details tab). If the owner doesn&apos;t have that class,
+                  their character level counts instead. NPCs ignore level tiers.
+                </p>
+              </div>
+            )}
             {(rules.length > 0 || behavior.mode === 'toggle') && (
               <div className="npc-overtime">
                 <span className="option-picker-label">Rules text</span>

@@ -2876,6 +2876,31 @@ button.chip:hover {
   background: var(--surface);
 }
 
+/* A feature row's Feature Forge link: the picker, plus a jump to the draft
+   once one is chosen. */
+.repeatable-automation {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: flex-end;
+}
+
+.repeatable-automation label {
+  flex: 1 1 16rem;
+}
+
+/* The Plutonium feed's URL with its copy button beside it. */
+.homebrew-feed-url {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.homebrew-feed-url input {
+  flex: 1;
+  min-width: 0;
+}
+
 .sub-features > button {
   align-self: flex-start;
 }

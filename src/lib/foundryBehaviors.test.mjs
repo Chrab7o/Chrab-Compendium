@@ -17,6 +17,8 @@ import {
   deathStanceBehavior,
   emptyBehavior,
   emptyBehaviorRule,
+  eventForOutcome,
+  ruleOutcomeFits,
   ruleSummary,
 } from './foundryBehaviors.js'
 import { FEATURE_TEMPLATES, buildFeatureItem, emptyFeatureSpec, featureItemToSpec } from './foundryFeatures.js'
@@ -37,6 +39,8 @@ test('Death Stance builds as a toggle: hook first, stance effect, hooks on it', 
 
   assert.equal(item.type, 'feat')
   assert.deepEqual(item.system.type, { value: 'class', subtype: '' })
+  assert.equal(item.system.requirements, 'Dark Knight 3 (Harbinger of Darkness)')
+  assert.deepEqual(item.system.uses, { max: '@prof', spent: 0, recovery: [{ period: 'lr', type: 'recoverAll' }] })
   assert.equal(item.flags['chrab-sync'].featureDraftId, 'draft-1')
   assert.equal(item.flags['chrab-sync'].behavior.key, behavior.key)
 
@@ -54,24 +58,54 @@ test('Death Stance builds as a toggle: hook first, stance effect, hooks on it', 
   assert.match(hook.macroData.command, /const SETUP = /)
   assert.equal(item.flags['midi-qol'].onUseMacroName, `[postActiveEffects]ActivityMacro-${behavior.key}`)
 
-  // One stance effect: not applied by any activity, icon always shown, and
-  // carrying one onUseMacroName hook per pass the rules need.
+  // One stance effect (the template's own, with advantage on attacks): not
+  // applied by any activity, icon always shown, lasting 1 minute, and carrying
+  // one onUseMacroName hook per pass the rules need.
   assert.equal(item.effects.length, 1)
   const stance = item.effects[0]
+  assert.equal(stance._id, spec.item.effects[0].key)
   assert.equal(stance.transfer, false)
   assert.equal(stance.showIcon, 2)
+  assert.equal(stance.duration.value, 60)
+  assert.equal(stance.duration.units, 'seconds')
   assert.equal(stance.flags['chrab-sync'].stance, true)
   assert.deepEqual(hook.effects, [])
   assert.deepEqual(
     stance.system.changes.map((c) => [c.key, c.value, c.type]),
     [
+      ['flags.midi-qol.advantage.attack.all', '1', 'custom'],
       ['flags.midi-qol.onUseMacroName', 'ActivityMacro, postAttackRoll', 'custom'],
       ['flags.midi-qol.onUseMacroName', 'ActivityMacro, damageBonus', 'custom'],
+      ['flags.midi-qol.onUseMacroName', 'ActivityMacro, preTargetDamageApplication', 'custom'],
     ],
   )
-  assert.match(item.system.description.value, /As a bonus action, you can enter or leave Death Stance/)
-  assert.match(item.system.description.value, /roll a 19 or 20 on the d20, you regain 1d10 \+ your Constitution modifier hit points/)
-  assert.match(item.system.description.value, /extra 1d10 necrotic damage, and you take the same amount of damage/)
+  // The sheet carries the class's own wording.
+  assert.match(item.system.description.value, /^<p>As a bonus action, let the darkness consume you/)
+  assert.match(item.system.description.value, /<p>Death Archetype Upgrade \(level 7\)/)
+})
+
+test('Death Stance rules text follows the class, tier by tier', () => {
+  const text = behaviorSummary(deathStanceBehavior(), 'Death Stance')
+  assert.match(text, /^As a bonus action, you can enter Death Stance for 1 minute, or leave it early\. While it's active:/)
+  assert.match(text, /Before level 7, when you hit with a melee attack and score a critical hit, you regain 1d10 \+ your Constitution modifier hit points\./)
+  assert.match(text, /From level 7, when you make a melee attack roll and roll a 19 or 20 on the d20, you regain 2d10 \+ your Constitution modifier hit points\./)
+  assert.match(text, /you can deal an extra 1d10 necrotic damage, and you take the same amount of damage\./)
+  assert.match(
+    text,
+    /When you would drop to 0 hit points, you can spend one of your hit dice to stay up with a roll of that hit die \+ your Constitution modifier hit points instead\. This can happen only once each time you enter the stance\./,
+  )
+})
+
+test('staying up only fits "would drop to 0", and picking either one moves the other', () => {
+  assert.equal(emptyBehaviorRule('stayUp').event, 'downed')
+  assert.equal(eventForOutcome('stayUp', 'hit'), 'downed')
+  assert.equal(eventForOutcome('healSelf', 'downed'), 'attackRoll')
+  assert.equal(eventForOutcome('healSelf', 'dealt'), 'dealt')
+  assert.equal(ruleOutcomeFits({ ...emptyBehaviorRule('healSelf'), event: 'downed' }), false)
+  assert.equal(ruleOutcomeFits({ ...emptyBehaviorRule('stayUp'), event: 'hit' }), false)
+  const b = { ...emptyBehavior('passive'), rules: [emptyBehaviorRule('stayUp')] }
+  assert.deepEqual(behaviorPasses(b), ['preTargetDamageApplication'])
+  assert.match(ruleSummary({ ...emptyBehaviorRule('stayUp'), spendHitDie: false, formula: '1' }), /you stay up with 1 hit points instead\.$/)
 })
 
 test('the generated macro is valid JavaScript for an async macro body', () => {
@@ -90,7 +124,8 @@ test('a user stance effect is used (and kept) instead of a generated one', () =>
   assert.equal(item.effects[0]._id, shield.key)
   assert.equal(item.effects[0].flags['chrab-sync'].stance, true)
   assert.equal(item.effects[0].system.changes[0].key, 'system.attributes.ac.bonus')
-  assert.equal(item.effects[0].system.changes.length, 3)
+  assert.equal(item.effects[0].system.changes.length, 4)
+  assert.equal(item.effects[0].duration.value, 60)
 })
 
 test('a passive behavior hooks through a transfer effect and hides its activity', () => {
@@ -176,7 +211,7 @@ class FakeDamageRoll {
 let world
 
 function setup({ confirm = true, combat = null } = {}) {
-  world = { messages: [], dialogs: 0, damage: [], tempHp: [], created: [], deleted: [], tokenUpdates: [], itemUpdates: [] }
+  world = { messages: [], dialogs: 0, damage: [], tempHp: [], created: [], deleted: [], tokenUpdates: [], itemUpdates: [], actorUpdates: [], classUpdates: [], effectUpdates: [] }
   globalThis.foundry = {
     utils: {
       escapeHTML: (s) => String(s),
@@ -202,8 +237,29 @@ function setup({ confirm = true, combat = null } = {}) {
   delete globalThis.Sequence
 }
 
-function makeFeature(spec) {
+// Sets a dotted update key ("flags.chrab-sync.spent.x") on a plain object.
+function applyUpdate(doc, data) {
+  for (const [path, value] of Object.entries(data)) {
+    const keys = path.split('.')
+    const last = keys.pop()
+    let o = doc
+    for (const k of keys) o = o[k] ??= {}
+    o[last] = value
+  }
+}
+
+// level: the owner's Dark Knight level (their only class, d10 hit dice).
+function makeFeature(spec, { level = 7, hp = 30, hitDiceLeft = level } = {}) {
   const built = buildFeatureItem(spec)
+  const darkKnight = {
+    type: 'class',
+    system: { levels: level, hd: { denomination: 'd10', spent: level - hitDiceLeft, value: hitDiceLeft } },
+    async update(data) {
+      world.classUpdates.push(data)
+      this.system.hd.spent = data['system.hd.spent']
+      this.system.hd.value = level - this.system.hd.spent
+    },
+  }
   const tokenDoc = {
     light: { toObject: () => ({ dim: 0, bright: 0, color: null }) },
     _source: { light: {} },
@@ -217,7 +273,11 @@ function makeFeature(spec) {
   }
   const actor = {
     name: 'Bhern',
+    uuid: 'Actor.bhern',
     effects: [],
+    items: [darkKnight],
+    classes: { 'the-dark-knight': darkKnight },
+    system: { details: { level }, attributes: { hp: { value: hp, max: 60, temp: 0 } } },
     getActiveTokens: () => [{ document: tokenDoc }],
     getRollData: () => ({ abilities: { con: { mod: 3 } } }),
     async applyDamage(damages, options) {
@@ -226,8 +286,18 @@ function makeFeature(spec) {
     async applyTempHP(n) {
       world.tempHp.push(n)
     },
+    async update(data) {
+      world.actorUpdates.push(data)
+    },
     async createEmbeddedDocuments(type, data) {
-      const docs = data.map((d, i) => ({ ...d, id: `fx${i}` }))
+      const docs = data.map((d, i) => ({
+        ...structuredClone(d),
+        id: `fx${i}`,
+        async update(change) {
+          world.effectUpdates.push(change)
+          applyUpdate(this, change)
+        },
+      }))
       world.created.push(...docs)
       this.effects.push(...docs)
       return docs
@@ -268,13 +338,21 @@ async function use(f, { pass, workflow = {}, item = sword, activity = meleeAttac
 
 test('toggle on copies the stance onto the owner with a light, toggle off undoes it', async () => {
   setup()
-  const f = makeFeature(deathStanceSpec())
+  const spec = deathStanceSpec()
+  spec.item.behavior.toggle.freeOff = true
+  const f = makeFeature(spec)
+  // As if Foundry had stamped a start on the item's own copy of the effect.
+  f.built.effects[0].duration = { ...f.built.effects[0].duration, startTime: 100, combat: 'old' }
+  f.built.effects[0].start = { time: 100 }
   const wf = {}
   await use(f, { pass: 'postActiveEffects', workflow: wf, item: f.feature, activity: {} })
   assert.equal(world.created.length, 1)
   assert.equal(world.created[0].origin, f.feature.uuid)
   assert.equal(world.created[0].transfer, false)
   assert.equal(world.created[0].flags['chrab-sync'].stance, true)
+  assert.equal(world.created[0].duration.value, 60, 'lasts 1 minute')
+  assert.equal(world.created[0].duration.startTime, undefined, 'counts from now')
+  assert.equal(world.created[0].start, undefined)
   assert.equal(world.tokenUpdates[0].light.color, '#c4102f', 'no Sequencer: the necrotic light')
   assert.ok(world.messages.some((m) => /is active/.test(m.content ?? '')))
 
@@ -309,11 +387,11 @@ test('Sequencer, when present, plays an effect tied to the stance instead of the
   assert.equal(calls.tieToDocuments[0].id, 'fx0')
 })
 
-test('natural 19 or 20 on a melee attack roll heals 1d10 + CON', async () => {
+test('from level 7, a natural 19 or 20 on a melee attack roll heals 2d10 + CON', async () => {
   setup()
-  const f = makeFeature(deathStanceSpec())
+  const f = makeFeature(deathStanceSpec(), { level: 7 })
   await use(f, { pass: 'postAttackRoll', workflow: attackWorkflow({ natural: 19, hit: false }) })
-  assert.deepEqual(world.damage, [{ damages: [{ value: 9, type: 'healing' }], options: undefined }], '6 (1d10) + 3 CON, hit or miss')
+  assert.deepEqual(world.damage, [{ damages: [{ value: 15, type: 'healing' }], options: undefined }], '12 (2d10) + 3 CON, hit or miss')
   assert.equal(world.dialogs, 0, 'the heal never asks')
 
   for (const [wf, activity, why] of [
@@ -325,6 +403,22 @@ test('natural 19 or 20 on a melee attack roll heals 1d10 + CON', async () => {
     await use(f, { pass: 'postAttackRoll', workflow: wf, activity })
     assert.deepEqual(world.damage, [], why)
   }
+})
+
+test('before level 7, only a melee critical hit heals, 1d10 + CON', async () => {
+  setup()
+  const f = makeFeature(deathStanceSpec(), { level: 5 })
+  await use(f, { pass: 'postAttackRoll', workflow: attackWorkflow({ natural: 19, hit: true }) })
+  assert.deepEqual(world.damage, [], 'a 19 is not a crit yet')
+  await use(f, { pass: 'postAttackRoll', workflow: attackWorkflow({ natural: 20, hit: true, crit: true }) })
+  assert.deepEqual(world.damage, [{ damages: [{ value: 9, type: 'healing' }], options: undefined }], 'once, from the level 3 rule only')
+
+  // The class's levels count, not the character's: a Dark Knight 5 / Fighter 4.
+  setup()
+  const multi = makeFeature(deathStanceSpec(), { level: 5 })
+  multi.actor.system.details.level = 9
+  await use(multi, { pass: 'postAttackRoll', workflow: attackWorkflow({ natural: 19, hit: true }) })
+  assert.deepEqual(world.damage, [])
 })
 
 test('a melee hit offers 1d10 necrotic and the attacker takes the same amount', async () => {
@@ -390,6 +484,107 @@ test('once per turn, target conditions and custom conditions gate a rule', async
   await use(f, { pass: 'postAttackRoll', workflow: attackWorkflow({ natural: 15 }) })
   assert.deepEqual(world.tempHp, [5, 5])
   delete globalThis.MidiQOL
+})
+
+// A goblin's hit about to land on the owner (midi's damage item for them).
+function incoming({ oldHP = 12, damage = 20, temp = 0, type = 'slashing' } = {}) {
+  const left = Math.max(0, oldHP - Math.max(0, damage - temp))
+  return {
+    damageItem: {
+      actorUuid: 'Actor.bhern',
+      oldHP,
+      newHP: left,
+      oldTempHP: temp,
+      newTempHP: Math.max(0, temp - damage),
+      hpDamage: oldHP - left,
+      damageDetail: [{ type, value: damage, properties: ['mgc'] }],
+    },
+  }
+}
+const scimitar = { uuid: 'Actor.goblin.Item.scimitar', name: 'Scimitar' }
+
+async function stanceOn(f) {
+  await use(f, { pass: 'postActiveEffects', workflow: {}, item: f.feature, activity: {} })
+}
+
+test('the first time a hit would drop me, a hit die keeps me up instead', async () => {
+  setup()
+  const f = makeFeature(deathStanceSpec(), { level: 7 })
+  await stanceOn(f)
+
+  const wf = incoming({ oldHP: 12, damage: 20 })
+  await use(f, { pass: 'preTargetDamageApplication', workflow: wf, item: scimitar })
+  // 1d10 hit die (6) + 3 CON = 9: the 20 slashing becomes exactly 3.
+  assert.deepEqual(wf.damageItem.damageDetail, [{ type: 'slashing', value: 3, properties: ['mgc'] }])
+  assert.equal(wf.damageItem.newHP, 9)
+  assert.equal(wf.damageItem.hpDamage, 3)
+  assert.deepEqual(world.classUpdates, [{ 'system.hd.spent': 1 }], 'one d10 hit die spent')
+  assert.ok(world.messages.some((m) => /stays up with 9 HP \(spent a d10 hit die\)/.test(m.flavor ?? '')))
+  assert.equal(f.actor.effects[0].flags['chrab-sync'].spent[deathStanceRuleKey(f)], true, 'marked on the stance effect')
+
+  // Only once per stance.
+  const again = incoming({ oldHP: 9, damage: 15 })
+  await use(f, { pass: 'preTargetDamageApplication', workflow: again, item: scimitar })
+  assert.equal(again.damageItem.newHP, 0, 'second time: I go down')
+  assert.equal(world.classUpdates.length, 1)
+
+  // Turning the stance off and on again resets it.
+  await stanceOn(f)
+  await stanceOn(f)
+  const fresh = incoming({ oldHP: 9, damage: 15 })
+  await use(f, { pass: 'preTargetDamageApplication', workflow: fresh, item: scimitar })
+  assert.equal(fresh.damageItem.newHP, 9)
+})
+
+function deathStanceRuleKey(f) {
+  return f.built.flags['chrab-sync'].behavior.rules.find((r) => r.outcome === 'stayUp').key
+}
+
+test('staying up: temporary HP, healing above where I was, and when it does nothing', async () => {
+  setup()
+  let f = makeFeature(deathStanceSpec())
+  await stanceOn(f)
+  // Only 4 HP: staying up at 9 is a 5-point heal, and the temp HP stays.
+  const low = incoming({ oldHP: 4, damage: 30, temp: 5 })
+  await use(f, { pass: 'preTargetDamageApplication', workflow: low, item: scimitar })
+  assert.deepEqual(low.damageItem.damageDetail, [{ type: 'healing', value: -5 }])
+  assert.equal(low.damageItem.newHP, 9)
+
+  // With temp HP and room above 9: temp is used up, HP lands on 9.
+  setup()
+  f = makeFeature(deathStanceSpec())
+  await stanceOn(f)
+  const tempWf = incoming({ oldHP: 12, damage: 30, temp: 5 })
+  await use(f, { pass: 'preTargetDamageApplication', workflow: tempWf, item: scimitar })
+  assert.deepEqual(tempWf.damageItem.damageDetail.map((d) => d.value), [8], '5 temp + 3 HP')
+  assert.equal(tempWf.damageItem.newTempHP, 0)
+
+  for (const [why, wf, opts] of [
+    ['not dropping', incoming({ oldHP: 30, damage: 5 }), {}],
+    ['already at 0', incoming({ oldHP: 0, damage: 5 }), {}],
+    ['someone else', { damageItem: { ...incoming().damageItem, actorUuid: 'Actor.goblin' } }, {}],
+    ['no hit dice left', incoming(), { hitDiceLeft: 0 }],
+    ['not my actor to update', incoming(), { notOwner: true }],
+  ]) {
+    setup()
+    const g = makeFeature(deathStanceSpec(), opts)
+    if (opts.notOwner) g.actor.isOwner = false
+    await stanceOn(g)
+    const before = structuredClone(wf.damageItem)
+    await use(g, { pass: 'preTargetDamageApplication', workflow: wf, item: scimitar })
+    assert.deepEqual(wf.damageItem, before, why)
+    assert.deepEqual(world.classUpdates, [], why)
+  }
+})
+
+test('the strike’s own cost can’t drop me either: the hit die catches it', async () => {
+  setup({ confirm: true })
+  const f = makeFeature(deathStanceSpec(), { hp: 4 })
+  await stanceOn(f)
+  await use(f, { pass: 'damageBonus', workflow: attackWorkflow({ hit: true }) })
+  assert.deepEqual(world.damage, [], 'the 6 necrotic is not applied')
+  assert.deepEqual(world.actorUpdates, [{ 'system.attributes.hp.value': 9, 'system.attributes.hp.temp': 0 }])
+  assert.deepEqual(world.classUpdates, [{ 'system.hd.spent': 1 }])
 })
 
 test('behaviorMacro escapes nothing it should not: names with quotes still compile', () => {

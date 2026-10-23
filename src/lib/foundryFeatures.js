@@ -16,6 +16,8 @@ import {
   emptyNpcSpec,
   emptyNpcSpell,
   foundryItemToNpcItem,
+  emptyChange,
+  emptyEffect,
   foundrySpellToNpcSpell,
   textToHtml,
 } from './foundryActorBuilder.js'
@@ -51,6 +53,13 @@ export function emptyFeatureSpec(kind = 'feat') {
     item: { ...emptyNpcItem('action'), activities: [] },
     spell: { ...emptyNpcSpell(), method: 'slots' },
   }
+}
+
+// A stored spec (feature_drafts.spec) over today's defaults, so drafts saved
+// before a field existed still build.
+export function featureSpecFromRow(stored) {
+  const base = emptyFeatureSpec(stored?.kind)
+  return { ...base, ...stored, item: { ...base.item, ...stored?.item }, spell: { ...base.spell, ...stored?.spell } }
 }
 
 export function featureName(spec) {
@@ -104,18 +113,29 @@ export function featureItemToSpec(item) {
 // ---------------------------------------------------------------------------
 // Templates: ready-made features to start from.
 
+// The Dark Knight's own wording (homebrew_subclass_features, Harbinger of
+// Darkness levels 3 and 7), so the sheet reads like the class page.
+const DEATH_STANCE_TEXT = `As a bonus action, let the darkness consume you to enter a death stance for one minute. In this state you gain advantage on attack rolls. On hit you may roll 1d10 and deal that much additional necrotic damage, but you take that amount of damage as well. On a critical hit, restore 1d10 + your Constitution modifier hp. The first time you would go down while in this state, you may expend a hit die to get back up with that much hp instead; you do not lose Death Stance if you do. You can use this feature a number of times equal to your proficiency bonus.
+
+Death Archetype Upgrade (level 7): In your death stance you now heal when rolling a 19 or 20 on the die. Your healing increases to 2d10 + your Constitution modifier.`
+
 export const FEATURE_TEMPLATES = [
   {
     key: 'deathStance',
     label: 'Death Stance',
-    help: 'Bonus-action stance with a blood-red aura. Natural 19-20 on a melee attack roll heals 1d10 + CON; a melee hit can add 1d10 necrotic at the cost of the same damage to you.',
+    help: 'Dark Knight (Harbinger of Darkness) 3. A 1-minute bonus-action stance with advantage on attacks and a blood-red aura. Melee crits heal 1d10 + CON (19-20 for 2d10 + CON from level 7); a melee hit can add 1d10 necrotic at the cost of the same damage to you; the first time you would drop, spend a hit die to stay up.',
     build: () => {
       const spec = emptyFeatureSpec('feat')
+      spec.requirements = 'Dark Knight 3 (Harbinger of Darkness)'
       spec.item = {
         ...spec.item,
         name: 'Death Stance',
         section: 'bonus',
         img: 'icons/svg/skull.svg',
+        description: DEATH_STANCE_TEXT,
+        usesMax: '@prof',
+        usesRecovery: 'lr',
+        effects: [{ ...emptyEffect(), name: 'Death Stance', stance: true, changes: [emptyChange('advAttack')] }],
         behavior: deathStanceBehavior(),
       }
       return spec

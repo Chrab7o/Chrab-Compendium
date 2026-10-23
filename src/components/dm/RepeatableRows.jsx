@@ -1,4 +1,32 @@
+import { Link } from 'react-router-dom'
 import { nestFeatureRows, flattenFeatureRows } from '../../lib/homebrew'
+
+// A row's Feature Forge link (feature_draft_id): the item whose Foundry
+// automation rides along in the Plutonium feed for this feature.
+function AutomationPick({ value, options, onChange }) {
+  const missing = value && !options.some((o) => o.id === value)
+  return (
+    <div className="repeatable-automation">
+      <label>
+        Foundry automation
+        <select value={value ?? ''} onChange={(e) => onChange(e.target.value || null)}>
+          <option value="">None (text only)</option>
+          {missing && <option value={value}>(a deleted or non-feature draft)</option>}
+          {options.map((o) => (
+            <option key={o.id} value={o.id}>
+              {o.name}
+            </option>
+          ))}
+        </select>
+      </label>
+      {value && !missing && (
+        <Link to={`/dm/feature-forge/${value}/edit`} target="_blank" rel="noreferrer" className="button-link secondary">
+          Open in Feature Forge
+        </Link>
+      )}
+    </div>
+  )
+}
 
 // Generic { level?, name, description }[] editor - class features, subclass
 // features, and (later) race traits/feat benefits all share this shape.
@@ -13,6 +41,9 @@ import { nestFeatureRows, flattenFeatureRows } from '../../lib/homebrew'
 // name, see nestFeatureRows), so `rows`/`onChange` still speak the flat
 // array every caller and the save path already use; the nesting is built
 // and torn down here.
+//
+// `automationOptions` ([{ id, name }] Feature Forge drafts) adds a "Foundry
+// automation" picker to every row and sub-feature (feature_draft_id).
 export default function RepeatableRows({
   rows,
   onChange,
@@ -20,6 +51,7 @@ export default function RepeatableRows({
   allowedLevels = null,
   withSubFeatures = false,
   addLabel = '+ Add',
+  automationOptions = null,
 }) {
   const nested = withSubFeatures ? nestFeatureRows(rows) : rows.map((r) => ({ ...r, children: [] }))
 
@@ -143,6 +175,9 @@ export default function RepeatableRows({
             Description
             <textarea rows={4} value={row.description} onChange={(e) => updateRow(i, { description: e.target.value })} />
           </label>
+          {automationOptions && (
+            <AutomationPick value={row.feature_draft_id} options={automationOptions} onChange={(feature_draft_id) => updateRow(i, { feature_draft_id })} />
+          )}
           {withSubFeatures && (
             <div className="sub-features">
               <div className="sub-features-header">
@@ -203,6 +238,13 @@ export default function RepeatableRows({
                       onChange={(e) => updateChild(i, ci, { description: e.target.value })}
                     />
                   </label>
+                  {automationOptions && (
+                    <AutomationPick
+                      value={child.feature_draft_id}
+                      options={automationOptions}
+                      onChange={(feature_draft_id) => updateChild(i, ci, { feature_draft_id })}
+                    />
+                  )}
                 </div>
               ))}
               <button type="button" className="secondary" onClick={() => addChild(i)} disabled={!row.name.trim()}>

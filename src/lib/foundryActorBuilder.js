@@ -1248,6 +1248,12 @@ export function buildNpcItem(spec, item, index = 0, { inSpell = false } = {}) {
         effects.push(stance)
       }
       stance.system.changes.push(...changes)
+      // Every stance effect lasts as long as the stance; the toggle macro
+      // clears the start so it counts from the moment it's turned on.
+      const minutes = Number(behavior.toggle?.duration) || 0
+      if (minutes > 0) {
+        for (const e of effects) if (e.flags?.['chrab-sync']?.stance) e.duration = { ...e.duration, units: 'seconds', value: minutes * 60 }
+      }
     } else {
       effects.push(behaviorEffect(item, behavior, 'Auto', { transfer: true, system: { changes } }))
     }

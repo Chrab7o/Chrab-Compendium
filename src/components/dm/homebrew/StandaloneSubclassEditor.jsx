@@ -4,6 +4,8 @@ import { supabase } from '../../../lib/supabaseClient'
 import { emptyStandaloneSubclassForm, standaloneSubclassToFormState } from '../../../lib/homebrew'
 import RepeatableRows from '../RepeatableRows'
 import VisibilitySelect from './VisibilitySelect'
+import { useAutomationOptions } from './useAutomationOptions'
+import { republishQuietly } from '../../../lib/homebrewFeedPublish'
 
 function slugify(name) {
   return name
@@ -27,6 +29,7 @@ export default function StandaloneSubclassEditor() {
   const [loading, setLoading] = useState(!isNew)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
+  const automationOptions = useAutomationOptions()
 
   useEffect(() => {
     if (isNew) return
@@ -94,6 +97,7 @@ export default function StandaloneSubclassEditor() {
           sort_order: i,
           choice_group: f.choice_group ?? '',
           choice_count: f.choice_group ? f.choice_count ?? null : null,
+          feature_draft_id: f.feature_draft_id || null,
         }))
       )
       if (featureError) {
@@ -103,8 +107,9 @@ export default function StandaloneSubclassEditor() {
       }
     }
 
+    const notice = await republishQuietly()
     setSaving(false)
-    navigate('/dm/homebrew')
+    navigate('/dm/homebrew?tab=subclasses', notice ? { state: { notice } } : undefined)
   }
 
   if (loading) return <p className="status-message">Loading...</p>
@@ -126,7 +131,7 @@ export default function StandaloneSubclassEditor() {
             <input
               value={form.parent_class_name}
               onChange={(e) => setForm({ ...form, parent_class_name: e.target.value })}
-              placeholder="e.g. Monk"
+              placeholder="e.g. Monk - the official name, so Plutonium finds it"
               required
             />
           </label>
@@ -155,6 +160,7 @@ export default function StandaloneSubclassEditor() {
           withLevel
           withSubFeatures
           addLabel="+ Add Feature"
+          automationOptions={automationOptions}
         />
 
         {error && <p className="status-message error">{error}</p>}

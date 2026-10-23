@@ -10,7 +10,9 @@ import {
   emptyFeatureSpec,
   featureItemToSpec,
   featureName,
+  featureSpecFromRow,
 } from '../../../lib/foundryFeatures'
+import { isFeatureDraftLinked, republishQuietly } from '../../../lib/homebrewFeedPublish'
 import { useCampaignContext } from '../../../contexts/CampaignContext'
 import { ItemCard } from '../npc/ActionBuilder'
 import { NpcSpecContext } from '../npc/FormulaInput'
@@ -122,8 +124,7 @@ export default function FeatureEditor() {
         if (cancelled) return
         if (fetchError) setError(fetchError.message)
         else {
-          const base = emptyFeatureSpec(data.spec?.kind)
-          setSpec({ ...base, ...data.spec, item: { ...base.item, ...data.spec?.item }, spell: { ...base.spell, ...data.spec?.spell } })
+          setSpec(featureSpecFromRow(data.spec))
           setCampaignId(data.campaign_id ?? '')
           setSyncStatus(data.sync_status ?? 'draft')
         }
@@ -159,6 +160,11 @@ export default function FeatureEditor() {
     if (queue && !draftId) {
       const fixed = await supabase.from('feature_drafts').update({ queued_item: buildFeatureItem(spec, { draftId: result.data.id }) }).eq('id', result.data.id)
       if (fixed.error) setError(fixed.error.message)
+    }
+    // A feature some class links to is in the Plutonium feed: keep it current.
+    if (draftId && (await isFeatureDraftLinked(draftId))) {
+      const notice = await republishQuietly()
+      if (notice) setError(notice)
     }
     if (!draftId) navigate(`/dm/feature-forge/${result.data.id}/edit`, { replace: true })
     return result.data.id

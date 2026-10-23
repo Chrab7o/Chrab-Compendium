@@ -324,6 +324,10 @@ matching our free-text against an actual compendium, which is out of scope.
 
 ## Foundry VTT overlay (`foundryClassFeature` / `foundrySubclassFeature`)
 
+**Now written by the Plutonium feed.** See `docs/homebrew-feed.md`. A Feature Forge item linked to a feature row
+becomes this overlay, and Plutonium was confirmed to apply its `activities`, `effects`, `flags` and `system.uses`
+(2026-10-23). Class table columns become `foundryAdvancement` ScaleValues.
+
 Separate top-level arrays, same identity keys as the base feature
 (name/className/classSource/level, +subclass keys for the subclass
 variant), but holding **only** Foundry-mechanical data — the base

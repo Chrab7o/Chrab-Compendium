@@ -244,6 +244,7 @@ export function standaloneSubclassToFormState(subclassRow, features) {
       sort_order: f.sort_order,
       choice_group: f.choice_group ?? '',
       choice_count: f.choice_count ?? null,
+      feature_draft_id: f.feature_draft_id ?? null,
     })),
   }
 }
@@ -554,6 +555,7 @@ export function classToFormState(classRow, features, tableColumns, tableValues, 
       sort_order: f.sort_order,
       choice_group: f.choice_group ?? '',
       choice_count: f.choice_count ?? null,
+      feature_draft_id: f.feature_draft_id ?? null,
     })),
     tableColumns: [...tableColumns]
       .sort((a, b) => a.sort_order - b.sort_order)
@@ -571,6 +573,7 @@ export function classToFormState(classRow, features, tableColumns, tableValues, 
         sort_order: f.sort_order,
         choice_group: f.choice_group ?? '',
         choice_count: f.choice_count ?? null,
+        feature_draft_id: f.feature_draft_id ?? null,
       })),
     })),
   }
@@ -684,7 +687,7 @@ const WEAPON_TERMS = ['simple', 'martial']
 
 const SUBCLASS_PREFIX_RE = /^(path of|order of|circle of|oath of|way of|calling of|domain of|the)\s+/i
 
-function deriveSourceAbbr(name) {
+export function deriveSourceAbbr(name) {
   const initials = (name || '')
     .split(/\s+/)
     .map((w) => w[0])
@@ -694,7 +697,7 @@ function deriveSourceAbbr(name) {
   return initials || 'HB'
 }
 
-function deriveShortName(name) {
+export function deriveShortName(name) {
   return (name || '').replace(SUBCLASS_PREFIX_RE, '').trim() || name
 }
 
@@ -771,6 +774,71 @@ export function markdownToEntries(text) {
     }
     return inlineMdToTags(block.replace(/\n/g, ' '))
   })
+}
+
+// One subclass -> its 5etools `subclass` object plus its `subclassFeature`
+// objects. classSource is the parent class's source: the same as `source`
+// for a subclass of one of our own classes, an official book (PHB) for a
+// standalone subclass of an official class. Same "match the choice group
+// to an ungrouped feature by name, else synthesize an intro" approach as
+// the base class features in classFormToFiveToolsJson.
+export function subclassToFiveTools(sc, { className, classSource, source }) {
+  const shortName = deriveShortName(sc.name)
+  const namedFeatures = sc.features.filter((f) => f.name.trim() !== '')
+  const scRefString = (name, level) => subclassRefString(name, className, classSource, shortName, source, level)
+  const featureObj = (name, level, entries) => ({
+    name,
+    source,
+    className,
+    classSource,
+    subclassShortName: shortName,
+    subclassSource: source,
+    level,
+    entries,
+  })
+
+  const features = []
+  const featureRefs = []
+  const scLevels = [...new Set(namedFeatures.map((f) => f.level))].sort((a, b) => a - b)
+  for (const level of scLevels) {
+    const levelFeatures = namedFeatures.filter((f) => f.level === level)
+    const { ungrouped, groups } = splitChoiceGroups(levelFeatures)
+
+    for (const f of ungrouped) {
+      features.push(featureObj(f.name, level, markdownToEntries(f.description)))
+      featureRefs.push(scRefString(f.name, level))
+    }
+
+    for (const g of groups) {
+      const groupNameLower = g.name.toLowerCase()
+      const holderFeature = ungrouped.find((f) => f.name.toLowerCase().includes(groupNameLower))
+      let holderObj
+      if (holderFeature) {
+        holderObj = features.find((o) => o.name === holderFeature.name && o.level === level)
+      } else {
+        holderObj = featureObj(g.name, level, [])
+        features.push(holderObj)
+        featureRefs.push(scRefString(g.name, level))
+      }
+      const groupCount = g.features[0]?.choice_count ?? 1
+      if (groupCount > 0) {
+        holderObj.entries.push({
+          type: 'options',
+          count: groupCount,
+          entries: g.features.map((gf) => ({ type: 'refSubclassFeature', subclassFeature: scRefString(gf.name, level) })),
+        })
+      }
+      for (const gf of g.features) {
+        features.push(featureObj(gf.name, level, markdownToEntries(gf.description)))
+        featureRefs.push(scRefString(gf.name, level))
+      }
+    }
+  }
+
+  return {
+    subclass: { name: sc.name, shortName, source, className, classSource, subclassFeatures: featureRefs },
+    features,
+  }
 }
 
 // Builds the full 5etools homebrew JSON for one class - see
@@ -853,79 +921,9 @@ export function classFormToFiveToolsJson(form) {
   const subclassObjs = []
   const subclassFeatureObjs = []
   for (const sc of form.subclasses) {
-    const shortName = deriveShortName(sc.name)
-    const namedFeatures = sc.features.filter((f) => f.name.trim() !== '')
-    const scRefString = (name, level) => subclassRefString(name, className, source, shortName, source, level)
-
-    const featureRefs = []
-    const scLevels = [...new Set(namedFeatures.map((f) => f.level))].sort((a, b) => a - b)
-    for (const level of scLevels) {
-      const levelFeatures = namedFeatures.filter((f) => f.level === level)
-      const { ungrouped, groups } = splitChoiceGroups(levelFeatures)
-
-      for (const f of ungrouped) {
-        subclassFeatureObjs.push({
-          name: f.name,
-          source,
-          className,
-          classSource: source,
-          subclassShortName: shortName,
-          subclassSource: source,
-          level,
-          entries: markdownToEntries(f.description),
-        })
-        featureRefs.push(scRefString(f.name, level))
-      }
-
-      // Same "match the choice group to an ungrouped feature by name, else
-      // synthesize an intro" approach as the base class features above.
-      for (const g of groups) {
-        const groupNameLower = g.name.toLowerCase()
-        const holderFeature = ungrouped.find((f) => f.name.toLowerCase().includes(groupNameLower))
-        let holderObj
-        if (holderFeature) {
-          holderObj = subclassFeatureObjs.find(
-            (o) => o.name === holderFeature.name && o.level === level && o.subclassShortName === shortName
-          )
-        } else {
-          holderObj = {
-            name: g.name,
-            source,
-            className,
-            classSource: source,
-            subclassShortName: shortName,
-            subclassSource: source,
-            level,
-            entries: [],
-          }
-          subclassFeatureObjs.push(holderObj)
-          featureRefs.push(scRefString(g.name, level))
-        }
-        const groupCount = g.features[0]?.choice_count ?? 1
-        if (groupCount > 0) {
-          holderObj.entries.push({
-            type: 'options',
-            count: groupCount,
-            entries: g.features.map((gf) => ({ type: 'refSubclassFeature', subclassFeature: scRefString(gf.name, level) })),
-          })
-        }
-        for (const gf of g.features) {
-          subclassFeatureObjs.push({
-            name: gf.name,
-            source,
-            className,
-            classSource: source,
-            subclassShortName: shortName,
-            subclassSource: source,
-            level,
-            entries: markdownToEntries(gf.description),
-          })
-          featureRefs.push(scRefString(gf.name, level))
-        }
-      }
-    }
-
-    subclassObjs.push({ name: sc.name, shortName, source, className, classSource: source, subclassFeatures: featureRefs })
+    const { subclass, features } = subclassToFiveTools(sc, { className, classSource: source, source })
+    subclassObjs.push(subclass)
+    subclassFeatureObjs.push(...features)
   }
 
   const classTableGroups = form.tableColumns.map((col) => ({
