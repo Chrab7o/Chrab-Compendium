@@ -6,7 +6,14 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { emptyClassForm } from './homebrew.js'
-import { FEATURE_TEMPLATES, buildFeatureItem, emptyFeatureSpec } from './foundryFeatures.js'
+import {
+  FEATURE_TEMPLATES,
+  buildFeatureItem,
+  classFeatureSpec,
+  classFeatureTextChanged,
+  emptyFeatureSpec,
+  mechanicsSummary,
+} from './foundryFeatures.js'
 import { buildHomebrewFeed, feedSummary, foundryOverlay, tableColumnScaleValue } from './homebrewFeed.js'
 
 const row = (level, name, extra = {}) => ({ id: null, level, name, description: `${name} text.`, sort_order: 0, choice_group: '', choice_count: null, feature_draft_id: null, ...extra })
@@ -142,6 +149,44 @@ test('with nothing linked, the feed is plain 5etools content', () => {
   assert.equal(feed.foundryClassFeature, undefined)
   assert.equal(feed.foundrySubclassFeature, undefined)
   assert.equal(feedSummary(feed).automated, 0)
+})
+
+// ---------------------------------------------------------------------------
+// Mechanics edited in a class's feature row: the row owns the words, the
+// draft owns the mechanics.
+
+test('a row’s mechanics take the row’s name, text and place in the class', () => {
+  const template = FEATURE_TEMPLATES.find((t) => t.key === 'deathStance').build()
+  const ctx = { className: 'The Dark Knight', subclassName: 'Harbinger of Darkness', level: 3, name: 'Death Stance', description: 'Row text.' }
+  const spec = classFeatureSpec(template, ctx)
+  assert.equal(spec.item.name, 'Death Stance')
+  assert.equal(spec.item.description, 'Row text.')
+  assert.equal(spec.requirements, 'The Dark Knight 3 (Harbinger of Darkness)')
+  assert.equal(spec.featType, 'class')
+  // mechanics untouched
+  assert.deepEqual(spec.item.behavior.rules, template.item.behavior.rules)
+  assert.equal(spec.item.usesMax, '@prof')
+  assert.equal(spec.item.behavior.levelClass, 'the-dark-knight', 'set by hand on the template, kept')
+
+  // A blank feature with a stance: level tiers count the class it belongs to.
+  const blank = emptyFeatureSpec('feat')
+  blank.item.behavior = { ...template.item.behavior, levelClass: '' }
+  assert.equal(classFeatureSpec(blank, { ...ctx, className: 'Cleric', subclassName: 'Godless Domain' }).item.behavior.levelClass, 'cleric')
+  assert.equal(classFeatureSpec(emptyFeatureSpec('feat'), { className: 'Oracle', level: 2, name: 'Portent' }).requirements, 'Oracle 2')
+})
+
+test('only a change to the row’s words counts as a text change', () => {
+  const ctx = { className: 'The Dark Knight', subclassName: 'Harbinger of Darkness', level: 3, name: 'Death Stance', description: 'Row text.' }
+  const saved = classFeatureSpec(FEATURE_TEMPLATES.find((t) => t.key === 'deathStance').build(), ctx)
+  assert.equal(classFeatureTextChanged(saved, ctx), false)
+  assert.equal(classFeatureTextChanged(saved, { ...ctx, description: 'New text.' }), true)
+  assert.equal(classFeatureTextChanged(saved, { ...ctx, level: 7 }), true, 'requirements follow the level')
+  assert.equal(classFeatureTextChanged(saved, { ...ctx, name: 'Stance of Death' }), true)
+})
+
+test('mechanicsSummary reads like the panel badge', () => {
+  assert.equal(mechanicsSummary(FEATURE_TEMPLATES.find((t) => t.key === 'deathStance').build()), '1 effect · toggle · 4 rules · @prof per long rest')
+  assert.equal(mechanicsSummary(emptyFeatureSpec('feat')), '')
 })
 
 test('foundryOverlay keeps activities in order with the hook first', () => {

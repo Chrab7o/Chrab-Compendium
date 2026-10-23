@@ -96,15 +96,30 @@ export async function fetchPublishedFeed() {
   return res.json()
 }
 
-// Whether a Feature Forge draft automates any class or subclass feature, i.e.
-// whether saving it should republish the feed.
-export async function isFeatureDraftLinked(draftId) {
-  const count = async (table) => {
-    const { count: n, error } = await supabase.from(table).select('id', { count: 'exact', head: true }).eq('feature_draft_id', draftId)
-    return error ? 0 : n ?? 0
-  }
-  const [a, b] = await Promise.all([count('homebrew_class_features'), count('homebrew_subclass_features')])
-  return a + b > 0
+// The class and subclass features a Feature Forge draft automates, each with
+// the editor it lives in: [{ label, to }]. Non-empty = saving the draft should
+// republish the feed.
+export async function featureDraftLinks(draftId) {
+  const [classLinks, subclassLinks] = await Promise.all([
+    supabase.from('homebrew_class_features').select('name, level, class_id, homebrew_classes(name)').eq('feature_draft_id', draftId),
+    supabase
+      .from('homebrew_subclass_features')
+      .select('name, level, subclass_id, homebrew_subclasses(name, class_id, parent_class_name, homebrew_classes(name))')
+      .eq('feature_draft_id', draftId),
+  ])
+  return [
+    ...(classLinks.data ?? []).map((r) => ({
+      label: [r.homebrew_classes?.name, `level ${r.level}`, r.name].filter(Boolean).join(' › '),
+      to: `/dm/homebrew/classes/${r.class_id}/edit`,
+    })),
+    ...(subclassLinks.data ?? []).map((r) => {
+      const s = r.homebrew_subclasses ?? {}
+      return {
+        label: [s.homebrew_classes?.name ?? s.parent_class_name, s.name, `level ${r.level}`, r.name].filter(Boolean).join(' › '),
+        to: s.class_id ? `/dm/homebrew/classes/${s.class_id}/edit` : `/dm/homebrew/subclasses/${r.subclass_id}/edit`,
+      }
+    }),
+  ]
 }
 
 // For save paths: republish, and turn a failure into a message instead of a

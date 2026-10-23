@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { supabase } from '../../../lib/supabaseClient'
-import { emptyNpcSpec } from '../../../lib/foundryActorBuilder'
 import {
   FEATURE_KINDS,
   FEATURE_TEMPLATES,
@@ -12,17 +11,13 @@ import {
   featureName,
   featureSpecFromRow,
 } from '../../../lib/foundryFeatures'
-import { isFeatureDraftLinked, republishQuietly } from '../../../lib/homebrewFeedPublish'
+import { featureDraftLinks, republishQuietly } from '../../../lib/homebrewFeedPublish'
 import { useCampaignContext } from '../../../contexts/CampaignContext'
 import { ItemCard } from '../npc/ActionBuilder'
 import { NpcSpecContext } from '../npc/FormulaInput'
 import { SpellCard } from '../npc/SpellcastingPanel'
 import { downloadFeatureItem } from './downloadItem'
-
-// The shared item editors expect an NPC to resolve @references against. A
-// feature's owner isn't known until it's on a character, so formulas show "—"
-// instead of an NPC's numbers.
-const OWNER_CONTEXT = { spec: { ...emptyNpcSpec(), name: 'the owner' }, rollData: {} }
+import { OWNER_CONTEXT } from './ownerContext'
 
 function stripHtml(html) {
   return String(html ?? '')
@@ -110,6 +105,18 @@ export default function FeatureEditor() {
   const [error, setError] = useState(null)
   const [savedAt, setSavedAt] = useState(null)
   const [syncStatus, setSyncStatus] = useState('draft')
+  const [usedBy, setUsedBy] = useState([]) // class / subclass features this automates
+
+  useEffect(() => {
+    if (!draftId) return
+    let cancelled = false
+    featureDraftLinks(draftId).then((links) => {
+      if (!cancelled) setUsedBy(links)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [draftId])
 
   useEffect(() => {
     if (isNew) return
@@ -162,7 +169,7 @@ export default function FeatureEditor() {
       if (fixed.error) setError(fixed.error.message)
     }
     // A feature some class links to is in the Plutonium feed: keep it current.
-    if (draftId && (await isFeatureDraftLinked(draftId))) {
+    if (draftId && (await featureDraftLinks(draftId)).length) {
       const notice = await republishQuietly()
       if (notice) setError(notice)
     }
@@ -217,6 +224,22 @@ export default function FeatureEditor() {
           </button>
         </div>
       </div>
+
+      {usedBy.length > 0 && (
+        <div className="draft-banner feature-used-by">
+          <span>
+            Part of{' '}
+            {usedBy.map((link, i) => (
+              <span key={link.to + i}>
+                {i > 0 && ', '}
+                <Link to={link.to}>{link.label}</Link>
+              </span>
+            ))}
+            . Its name and text come from there and are replaced when that class is saved; the mechanics edited here are
+            kept, and saving republishes the Plutonium feed.
+          </span>
+        </div>
+      )}
 
       <div className="npc-forge-layout">
         <form

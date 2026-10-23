@@ -62,6 +62,67 @@ export function featureSpecFromRow(stored) {
   return { ...base, ...stored, item: { ...base.item, ...stored?.item }, spell: { ...base.spell, ...stored?.spell } }
 }
 
+// ---------------------------------------------------------------------------
+// Mechanics edited from a homebrew class's feature row (ClassWizard /
+// StandaloneSubclassEditor). The row owns the words; the draft owns the
+// mechanics. classFeatureSpec is the draft as it should be saved for that row.
+
+const classSlug = (s) =>
+  String(s ?? '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '')
+
+// "The Dark Knight 3 (Harbinger of Darkness)"
+export function classFeatureRequirements({ className, level, subclassName }) {
+  return [className, level].filter(Boolean).join(' ') + (subclassName ? ` (${subclassName})` : '')
+}
+
+// ctx: { className, subclassName, level, name, description }
+export function classFeatureSpec(stored, ctx) {
+  const spec = featureSpecFromRow(stored)
+  const behavior = spec.item.behavior
+  return {
+    ...spec,
+    kind: 'feat',
+    featType: 'class',
+    requirements: classFeatureRequirements(ctx),
+    item: {
+      ...spec.item,
+      name: String(ctx.name ?? '').trim(),
+      description: String(ctx.description ?? ''),
+      // Level tiers count the class the feature belongs to (dnd5e identifiers
+      // are the slugged name, "Cleric" -> "cleric"), unless set by hand.
+      behavior: behavior && !behavior.levelClass ? { ...behavior, levelClass: classSlug(ctx.className) } : behavior,
+    },
+  }
+}
+
+// Whether saving the row would change the stored draft's words.
+export function classFeatureTextChanged(stored, ctx) {
+  const want = classFeatureSpec(stored, ctx)
+  const have = featureSpecFromRow(stored)
+  return want.item.name !== have.item.name || want.item.description !== have.item.description || want.requirements !== have.requirements || want.item.behavior?.levelClass !== have.item.behavior?.levelClass
+}
+
+// "2 rolls · 1 effect · toggle · @prof per long rest"
+export function mechanicsSummary(spec) {
+  const item = spec?.item ?? {}
+  const n = (count, word) => (count ? `${count} ${word}${count === 1 ? '' : 's'}` : '')
+  const recovery = { lr: 'per long rest', sr: 'per short rest', day: 'per day', recharge: 'recharge' }[item.usesRecovery]
+  const behavior = item.behavior ? (item.behavior.mode === 'toggle' ? 'toggle' : 'always-on rules') : ''
+  return [
+    n(item.activities?.length, 'roll'),
+    n(item.effects?.length, 'effect'),
+    behavior,
+    item.behavior?.rules?.length ? n(item.behavior.rules.length, 'rule') : '',
+    recovery && (item.usesRecovery === 'recharge' ? `recharge ${item.rechargeOn}-6` : `${item.usesMax || '?'} ${recovery}`),
+  ]
+    .filter(Boolean)
+    .join(' · ')
+}
+
 export function featureName(spec) {
   return (spec?.kind === 'spell' ? spec.spell?.name : spec?.item?.name) || ''
 }

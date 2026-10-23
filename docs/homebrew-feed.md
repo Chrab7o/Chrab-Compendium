@@ -7,8 +7,8 @@ the Foundry automation of linked Feature Forge features. In Foundry, Plutonium's
 **Custom URL**. Class imports and level-ups then always get the current version of the classes.
 
 The pieces:
-- **Linking:** each class or subclass feature row can name the Feature Forge draft that automates it. This is the
-  "Foundry automation" picker in the class and subclass editors.
+- **Mechanics:** each class or subclass feature row has a **Foundry mechanics** panel in the class and subclass
+  editors. It holds that feature's uses, rolls, effects and stance, saved as the Feature Forge draft the row links to.
 - **Publishing:** saving a class, a subclass or a linked feature rebuilds the file and uploads it. So does the
   **Publish now** button on the Homebrew page (Classes or Subclasses tab).
 - **Importing:** Plutonium creates the class with its level-up choices, Dark Arts picks and so on. It merges each
@@ -59,15 +59,33 @@ overlay matches it.
    sources it has loaded. If your version keeps a list of additional homebrew sources in its settings, add it there
    too.
 
-**Automating a feature:**
-1. Build it in the **Feature Forge** (or use one you have).
-2. Open the class (or standalone subclass) editor, find the feature row, and pick the item under **Foundry
-   automation**. Save. The feed republishes.
-3. Characters who level into the feature from now on get the automated version from Plutonium.
+**Giving a feature mechanics (in the class editor):**
+1. Open the class (or standalone subclass) editor and go to the feature row.
+2. Open its **Foundry mechanics** panel and pick how to start:
+   - **Start blank**
+   - **Start from a template**, such as Death Stance
+   - **Use a Feature Forge feature** you already built
+3. Edit it right there with the Feature Forge editor: uses, rolls (attack, save, damage, heal), effects, and a stance
+   with its rules. The row's name and description are the feature's text, so the panel doesn't repeat them.
+4. **Save the class.** Each row's mechanics are saved as a normal Feature Forge draft, which the row links to:
+   - Its name and description are copied from the row.
+   - Its requirements are filled in, e.g. "The Dark Knight 3 (Harbinger of Darkness)".
+   - A stance's level tiers count this class unless set by hand.
+
+   The feed then republishes.
+5. Characters who level into the feature from now on get the mechanics from Plutonium.
+
+Sub-features (each Dark Art) have their own panel.
 
 **Changing it later:**
-- **Text:** edit the class. **Automation:** edit the Feature Forge item. Either save republishes the feed. A feature
-  save republishes only when some class links it.
+- **Text:** edit the class.
+- **Mechanics:** edit them in the class's panel, or in the Feature Forge. The panel's **Open in Feature Forge** link
+  has the macro preview and Send to Foundry.
+  - The Feature Forge editor lists the classes using a feature, with links back.
+  - Either save republishes the feed. A Feature Forge save republishes only when some class links the feature.
+- **If both changed:** saving the class keeps edits made in the Feature Forge in the meantime, unless you also edited
+  that row's mechanics in the class (marked **unsaved**). Then the class editor's copy wins.
+- **Remove mechanics** unlinks the row. The Feature Forge keeps the draft.
 - **Characters who already have it:** Plutonium never touches features a character already has. On the Feature
   Forge item, use **Send to Foundry**. In Foundry, open **Chrab Sync → Items**, tick **Also update copies**, and click
   **Apply**. Copies are found by `featureDraftId`, so Plutonium-imported copies are included. Spent uses are kept.
@@ -87,10 +105,13 @@ overlay matches it.
 | `src/lib/homebrewFeed.js` + `.test.mjs` | `buildHomebrewFeed`, `foundryOverlay`, `tableColumnScaleValue`, `feedSummary`. Pure. |
 | `src/lib/homebrewFeedPublish.js` | Loads from the database, builds and uploads (`publishHomebrewFeed`). `republishQuietly` for save paths, `isFeatureDraftLinked`, `homebrewFeedUrl`, `fetchPublishedFeed`. |
 | `src/lib/homebrew.js` | `subclassToFiveTools` split out of the class exporter, so standalone subclasses reuse it (class exports are byte-identical). The form state carries `feature_draft_id`. |
-| `src/components/dm/RepeatableRows.jsx` | `automationOptions` adds the **Foundry automation** picker to rows and sub-features. |
-| `ClassWizard.jsx`, `StandaloneSubclassEditor.jsx`, `useAutomationOptions.js` | Pickers, saving the link, republishing after a save. |
+| `src/components/dm/RepeatableRows.jsx` | `renderRowExtra(row, patch)`: extra editing under every row and sub-feature. |
+| `src/components/dm/homebrew/FeatureMechanics.jsx` | The **Foundry mechanics** panel: start blank, from a template or from an existing feature, then the Feature Forge `ItemCard` with `hideText`. |
+| `src/components/dm/homebrew/mechanics.js` | `loadDraftSpecs`, `attachMechanics` (rows get `mechanics`), and `saveRowMechanics` (rows' mechanics become their drafts before the rows are saved). |
+| `src/lib/foundryFeatures.js` | `classFeatureSpec` (the row's words on the draft), `classFeatureTextChanged`, `classFeatureRequirements`, `mechanicsSummary`. |
+| `ClassWizard.jsx`, `StandaloneSubclassEditor.jsx`, `useAutomationOptions.js` | Load mechanics with the class, save them first, republish after a save. |
 | `src/pages/dm/DMHomebrewPage.jsx` | The **Plutonium feed** panel. Republishes after a delete. |
-| `src/components/dm/feature/FeatureEditor.jsx` | Saving a linked feature republishes. |
+| `src/components/dm/feature/FeatureEditor.jsx` | "Part of …" banner (`featureDraftLinks`). Saving a linked feature republishes. |
 
 **Sandbox:** `scripts/build-feed-preview.mjs` builds the feed from the live site's public data. It attaches the
 template Death Stance to every "Death Stance" row, because drafts are DM-only, and writes
@@ -99,9 +120,18 @@ template Death Stance to every "Death Stance" row, because drafts are DM-only, a
 ## Verify
 
 ```powershell
-npm test        # expect: pass 53, fail 0
+npm test        # expect: pass 56, fail 0
 npm run build
 ```
+
+- [ ] **Class editor → a feature row → Foundry mechanics → Start blank:** set Limited use to per long rest, uses
+      `@prof`, and add a heal roll. Save the class.
+  - The panel badge reads "1 roll · @prof per long rest".
+  - The Feature Forge list has a draft with the feature's name, and its editor says "Part of The Dark Knight › …".
+- [ ] **Start from a template → Death Stance** on Harbinger of Darkness → Death Stance. Save, then reopen the class:
+      the mechanics load back and the feed shows 1 automated feature.
+- [ ] Change the row's description and save: the draft's description follows. A mechanics edit made in the Feature
+      Forge meanwhile is still there.
 
 - [ ] **Homebrew → Classes** shows the Plutonium feed panel. **Publish now** says "Live: 7 classes, 17 subclasses, …".
       The URL opens the JSON in a new tab.

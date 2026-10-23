@@ -717,7 +717,9 @@ export function EffectEditor({ effect, onChange, onRemove, item }) {
 
 // standalone: one feature on its own (the Feature Forge) - no statblock-only
 // sections or natural weapons, and nothing to reorder or delete.
-export function ItemCard({ item, onChange, onRemove, onMove, isFirst, isLast, standalone = false }) {
+// hideText: the name and description come from somewhere else (a homebrew
+// class's feature row), so only the mechanics are edited here.
+export function ItemCard({ item, onChange, onRemove, onMove, isFirst, isLast, standalone = false, hideText = false }) {
   const set = (patch) => onChange({ ...item, ...patch })
   const updateList = (field, i, value) => set({ [field]: item[field].map((x, idx) => (idx === i ? value : x)) })
 
@@ -736,10 +738,12 @@ export function ItemCard({ item, onChange, onRemove, onMove, isFirst, isLast, st
   return (
     <div className="repeatable-row npc-item-card">
       <div className="dm-form-row">
-        <label>
-          Name
-          <input value={item.name} onChange={(e) => set({ name: e.target.value })} placeholder="e.g. Bite" />
-        </label>
+        {!hideText && (
+          <label>
+            Name
+            <input value={item.name} onChange={(e) => set({ name: e.target.value })} placeholder="e.g. Bite" />
+          </label>
+        )}
         <label>
           {standalone ? 'Rolls default to' : 'Section'}
           <select value={item.section} onChange={(e) => set({ section: e.target.value })}>
@@ -802,10 +806,12 @@ export function ItemCard({ item, onChange, onRemove, onMove, isFirst, isLast, st
         <p className="npc-hint">A pool with no rolls of its own - other features can spend these uses with “+ Spend a resource”.</p>
       )}
 
-      <label>
-        Description (optional - blank uses the generated {standalone ? 'rules text' : 'statblock line'})
-        <textarea value={item.description} rows={3} onChange={(e) => set({ description: e.target.value })} />
-      </label>
+      {!hideText && (
+        <label>
+          Description (optional - blank uses the generated {standalone ? 'rules text' : 'statblock line'})
+          <textarea value={item.description} rows={3} onChange={(e) => set({ description: e.target.value })} />
+        </label>
+      )}
 
       {item.activities.map((activity, i) => (
         <ActivityEditor

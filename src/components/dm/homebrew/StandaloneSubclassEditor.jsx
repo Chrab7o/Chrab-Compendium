@@ -5,6 +5,8 @@ import { emptyStandaloneSubclassForm, standaloneSubclassToFormState } from '../.
 import RepeatableRows from '../RepeatableRows'
 import VisibilitySelect from './VisibilitySelect'
 import { useAutomationOptions } from './useAutomationOptions'
+import FeatureMechanics from './FeatureMechanics'
+import { attachMechanics, loadDraftSpecs, saveRowMechanics } from './mechanics'
 import { republishQuietly } from '../../../lib/homebrewFeedPublish'
 
 function slugify(name) {
@@ -38,14 +40,22 @@ export default function StandaloneSubclassEditor() {
     Promise.all([
       supabase.from('homebrew_subclasses').select('*').eq('id', id).single(),
       supabase.from('homebrew_subclass_features').select('*').eq('subclass_id', id),
-    ]).then(([{ data: subclassRow, error: fetchError }, { data: features }]) => {
+    ]).then(async ([{ data: subclassRow, error: fetchError }, { data: features }]) => {
       if (cancelled) return
       if (fetchError) {
         setError(fetchError.message)
         setLoading(false)
         return
       }
-      setForm(standaloneSubclassToFormState(subclassRow, features ?? []))
+      const loaded = standaloneSubclassToFormState(subclassRow, features ?? [])
+      let specs = new Map()
+      try {
+        specs = await loadDraftSpecs(loaded.features.map((f) => f.feature_draft_id))
+      } catch (err) {
+        setError(`Couldn't load feature mechanics: ${err.message}`)
+      }
+      if (cancelled) return
+      setForm({ ...loaded, features: attachMechanics(loaded.features, specs) })
       setLoading(false)
     })
     return () => {
@@ -57,6 +67,17 @@ export default function StandaloneSubclassEditor() {
     e.preventDefault()
     setSaving(true)
     setError(null)
+
+    // Mechanics first (see ClassWizard): drafts get ids before the rows do.
+    let savedFeatures
+    try {
+      savedFeatures = await saveRowMechanics(form.features, { className: form.parent_class_name.trim(), subclassName: form.name.trim() })
+    } catch (err) {
+      setSaving(false)
+      setError(`Saving feature mechanics failed: ${err.message}`)
+      return
+    }
+    setForm({ ...form, features: savedFeatures })
 
     const payload = {
       name: form.name,
@@ -86,7 +107,7 @@ export default function StandaloneSubclassEditor() {
     }
 
     await supabase.from('homebrew_subclass_features').delete().eq('subclass_id', subclassId)
-    const featureRows = form.features.filter((f) => f.name.trim() !== '')
+    const featureRows = savedFeatures.filter((f) => f.name.trim() !== '')
     if (featureRows.length > 0) {
       const { error: featureError } = await supabase.from('homebrew_subclass_features').insert(
         featureRows.map((f, i) => ({
@@ -160,7 +181,7 @@ export default function StandaloneSubclassEditor() {
           withLevel
           withSubFeatures
           addLabel="+ Add Feature"
-          automationOptions={automationOptions}
+          renderRowExtra={(row, patch) => <FeatureMechanics row={row} onChange={patch} linkable={automationOptions} />}
         />
 
         {error && <p className="status-message error">{error}</p>}

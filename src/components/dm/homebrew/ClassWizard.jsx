@@ -24,6 +24,8 @@ import WizardShell from '../WizardShell'
 import RepeatableRows from '../RepeatableRows'
 import VisibilitySelect from './VisibilitySelect'
 import { useAutomationOptions } from './useAutomationOptions'
+import FeatureMechanics from './FeatureMechanics'
+import { attachMechanics, loadDraftSpecs, saveRowMechanics } from './mechanics'
 import { republishQuietly } from '../../../lib/homebrewFeedPublish'
 import AbilityScorePicker from '../AbilityScorePicker'
 import OptionPicker from '../OptionPicker'
@@ -78,6 +80,7 @@ export default function ClassWizard() {
   const [error, setError] = useState(null)
   const [newSubclassLevel, setNewSubclassLevel] = useState('')
   const automationOptions = useAutomationOptions()
+  const renderMechanics = (row, patch) => <FeatureMechanics row={row} onChange={patch} linkable={automationOptions} />
 
   // Autosaves to localStorage as the DM works through the wizard, so
   // closing the tab, a crash, or navigating away mid-edit doesn't lose
@@ -123,9 +126,20 @@ export default function ClassWizard() {
         if (!featuresBySubclassId.has(f.subclass_id)) featuresBySubclassId.set(f.subclass_id, [])
         featuresBySubclassId.get(f.subclass_id).push(f)
       }
-      setForm(
-        classToFormState(classRow, features ?? [], tableColumns ?? [], tableValues ?? [], subclasses ?? [], featuresBySubclassId)
-      )
+      const loaded = classToFormState(classRow, features ?? [], tableColumns ?? [], tableValues ?? [], subclasses ?? [], featuresBySubclassId)
+      // Each linked feature's mechanics, for editing in its row.
+      let specs = new Map()
+      try {
+        specs = await loadDraftSpecs([...loaded.features, ...loaded.subclasses.flatMap((s) => s.features)].map((f) => f.feature_draft_id))
+      } catch (err) {
+        setError(`Couldn't load feature mechanics: ${err.message}`)
+      }
+      if (cancelled) return
+      setForm({
+        ...loaded,
+        features: attachMechanics(loaded.features, specs),
+        subclasses: loaded.subclasses.map((s) => ({ ...s, features: attachMechanics(s.features, specs) })),
+      })
       setOriginalSubclassIds(subclassIds)
       setLoading(false)
     })
@@ -231,6 +245,28 @@ export default function ClassWizard() {
     setSaving(true)
     setError(null)
 
+    // Mechanics first: each one becomes (or updates) its Feature Forge draft,
+    // and the rows then carry the draft ids. Kept in the form right away, so a
+    // later failure and a retry don't create the drafts twice.
+    let saved
+    try {
+      const mechanicsCtx = { className: form.name.trim(), campaignId: form.campaign_id }
+      saved = {
+        ...form,
+        features: await saveRowMechanics(form.features, mechanicsCtx),
+        subclasses: [],
+      }
+      for (const subclass of form.subclasses) {
+        saved.subclasses.push({ ...subclass, features: await saveRowMechanics(subclass.features, { ...mechanicsCtx, subclassName: subclass.name.trim() }) })
+      }
+    } catch (err) {
+      setSaving(false)
+      setError(`Saving feature mechanics failed: ${err.message}`)
+      return
+    }
+    setForm(saved)
+    const { features: savedFeatures, subclasses: savedSubclasses } = saved
+
     const payload = {
       name: form.name,
       slug: form.slug || slugify(form.name),
@@ -274,7 +310,7 @@ export default function ClassWizard() {
     // Blank rows (a feature or sub-feature added and then left empty) are
     // dropped rather than saved as a nameless heading - same rule the
     // subclass feature save below already applies.
-    const namedFeatures = form.features.filter((f) => f.name.trim() !== '')
+    const namedFeatures = savedFeatures.filter((f) => f.name.trim() !== '')
     if (namedFeatures.length > 0) {
       const { error: featuresError } = await supabase.from('homebrew_class_features').insert(
         namedFeatures.map((f, i) => ({
@@ -331,7 +367,7 @@ export default function ClassWizard() {
       await supabase.from('homebrew_subclasses').delete().in('id', removedSubclassIds)
     }
 
-    for (const subclass of form.subclasses) {
+    for (const subclass of savedSubclasses) {
       let subclassId = subclass.id
       const subclassPayload = {
         class_id: classId,
@@ -703,7 +739,7 @@ export default function ClassWizard() {
               withLevel
               withSubFeatures
               addLabel="+ Add Feature"
-              automationOptions={automationOptions}
+              renderRowExtra={renderMechanics}
             />
           </div>
         )}
@@ -778,7 +814,7 @@ export default function ClassWizard() {
                   allowedLevels={form.subclass_levels}
                   withSubFeatures
                   addLabel="+ Add Feature"
-                  automationOptions={automationOptions}
+                  renderRowExtra={renderMechanics}
                 />
               </div>
             ))}
