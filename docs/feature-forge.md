@@ -11,6 +11,9 @@ Two pieces, built together:
    Foundry on its own. Chrab Sync's new **Items** tab puts it in the world's Items directory, ready to drag onto a
    character. A re-send can also update the copies characters already have.
 
+**Templates:** new features can start from an automation template, a type of mechanic with its own settings (e.g.
+Defenses). See `docs/automation-templates.md`, which also has the Dark Knight roadmap.
+
 **Class features:** a Feature Forge item can also be linked to a homebrew class or subclass feature. The **Plutonium
 feed** then hands it to characters when they level into it. See `docs/homebrew-feed.md`.
 
@@ -157,7 +160,7 @@ Behaviors and scripts are JavaScript that runs in the browser of whoever uses th
 ## Verify
 
 ```powershell
-npm test        # expect: pass 56, fail 0 (includes the feed's tests)
+npm test        # expect: pass 66, fail 0 (includes the feed's and templates' tests)
 npm run build
 ```
 

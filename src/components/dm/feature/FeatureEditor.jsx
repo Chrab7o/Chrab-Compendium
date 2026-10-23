@@ -3,7 +3,6 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { supabase } from '../../../lib/supabaseClient'
 import {
   FEATURE_KINDS,
-  FEATURE_TEMPLATES,
   FEAT_TYPES,
   buildFeatureItem,
   emptyFeatureSpec,
@@ -18,6 +17,8 @@ import { NpcSpecContext } from '../npc/FormulaInput'
 import { SpellCard } from '../npc/SpellcastingPanel'
 import { downloadFeatureItem } from './downloadItem'
 import { OWNER_CONTEXT } from './ownerContext'
+import TemplatePicker from './TemplatePicker'
+import { buildFromTemplate, findTemplate } from '../../../lib/automationTemplates'
 
 function stripHtml(html) {
   return String(html ?? '')
@@ -97,7 +98,12 @@ export default function FeatureEditor() {
   const isNew = !id
   const { campaigns, campaignId: currentCampaignId } = useCampaignContext()
 
-  const [spec, setSpec] = useState(() => FEATURE_TEMPLATES.find((t) => t.key === search.get('template'))?.build() ?? emptyFeatureSpec(search.get('kind') === 'spell' ? 'spell' : 'feat'))
+  // ?template=: a template with settings asks for them first (TemplatePicker).
+  const startTemplate = isNew ? findTemplate(search.get('template')) : null
+  const [spec, setSpec] = useState(
+    () => (startTemplate && !startTemplate.params.length ? buildFromTemplate(startTemplate).spec : null) ?? emptyFeatureSpec(search.get('kind') === 'spell' ? 'spell' : 'feat'),
+  )
+  const [pickingTemplate, setPickingTemplate] = useState(!!startTemplate?.params.length)
   const [campaignId, setCampaignId] = useState(currentCampaignId || '')
   const [draftId, setDraftId] = useState(id ?? null)
   const [loading, setLoading] = useState(!isNew)
@@ -224,6 +230,22 @@ export default function FeatureEditor() {
           </button>
         </div>
       </div>
+
+      {pickingTemplate && (
+        <div className="dm-panel">
+          <TemplatePicker
+            fixedKey={startTemplate.key}
+            createLabel="Start the feature"
+            onCreate={(next) => {
+              setSpec(next)
+              setPickingTemplate(false)
+            }}
+          />
+          <button type="button" className="secondary" onClick={() => setPickingTemplate(false)}>
+            Skip, start blank
+          </button>
+        </div>
+      )}
 
       {usedBy.length > 0 && (
         <div className="draft-banner feature-used-by">

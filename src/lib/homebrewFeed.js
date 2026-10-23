@@ -29,7 +29,9 @@ export const OFFICIAL_CLASS_SOURCE = 'PHB'
 // What Plutonium takes from a built Feature Forge item. The description is
 // left out on purpose: the class text (entries) is the source of truth.
 export function foundryOverlay(item) {
-  const system = { uses: item.system?.uses }
+  // identifier: other features find this one by it (a Darkness pool spent by
+  // "darkness"); without it Plutonium derives one from the feature's name.
+  const system = { uses: item.system?.uses, identifier: item.system?.identifier }
   if (item.system?.requirements) system.requirements = item.system.requirements
   if (item.system?.type) system.type = item.system.type
   return {

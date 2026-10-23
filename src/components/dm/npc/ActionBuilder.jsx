@@ -11,6 +11,7 @@ import {
   ITEM_SECTIONS,
   NPC_ABILITIES,
   SPEND_SOURCES,
+  identifierFor,
   spellSaveDc,
   spellcastingAbility,
   TARGET_TYPES,
@@ -186,6 +187,19 @@ function SpendRows({ rows, onChange, itemKey }) {
           {row.source === 'attribute' && (
             <AttributePathInput value={row.target} onChange={(target) => update(i, { target })} use="spend" placeholder="e.g. spells.spell1.value" ariaLabel="Attribute path" />
           )}
+          {row.source === 'pool' && (
+            <input
+              className="npc-code-input"
+              value={row.target}
+              onChange={(e) => update(i, { target: e.target.value })}
+              placeholder="the resource's identifier, e.g. darkness"
+              aria-label="Resource identifier"
+            />
+          )}
+          <label className="tag-checklist-item" title="Each extra point spent adds a die to the first damage roll (or the healing)">
+            <input type="checkbox" checked={!!row.extra} onChange={(e) => update(i, { extra: e.target.checked })} />
+            Can spend more: +1 die each
+          </label>
           <button type="button" className="icon-button" onClick={() => onChange(rows.filter((_, idx) => idx !== i))} aria-label="Remove cost">
             ×
           </button>
@@ -415,7 +429,7 @@ export function ActivityEditor({ activity, onChange, onRemove, item, index, inSp
               <label>
                 DC from
                 <select value={activity.dcAbility} onChange={(e) => set({ dcAbility: e.target.value })}>
-                  <option value="">Fixed number</option>
+                  <option value="">Number or formula</option>
                   <option value="spellcasting">Spellcasting DC ({spellSaveDc(ctx.spec ?? {})})</option>
                   {NPC_ABILITIES.map((a) => (
                     <option key={a} value={a}>
@@ -427,7 +441,7 @@ export function ActivityEditor({ activity, onChange, onRemove, item, index, inSp
               {!activity.dcAbility && (
                 <label>
                   DC
-                  <input type="number" min="1" value={activity.dc} onChange={(e) => set({ dc: e.target.value })} />
+                  <FormulaInput value={String(activity.dc ?? '')} onChange={(dc) => set({ dc })} placeholder="14, or 10 + @prof + @abilities.con.mod" ariaLabel="DC" />
                 </label>
               )}
               <label>
@@ -804,6 +818,17 @@ export function ItemCard({ item, onChange, onRemove, onMove, isFirst, isLast, st
       </div>
       {item.usesRecovery && item.usesRecovery !== 'recharge' && !item.activities.length && (
         <p className="npc-hint">A pool with no rolls of its own - other features can spend these uses with “+ Spend a resource”.</p>
+      )}
+      {standalone && item.usesRecovery && item.usesRecovery !== 'recharge' && (
+        <label className="npc-wide-field">
+          Resource identifier (other features spend these uses by it)
+          <input
+            className="npc-code-input"
+            value={item.identifier ?? ''}
+            onChange={(e) => set({ identifier: e.target.value })}
+            placeholder={`from the name${item.name ? `: ${identifierFor(item.name)}` : ''}, or e.g. darkness`}
+          />
+        </label>
       )}
 
       {!hideText && (

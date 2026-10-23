@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { FEATURE_TEMPLATES, emptyFeatureSpec, mechanicsSummary } from '../../../lib/foundryFeatures'
+import { emptyFeatureSpec, mechanicsSummary } from '../../../lib/foundryFeatures'
+import TemplatePicker from '../feature/TemplatePicker'
 import { ItemCard } from '../npc/ActionBuilder'
 import { NpcSpecContext } from '../npc/FormulaInput'
 import { OWNER_CONTEXT } from '../feature/ownerContext'
@@ -59,17 +60,6 @@ export default function FeatureMechanics({ row, onChange, linkable = [] }) {
                   + Start blank
                 </button>
                 <label>
-                  Start from a template
-                  <select value="" onChange={(e) => e.target.value && start(FEATURE_TEMPLATES.find((t) => t.key === e.target.value).build())}>
-                    <option value="">Choose…</option>
-                    {FEATURE_TEMPLATES.map((t) => (
-                      <option key={t.key} value={t.key}>
-                        {t.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
                   Use a Feature Forge feature
                   <select value="" onChange={(e) => link(e.target.value)}>
                     <option value="">Choose…</option>
@@ -81,6 +71,7 @@ export default function FeatureMechanics({ row, onChange, linkable = [] }) {
                   </select>
                 </label>
               </div>
+              <TemplatePicker onCreate={start} createLabel="Use this template" />
             </>
           )}
           {row.mechanicsMissing && !spec && (

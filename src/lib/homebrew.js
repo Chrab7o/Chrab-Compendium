@@ -917,6 +917,12 @@ export function classFormToFiveToolsJson(form) {
     classFeatureObjs.push({ name, source, className, classSource: source, level, entries: [] })
     classFeatureRefs.push({ classFeature: refString(name, className, source, level), gainSubclassFeature: true })
   }
+  // Those placeholders were appended after level 20; classFeatures must run in
+  // level order or Plutonium reads the stragglers as levels past 20. The sort
+  // is stable, so features keep their order within a level.
+  const refLevel = (ref) => Number((typeof ref === 'string' ? ref : ref.classFeature).split('|').pop())
+  classFeatureRefs.sort((a, b) => refLevel(a) - refLevel(b))
+  classFeatureObjs.sort((a, b) => a.level - b.level)
 
   const subclassObjs = []
   const subclassFeatureObjs = []

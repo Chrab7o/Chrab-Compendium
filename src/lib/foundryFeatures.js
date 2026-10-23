@@ -118,6 +118,8 @@ export function mechanicsSummary(spec) {
     behavior,
     item.behavior?.rules?.length ? n(item.behavior.rules.length, 'rule') : '',
     recovery && (item.usesRecovery === 'recharge' ? `recharge ${item.rechargeOn}-6` : `${item.usesMax || '?'} ${recovery}`),
+    item.identifier ? `pool “${item.identifier}”` : '',
+    ...(item.activities ?? []).flatMap((a) => (a.spend ?? []).filter((s) => s.source === 'pool' && s.target).map((s) => `spends ${s.amount || 1} ${s.target}${s.extra ? '+' : ''}`)),
   ]
     .filter(Boolean)
     .join(' · ')

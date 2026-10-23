@@ -66,6 +66,18 @@ export const CONDITIONS = [
   'restrained', 'stunned', 'unconscious',
 ]
 
+// A midi-qol condition (the value of a flags.midi-qol.advantage... change):
+// true while rolling a save against something that applies `condition`. Midi
+// evaluates it with the workflow that asked for the save, so it looks at the
+// effects of that save's activity, then of its item (an over-time or aura
+// save rolls from the item). An effect counts if it has the condition as a
+// status, or is named for it ("Frightened"). Saves rolled outside a midi
+// workflow (a plain request from the chat card) see no workflow: no advantage.
+export function saveAgainstCondition(condition) {
+  const c = JSON.stringify(String(condition))
+  return `[workflow?.saveActivity ?? workflow?.activity, workflow?.item].some((s) => [...(s?.effects ?? [])].some((e) => { const fx = e?.effect ?? e; return !!(fx?.statuses?.has?.(${c}) || String(fx?.name ?? "").toLowerCase().includes(${c})); }))`
+}
+
 // Language label (as LANGUAGE_OPTIONS in lib/homebrew.js spells them) -> dnd5e key.
 // Anything not listed here goes into the free-text "custom" field instead.
 export const LANGUAGE_KEYS = {
@@ -121,8 +133,13 @@ export const TARGET_TYPES = [
 
 // What an activity can spend besides its own item's uses. 'item' points at
 // another item on this NPC by key (a shared pool like Ki or Focus Points).
+// 'pool' names the feature by its identifier ("darkness") instead: dnd5e
+// 5.3 re-links an identifier target to whichever item on the actor has it
+// (Activity#_remapConsumptionTarget), so it works on any character - the
+// way class features spend a class resource (Darkness, Ki, Ink).
 export const SPEND_SOURCES = [
   { key: 'item', label: 'Another feature’s uses' },
+  { key: 'pool', label: 'A class resource (by identifier)' },
   { key: 'legact', label: 'Legendary actions', target: 'resources.legact.value' },
   { key: 'legres', label: 'Legendary resistances', target: 'resources.legres.value' },
   { key: 'hp', label: 'Hit points', target: 'attributes.hp.value' },
@@ -173,6 +190,18 @@ export const EFFECT_CHANGES = [
   { id: 'grantsDis', group: 'Midi-QOL', label: 'Attacks against it have disadvantage', path: 'flags.midi-qol.grants.disadvantage.attack.all', types: ['custom'], value: 'flag' },
   { id: 'grantsCrit', group: 'Midi-QOL', label: 'Hits against it are critical', path: 'flags.midi-qol.grants.critical.all', types: ['custom'], value: 'flag' },
   { id: 'advSave', group: 'Midi-QOL', label: 'Advantage on saving throws', path: 'flags.midi-qol.advantage.ability.save.{param}', param: 'abilityOrAll', types: ['custom'], value: 'flag' },
+  // Stored as the condition; built into a midi condition expression
+  // (saveAgainstCondition) and read back from it (parse).
+  {
+    id: 'advSaveVs',
+    group: 'Midi-QOL',
+    label: 'Advantage on saves against a condition',
+    path: 'flags.midi-qol.advantage.ability.save.all',
+    types: ['custom'],
+    value: 'condition',
+    build: (condition) => saveAgainstCondition(condition),
+    parse: (value) => value.match(/statuses\?\.has\?\.\("(\w+)"\)/)?.[1] ?? null,
+  },
   { id: 'disSave', group: 'Midi-QOL', label: 'Disadvantage on saving throws', path: 'flags.midi-qol.disadvantage.ability.save.{param}', param: 'abilityOrAll', types: ['custom'], value: 'flag' },
   { id: 'magicRes', group: 'Midi-QOL', label: 'Magic resistance (advantage vs. spells)', path: 'flags.midi-qol.magicResistance.all', types: ['custom'], value: 'flag' },
   { id: 'superSaver', group: 'Midi-QOL', label: 'Evasion (no damage on a successful save)', path: 'flags.midi-qol.superSaver.{param}', param: 'abilityOrAll', types: ['custom'], value: 'flag' },
@@ -377,8 +406,20 @@ export function emptyActivity(kind = 'attack') {
   }
 }
 
+// extra: the user may spend more than `amount`; each extra point adds a die
+// to the roll's first damage part (or its healing) - "consume additional
+// Darkness to add another 1d8".
 export function emptySpend() {
-  return { key: randomId(), source: 'item', target: '', amount: '1' }
+  return { key: randomId(), source: 'item', target: '', amount: '1', extra: false }
+}
+
+// "Dark Arts Pool" -> "dark-arts-pool": dnd5e identifiers.
+export function identifierFor(text) {
+  return String(text ?? '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '')
 }
 
 // A roll midi-qol repeats on each turn of whoever carries one of this item's
@@ -423,6 +464,7 @@ export function emptyNpcItem(section = 'action') {
     usesMax: '',
     usesRecovery: '', // '' | 'lr' | 'sr' | 'day' | 'recharge'
     rechargeOn: 5,
+    identifier: '', // '' = from the name; other features spend these uses by it ('pool' spends)
     magical: false, // 'mgc' property + midi magicDamage/magicEffect on every roll
     activities: section === 'trait' ? [] : [emptyActivity('attack')],
     effects: [],
@@ -757,12 +799,15 @@ export function attackToHit(spec, activity) {
   return data[attackAbility(activity, spec)] + data.prof
 }
 
+const isFormulaDc = (dc) => /[@a-z]/i.test(String(dc ?? ''))
+
 export function saveDc(spec, activity) {
   if (activity.dcAbility === 'spellcasting') return spellSaveDc(spec)
   if (activity.dcAbility) {
     const data = npcRollData(spec)
     return 8 + data.prof + data[activity.dcAbility]
   }
+  if (isFormulaDc(activity.dc)) return averageFormula(activity.dc, npcRollData(spec))
   return Number(activity.dc) || 10
 }
 
@@ -781,10 +826,34 @@ function activationFor(item, activity) {
 // One "also spends" row -> a dnd5e consumption target.
 export function spendTarget(spend) {
   const amount = String(spend.amount ?? '').trim() || '1'
-  if (spend.source === 'item') return spend.target ? { type: 'itemUses', target: spend.target, value: amount, scaling: {} } : null
+  // Each extra step spends one more.
+  const scaling = spend.extra ? { mode: 'amount', formula: '1' } : {}
+  if (spend.source === 'item') return spend.target ? { type: 'itemUses', target: spend.target, value: amount, scaling } : null
+  if (spend.source === 'pool') {
+    const identifier = identifierFor(spend.target)
+    return identifier ? { type: 'itemUses', target: identifier, value: amount, scaling } : null
+  }
   const fixed = SPEND_SOURCES.find((s) => s.key === spend.source)?.target
   const target = fixed ?? String(spend.target ?? '').trim().replace(/^@/, '').replace(/^system\./, '')
-  return target ? { type: 'attribute', target, value: amount, scaling: {} } : null
+  return target ? { type: 'attribute', target, value: amount, scaling } : null
+}
+
+// An activity that lets the user spend extra: its first damage part (or its
+// healing) gains a die per extra step. A plain "2d8 + 3" adds 1d8; a custom
+// formula adds one of its first die.
+function scalePerExtraStep(built) {
+  if (!built.consumption?.scaling?.allowed) return built
+  const grow = (part) => {
+    if (!part) return
+    if (part.denomination) part.scaling = { mode: 'whole', number: 1 }
+    else {
+      const die = (part.custom?.formula ?? '').match(/d(\d+)/i)
+      if (die) part.scaling = { mode: 'whole', number: 1, formula: `1d${die[1]}` }
+    }
+  }
+  grow(built.damage?.parts?.[0])
+  grow(built.healing)
+  return built
 }
 
 function consumptionFor(item, activity) {
@@ -803,7 +872,8 @@ function consumptionFor(item, activity) {
     const target = spendTarget(spend)
     if (target) targets.push(target)
   }
-  return { scaling: { allowed: false }, spellSlot: true, targets }
+  const extra = (activity?.spend ?? []).some((s) => s.extra && spendTarget(s))
+  return { scaling: { allowed: extra, max: '' }, spellSlot: true, targets }
 }
 
 // Midi-qol's per-activity settings. Only what we set is written; midi's
@@ -863,8 +933,16 @@ function targetFor(activity) {
   }
 }
 
-function rangeFor(activity) {
-  if (activity.kind === 'attack') return { units: 'self', override: false }
+function rangeFor(activity, item) {
+  if (activity.kind === 'attack') {
+    // A weapon's range lives on the weapon. A feature (Shadow Lance) has no
+    // range of its own, so its attack carries one - the long range, since an
+    // activity has a single range value.
+    if (item?.itemType === 'weapon') return { units: 'self', override: false }
+    const ranged = activity.attackType === 'ranged'
+    const value = ranged ? Number(activity.longRange) || Number(activity.range) || 0 : Number(activity.reach) || 5
+    return value ? { value: String(value), units: 'ft', override: true } : { units: 'self', override: false }
+  }
   if (activity.range) return { value: String(activity.range), units: 'ft', override: true }
   return { units: 'self', override: false }
 }
@@ -874,6 +952,10 @@ function damageParts(rows) {
 }
 
 function buildActivity(item, activity, effectRefs, index, ids = {}, automationOnly = false) {
+  return scalePerExtraStep(buildActivityData(item, activity, effectRefs, index, ids, automationOnly))
+}
+
+function buildActivityData(item, activity, effectRefs, index, ids = {}, automationOnly = false) {
   const _id = ids[activity.key] ?? idFor(activity)
   const common = {
     _id,
@@ -883,7 +965,7 @@ function buildActivity(item, activity, effectRefs, index, ids = {}, automationOn
     activation: activity.overTime ? { type: 'special', override: false } : activationFor(item, activity),
     consumption: consumptionFor(item, activity),
     duration: { units: 'inst', concentration: false, override: false },
-    range: rangeFor(activity),
+    range: rangeFor(activity, item),
     target: targetFor(activity),
     uses: { spent: 0, recovery: [] },
     effects: effectRefs,
@@ -937,9 +1019,11 @@ function buildActivity(item, activity, effectRefs, index, ids = {}, automationOn
         ...common,
         save: {
           ability: [activity.saveAbility || 'dex'],
+          // A formula DC ("10 + @prof + @abilities.con.mod", a homebrew class's
+          // own) resolves against whoever owns the item.
           dc: activity.dcAbility
             ? { calculation: activity.dcAbility, formula: '' }
-            : { calculation: '', formula: String(Number(activity.dc) || 10) },
+            : { calculation: '', formula: isFormulaDc(activity.dc) ? normalizeFormula(activity.dc) : String(Number(activity.dc) || 10) },
         },
         damage: { onSave: activity.onSave || 'half', parts: damageParts(activity.damage), critical: { allow: false } },
         effects: effectRefs.map((ref) => ({ ...ref, onSave: false })),
@@ -993,6 +1077,10 @@ export function spendText(spec, activity) {
         return pool ? `${amount} ${pool.name || 'uses'}` : ''
       }
       if (s.source === 'attribute') return s.target ? `${amount} ${s.target}` : ''
+      if (s.source === 'pool') {
+        const id = identifierFor(s.target)
+        return id ? `${amount} ${id.replace(/-/g, ' ')}${s.extra ? ' (or more, +1 die each)' : ''}` : ''
+      }
       const label = { legact: 'Legendary Actions', legres: 'Legendary Resistances', hp: 'Hit Points' }[s.source]
       return label ? `${amount} ${label}` : ''
     })
@@ -1098,6 +1186,7 @@ function buildChange(spec, item, effect, change) {
   else if (def.value === 'overTime') value = overTimeValue(spec, item, effect, change.overTime ?? emptyOverTime())
   else value = String(change.value ?? '').trim()
   if (value === '') return null
+  if (def.build) value = def.build(value)
   const type = def.types.includes(change.type) ? change.type : def.types[0]
   return { key, value, type, phase: 'initial' }
 }
@@ -1135,13 +1224,7 @@ function usesFor(item) {
   return { max: '', spent: 0, recovery: [] }
 }
 
-function slugIdentifier(name) {
-  return String(name ?? '')
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)/g, '')
-}
+const slugIdentifier = identifierFor
 
 function defaultImg(item) {
   if (item.img) return item.img
@@ -1268,7 +1351,8 @@ export function buildNpcItem(spec, item, index = 0, { inSpell = false } = {}) {
   const system = {
     description: { value: description, chat: '' },
     source: { custom: 'Chrab Corner', rules: '2024' },
-    identifier: slugIdentifier(item.name),
+    // Set by hand when other features spend this one's uses by identifier.
+    identifier: identifierFor(item.identifier) || slugIdentifier(item.name),
     uses: usesFor(item),
     activities,
     properties: item.magical ? ['mgc'] : [],
@@ -1652,6 +1736,12 @@ export function changeFromFoundry(change) {
   const type = change.type ?? LEGACY_CHANGE_MODES[change.mode] ?? 'add'
   const value = String(change.value ?? '')
   const row = { ...emptyChange('custom'), type, value, path: change.key ?? '' }
+  // Changes built from a stored value (advSaveVs) share their key with a plain
+  // flag, so they're recognized by their value first.
+  for (const def of EFFECT_CHANGES.filter((d) => d.parse && d.path === change.key)) {
+    const parsed = def.parse(value)
+    if (parsed) return { ...row, id: def.id, type: def.types[0], value: parsed, path: '' }
+  }
   for (const def of EFFECT_CHANGES) {
     if (def.id === 'custom') continue
     const pattern = new RegExp(`^${def.path.replace(/\./g, '\\.').replace('{param}', '(\\w+)')}$`)
@@ -1703,6 +1793,8 @@ export function foundryItemToNpcItem(item) {
     usesMax: recovery?.period === 'recharge' ? '' : sys.uses?.max ?? '',
     usesRecovery: recovery?.period ?? '',
     rechargeOn: recovery?.period === 'recharge' ? Number(recovery.formula) || 5 : 5,
+    // Kept only when it isn't simply the name's (a pool other features spend by it).
+    identifier: sys.identifier && sys.identifier !== slugIdentifier(item.name) ? sys.identifier : '',
     magical: (sys.properties ?? []).includes('mgc') || acts.some((a) => a.midiProperties?.magicDamage),
     effects: (item.effects ?? [])
       .filter((e) => !e.flags?.['chrab-sync']?.synthetic)
@@ -1751,8 +1843,10 @@ export function foundryItemToNpcItem(item) {
       .filter((t) => t.type === 'itemUses' || t.type === 'attribute')
       .map((t) => {
         const fixed = SPEND_SOURCES.find((s) => s.target && s.target === t.target)
-        const source = t.type === 'itemUses' ? 'item' : fixed ? fixed.key : 'attribute'
-        return { ...emptySpend(), source, target: fixed ? '' : t.target, amount: String(t.value ?? '1') }
+        // An item id is 16 mixed-case characters; an identifier is lowercase words.
+        const byIdentifier = t.type === 'itemUses' && !isFoundryId(t.target) && /^[a-z0-9]+(-[a-z0-9]+)*$/.test(t.target)
+        const source = byIdentifier ? 'pool' : t.type === 'itemUses' ? 'item' : fixed ? fixed.key : 'attribute'
+        return { ...emptySpend(), source, target: fixed ? '' : t.target, amount: String(t.value ?? '1'), extra: t.scaling?.mode === 'amount' }
       })
     const mp = act.midiProperties ?? {}
     if (mp.triggeredActivityId && mp.triggeredActivityId !== 'none' && keyForId[mp.triggeredActivityId]) {

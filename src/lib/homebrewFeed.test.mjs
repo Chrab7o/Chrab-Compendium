@@ -189,6 +189,22 @@ test('mechanicsSummary reads like the panel badge', () => {
   assert.equal(mechanicsSummary(emptyFeatureSpec('feat')), '')
 })
 
+test('a pool keeps its identifier through the overlay, so spenders find it after Plutonium', () => {
+  const spec = emptyFeatureSpec('feat')
+  spec.item = { ...spec.item, name: 'Dark Arts', usesMax: '9', usesRecovery: 'lr', identifier: 'darkness', activities: [] }
+  assert.equal(foundryOverlay(buildFeatureItem(spec)).system.identifier, 'darkness')
+})
+
+test('class features run in level order, subclass placeholders included', () => {
+  // Subclass levels 3 and 7 have no class feature of their own, so they get
+  // "Dark Archetype" placeholders - which used to land after level 20.
+  const form = { ...darkKnight(), subclass_levels: [3, 7], features: [row(1, 'Tainted Soul'), row(2, 'Dark Arts'), row(5, 'Extra Attack'), row(20, 'The Final Art')] }
+  const [cls] = buildHomebrewFeed({ classes: [form] }).class
+  const levels = cls.classFeatures.map((r) => Number((typeof r === 'string' ? r : r.classFeature).split('|').pop()))
+  assert.deepEqual(levels, [1, 2, 3, 5, 7, 20])
+  assert.deepEqual(cls.classFeatures.filter((r) => r.gainSubclassFeature).map((r) => r.classFeature), ['Dark Archetype|The Dark Knight|TDK|3', 'Dark Archetype|The Dark Knight|TDK|7'])
+})
+
 test('foundryOverlay keeps activities in order with the hook first', () => {
   const item = items().get('draft-ds')
   assert.deepEqual(

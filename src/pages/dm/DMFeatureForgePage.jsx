@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabaseClient'
-import { FEATURE_TEMPLATES, FEAT_TYPES, buildFeatureItem, featureItemToSpec, featureName } from '../../lib/foundryFeatures'
+import { FEAT_TYPES, buildFeatureItem, featureItemToSpec, featureName } from '../../lib/foundryFeatures'
+import { AUTOMATION_TEMPLATES } from '../../lib/automationTemplates'
 import { useCampaignContext } from '../../contexts/CampaignContext'
 import { downloadFeatureItem } from '../../components/dm/feature/downloadItem'
 import { SyncBadge } from './DMNpcForgePage'
@@ -100,9 +101,10 @@ export default function DMFeatureForgePage() {
           <h2>Start from a template</h2>
         </div>
         <ul className="dm-list">
-          {FEATURE_TEMPLATES.map((t) => (
+          {AUTOMATION_TEMPLATES.map((t) => (
             <li key={t.key}>
               <span>{t.label}</span>
+              {t.kind === 'example' && <span className="badge">Example</span>}
               <span className="dm-list-meta">{t.help}</span>
               <div className="dm-list-actions">
                 <Link to={`/dm/feature-forge/new?template=${t.key}`}>Use</Link>
