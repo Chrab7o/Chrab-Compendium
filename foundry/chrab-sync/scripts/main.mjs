@@ -1,11 +1,12 @@
-// Chrab Sync: pulls NPCs built in the Chrab Compendium's NPC Forge into this
-// world, and pushes player character sheets back (characters.mjs). Everything here runs for GMs only - players' browsers register the
+// Chrab Sync: pulls NPCs built in the Chrab Compendium's NPC Forge and items
+// from its Feature Forge into this world, and pushes player character sheets
+// back (characters.mjs). Everything here runs for GMs only - players' browsers register the
 // settings (Foundry requires it) and then do nothing.
 // See docs/npc-forge-phase2.md in the Chrab Compendium repo.
 
 import { ConfigApp, SyncApp } from './apps.mjs'
 import { syncOnLoad, watchCharacters } from './characters.mjs'
-import { DEFAULT_FOLDER, MODULE_ID } from './constants.mjs'
+import { DEFAULT_FOLDER, DEFAULT_ITEM_FOLDER, MODULE_ID } from './constants.mjs'
 import { checkQueue, state } from './queue.mjs'
 
 Hooks.once('init', () => {
@@ -25,9 +26,17 @@ Hooks.once('init', () => {
     type: String,
     default: DEFAULT_FOLDER,
   })
+  game.settings.register(MODULE_ID, 'itemFolderName', {
+    name: 'Feature folder',
+    hint: 'Items folder new features and spells from the Compendium Feature Forge are created in.',
+    scope: 'world',
+    config: true,
+    type: String,
+    default: DEFAULT_ITEM_FOLDER,
+  })
   game.settings.register(MODULE_ID, 'checkOnLogin', {
-    name: 'Check for NPCs when a GM logs in',
-    hint: 'Shows a notification when NPCs are waiting in the Compendium queue.',
+    name: 'Check for NPCs and features when a GM logs in',
+    hint: 'Shows a notification when NPCs or features are waiting in the Compendium queue.',
     scope: 'world',
     config: true,
     type: Boolean,
@@ -65,9 +74,10 @@ Hooks.once('ready', () => {
   })
 })
 
-// A "Chrab Sync" button in the Actors sidebar header. On v13+ the hook hands
-// over a plain HTMLElement; older versions passed jQuery.
-Hooks.on('renderActorDirectory', (app, html) => {
+// A "Chrab Sync" button in the Actors and Items sidebar headers, each opening
+// its own tab. On v13+ the hook hands over a plain HTMLElement; older versions
+// passed jQuery.
+function addSyncButton(html, count, tab) {
   if (!game.user.isGM) return
   const root = html instanceof HTMLElement ? html : html?.[0]
   if (!root || root.querySelector('.chrab-sync-open')) return
@@ -76,7 +86,10 @@ Hooks.on('renderActorDirectory', (app, html) => {
   const button = document.createElement('button')
   button.type = 'button'
   button.className = 'chrab-sync-open'
-  button.innerHTML = `<i class="fa-solid fa-cloud-arrow-down"></i> Chrab Sync${state.queued ? ` (${state.queued})` : ''}`
-  button.addEventListener('click', () => SyncApp.open())
+  button.innerHTML = `<i class="fa-solid fa-cloud-arrow-down"></i> Chrab Sync${count ? ` (${count})` : ''}`
+  button.addEventListener('click', () => SyncApp.open({ tab }))
   host.append(button)
-})
+}
+
+Hooks.on('renderActorDirectory', (app, html) => addSyncButton(html, state.queued, 'npcs'))
+Hooks.on('renderItemDirectory', (app, html) => addSyncButton(html, state.queuedItems, 'items'))

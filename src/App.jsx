@@ -33,6 +33,8 @@ import DMNameGeneratorPage from './pages/dm/DMNameGeneratorPage'
 import DMScreenPage from './pages/dm/DMScreenPage'
 import DMNpcForgePage from './pages/dm/DMNpcForgePage'
 import NpcEditor from './components/dm/npc/NpcEditor'
+import DMFeatureForgePage from './pages/dm/DMFeatureForgePage'
+import FeatureEditor from './components/dm/feature/FeatureEditor'
 import ClassWizard from './components/dm/homebrew/ClassWizard'
 import StandaloneSubclassEditor from './components/dm/homebrew/StandaloneSubclassEditor'
 import RaceEditor from './components/dm/homebrew/RaceEditor'
@@ -129,6 +131,9 @@ export default function App() {
               <Route path="npc-forge" element={<DMNpcForgePage />} />
               <Route path="npc-forge/new" element={<NpcEditor />} />
               <Route path="npc-forge/:id/edit" element={<NpcEditor />} />
+              <Route path="feature-forge" element={<DMFeatureForgePage />} />
+              <Route path="feature-forge/new" element={<FeatureEditor />} />
+              <Route path="feature-forge/:id/edit" element={<FeatureEditor />} />
               <Route path="shops" element={<DMShopsPage />} />
               <Route path="name-generator" element={<DMNameGeneratorPage />} />
               <Route path="screen" element={<DMScreenPage />} />

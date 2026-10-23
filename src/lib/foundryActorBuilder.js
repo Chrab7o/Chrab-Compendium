@@ -14,6 +14,7 @@
 // item, unlinked tokens, names and bars hidden from non-owners.
 
 import { conditionRows, conditionText, parseOnUseMacros, scriptCode, scriptPass } from './foundryAutomation.js'
+import { activeBehavior, behaviorChanges, behaviorMacro, behaviorSummary } from './foundryBehaviors.js'
 
 export const CORE_VERSION = '14.368'
 export const SYSTEM_ID = 'dnd5e'
@@ -389,7 +390,8 @@ export function emptyOverTimeRoll() {
 
 export function emptyEffect() {
   // appliedBy: activity keys that apply this effect; empty = every roll on the item
-  return { key: randomId(), name: '', statuses: [], passive: false, onSave: false, specialDuration: [], changes: [], appliedBy: [] }
+  // stance: on the owner while the item's toggle behavior is on (foundryBehaviors.js)
+  return { key: randomId(), name: '', statuses: [], passive: false, stance: false, onSave: false, specialDuration: [], changes: [], appliedBy: [] }
 }
 
 export function emptyOverTime() {
@@ -424,6 +426,7 @@ export function emptyNpcItem(section = 'action') {
     magical: false, // 'mgc' property + midi magicDamage/magicEffect on every roll
     activities: section === 'trait' ? [] : [emptyActivity('attack')],
     effects: [],
+    behavior: null, // foundryBehaviors emptyBehavior(): toggles and "when I attack..." rules
   }
 }
 
@@ -1146,15 +1149,48 @@ function defaultImg(item) {
   return item.itemType === 'weapon' ? 'icons/svg/sword.svg' : 'icons/svg/combat.svg'
 }
 
+// A behavior's own effect, when the item doesn't supply one: the stance a
+// toggle copies onto its owner, or the always-on carrier of a passive one's
+// hooks. Its id comes from the behavior key so a re-send keeps it.
+function behaviorEffect(item, behavior, suffix, extra) {
+  return {
+    _id: `${String(behavior.key).slice(0, 12)}${suffix}`,
+    name: item.name || 'Feature',
+    img: item.img || 'icons/svg/aura.svg',
+    description: '',
+    type: 'base',
+    system: { changes: [] },
+    statuses: [],
+    disabled: false,
+    transfer: false,
+    duration: { units: 'seconds', value: null, expiry: null, expired: false },
+    tint: '#ffffff',
+    showIcon: 1,
+    flags: { 'chrab-sync': { synthetic: true } },
+    _stats: { ...STATS },
+    ...extra,
+  }
+}
+
 export function buildNpcItem(spec, item, index = 0, { inSpell = false } = {}) {
+  const behavior = activeBehavior(item)
+  const toggle = behavior?.mode === 'toggle'
   const kept = (item.effects ?? []).filter((e) => e.name || e.statuses?.length || e.changes?.length)
   const effects = kept.map((e) => buildEffect(spec, e, item))
+  // Stance effects are templates the toggle copies onto the owner; the icon
+  // always shows on the token (showIcon 2) so the table can see it's on.
+  const isStance = (e) => toggle && !!e.stance && !e.passive
+  kept.forEach((e, i) => {
+    if (!isStance(e)) return
+    effects[i].flags = { ...effects[i].flags, 'chrab-sync': { stance: true } }
+    effects[i].showIcon = 2
+  })
   // An effect lands from every roll unless appliedBy names the ones it
   // belongs to (the Stun save, not the Strike that triggers it).
   const refsFor = (activity) =>
     kept
       .map((e, i) => [e, effects[i]])
-      .filter(([e, built]) => !built.transfer && (!e.appliedBy?.length || e.appliedBy.includes(activity.key)))
+      .filter(([e, built]) => !built.transfer && !isStance(e) && (!e.appliedBy?.length || e.appliedBy.includes(activity.key)))
       .map(([, built]) => ({ _id: built._id, level: {} }))
   // Ids first, so one activity can point at another (midi triggers).
   const acts = item.activities ?? []
@@ -1183,12 +1219,42 @@ export function buildNpcItem(spec, item, index = 0, { inSpell = false } = {}) {
   })
 
   // Scripts: each roll's own macro, run only when that roll is used.
-  const onUse = acts
-    .filter((a) => scriptCode(a.script).trim())
-    .map((a) => `[${scriptPass(a.script)}]ActivityMacro-${ids[a.key]}`)
-    .join(',')
+  const onUseParts = acts.filter((a) => scriptCode(a.script).trim()).map((a) => `[${scriptPass(a.script)}]ActivityMacro-${ids[a.key]}`)
 
-  const generated = (item.activities ?? []).map((a) => activitySummary(spec, a, inSpell)).filter(Boolean).join(' ')
+  // A behavior's hook goes FIRST: midi resolves the bare "ActivityMacro" in
+  // the effect's onUseMacroName change to the item's first activity.
+  if (behavior) {
+    const hookSpec = {
+      ...emptyActivity('utility'),
+      key: behavior.key,
+      name: toggle ? String(behavior.toggle?.label ?? '').trim() || 'Toggle' : 'Automation',
+      activation: toggle ? behavior.toggle?.activation || 'bonus' : 'special',
+      targetType: 'self',
+    }
+    const hook = buildActivity(item, hookSpec, [], -1, ids, !toggle)
+    hook.target.affects = { ...hook.target.affects, type: 'self', count: '' }
+    hook.macroData = { name: `${item.name || 'Feature'} automation`, command: behaviorMacro(item, behavior) }
+    const rest = { ...activities }
+    for (const id of Object.keys(activities)) delete activities[id]
+    Object.assign(activities, { [hook._id]: hook }, rest)
+    if (toggle) onUseParts.unshift(`[postActiveEffects]ActivityMacro-${hook._id}`)
+
+    const changes = behaviorChanges(behavior)
+    if (toggle) {
+      let stance = effects.find((e) => e.flags?.['chrab-sync']?.stance)
+      if (!stance) {
+        stance = behaviorEffect(item, behavior, 'Stnc', { showIcon: 2 })
+        stance.flags['chrab-sync'].stance = true
+        effects.push(stance)
+      }
+      stance.system.changes.push(...changes)
+    } else {
+      effects.push(behaviorEffect(item, behavior, 'Auto', { transfer: true, system: { changes } }))
+    }
+  }
+  const onUse = onUseParts.join(',')
+
+  const generated = [...(item.activities ?? []).map((a) => activitySummary(spec, a, inSpell)), behaviorSummary(behavior, item.name)].filter(Boolean).join(' ')
   const description = textToHtml(item.description) || (generated ? `<p>${escapeHtml(generated)}</p>` : '')
 
   const isWeapon = item.itemType === 'weapon'
@@ -1226,7 +1292,11 @@ export function buildNpcItem(spec, item, index = 0, { inSpell = false } = {}) {
     effects,
     sort: index * 100000,
     ownership: { default: 0 },
-    flags: onUse ? { 'midi-qol': { onUseMacroName: onUse } } : {},
+    flags: {
+      ...(onUse ? { 'midi-qol': { onUseMacroName: onUse } } : {}),
+      // The behavior spec rides along so an export reads back into the editor.
+      ...(behavior ? { 'chrab-sync': { behavior } } : {}),
+    },
     _stats: { ...STATS },
   }
 }
@@ -1596,9 +1666,15 @@ export function changeFromFoundry(change) {
 }
 
 
-function foundryItemToNpcItem(item) {
+// The hook changes a behavior adds to its effect; rebuilt on every export.
+const isBehaviorHook = (c) => c.key === 'flags.midi-qol.onUseMacroName' && /^\s*ActivityMacro\s*,/.test(String(c.value ?? ''))
+
+export function foundryItemToNpcItem(item) {
   const sys = item.system ?? {}
-  const acts = Object.values(sys.activities ?? {}).sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0))
+  const behavior = item.flags?.['chrab-sync']?.behavior ?? null
+  const acts = Object.values(sys.activities ?? {})
+    .filter((a) => !behavior || a._id !== behavior.key)
+    .sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0))
   // Over-time ticks are always "special"; the section comes from a real roll.
   const sectionAct = acts.find((a) => !a.isOverTimeFlag) ?? acts[0]
   const section = ACTIVATION_TO_SECTION[sectionAct?.activation?.type] ?? 'trait'
@@ -1622,19 +1698,25 @@ function foundryItemToNpcItem(item) {
     usesRecovery: recovery?.period ?? '',
     rechargeOn: recovery?.period === 'recharge' ? Number(recovery.formula) || 5 : 5,
     magical: (sys.properties ?? []).includes('mgc') || acts.some((a) => a.midiProperties?.magicDamage),
-    effects: (item.effects ?? []).map((e) => ({
-      key: isFoundryId(e._id) ? e._id : randomId(),
-      name: e.name ?? '',
-      img: e.img ?? '',
-      statuses: e.statuses ?? [],
-      passive: !!e.transfer,
-      onSave: false,
-      specialDuration: e.flags?.dae?.specialDuration ?? [],
-      // ActivityOverTime links come back as the over-time roll's effectKey.
-      changes: (e.system?.changes ?? e.changes ?? []).filter((c) => c.key !== 'flags.midi-qol.ActivityOverTime').map(changeFromFoundry),
-      appliedBy: e.transfer ? [] : appliedBy(e._id),
-    })),
+    effects: (item.effects ?? [])
+      .filter((e) => !e.flags?.['chrab-sync']?.synthetic)
+      .map((e) => ({
+        key: isFoundryId(e._id) ? e._id : randomId(),
+        name: e.name ?? '',
+        img: e.img ?? '',
+        statuses: e.statuses ?? [],
+        passive: !!e.transfer,
+        stance: !!e.flags?.['chrab-sync']?.stance,
+        onSave: false,
+        specialDuration: e.flags?.dae?.specialDuration ?? [],
+        // ActivityOverTime links come back as the over-time roll's effectKey.
+        changes: (e.system?.changes ?? e.changes ?? [])
+          .filter((c) => c.key !== 'flags.midi-qol.ActivityOverTime' && !isBehaviorHook(c))
+          .map(changeFromFoundry),
+        appliedBy: e.transfer || e.flags?.['chrab-sync']?.stance ? [] : appliedBy(e._id),
+      })),
     activities: [],
+    behavior: behavior ? structuredClone(behavior) : null,
   }
   const macroPasses = parseOnUseMacros(item.flags?.['midi-qol']?.onUseMacroName)
   const identifierOf = (act) => act.midiProperties?.identifier || slugIdentifier(act.name)

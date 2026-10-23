@@ -5,7 +5,7 @@ import { buildNpcActor, crLabel, npcActorToSpec } from '../../lib/foundryActorBu
 import { useCampaignContext } from '../../contexts/CampaignContext'
 import { downloadNpcActor } from '../../components/dm/npc/downloadActor'
 
-function timeAgo(iso) {
+export function timeAgo(iso) {
   if (!iso) return ''
   const minutes = Math.round((Date.now() - new Date(iso).getTime()) / 60000)
   if (minutes < 1) return 'just now'
@@ -18,7 +18,7 @@ function timeAgo(iso) {
 // Where a draft is in the send-to-Foundry queue (Phase 2, Chrab Sync).
 // "Changed since sent" compares spec_updated_at, not updated_at - recording a
 // sync result also bumps updated_at.
-function SyncBadge({ draft, worldTitle }) {
+export function SyncBadge({ draft, worldTitle }) {
   const changed = draft.queued_at && draft.spec_updated_at && new Date(draft.spec_updated_at) > new Date(draft.queued_at)
   switch (draft.sync_status) {
     case 'queued':

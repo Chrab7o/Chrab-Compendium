@@ -60,6 +60,7 @@ Syncing PCs back into `characters.raw_data` was added later; see [Character sync
 | `scripts/queue.mjs` | `checkQueue()`: heartbeat + pull for this world's campaign. |
 | `scripts/apply.mjs` | Finds an existing actor by draft flag (also reading the Phase 1 `chrab-corner` flag). **Update:** back up to the "Chrab Sync Backups" world compendium, then `importFromJSON`, the same as manual Import Data. **New:** create in the NPC folder. Then lock ownership. |
 | `scripts/apps.mjs` | Two ApplicationV2 windows. **SyncApp:** the queue, checkboxes, Apply, and a per-row result. **ConfigApp:** sign in/out and the campaign picker. |
+| `scripts/items.mjs` | Feature Forge items (the window's **Items** tab). See `docs/feature-forge.md`. |
 | `config.example.json` | Shape of `config.json`. The real one is gitignored, because deploy generates it. |
 
 **Known trade-off:** an update replaces anything changed inside Foundry since the last sync. Edit NPCs on the site;

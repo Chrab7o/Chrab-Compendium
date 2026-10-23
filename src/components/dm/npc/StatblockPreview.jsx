@@ -11,6 +11,7 @@ import {
   spellcastingText,
   usesLabel,
 } from '../../../lib/foundryActorBuilder'
+import { behaviorSummary } from '../../../lib/foundryBehaviors'
 
 const cap = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : '')
 const signed = (n) => (n >= 0 ? `+${n}` : String(n))
@@ -164,7 +165,9 @@ export default function StatblockPreview({ spec }) {
               const uses = usesLabel(item, spec)
               const cost = section.key === 'legendary' && Number(item.legendaryCost) > 1 ? `Costs ${item.legendaryCost} Actions` : ''
               const tag = [uses, cost].filter(Boolean).join('; ')
-              const text = stripHtml(item.description) || (item.activities ?? []).map((a) => activitySummary(spec, a)).filter(Boolean).join(' ')
+              const text =
+                stripHtml(item.description) ||
+                [...(item.activities ?? []).map((a) => activitySummary(spec, a)), behaviorSummary(item.behavior, item.name)].filter(Boolean).join(' ')
               return (
                 <p key={item.key}>
                   <strong>

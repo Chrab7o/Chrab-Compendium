@@ -6302,6 +6302,56 @@ button.sg-toggle.is-on {
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
 }
 
+/* Item behaviors (stances, "when I hit..." rules): red, so they read apart
+   from the purple per-roll automation. */
+.npc-behavior {
+  border-color: var(--accent-red);
+}
+
+.npc-behavior > summary {
+  color: var(--accent-red);
+}
+
+.npc-behavior[open] > summary {
+  border-bottom-color: var(--accent-red);
+}
+
+.npc-behavior .npc-overtime {
+  border-left-color: var(--accent-red);
+}
+
+.npc-behavior-swatch {
+  align-self: end;
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--border);
+}
+
+.npc-behavior-when {
+  width: 100%;
+  margin-top: 0.4rem;
+}
+
+.npc-behavior-warn {
+  color: var(--accent-red);
+  font-weight: 700;
+}
+
+.npc-behavior-preview {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.feature-macro {
+  max-height: 24rem;
+  margin: 0.5rem 0 0;
+  padding: 0.6rem;
+  font-size: var(--text-xs);
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+}
+
 .npc-statblock {
   position: sticky;
   top: 1rem;

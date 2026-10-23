@@ -27,6 +27,7 @@ import {
 import OptionPicker from '../OptionPicker'
 import FormulaInput, { AttributePathInput, NpcSpecContext } from './FormulaInput'
 import { ConditionRows, OverTimeRollFields, ScriptEditor } from './AutomationFields'
+import BehaviorFields from './BehaviorFields'
 
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1)
 
@@ -624,6 +625,10 @@ export function EffectEditor({ effect, onChange, onRemove, item }) {
   const set = (patch) => onChange({ ...effect, ...patch })
   const changes = effect.changes ?? []
   const updateChange = (i, value) => set({ changes: changes.map((c, idx) => (idx === i ? value : c)) })
+  // "While toggled on" only means something when the item has a toggle behavior.
+  const canStance = item.behavior?.mode === 'toggle'
+  const stance = canStance && !!effect.stance
+  const appliesTo = stance ? 'stance' : effect.passive ? 'self' : 'target'
   return (
     <div className="npc-activity">
       <div className="dm-form-row">
@@ -633,12 +638,13 @@ export function EffectEditor({ effect, onChange, onRemove, item }) {
         </label>
         <label>
           Applies to
-          <select value={effect.passive ? 'self' : 'target'} onChange={(e) => set({ passive: e.target.value === 'self' })}>
+          <select value={appliesTo} onChange={(e) => set({ passive: e.target.value === 'self', stance: e.target.value === 'stance' })}>
             <option value="target">The target, when the roll lands</option>
             <option value="self">This creature, always on</option>
+            {canStance && <option value="stance">This creature, while toggled on</option>}
           </select>
         </label>
-        {!effect.passive && (
+        {!effect.passive && !stance && (
           <label>
             Ends
             <select value={effect.specialDuration?.[0] ?? ''} onChange={(e) => set({ specialDuration: e.target.value ? [e.target.value] : [] })}>
@@ -651,7 +657,7 @@ export function EffectEditor({ effect, onChange, onRemove, item }) {
           </label>
         )}
       </div>
-      {!effect.passive && item.activities.length > 1 && (
+      {!effect.passive && !stance && item.activities.length > 1 && (
         <div className="npc-applied-by">
           <span className="option-picker-label">Applied by</span>
           {item.activities.map((a, i) => {
@@ -685,7 +691,7 @@ export function EffectEditor({ effect, onChange, onRemove, item }) {
         addPlaceholder="Add condition…"
       />
       <div className="npc-damage-rows">
-        {changes.length > 0 && <span className="option-picker-label">Changes {effect.passive ? 'to this creature' : 'to the target'}</span>}
+        {changes.length > 0 && <span className="option-picker-label">Changes {effect.passive || stance ? 'to this creature' : 'to the target'}</span>}
         {changes.map((change, i) => (
           <ChangeRow
             key={change.key}
@@ -709,7 +715,9 @@ export function EffectEditor({ effect, onChange, onRemove, item }) {
   )
 }
 
-function ItemCard({ item, onChange, onRemove, onMove, isFirst, isLast }) {
+// standalone: one feature on its own (the Feature Forge) - no statblock-only
+// sections or natural weapons, and nothing to reorder or delete.
+export function ItemCard({ item, onChange, onRemove, onMove, isFirst, isLast, standalone = false }) {
   const set = (patch) => onChange({ ...item, ...patch })
   const updateList = (field, i, value) => set({ [field]: item[field].map((x, idx) => (idx === i ? value : x)) })
 
@@ -733,22 +741,24 @@ function ItemCard({ item, onChange, onRemove, onMove, isFirst, isLast }) {
           <input value={item.name} onChange={(e) => set({ name: e.target.value })} placeholder="e.g. Bite" />
         </label>
         <label>
-          Section
+          {standalone ? 'Rolls default to' : 'Section'}
           <select value={item.section} onChange={(e) => set({ section: e.target.value })}>
-            {ITEM_SECTIONS.map((s) => (
+            {ITEM_SECTIONS.filter((s) => !standalone || !['legendary', 'lair'].includes(s.key)).map((s) => (
               <option key={s.key} value={s.key}>
-                {s.label}
+                {standalone && s.key === 'trait' ? 'Passive / special' : s.label}
               </option>
             ))}
           </select>
         </label>
-        <label>
-          Shows in Foundry as
-          <select value={item.itemType} onChange={(e) => set({ itemType: e.target.value })}>
-            <option value="feat">Feature</option>
-            <option value="weapon">Natural weapon</option>
-          </select>
-        </label>
+        {!standalone && (
+          <label>
+            Shows in Foundry as
+            <select value={item.itemType} onChange={(e) => set({ itemType: e.target.value })}>
+              <option value="feat">Feature</option>
+              <option value="weapon">Natural weapon</option>
+            </select>
+          </label>
+        )}
         {item.section === 'legendary' && (
           <label>
             Costs (actions)
@@ -793,7 +803,7 @@ function ItemCard({ item, onChange, onRemove, onMove, isFirst, isLast }) {
       )}
 
       <label>
-        Description (optional - blank uses the generated statblock line)
+        Description (optional - blank uses the generated {standalone ? 'rules text' : 'statblock line'})
         <textarea value={item.description} rows={3} onChange={(e) => set({ description: e.target.value })} />
       </label>
 
@@ -823,6 +833,8 @@ function ItemCard({ item, onChange, onRemove, onMove, isFirst, isLast }) {
         />
       ))}
 
+      <BehaviorFields item={item} onChange={(behavior) => set({ behavior })} />
+
       <div className="dm-form-actions npc-item-actions">
         <button type="button" className="secondary npc-small-button" onClick={() => set({ activities: [...item.activities, emptyActivity(item.activities.length ? 'damage' : 'attack')] })}>
           + Roll
@@ -830,16 +842,20 @@ function ItemCard({ item, onChange, onRemove, onMove, isFirst, isLast }) {
         <button type="button" className="secondary npc-small-button" onClick={() => set({ effects: [...item.effects, emptyEffect()] })}>
           + Effect / condition
         </button>
-        <span className="npc-item-actions-spacer" />
-        <button type="button" className="icon-button" disabled={isFirst} onClick={() => onMove(-1)} aria-label="Move up">
-          ↑
-        </button>
-        <button type="button" className="icon-button" disabled={isLast} onClick={() => onMove(1)} aria-label="Move down">
-          ↓
-        </button>
-        <button type="button" className="danger npc-small-button" onClick={onRemove}>
-          Delete
-        </button>
+        {!standalone && (
+          <>
+            <span className="npc-item-actions-spacer" />
+            <button type="button" className="icon-button" disabled={isFirst} onClick={() => onMove(-1)} aria-label="Move up">
+              ↑
+            </button>
+            <button type="button" className="icon-button" disabled={isLast} onClick={() => onMove(1)} aria-label="Move down">
+              ↓
+            </button>
+            <button type="button" className="danger npc-small-button" onClick={onRemove}>
+              Delete
+            </button>
+          </>
+        )}
       </div>
     </div>
   )

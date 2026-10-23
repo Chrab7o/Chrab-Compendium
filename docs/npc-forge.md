@@ -103,6 +103,10 @@ Ground rules:
     that scale themselves (`@item.level`) are left alone, and cantrips scale with the caster.
   - **Foundry check:** the sandbox's `probes/spells.md` and `scripts/build-spell-probe.mjs`.
 
+- **Behaviors** (`src/lib/foundryBehaviors.js`, editor in `BehaviorFields.jsx`): a toggle (stance) and/or rules such
+  as "when I hit with a melee attack…", which react to everything the creature does. The same framework drives the
+  standalone **Feature Forge**. See `docs/feature-forge.md`.
+
 ## Verify
 
 ```powershell

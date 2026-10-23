@@ -10,6 +10,7 @@ const SECTIONS = [
   { to: '/dm/long-term-planning', title: 'Long-Term Planning', desc: 'Free-form brainstorming and things to remember to do at some point, with no date on them yet.' },
   { to: '/dm/sphere-grid', title: 'Sphere Grid', desc: 'Explore entries as a web of linked spheres, and create new ones from name pools you curate.' },
   { to: '/dm/npc-forge', title: 'NPC Forge', desc: 'Build NPC statblocks and download them as GM-only Foundry actors.' },
+  { to: '/dm/feature-forge', title: 'Feature Forge', desc: 'Custom features and spells with automation (stances, on-hit rules), sent to Foundry as items.' },
   { to: '/dm/notes', title: 'Player Notes', desc: "Read-only view of everyone's private notes." },
   { to: '/dm/import', title: 'Import', desc: 'Bring in Foundry characters and Obsidian vaults.' },
 ]

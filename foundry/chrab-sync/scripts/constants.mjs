@@ -9,3 +9,9 @@ export const LEGACY_FLAG_SCOPE = 'chrab-corner'
 export const BACKUP_PACK_NAME = 'chrab-sync-backups'
 export const BACKUP_PACK_LABEL = 'Chrab Sync Backups'
 export const DEFAULT_FOLDER = 'Chrab Corner NPCs'
+
+// Feature Forge items (lib/foundryFeatures.js writes flags['chrab-sync'].featureDraftId).
+export const FEATURE_FLAG_KEY = 'featureDraftId'
+export const ITEM_BACKUP_PACK_NAME = 'chrab-sync-item-backups'
+export const ITEM_BACKUP_PACK_LABEL = 'Chrab Sync Item Backups'
+export const DEFAULT_ITEM_FOLDER = 'Chrab Corner Features'

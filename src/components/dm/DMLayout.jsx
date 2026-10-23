@@ -16,6 +16,7 @@ const LINKS = [
   { to: '/dm/sphere-grid', label: 'Sphere Grid' },
   { to: '/dm/item-maker', label: 'Item Maker' },
   { to: '/dm/npc-forge', label: 'NPC Forge' },
+  { to: '/dm/feature-forge', label: 'Feature Forge' },
   { to: '/dm/shops', label: 'Shops' },
   { to: '/dm/name-generator', label: 'Name Generator' },
   { to: '/dm/screen', label: 'DM Screen' },

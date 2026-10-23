@@ -1,6 +1,7 @@
 // The two Chrab Sync windows, both GM-only:
-//   SyncApp   - the queue: NPCs sent from the Compendium, checkboxes, Apply.
-//               Below it, player character sync and pending shop trades.
+//   SyncApp   - three tabs: NPCs sent from the NPC Forge, Items sent from the
+//               Feature Forge (each with checkboxes and Apply), and player
+//               character sync with pending shop trades.
 //   ConfigApp - sync account sign-in/out and the world -> campaign mapping.
 //
 // Built on ApplicationV2 rendering raw HTML (_renderHTML/_replaceHTML) with
@@ -10,6 +11,7 @@
 import { applyQueuedNpc, findDraftActor } from './apply.mjs'
 import { characterState, partyActors, pendingTrades, pushCharacter, pushCharacters } from './characters.mjs'
 import { MODULE_ID } from './constants.mjs'
+import { applyQueuedFeature, findDraftCopies, findDraftItem } from './items.mjs'
 import { checkQueue } from './queue.mjs'
 import { currentEmail, isSignedIn, listCampaigns, rpc, signIn, signOut } from './supabase.mjs'
 
@@ -32,23 +34,30 @@ export class SyncApp extends ApplicationV2 {
     actions: {
       refresh: SyncApp.#onRefresh,
       apply: SyncApp.#onApply,
+      applyItems: SyncApp.#onApplyItems,
       settings: SyncApp.#onSettings,
       toggleAll: SyncApp.#onToggleAll,
       syncCharacters: SyncApp.#onSyncCharacters,
       settle: SyncApp.#onSettle,
+      tab: SyncApp.#onTab,
     },
   }
 
+  tab = 'npcs' // 'npcs' | 'items' | 'characters'
   entries = []
   results = {} // draft id -> { ok, text }
+  features = [] // queued Feature Forge items
+  featureResults = {} // draft id -> { ok, text }
+  updateCopies = true
   trades = [] // unsettled shop trades, from sync_pending_trades
   tradeMessage = ''
   message = ''
   busy = false
   loaded = false
 
-  static open() {
+  static open({ tab } = {}) {
     const app = foundry.applications.instances?.get('chrab-sync-queue') ?? new SyncApp()
+    if (tab) app.tab = tab
     app.load()
     return app
   }
@@ -58,11 +67,13 @@ export class SyncApp extends ApplicationV2 {
     this.message = 'Checking the Compendium…'
     this.render({ force: true })
     try {
-      const { entries, reason } = await checkQueue({ notify: false })
+      const { entries, features, reason } = await checkQueue({ notify: false })
       this.entries = entries
-      this.message = reason ?? (entries.length ? '' : 'Nothing waiting. Send NPCs from the NPC Forge on the Compendium site.')
+      this.features = features ?? []
+      this.message = reason ?? ''
     } catch (err) {
       this.entries = []
+      this.features = []
       this.message = err.message
     }
     await this.loadTrades()
@@ -134,7 +145,7 @@ export class SyncApp extends ApplicationV2 {
       </footer>`
   }
 
-  async _renderHTML() {
+  #npcsHTML() {
     const rows = this.entries
       .map((e) => {
         const result = this.results[e.id]
@@ -152,18 +163,69 @@ export class SyncApp extends ApplicationV2 {
       .join('')
     const pending = this.entries.filter((e) => !this.results[e.id]?.ok).length
     return `
+      ${this.entries.length ? `<ul class="chrab-sync-list">${rows}</ul>` : this.loaded && !this.message ? '<p class="chrab-sync-message">No NPCs waiting. Send them from the NPC Forge on the Compendium site.</p>' : ''}
+      <footer class="chrab-sync-footer">
+        ${this.entries.length ? `<button type="button" data-action="toggleAll">Toggle all</button>` : ''}
+        <button type="button" data-action="apply" class="chrab-sync-primary" ${this.busy || !pending ? 'disabled' : ''}>
+          <i class="fa-solid fa-download"></i> Apply selected
+        </button>
+      </footer>`
+  }
+
+  // Feature Forge items: new ones go to the Items folder; an update also
+  // refreshes the copies characters already have, when ticked.
+  #itemsHTML() {
+    const rows = this.features
+      .map((f) => {
+        const result = this.featureResults[f.id]
+        const copies = findDraftCopies(f.id)
+        const target = findDraftItem(f.id) ? 'update existing' : 'new'
+        const owners = copies.length ? ` · on ${esc(copies.map((c) => c.parent?.name).join(', '))}` : ''
+        return `
+          <li class="chrab-sync-row">
+            <label>
+              <input type="checkbox" name="pickItem" value="${esc(f.id)}" ${result?.ok ? 'disabled' : 'checked'}>
+              <strong>${esc(f.name)}</strong>
+              <span class="chrab-sync-meta">${f.kind === 'spell' ? 'Spell' : 'Feature'} · ${target}${owners} · sent ${esc(new Date(f.queued_at).toLocaleString())}</span>
+            </label>
+            ${result ? `<span class="chrab-sync-result ${result.ok ? 'ok' : 'fail'}">${esc(result.text)}</span>` : ''}
+          </li>`
+      })
+      .join('')
+    const pending = this.features.filter((f) => !this.featureResults[f.id]?.ok).length
+    return `
+      ${this.features.length ? `<ul class="chrab-sync-list">${rows}</ul>` : this.loaded && !this.message ? '<p class="chrab-sync-message">No features waiting. Send them from the Feature Forge on the Compendium site.</p>' : ''}
+      <label class="chrab-sync-inline"><input type="checkbox" name="updateCopies" ${this.updateCopies ? 'checked' : ''}> Also update copies already on characters (keeps their spent uses)</label>
+      <p class="chrab-sync-meta">Features can carry scripts that run in players' browsers once they're on a character. They were written by a DM on the Compendium site.</p>
+      <footer class="chrab-sync-footer">
+        <button type="button" data-action="applyItems" class="chrab-sync-primary" ${this.busy || !pending ? 'disabled' : ''}>
+          <i class="fa-solid fa-download"></i> Apply selected
+        </button>
+      </footer>`
+  }
+
+  async _renderHTML() {
+    const count = (n) => (n ? ` (${n})` : '')
+    const tabs = [
+      ['npcs', 'fa-dragon', `NPCs${count(this.entries.filter((e) => !this.results[e.id]?.ok).length)}`],
+      ['items', 'fa-wand-sparkles', `Items${count(this.features.filter((f) => !this.featureResults[f.id]?.ok).length)}`],
+      ['characters', 'fa-users', `Characters${count(new Set(this.trades.map((t) => t.actor_id)).size)}`],
+    ]
+      .map(
+        ([key, icon, label]) =>
+          `<button type="button" data-action="tab" data-tab="${key}" class="chrab-sync-tab ${this.tab === key ? 'active' : ''}" aria-pressed="${this.tab === key}"><i class="fa-solid ${icon}"></i> ${esc(label)}</button>`,
+      )
+      .join('')
+    const body = this.tab === 'items' ? this.#itemsHTML() : this.tab === 'characters' ? this.#charactersHTML() : this.#npcsHTML()
+    return `
       <section class="chrab-sync-body">
+        <nav class="chrab-sync-tabs">${tabs}</nav>
         ${this.message ? `<p class="chrab-sync-message">${esc(this.message)}</p>` : ''}
-        ${this.entries.length ? `<ul class="chrab-sync-list">${rows}</ul>` : ''}
-        <footer class="chrab-sync-footer">
+        ${body}
+        <footer class="chrab-sync-footer chrab-sync-footer-quiet">
           <button type="button" data-action="settings"><i class="fa-solid fa-gear"></i> Account &amp; campaign</button>
           <button type="button" data-action="refresh" ${this.busy ? 'disabled' : ''}><i class="fa-solid fa-rotate"></i> Refresh</button>
-          ${this.entries.length ? `<button type="button" data-action="toggleAll">Toggle all</button>` : ''}
-          <button type="button" data-action="apply" class="chrab-sync-primary" ${this.busy || !pending ? 'disabled' : ''}>
-            <i class="fa-solid fa-download"></i> Apply selected
-          </button>
         </footer>
-        ${this.#charactersHTML()}
       </section>`
   }
 
@@ -173,7 +235,54 @@ export class SyncApp extends ApplicationV2 {
 
   static async #onRefresh() {
     this.results = {}
+    this.featureResults = {}
     await this.load()
+  }
+
+  static #onTab(event, target) {
+    this.tab = target.dataset.tab
+    this.render()
+  }
+
+  static async #onApplyItems() {
+    const picked = new Set([...this.element.querySelectorAll('input[name="pickItem"]:checked:not(:disabled)')].map((b) => b.value))
+    this.updateCopies = !!this.element.querySelector('input[name="updateCopies"]')?.checked
+    if (!picked.size) return
+    this.busy = true
+    this.render()
+    for (const entry of this.features.filter((f) => picked.has(f.id))) {
+      try {
+        const { item, mode, copies } = await applyQueuedFeature(entry, { updateCopies: this.updateCopies })
+        await rpc('sync_report_feature', {
+          p_draft_id: entry.id,
+          p_queued_at: entry.queued_at,
+          p_world_id: game.world.id,
+          p_item_uuid: item.uuid,
+          p_error: null,
+        })
+        const what = mode === 'created' ? 'Created' : 'Updated (backup saved)'
+        this.featureResults[entry.id] = { ok: true, text: copies ? `${what}, ${copies} character cop${copies === 1 ? 'y' : 'ies'} updated` : what }
+      } catch (err) {
+        console.error(`${MODULE_ID} | failed to apply ${entry.name}`, err)
+        this.featureResults[entry.id] = { ok: false, text: err.message }
+        try {
+          await rpc('sync_report_feature', {
+            p_draft_id: entry.id,
+            p_queued_at: entry.queued_at,
+            p_world_id: game.world.id,
+            p_item_uuid: null,
+            p_error: String(err.message).slice(0, 500),
+          })
+        } catch (reportErr) {
+          console.error(`${MODULE_ID} | could not report the failure`, reportErr)
+        }
+      }
+      this.render()
+    }
+    this.busy = false
+    this.render()
+    ui.items?.render()
+    await checkQueue({ notify: false }).catch(() => {})
   }
 
   static async #onSyncCharacters() {

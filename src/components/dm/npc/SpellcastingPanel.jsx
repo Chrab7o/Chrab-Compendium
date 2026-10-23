@@ -147,8 +147,10 @@ function SpellPicker({ records, title, onAdd, onClose, takenKeys }) {
   )
 }
 
-function SpellCard({ spell, onChange, onRemove }) {
-  const [open, setOpen] = useState(!spell.name)
+// standalone: a player's spell on its own (the Feature Forge) - always cast
+// with slots, so there's no NPC casting method to pick and nothing to remove.
+export function SpellCard({ spell, onChange, onRemove, standalone = false }) {
+  const [open, setOpen] = useState(standalone || !spell.name)
   const set = (patch) => onChange({ ...spell, ...patch })
   const setIn = (field, patch) => set({ [field]: { ...spell[field], ...patch } })
   const updateList = (field, i, value) => set({ [field]: spell[field].map((x, idx) => (idx === i ? value : x)) })
@@ -175,7 +177,7 @@ function SpellCard({ spell, onChange, onRemove }) {
           {spellLevelLabel(spell.level)} {SPELL_SCHOOLS[spell.school] ?? ''}
           {tags ? ` (${tags})` : ''}
         </span>
-        <span className="npc-badge">{methodLabel}</span>
+        {!standalone && <span className="npc-badge">{methodLabel}</span>}
       </button>
       {open && (
         <div className="npc-spell-body">
@@ -204,17 +206,19 @@ function SpellCard({ spell, onChange, onRemove }) {
                 ))}
               </select>
             </label>
-            <label>
-              Cast
-              <select value={spell.method} onChange={(e) => set({ method: e.target.value })}>
-                {SPELL_METHODS.map((m) => (
-                  <option key={m.key} value={m.key}>
-                    {m.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            {spell.method === 'perDay' && (
+            {!standalone && (
+              <label>
+                Cast
+                <select value={spell.method} onChange={(e) => set({ method: e.target.value })}>
+                  {SPELL_METHODS.map((m) => (
+                    <option key={m.key} value={m.key}>
+                      {m.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+            {!standalone && spell.method === 'perDay' && (
               <label>
                 Times per day
                 <input type="number" min="1" value={spell.usesPerDay} onChange={(e) => set({ usesPerDay: Number(e.target.value) || 1 })} />
@@ -358,10 +362,14 @@ function SpellCard({ spell, onChange, onRemove }) {
             <button type="button" className="secondary npc-small-button" onClick={() => set({ effects: [...spell.effects, emptyEffect()] })}>
               + Effect / condition
             </button>
-            <span className="npc-item-actions-spacer" />
-            <button type="button" className="danger npc-small-button" onClick={onRemove}>
-              Remove spell
-            </button>
+            {!standalone && (
+              <>
+                <span className="npc-item-actions-spacer" />
+                <button type="button" className="danger npc-small-button" onClick={onRemove}>
+                  Remove spell
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}
