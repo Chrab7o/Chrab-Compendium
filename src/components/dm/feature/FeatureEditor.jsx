@@ -10,7 +10,7 @@ import {
   featureName,
   featureSpecFromRow,
 } from '../../../lib/foundryFeatures'
-import { featureDraftLinks, republishQuietly } from '../../../lib/homebrewFeedPublish'
+import { featureDraftLinks, republishQuietly } from '../../../lib/foundryClassPackPublish'
 import { useCampaignContext } from '../../../contexts/CampaignContext'
 import { ItemCard } from '../npc/ActionBuilder'
 import { NpcSpecContext } from '../npc/FormulaInput'
@@ -174,7 +174,7 @@ export default function FeatureEditor() {
       const fixed = await supabase.from('feature_drafts').update({ queued_item: buildFeatureItem(spec, { draftId: result.data.id }) }).eq('id', result.data.id)
       if (fixed.error) setError(fixed.error.message)
     }
-    // A feature some class links to is in the Plutonium feed: keep it current.
+    // A feature some class links to is in the Foundry class pack: keep it current.
     if (draftId && (await featureDraftLinks(draftId)).length) {
       const notice = await republishQuietly()
       if (notice) setError(notice)
@@ -258,7 +258,7 @@ export default function FeatureEditor() {
               </span>
             ))}
             . Its name and text come from there and are replaced when that class is saved; the mechanics edited here are
-            kept, and saving republishes the Plutonium feed.
+            kept, and saving republishes the Foundry class pack.
           </span>
         </div>
       )}

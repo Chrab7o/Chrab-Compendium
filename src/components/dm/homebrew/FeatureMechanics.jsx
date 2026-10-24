@@ -11,7 +11,7 @@ import { loadDraftSpecs } from './mechanics'
 // uses, rolls, effects, a stance and its rules - the Feature Forge's item
 // editor, minus the name and text, which the row already has. Saving the
 // class saves them as the row's Feature Forge draft (mechanics.js), which the
-// Plutonium feed then hands to characters.
+// Foundry class pack then hands to characters.
 export default function FeatureMechanics({ row, onChange, linkable = [] }) {
   const [open, setOpen] = useState(false)
   const [error, setError] = useState(null)
@@ -52,8 +52,8 @@ export default function FeatureMechanics({ row, onChange, linkable = [] }) {
           {!spec && (
             <>
               <p className="npc-hint">
-                Uses, attack or save rolls, effects, or a stance with “when I hit…” rules. Plutonium gives them to
-                characters who gain this feature.
+                Uses, attack or save rolls, effects, or a stance with “when I hit…” rules. Characters who gain this
+                feature in Foundry get them from the class compendium.
               </p>
               <div className="dm-form-row">
                 <button type="button" className="secondary npc-small-button" onClick={() => start(emptyFeatureSpec('feat'))}>

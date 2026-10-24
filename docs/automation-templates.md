@@ -90,7 +90,7 @@ yet:
 - **Spending from it.** "+ Spend a resource" on any roll has a new source, **A class resource (by identifier)**. Its
   dnd5e cost is `{ type: "itemUses", target: "darkness" }`.
   - dnd5e 5.3.3 re-links an identifier target to the item on the actor that has it (`_remapConsumptionTarget`), so the
-    cost works on every character. A Plutonium import gives each character different item ids, so an id target would
+    cost works on every character. Each character's copy of a class feature gets its own item id, so an id target would
     break there.
 - **Can spend more: +1 die each.** On any spend row. It turns on dnd5e's own "spend more" scaling and adds a die per
   extra point to the roll's first damage part, or its healing. For example, Restore Vitality is 3 Darkness for
@@ -241,8 +241,9 @@ identifier, the amount, and optionally **Can spend more**.
 - **Summon:** the template is done; Shadow Image (a copy of yourself) needs a copy-the-actor script.
 - **Cost reductions:** done (Magus L7 / L19, The Final Art).
 
-**Left as text, or to Plutonium:**
-- **Choice menus:** Fighting Style, Dark Arts picks.
+**Left as text, or to the class itself:**
+- **Choice menus:** Dark Arts picks are the class's own dnd5e choices (`docs/foundry-classes.md`). Fighting Style
+  is still text.
 - **Action economy:** Extra Attack, Soul Surge.
 - **Narrative:** Soul Bound.
 - **Hard to automate:** Inevitable (auto-succeed after a turn).

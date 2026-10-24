@@ -1,7 +1,8 @@
 // The two Chrab Sync windows, both GM-only:
-//   SyncApp   - three tabs: NPCs sent from the NPC Forge, Items sent from the
-//               Feature Forge (each with checkboxes and Apply), and player
-//               character sync with pending shop trades.
+//   SyncApp   - four tabs: NPCs sent from the NPC Forge, Items sent from the
+//               Feature Forge (each with checkboxes and Apply), the homebrew
+//               class compendium, and player character sync with pending
+//               shop trades.
 //   ConfigApp - sync account sign-in/out and the world -> campaign mapping.
 //
 // Built on ApplicationV2 rendering raw HTML (_renderHTML/_replaceHTML) with
@@ -10,7 +11,8 @@
 
 import { applyQueuedNpc, findDraftActor } from './apply.mjs'
 import { characterState, partyActors, pendingTrades, pushCharacter, pushCharacters } from './characters.mjs'
-import { MODULE_ID } from './constants.mjs'
+import { fetchClassPack, findClassCopies, isNewer, lastSynced, readClassPack, syncClassPack } from './classes.mjs'
+import { CLASS_PACK_LABEL, MODULE_ID } from './constants.mjs'
 import { applyQueuedFeature, findDraftCopies, findDraftItem } from './items.mjs'
 import { checkQueue } from './queue.mjs'
 import { currentEmail, isSignedIn, listCampaigns, rpc, signIn, signOut } from './supabase.mjs'
@@ -40,15 +42,21 @@ export class SyncApp extends ApplicationV2 {
       syncCharacters: SyncApp.#onSyncCharacters,
       settle: SyncApp.#onSettle,
       tab: SyncApp.#onTab,
+      syncClasses: SyncApp.#onSyncClasses,
+      pickClassFile: SyncApp.#onPickClassFile,
     },
   }
 
-  tab = 'npcs' // 'npcs' | 'items' | 'characters'
+  tab = 'npcs' // 'npcs' | 'items' | 'classes' | 'characters'
   entries = []
   results = {} // draft id -> { ok, text }
   features = [] // queued Feature Forge items
   featureResults = {} // draft id -> { ok, text }
   updateCopies = true
+  classPack = null // the published class pack (or one loaded from a file)
+  classSource = '' // '' = the published file, else the loaded file's name
+  classMessage = ''
+  classResult = null // { ok, text }
   trades = [] // unsettled shop trades, from sync_pending_trades
   tradeMessage = ''
   message = ''
@@ -76,10 +84,21 @@ export class SyncApp extends ApplicationV2 {
       this.features = []
       this.message = err.message
     }
-    await this.loadTrades()
+    await Promise.all([this.loadTrades(), this.loadClassPack()])
     this.busy = false
     this.loaded = true
     this.render()
+  }
+
+  async loadClassPack() {
+    if (this.classSource) return
+    try {
+      this.classPack = await fetchClassPack()
+      this.classMessage = this.classPack ? '' : 'The Compendium hasn’t published any classes yet (Homebrew → Classes → Publish now).'
+    } catch (err) {
+      this.classPack = null
+      this.classMessage = err.message
+    }
   }
 
   async loadTrades() {
@@ -204,11 +223,47 @@ export class SyncApp extends ApplicationV2 {
       </footer>`
   }
 
+  // The homebrew classes: what the Compendium has published, when this world
+  // last synced, and a Sync button that fills the class compendium.
+  #classesHTML() {
+    const data = this.classPack
+    const synced = lastSynced()
+    const when = (iso) => esc(new Date(iso).toLocaleString())
+    const copies = data ? findClassCopies(data) : []
+    let status = ''
+    if (data) {
+      const { summary } = data
+      const classes = data.items.filter((i) => i.type === 'class')
+      const subclasses = data.items.filter((i) => i.type === 'subclass')
+      const subclassesOf = (identifier) => subclasses.filter((s) => s.system.classIdentifier === identifier).map((s) => s.name)
+      const official = subclasses.filter((s) => !classes.some((c) => c.system.identifier === s.system.classIdentifier))
+      status = `
+        <p>${this.classSource ? `From the file <strong>${esc(this.classSource)}</strong>` : 'Published'} ${when(data.generatedAt)}: ${summary.classes} class${summary.classes === 1 ? '' : 'es'}, ${summary.subclasses} subclass${summary.subclasses === 1 ? '' : 'es'}, ${summary.features} features (${summary.automated} automated).</p>
+        <p class="chrab-sync-meta">${synced ? `This world last synced the version from ${when(synced)}.` : 'Not synced into this world yet.'}${isNewer(data) ? ' <strong>Newer than this world’s copy.</strong>' : ''}</p>
+        <ul class="chrab-sync-list">${classes.map((c) => `<li class="chrab-sync-row"><strong>${esc(c.name)}</strong> <span class="chrab-sync-meta">${esc(subclassesOf(c.system.identifier).join(', '))}</span></li>`).join('')}</ul>
+        ${official.length ? `<p class="chrab-sync-meta">Subclasses for official classes: ${esc(official.map((s) => s.name).join(', '))}</p>` : ''}`
+    }
+    return `
+      ${this.classMessage ? `<p class="chrab-sync-message">${esc(this.classMessage)}</p>` : ''}
+      ${status}
+      ${this.classResult ? `<p class="chrab-sync-result ${this.classResult.ok ? 'ok' : 'fail'}">${esc(this.classResult.text)}</p>` : ''}
+      <label class="chrab-sync-inline"><input type="checkbox" name="updateClassCopies" ${this.updateCopies ? 'checked' : ''}> Also update copies already on characters${copies.length ? ` (${copies.length}, on ${esc([...new Set(copies.map((c) => c.parent?.name))].join(', '))})` : ''}. Keeps spent uses and the choices made while levelling.</label>
+      <p class="chrab-sync-meta">Syncing replaces the contents of the <strong>${esc(CLASS_PACK_LABEL)}</strong> compendium. Players can open it: they drag a class onto their sheet and level up from the sheet. Features can carry scripts that run in players' browsers, written by a DM on the Compendium site.</p>
+      <input type="file" name="classFile" accept="application/json,.json" hidden>
+      <footer class="chrab-sync-footer">
+        <button type="button" data-action="pickClassFile" ${this.busy ? 'disabled' : ''}><i class="fa-solid fa-file-import"></i> Load a file…</button>
+        <button type="button" data-action="syncClasses" class="chrab-sync-primary" ${this.busy || !data ? 'disabled' : ''}>
+          <i class="fa-solid fa-book"></i> Sync classes
+        </button>
+      </footer>`
+  }
+
   async _renderHTML() {
     const count = (n) => (n ? ` (${n})` : '')
     const tabs = [
       ['npcs', 'fa-dragon', `NPCs${count(this.entries.filter((e) => !this.results[e.id]?.ok).length)}`],
       ['items', 'fa-wand-sparkles', `Items${count(this.features.filter((f) => !this.featureResults[f.id]?.ok).length)}`],
+      ['classes', 'fa-book', `Classes${isNewer(this.classPack) ? ' (new)' : ''}`],
       ['characters', 'fa-users', `Characters${count(new Set(this.trades.map((t) => t.actor_id)).size)}`],
     ]
       .map(
@@ -216,7 +271,7 @@ export class SyncApp extends ApplicationV2 {
           `<button type="button" data-action="tab" data-tab="${key}" class="chrab-sync-tab ${this.tab === key ? 'active' : ''}" aria-pressed="${this.tab === key}"><i class="fa-solid ${icon}"></i> ${esc(label)}</button>`,
       )
       .join('')
-    const body = this.tab === 'items' ? this.#itemsHTML() : this.tab === 'characters' ? this.#charactersHTML() : this.#npcsHTML()
+    const body = { items: () => this.#itemsHTML(), classes: () => this.#classesHTML(), characters: () => this.#charactersHTML() }[this.tab]?.() ?? this.#npcsHTML()
     return `
       <section class="chrab-sync-body">
         <nav class="chrab-sync-tabs">${tabs}</nav>
@@ -233,9 +288,52 @@ export class SyncApp extends ApplicationV2 {
     content.innerHTML = result
   }
 
+  _onRender(context, options) {
+    super._onRender?.(context, options)
+    this.element.querySelector('input[name="classFile"]')?.addEventListener('change', (event) => this.#readClassFile(event))
+  }
+
+  async #readClassFile(event) {
+    const file = event.target.files?.[0]
+    if (!file) return
+    try {
+      this.classPack = readClassPack(JSON.parse(await file.text()))
+      this.classSource = file.name
+      this.classMessage = ''
+      this.classResult = null
+    } catch (err) {
+      this.classMessage = `${file.name}: ${err.message}`
+    }
+    this.render()
+  }
+
+  static #onPickClassFile() {
+    this.element.querySelector('input[name="classFile"]')?.click()
+  }
+
+  static async #onSyncClasses() {
+    if (!this.classPack) return
+    this.updateCopies = !!this.element.querySelector('input[name="updateClassCopies"]')?.checked
+    this.busy = true
+    this.classResult = null
+    this.render()
+    try {
+      const { items, copies, failed } = await syncClassPack(this.classPack, { updateCopies: this.updateCopies })
+      const text = `Synced ${items} items into ${CLASS_PACK_LABEL}` + (copies ? `, ${copies} character cop${copies === 1 ? 'y' : 'ies'} updated` : '') + (failed.length ? `. Failed: ${failed.join('; ')}` : '.')
+      this.classResult = { ok: !failed.length, text }
+    } catch (err) {
+      console.error(`${MODULE_ID} | class sync failed`, err)
+      this.classResult = { ok: false, text: err.message }
+    }
+    this.busy = false
+    this.render()
+  }
+
   static async #onRefresh() {
     this.results = {}
     this.featureResults = {}
+    this.classSource = ''
+    this.classResult = null
     await this.load()
   }
 

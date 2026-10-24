@@ -7,7 +7,7 @@ import VisibilitySelect from './VisibilitySelect'
 import { useAutomationOptions } from './useAutomationOptions'
 import FeatureMechanics from './FeatureMechanics'
 import { attachMechanics, loadDraftSpecs, saveRowMechanics } from './mechanics'
-import { republishQuietly } from '../../../lib/homebrewFeedPublish'
+import { republishQuietly } from '../../../lib/foundryClassPackPublish'
 
 function slugify(name) {
   return name
@@ -152,7 +152,7 @@ export default function StandaloneSubclassEditor() {
             <input
               value={form.parent_class_name}
               onChange={(e) => setForm({ ...form, parent_class_name: e.target.value })}
-              placeholder="e.g. Monk - the official name, so Plutonium finds it"
+              placeholder="e.g. Monk - the official name, so Foundry attaches it to that class"
               required
             />
           </label>

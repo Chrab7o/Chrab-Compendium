@@ -5,7 +5,7 @@
 //   mechanicsDirty    edited here since loading, so the class editor's copy wins
 //   mechanicsMissing  linked, but the draft couldn't be loaded
 // The draft is a normal Feature Forge draft: it shows in the Feature Forge,
-// can be sent to Foundry on its own, and rides in the Plutonium feed.
+// can be sent to Foundry on its own, and rides in the Foundry class pack.
 import { supabase } from '../../../lib/supabaseClient'
 import { classFeatureSpec, classFeatureTextChanged, featureSpecFromRow } from '../../../lib/foundryFeatures'
 

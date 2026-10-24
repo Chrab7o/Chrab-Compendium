@@ -2925,18 +2925,6 @@ button.chip:hover {
   color: var(--accent-red);
 }
 
-/* The Plutonium feed's URL with its copy button beside it. */
-.homebrew-feed-url {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-}
-
-.homebrew-feed-url input {
-  flex: 1;
-  min-width: 0;
-}
-
 .sub-features > button {
   align-self: flex-start;
 }

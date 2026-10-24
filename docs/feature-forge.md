@@ -14,8 +14,8 @@ Two pieces, built together:
 **Templates:** new features can start from an automation template, a type of mechanic with its own settings (e.g.
 Defenses). See `docs/automation-templates.md`, which also has the Dark Knight roadmap.
 
-**Class features:** a Feature Forge item can also be linked to a homebrew class or subclass feature. The **Plutonium
-feed** then hands it to characters when they level into it. See `docs/homebrew-feed.md`.
+**Class features:** a Feature Forge item can also be linked to a homebrew class or subclass feature. The **Foundry
+class pack** then hands it to characters when they level into it. See `docs/foundry-classes.md`.
 
 The first feature is **Death Stance**, available as a template. It's the Dark Knight's Harbinger of Darkness feature
 (level 3, upgraded at 7). The template copies the class's own wording from `homebrew_subclass_features` as the item

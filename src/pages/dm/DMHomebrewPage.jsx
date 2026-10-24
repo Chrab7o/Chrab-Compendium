@@ -2,24 +2,21 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
 import { supabase } from '../../lib/supabaseClient'
 import { formatBackgroundMeta, formatFeatMeta, formatRaceSpeed } from '../../lib/homebrew'
-import { feedSummary } from '../../lib/homebrewFeed'
-import { fetchPublishedFeed, homebrewFeedUrl, publishHomebrewFeed, republishQuietly } from '../../lib/homebrewFeedPublish'
+import { classPackSummary } from '../../lib/foundryClassPack'
+import { fetchPublishedClassPack, publishClassPack, republishQuietly } from '../../lib/foundryClassPackPublish'
 
-// The Plutonium feed: one public 5etools file with every public class and
-// subclass plus linked Feature Forge automation (docs/homebrew-feed.md).
-// Saving a class, subclass or linked feature republishes it; this is the
-// URL to give Plutonium, what's live now, and a manual republish.
-function PlutoniumFeedPanel({ notice }) {
-  const url = homebrewFeedUrl()
+// The Foundry class pack: every public class and subclass as native dnd5e
+// items, with linked Feature Forge automation (docs/foundry-classes.md).
+// Saving a class, subclass or linked feature republishes it; this shows
+// what's live and has a manual republish. Chrab Sync's Classes tab loads it.
+function FoundryClassesPanel({ notice }) {
   const [live, setLive] = useState(undefined) // undefined = loading, null = never published
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState(notice ?? null)
-  const [copied, setCopied] = useState(false)
 
   const refresh = useCallback(async () => {
     try {
-      const feed = await fetchPublishedFeed()
-      setLive(feed ? feedSummary(feed) : null)
+      setLive(classPackSummary(await fetchPublishedClassPack()))
     } catch {
       setLive(null)
     }
@@ -33,49 +30,34 @@ function PlutoniumFeedPanel({ notice }) {
     setBusy(true)
     setMessage(null)
     try {
-      setLive(await publishHomebrewFeed())
+      setLive(await publishClassPack())
     } catch (err) {
       setMessage(`Publish failed: ${err.message}`)
     }
     setBusy(false)
   }
 
-  async function handleCopy() {
-    try {
-      await navigator.clipboard.writeText(url)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 1500)
-    } catch {
-      setMessage('Copy failed - select the URL and copy it by hand.')
-    }
-  }
-
+  const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`
   return (
     <div className="dm-panel homebrew-feed">
       <div className="dm-panel-header">
-        <h2>Plutonium feed</h2>
+        <h2>Foundry classes</h2>
         <button type="button" onClick={handlePublish} disabled={busy}>
           {busy ? 'Publishing…' : 'Publish now'}
         </button>
       </div>
       <p className="status-message">
-        Every <strong>public</strong> class and subclass as one 5etools file, with the Foundry automation of linked
-        Feature Forge features. In Foundry, open Plutonium&apos;s class importer, choose <strong>Custom URL</strong> and
-        paste this link; imports and level-ups then always use the current version. It republishes on its own whenever
-        you save a class, a subclass or a linked feature.
+        Every <strong>public</strong> class and subclass as native Foundry items, with the automation of linked Feature
+        Forge features. In Foundry, open <strong>Chrab Sync → Classes</strong> and click <strong>Sync classes</strong> to
+        fill the <strong>Chrab Corner Classes</strong> compendium. Players drag a class from it onto their sheet and
+        level up from the sheet. It republishes on its own whenever you save a class, a subclass or a linked feature.
       </p>
-      <div className="homebrew-feed-url">
-        <input className="npc-code-input" value={url} readOnly onFocus={(e) => e.target.select()} aria-label="Feed URL" />
-        <button type="button" className="secondary" onClick={handleCopy}>
-          {copied ? 'Copied' : 'Copy URL'}
-        </button>
-      </div>
       <p className="dm-list-meta">
         {live === undefined
           ? 'Checking what’s live…'
           : live === null
             ? 'Not published yet.'
-            : `Live: ${live.classes} class${live.classes === 1 ? '' : 'es'}, ${live.subclasses} subclass${live.subclasses === 1 ? '' : 'es'}, ${live.automated} automated feature${live.automated === 1 ? '' : 's'}${live.updatedAt ? ` · published ${live.updatedAt.toLocaleString()}` : ''}`}
+            : `Live: ${plural(live.classes, 'class', 'classes')}, ${plural(live.subclasses, 'subclass', 'subclasses')}, ${plural(live.features, 'feature', 'features')} (${live.automated} automated)${live.updatedAt ? ` · published ${live.updatedAt.toLocaleString()}` : ''}`}
       </p>
       {message && <p className="status-message error">{message}</p>}
     </div>
@@ -274,7 +256,7 @@ export default function DMHomebrewPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const tab = TABS.some((t) => t.key === searchParams.get('tab')) ? searchParams.get('tab') : 'classes'
   const setTab = (key) => setSearchParams({ tab: key }, { replace: true })
-  // An editor that saved but couldn't republish the feed says so here.
+  // An editor that saved but couldn’t republish the class pack says so here.
   const notice = useLocation().state?.notice ?? null
 
   return (
@@ -297,7 +279,7 @@ export default function DMHomebrewPage() {
         ))}
       </nav>
 
-      {(tab === 'classes' || tab === 'subclasses') && <PlutoniumFeedPanel notice={notice} />}
+      {(tab === 'classes' || tab === 'subclasses') && <FoundryClassesPanel notice={notice} />}
       {tab === 'classes' && <ClassesTab />}
       {tab === 'subclasses' && <SubclassesTab />}
       {tab === 'races' && (

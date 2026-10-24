@@ -27,7 +27,7 @@ import { useAutomationOptions } from './useAutomationOptions'
 import FeatureMechanics from './FeatureMechanics'
 import { attachMechanics, loadDraftSpecs, saveRowMechanics } from './mechanics'
 import { attachMechanicsFile } from '../../../lib/classMechanicsFile'
-import { republishQuietly } from '../../../lib/homebrewFeedPublish'
+import { republishQuietly } from '../../../lib/foundryClassPackPublish'
 import AbilityScorePicker from '../AbilityScorePicker'
 import OptionPicker from '../OptionPicker'
 
@@ -425,7 +425,7 @@ export default function ClassWizard() {
     }
 
     clearDraft()
-    // The Plutonium feed always reflects what's saved (a newly hidden class
+    // The Foundry class pack always reflects what's saved (a newly hidden class
     // drops out of it too).
     const notice = await republishQuietly()
     setSaving(false)

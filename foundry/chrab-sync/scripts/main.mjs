@@ -1,11 +1,13 @@
-// Chrab Sync: pulls NPCs built in the Chrab Compendium's NPC Forge and items
-// from its Feature Forge into this world, and pushes player character sheets
-// back (characters.mjs). Everything here runs for GMs only - players' browsers register the
-// settings (Foundry requires it) and then do nothing.
+// Chrab Sync: pulls NPCs built in the Chrab Compendium's NPC Forge, items
+// from its Feature Forge and its homebrew classes (classes.mjs) into this
+// world, and pushes player character sheets back (characters.mjs). Everything
+// here runs for GMs only - players' browsers register the settings (Foundry
+// requires it) and then do nothing; they use the class compendium directly.
 // See docs/npc-forge-phase2.md in the Chrab Compendium repo.
 
 import { ConfigApp, SyncApp } from './apps.mjs'
 import { syncOnLoad, watchCharacters } from './characters.mjs'
+import { checkClassPack } from './classes.mjs'
 import { DEFAULT_FOLDER, DEFAULT_ITEM_FOLDER, MODULE_ID } from './constants.mjs'
 import { checkQueue, state } from './queue.mjs'
 
@@ -34,9 +36,16 @@ Hooks.once('init', () => {
     type: String,
     default: DEFAULT_ITEM_FOLDER,
   })
+  // When the class compendium was last synced (the class pack's generatedAt).
+  game.settings.register(MODULE_ID, 'classPackSynced', {
+    scope: 'world',
+    config: false,
+    type: String,
+    default: '',
+  })
   game.settings.register(MODULE_ID, 'checkOnLogin', {
-    name: 'Check for NPCs and features when a GM logs in',
-    hint: 'Shows a notification when NPCs or features are waiting in the Compendium queue.',
+    name: 'Check for NPCs, features and class updates when a GM logs in',
+    hint: 'Shows a notification when NPCs or features are waiting in the Compendium queue, or the Compendium has published class changes this world hasn’t synced.',
     scope: 'world',
     config: true,
     type: Boolean,
@@ -72,6 +81,7 @@ Hooks.once('ready', () => {
     console.warn(`${MODULE_ID} |`, err)
     ui.notifications.warn(`Chrab Sync: ${err.message}`)
   })
+  checkClassPack({ notify: true }).catch((err) => console.warn(`${MODULE_ID} | class pack check failed`, err))
 })
 
 // A "Chrab Sync" button in the Actors and Items sidebar headers, each opening
@@ -93,3 +103,4 @@ function addSyncButton(html, count, tab) {
 
 Hooks.on('renderActorDirectory', (app, html) => addSyncButton(html, state.queued, 'npcs'))
 Hooks.on('renderItemDirectory', (app, html) => addSyncButton(html, state.queuedItems, 'items'))
+Hooks.on('renderCompendiumDirectory', (app, html) => addSyncButton(html, 0, 'classes'))

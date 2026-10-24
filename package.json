@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node --test src/lib/foundryActorBuilder.test.mjs src/lib/fiveToolsSpells.test.mjs src/lib/foundryBehaviors.test.mjs src/lib/homebrewFeed.test.mjs src/lib/automationTemplates.test.mjs",
+    "test": "node --test src/lib/foundryActorBuilder.test.mjs src/lib/fiveToolsSpells.test.mjs src/lib/foundryBehaviors.test.mjs src/lib/foundryClassPack.test.mjs src/lib/automationTemplates.test.mjs",
     "convert:drawio": "node scripts/drawio-to-skilltree.mjs"
   },
   "dependencies": {
