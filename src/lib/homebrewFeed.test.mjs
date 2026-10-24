@@ -5,7 +5,7 @@
 // that Plutonium matches to their features by identity keys.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { emptyClassForm } from './homebrew.js'
+import { classFormToFiveToolsJson, emptyClassForm, fiveToolsJsonToClassForm } from './homebrew.js'
 import {
   FEATURE_TEMPLATES,
   buildFeatureItem,
@@ -81,7 +81,7 @@ test('one file: the class, its subclass and a standalone subclass of an official
     ['Godless Domain', 'Cleric', 'PHB', 'GD'],
   ])
   // The standalone subclass points at the official class by its PHB source.
-  assert.deepEqual(feed.subclass[1].subclassFeatures, ['Faithless Strike|Cleric|PHB|Godless Domain|GD|1'])
+  assert.deepEqual(feed.subclass[1].subclassFeatures, ['Godless Domain|Cleric|PHB|Godless Domain|GD|1'])
   assert.deepEqual(feedSummary(feed), { classes: 1, subclasses: 2, automated: 3, updatedAt: new Date('2026-10-23T12:00:00Z') })
 })
 
@@ -111,6 +111,36 @@ test('a linked choice option (one of the Dark Arts) gets its own class feature o
   const options = intro.entries.find((e) => e.type === 'options')
   assert.equal(options.count, 2)
   assert.ok(options.entries.some((e) => e.classFeature === 'Shadow Smite|The Dark Knight|TDK|2'))
+  // Only the picks are granted: the options aren't in classFeatures, or
+  // Plutonium hands out every Dark Art.
+  const refs = feed.class[0].classFeatures.map((r) => (typeof r === 'string' ? r : r.classFeature))
+  assert.deepEqual(refs.filter((r) => r.endsWith('|2')), ['Dark Arts|The Dark Knight|TDK|2'])
+})
+
+test('a subclass leads with a header named after it, so its first feature stays a feature', () => {
+  // Plutonium turns the first subclass feature into the subclass description;
+  // with Death Stance first, characters never got the Death Stance item.
+  const feed = buildHomebrewFeed({ classes: [darkKnight()], items: items() })
+  const [sub] = feed.subclass
+  assert.deepEqual(sub.subclassFeatures, [
+    'Harbinger of Darkness|The Dark Knight|TDK|Harbinger of Darkness|TDK|3',
+    'Death Archetype Upgrade|The Dark Knight|TDK|Harbinger of Darkness|TDK|7',
+  ])
+  const header = feed.subclassFeature.find((f) => f.name === 'Harbinger of Darkness')
+  assert.deepEqual(header.entries, [
+    'Melee offense.',
+    { type: 'refSubclassFeature', subclassFeature: 'Death Stance|The Dark Knight|TDK|Harbinger of Darkness|TDK|3' },
+  ])
+  // Death Stance is still its own feature, and its overlay still matches it.
+  const [overlay] = feed.foundrySubclassFeature.filter((o) => o.name === 'Death Stance')
+  assert.equal(baseFor(overlay, feed.subclassFeature, SUB_KEYS).length, 1)
+})
+
+test('the 5etools import reads the header back as the subclass text', () => {
+  const json = classFormToFiveToolsJson(darkKnight())
+  const [sub] = fiveToolsJsonToClassForm(json).subclasses
+  assert.equal(sub.description, 'Melee offense.')
+  assert.deepEqual(sub.features.map((f) => [f.level, f.name]), [[3, 'Death Stance'], [7, 'Death Archetype Upgrade']])
 })
 
 test('the standalone subclass overlay matches its own feature too', () => {

@@ -353,11 +353,11 @@ specifically."
 | `homebrew_classes.spellcasting_progression` / `spellcasting_ability` | `class[].casterProgression` / `spellcastingAbility` (`'none'` → omit both fields entirely) |
 | `homebrew_classes.subclass_label` | `class[].subclassTitle` |
 | `homebrew_class_features` (one row per level+feature) | one `classFeature` object per row + one reference string in `class[].classFeatures` |
-| `homebrew_class_features.choice_group` / `choice_count` | split into per-option `classFeature` objects + an `options` block (with that `count`) on whichever same-level ungrouped feature's name contains the group name (e.g. group "Dark Arts" → feature "Dark Arts Continued"); if no name match exists, a placeholder intro feature named after the group is synthesized instead |
+| `homebrew_class_features.choice_group` / `choice_count` | split into per-option `classFeature` objects + an `options` block (with that `count`) on whichever same-level ungrouped feature's name contains the group name (e.g. group "Dark Arts" → feature "Dark Arts Continued"); if no name match exists, a placeholder intro feature named after the group is synthesized instead. The options are **not** listed in `classFeatures` (unless `choice_count` is 0): Plutonium grants everything listed there, on top of the picks |
 | *(implicit — a `subclass_levels` entry with no other feature at that level)* | a synthesized placeholder `classFeature` (empty `entries`) marked `gainSubclassFeature: true`, mirroring real files' "Domain Feature"-style placeholders |
 | `homebrew_class_table_columns` + `_values` | one `classTableGroups` entry per column (or grouped under one shared title if we ever add that) |
 | `homebrew_subclasses.name` | `subclass[].name` (+ a derived `shortName`) |
-| `homebrew_subclass_features` | one `subclassFeature` object per row + a reference string in `subclass[].subclassFeatures` |
+| `homebrew_subclass_features` | one `subclassFeature` object per row + a reference string in `subclass[].subclassFeatures`, except at the first level: there a header feature named after the subclass (its text is `homebrew_subclasses.description`) is the only reference, and it pulls that level's features in with `refSubclassFeature`. Plutonium turns the first subclass feature into the subclass item's description, so without the header the first real feature (Death Stance) never became an item |
 
 Not represented in our schema at all (fine to omit on export, 5etools
 doesn't require them): `classSpells`/`subclassSpells`/`additionalSpells`

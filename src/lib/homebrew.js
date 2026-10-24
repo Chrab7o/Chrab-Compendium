@@ -830,9 +830,28 @@ export function subclassToFiveTools(sc, { className, classSource, source }) {
       }
       for (const gf of g.features) {
         features.push(featureObj(gf.name, level, markdownToEntries(gf.description)))
-        featureRefs.push(scRefString(gf.name, level))
+        if (groupCount === 0) featureRefs.push(scRefString(gf.name, level))
       }
     }
+  }
+
+  // Plutonium reads a subclass's first feature as its header: the text goes
+  // into the subclass item's description and no feature item is made. Real
+  // files make that header a feature named after the subclass that pulls in
+  // the first level's features with refSubclassFeature, so do the same. A
+  // first-level feature already named after the subclass serves as the header.
+  const firstLevel = scLevels[0]
+  if (firstLevel != null) {
+    const refLevel = (ref) => Number(ref.split('|').pop())
+    const headerRef = scRefString(sc.name, firstLevel)
+    const pulled = featureRefs.filter((r) => refLevel(r) === firstLevel && r !== headerRef)
+    let header = features.find((o) => o.name === sc.name && o.level === firstLevel)
+    if (!header) {
+      header = featureObj(sc.name, firstLevel, markdownToEntries(sc.description))
+      features.unshift(header)
+    }
+    header.entries.push(...pulled.map((r) => ({ type: 'refSubclassFeature', subclassFeature: r })))
+    featureRefs.splice(0, featureRefs.length, headerRef, ...featureRefs.filter((r) => refLevel(r) !== firstLevel))
   }
 
   return {
@@ -893,9 +912,12 @@ export function classFormToFiveToolsJson(form) {
           entries: g.features.map((gf) => ({ type: 'refClassFeature', classFeature: refString(gf.name, className, source, level) })),
         })
       }
+      // Options are reached only through the options block. Listed in
+      // classFeatures too, Plutonium grants every one of them on top of the
+      // picks (real files never list them there).
       for (const gf of g.features) {
         classFeatureObjs.push({ name: gf.name, source, className, classSource: source, level, entries: markdownToEntries(gf.description) })
-        classFeatureRefs.push(refString(gf.name, className, source, level))
+        if (groupCount === 0) classFeatureRefs.push(refString(gf.name, className, source, level))
       }
     }
 
@@ -1145,7 +1167,8 @@ export function fiveToolsJsonToClassForm(json) {
   const subclassFeaturePool = json.subclassFeature ?? []
   const subclasses = (json.subclass ?? []).map((sc) => {
     const refs = (sc.subclassFeatures ?? []).map(refStringParts).filter(Boolean)
-    const scFeatures = refs.flatMap((ref) => {
+    let description = ''
+    const scFeatures = refs.flatMap((ref, i) => {
       // Matched by name+level only, not the full compound key - some real
       // files reference a subclassShortName that doesn't actually match
       // the feature object it's pointing at (see docs/5etools-class-schema.md).
@@ -1153,9 +1176,23 @@ export function fiveToolsJsonToClassForm(json) {
         (sf) => sf.name.trim().toLowerCase() === ref.name.toLowerCase() && sf.level === ref.level
       )
       if (!match) return [{ name: ref.name, level: ref.level, description: '', choice_group: '', choice_count: null }]
-      return splitEntriesIntoChoiceRows(match.name.trim(), match.level, match.entries)
+      // The header (first feature) pulls the first level's real features in
+      // with bare refSubclassFeature entries; those aren't in subclassFeatures.
+      const pulled = (match.entries ?? [])
+        .filter((e) => e?.type === 'refSubclassFeature')
+        .map((e) => refStringParts(e.subclassFeature))
+        .filter(Boolean)
+        .map((p) => subclassFeaturePool.find((sf) => sf.name.trim().toLowerCase() === p.name.toLowerCase() && sf.level === p.level))
+        .filter(Boolean)
+        .flatMap((sf) => splitEntriesIntoChoiceRows(sf.name.trim(), sf.level, sf.entries))
+      // A header named after the subclass is the subclass's own text.
+      if (i === 0 && pulled.length && match.name.trim().toLowerCase() === sc.name.trim().toLowerCase()) {
+        description = entriesToMarkdown(match.entries)
+        return pulled
+      }
+      return [...splitEntriesIntoChoiceRows(match.name.trim(), match.level, match.entries), ...pulled]
     })
-    return { id: null, name: sc.name.trim(), description: '', visibility: 'dm', features: assignSortOrder(scFeatures) }
+    return { id: null, name: sc.name.trim(), description, visibility: 'dm', features: assignSortOrder(scFeatures) }
   })
 
   const subclassLevels = [...new Set(subclasses.flatMap((s) => s.features.map((f) => f.level)))].sort((a, b) => a - b)
