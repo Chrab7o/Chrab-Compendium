@@ -1,6 +1,7 @@
 import { useContext, useMemo } from 'react'
 import {
   ACTIVATION_TYPES,
+  REACTION_TRIGGERS,
   ACTIVITY_KINDS,
   AREA_TYPES,
   CHANGE_PARAMS,
@@ -15,6 +16,10 @@ import {
   spellSaveDc,
   spellcastingAbility,
   TARGET_TYPES,
+  AURA_ACTIONS,
+  AURA_TRIGGERS,
+  emptyAura,
+  TRANSFORM_PRESETS,
   emptyActivity,
   emptyChange,
   emptyEffect,
@@ -41,6 +46,8 @@ const SPECIAL_DURATIONS = [
   { key: 'turnStartSource', label: "Start of this creature's next turn" },
   { key: 'turnEndSource', label: "End of this creature's next turn" },
   { key: 'isDamaged', label: 'Target takes damage' },
+  { key: 'isAttacked', label: 'Target is next attacked' },
+  { key: 'longRest', label: 'A long rest' },
 ]
 
 const CHANGE_GROUPS = [...new Set(EFFECT_CHANGES.map((c) => c.group))]
@@ -270,6 +277,102 @@ function TriggerFields({ activity, set, siblings }) {
   )
 }
 
+// A midi region that follows this creature: what happens to the creatures in it.
+function AuraFields({ activity, set, item }) {
+  if (!activity.aura) {
+    return (
+      <button type="button" className="secondary npc-small-button" onClick={() => set({ aura: emptyAura(), durationMinutes: activity.durationMinutes || '1' })}>
+        + Make this an aura
+      </button>
+    )
+  }
+  const aura = activity.aura
+  const setAura = (patch) => set({ aura: { ...aura, ...patch } })
+  const rules = aura.rules ?? []
+  const setRule = (i, patch) => setAura({ rules: rules.map((r, idx) => (idx === i ? { ...r, ...patch } : r)) })
+  const rolls = item.activities.map((a, i) => ({ a, i })).filter(({ a }) => a.key !== activity.key)
+  const effects = item.effects.filter((e) => e.aura && !e.passive)
+  return (
+    <div className="npc-aura">
+      <div className="dm-form-row">
+        <label>
+          Aura radius (ft.)
+          <input type="number" min="5" step="5" value={aura.radius} onChange={(e) => setAura({ radius: e.target.value })} />
+        </label>
+        <label>
+          Affects
+          <select value={aura.affects} onChange={(e) => setAura({ affects: e.target.value })}>
+            <option value="enemy">Enemies</option>
+            <option value="ally">Allies</option>
+            <option value="all">Everyone</option>
+          </select>
+        </label>
+        <label>
+          Lasts (minutes)
+          <input value={activity.durationMinutes ?? ''} onChange={(e) => set({ durationMinutes: e.target.value })} placeholder="1, 10, or perm" />
+        </label>
+        <label className="tag-checklist-item">
+          <input type="checkbox" checked={aura.oncePerTurn !== false} onChange={(e) => setAura({ oncePerTurn: e.target.checked })} />
+          Once per turn per creature
+        </label>
+      </div>
+      {rules.map((r, i) => (
+        <div className="dm-form-row" key={i}>
+          <label>
+            When a creature
+            <select value={r.trigger} onChange={(e) => setRule(i, { trigger: e.target.value })}>
+              {AURA_TRIGGERS.map((t) => (
+                <option key={t.key} value={t.key}>
+                  {t.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Do
+            <select value={r.action} onChange={(e) => setRule(i, { action: e.target.value, target: '' })}>
+              {AURA_ACTIONS.map((t) => (
+                <option key={t.key} value={t.key}>
+                  {t.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            {r.action === 'useActivity' ? 'Roll' : 'Effect'}
+            <select value={r.target ?? ''} onChange={(e) => setRule(i, { target: e.target.value })}>
+              <option value="">Pick one</option>
+              {r.action === 'useActivity'
+                ? rolls.map(({ a, i: idx }) => (
+                    <option key={a.key} value={a.key}>
+                      {activityLabel(a, idx)}
+                    </option>
+                  ))
+                : effects.map((e) => (
+                    <option key={e.key} value={e.key}>
+                      {e.name || 'Unnamed effect'}
+                    </option>
+                  ))}
+            </select>
+          </label>
+          <button type="button" className="secondary npc-small-button" onClick={() => setAura({ rules: rules.filter((_, idx) => idx !== i) })}>
+            Remove
+          </button>
+        </div>
+      ))}
+      {!effects.length && <p className="npc-hint">Effects for apply / remove rules: add one and set Applies to → “Creatures in the aura”.</p>}
+      <div className="dm-form-row">
+        <button type="button" className="secondary npc-small-button" onClick={() => setAura({ rules: [...rules, { trigger: 'entry', action: 'useActivity', target: '' }] })}>
+          + Aura rule
+        </button>
+        <button type="button" className="secondary npc-small-button" onClick={() => set({ aura: null })}>
+          Not an aura
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // Midi-qol automation for one roll, collapsed until used.
 function AutomationSection({ activity, set, item }) {
   const active = [
@@ -278,6 +381,7 @@ function AutomationSection({ activity, set, item }) {
     activity.useConditions?.length && 'use condition',
     activity.effectConditions?.length && 'effect condition',
     activity.overTime && 'over time',
+    activity.aura && 'aura',
     activity.script && 'script',
   ].filter(Boolean)
   const hasEffects = item.effects.some((e) => !e.passive)
@@ -299,6 +403,7 @@ function AutomationSection({ activity, set, item }) {
           <ConditionRows rows={activity.effectConditions ?? []} onChange={(effectConditions) => set({ effectConditions })} slot="effect" label="Effects only land on targets that" />
         )}
         <OverTimeRollFields activity={activity} set={set} item={item} />
+        {!activity.overTime && <AuraFields activity={activity} set={set} item={item} />}
         <ScriptEditor activity={activity} set={set} />
       </div>
     </details>
@@ -358,7 +463,59 @@ export function ActivityEditor({ activity, onChange, onRemove, item, index, inSp
               </select>
             </label>
           )}
+          {(activity.activation || item.section) === 'reaction' && (
+            <label>
+              Midi offers it when
+              <select value={activity.reactionTrigger ?? ''} onChange={(e) => set({ reactionTrigger: e.target.value })}>
+                {REACTION_TRIGGERS.map((t) => (
+                  <option key={t.key} value={t.key}>
+                    {t.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
         </div>
+
+        {(activity.kind === 'summon' || activity.kind === 'transform') && (
+          <div className="dm-form-row">
+            <label>
+              Creature UUID
+              <input
+                value={activity.creatureUuid ?? ''}
+                onChange={(e) => set({ creatureUuid: e.target.value })}
+                placeholder="Compendium.world.x.Actor.id (blank: player picks)"
+              />
+            </label>
+            <label>
+              Name
+              <input value={activity.creatureName ?? ''} onChange={(e) => set({ creatureName: e.target.value })} placeholder="e.g. Shadow Image" />
+            </label>
+            {!String(activity.creatureUuid ?? '').trim() && (
+              <label>
+                Up to CR
+                <input value={activity.crMax ?? ''} onChange={(e) => set({ crMax: e.target.value })} placeholder="e.g. 1 or @prof" />
+              </label>
+            )}
+            {activity.kind === 'summon' ? (
+              <label>
+                How many
+                <input value={activity.creatureCount ?? '1'} onChange={(e) => set({ creatureCount: e.target.value })} placeholder="1" />
+              </label>
+            ) : (
+              <label>
+                Keeps
+                <select value={activity.transformPreset ?? 'polymorph'} onChange={(e) => set({ transformPreset: e.target.value })}>
+                  {TRANSFORM_PRESETS.map((p) => (
+                    <option key={p.key} value={p.key}>
+                      {p.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+          </div>
+        )}
 
         <div className="dm-form-row">
           {activity.kind === 'attack' && (
@@ -456,10 +613,19 @@ export function ActivityEditor({ activity, onChange, onRemove, item, index, inSp
           )}
 
           {activity.kind === 'heal' && (
-            <label className="npc-wide-field">
-              Healing
-              <FormulaInput value={activity.healing} onChange={(healing) => set({ healing })} placeholder={inSpell ? "e.g. 2d8 + @mod" : "e.g. 2d8 + @abilities.con.mod"} ariaLabel="Healing formula" withMod={inSpell} />
-            </label>
+            <div className="dm-form-row">
+              <label className="npc-wide-field">
+                {activity.healType === 'temphp' ? 'Temporary hit points' : 'Healing'}
+                <FormulaInput value={activity.healing} onChange={(healing) => set({ healing })} placeholder={inSpell ? "e.g. 2d8 + @mod" : "e.g. 2d8 + @abilities.con.mod"} ariaLabel="Healing formula" withMod={inSpell} />
+              </label>
+              <label>
+                Gives
+                <select value={activity.healType ?? 'healing'} onChange={(e) => set({ healType: e.target.value })}>
+                  <option value="healing">Hit points</option>
+                  <option value="temphp">Temporary hit points</option>
+                </select>
+              </label>
+            </div>
           )}
         </div>
 
@@ -470,7 +636,17 @@ export function ActivityEditor({ activity, onChange, onRemove, item, index, inSp
         )}
 
         {['attack', 'save', 'damage'].includes(activity.kind) && (
-          <DamageRows rows={activity.damage} onChange={(damage) => set({ damage })} withMod={activity.kind === 'attack' || inSpell} />
+          <>
+            <DamageRows rows={activity.damage} onChange={(damage) => set({ damage })} withMod={activity.kind === 'attack' || inSpell} />
+            <label className="tag-checklist-item">
+              <input
+                type="checkbox"
+                checked={(activity.ignoreTraits ?? []).includes('idr')}
+                onChange={(e) => set({ ignoreTraits: e.target.checked ? ['idr', 'idi'] : [] })}
+              />
+              Ignores resistance and immunity
+            </label>
+          </>
         )}
 
         <SpendRows rows={activity.spend ?? []} onChange={(spend) => set({ spend })} itemKey={item.key} />
@@ -642,7 +818,16 @@ export function EffectEditor({ effect, onChange, onRemove, item }) {
   // "While toggled on" only means something when the item has a toggle behavior.
   const canStance = item.behavior?.mode === 'toggle'
   const stance = canStance && !!effect.stance
-  const appliesTo = stance ? 'stance' : effect.passive ? 'self' : 'target'
+  // "A bonded creature": a target effect that also runs the item's bonded-creature rules.
+  const canBond = (item.behavior?.rules ?? []).some((r) => r.event === 'bondedHurt' || r.event === 'bondedDowned')
+  const bond = canBond && !!effect.bond && !effect.passive && !stance
+  // "Applied by a behavior rule": only a rule's "apply an effect" action places it.
+  const canRule = (item.behavior?.rules ?? []).length > 0
+  const byRule = canRule && !!effect.byRule && !effect.passive && !stance
+  // "While inside an aura": only an aura's apply / remove rules place it.
+  const canAura = item.activities.some((a) => a.aura)
+  const aura = canAura && !!effect.aura && !effect.passive && !stance
+  const appliesTo = stance ? 'stance' : effect.passive ? 'self' : bond ? 'bond' : byRule ? 'rule' : aura ? 'aura' : 'target'
   return (
     <div className="npc-activity">
       <div className="dm-form-row">
@@ -652,8 +837,14 @@ export function EffectEditor({ effect, onChange, onRemove, item }) {
         </label>
         <label>
           Applies to
-          <select value={appliesTo} onChange={(e) => set({ passive: e.target.value === 'self', stance: e.target.value === 'stance' })}>
+          <select
+            value={appliesTo}
+            onChange={(e) => set({ passive: e.target.value === 'self', stance: e.target.value === 'stance', bond: e.target.value === 'bond', byRule: e.target.value === 'rule', aura: e.target.value === 'aura' })}
+          >
             <option value="target">The target, when the roll lands</option>
+            {canAura && <option value="aura">Creatures in the aura (its apply / remove rules)</option>}
+            {canRule && <option value="rule">Applied by a behavior rule (its “Apply an effect” action)</option>}
+            {canBond && <option value="bond">The target, linked (runs this item’s bonded / marked rules)</option>}
             <option value="self">This creature, always on</option>
             {canStance && <option value="stance">This creature, while toggled on</option>}
           </select>

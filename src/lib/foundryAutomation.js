@@ -98,7 +98,7 @@ export const SCRIPT_PASSES = [
   { key: 'postActiveEffects', label: 'After everything (effects applied)' },
 ]
 
-const HEADER = (title) => `// ${title}\n// Chrab Corner NPC Forge script - runs in the GM's Foundry as a midi-qol activity macro.\n`
+const HEADER = (title) => `// ${title}\n// Chrab Corner script - a midi-qol activity macro, run by whoever uses the item.\n`
 
 export const SCRIPT_RECIPES = [
   {
@@ -155,6 +155,81 @@ await actor.applyDamage([{ value: heal, type: "healing" }]);
 const targets = ${p.who === 'failed' ? 'workflow.failedSaves' : 'workflow.hitTargets'};
 for (const target of targets) {
   await MidiQOL.moveTokenAwayFromPoint(target, ${num(p.distance, 10)}, token.center);
+}
+`,
+  },
+  // --- Used by the Feature Forge templates (automationTemplates.js); these run
+  // on the client of whoever uses the item, often a player, so anything that
+  // touches another creature goes through midi's GM socket.
+  {
+    id: 'teleport',
+    label: 'Teleport yourself',
+    help: 'After use, click a spot within range; your token moves there instantly. Right-click cancels.',
+    pass: 'postActiveEffects',
+    params: { range: '30' },
+    code: (p) =>
+      `${HEADER(`Teleport up to ${num(p.range, 30)} ft.`)}const self = token ?? actor.getActiveTokens?.()[0];
+if (!self || !canvas?.ready) return;
+const range = ${num(p.range, 30)};
+ui.notifications.info("Click where to go (up to " + range + " ft). Right-click to cancel.");
+const point = await new Promise((resolve) => {
+  const stage = canvas.stage;
+  const onDown = (event) => {
+    stage.off("pointerdown", onDown);
+    resolve(event.button === 2 ? null : event.getLocalPosition(stage));
+  };
+  stage.on("pointerdown", onDown);
+});
+if (!point) return;
+const from = self.center ?? self.object?.center;
+const distance = canvas.grid.measurePath([from, point]).distance;
+if (distance > range) return ui.notifications.warn("Too far: " + Math.round(distance) + " ft (up to " + range + ").");
+await MidiQOL.moveToken(self, point, { teleport: true });
+`,
+  },
+  {
+    id: 'takeHit',
+    label: 'Take a creature’s damage instead',
+    help: 'After use, asks how much damage the target took: they regain that much and you take it instead.',
+    pass: 'postActiveEffects',
+    params: { damageType: '' },
+    code: (p) =>
+      `${HEADER('Take the target’s damage instead')}const target = workflow.targets.first();
+if (!target?.actor) return ui.notifications.warn("Target the creature whose damage you take first.");
+const DialogV2 = foundry.applications.api.DialogV2;
+const amount = Math.floor(Number(await DialogV2.prompt({
+  window: { title: item.name },
+  content: "<p>How much damage did <strong>" + target.name + "</strong> take? You take it instead.</p><input type=\\"number\\" name=\\"amount\\" min=\\"1\\" autofocus>",
+  ok: { label: "Take it", callback: (event, button) => Number(button.form.elements.amount.value) },
+  rejectClose: false,
+})) || 0);
+if (amount <= 0) return;
+const hp = target.actor.system.attributes.hp;
+await MidiQOL.socket().executeAsGM("updateActor", { actorUuid: target.actor.uuid, updates: { "system.attributes.hp.value": Math.min(hp.max, hp.value + amount) } });
+await actor.applyDamage([${p.damageType ? `{ value: amount, type: ${js(p.damageType)} }` : '{ value: amount }'}]);
+await ChatMessage.implementation.create({ speaker: ChatMessage.getSpeaker({ actor }), content: "<p>" + actor.name + " takes " + amount + " damage in place of " + target.name + ".</p>" });
+`,
+  },
+  {
+    id: 'sacrifice',
+    label: 'Hurt yourself, allies gain temp HP',
+    help: 'Rolls damage to yourself; each ally within range gains temporary hit points equal to it (not stacking).',
+    pass: 'postActiveEffects',
+    params: { formula: '3d10', damageType: 'necrotic', range: '30' },
+    code: (p) =>
+      `${HEADER(`Take ${p.formula || '3d10'}; allies within ${num(p.range, 30)} ft. gain that much temp HP`)}const self = token ?? actor.getActiveTokens?.()[0];
+const roll = await new CONFIG.Dice.DamageRoll(${js(p.formula || '3d10')}, actor.getRollData(), { type: ${p.damageType ? js(p.damageType) : 'undefined'} }).evaluate();
+await roll.toMessage({ speaker: ChatMessage.getSpeaker({ actor }), flavor: item.name });
+const amount = roll.total;
+await actor.applyDamage([${p.damageType ? `{ value: amount, type: ${js(p.damageType)} }` : '{ value: amount }'}], { ignore: true });
+if (!self || !canvas?.ready) return;
+const range = ${num(p.range, 30)};
+const allies = canvas.tokens.placeables.filter((t) => t !== self && t.actor && t.document.disposition === self.document.disposition
+  && canvas.grid.measurePath([self.center, t.center]).distance <= range);
+for (const ally of allies) {
+  const temp = Number(ally.actor.system.attributes.hp.temp) || 0;
+  if (amount <= temp) continue;
+  await MidiQOL.socket().executeAsGM("updateActor", { actorUuid: ally.actor.uuid, updates: { "system.attributes.hp.temp": amount } });
 }
 `,
   },

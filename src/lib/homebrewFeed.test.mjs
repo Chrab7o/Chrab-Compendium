@@ -15,6 +15,7 @@ import {
   mechanicsSummary,
 } from './foundryFeatures.js'
 import { buildHomebrewFeed, feedSummary, foundryOverlay, tableColumnScaleValue } from './homebrewFeed.js'
+import { attachMechanicsFile, mechanicsFile } from './classMechanicsFile.js'
 
 const row = (level, name, extra = {}) => ({ id: null, level, name, description: `${name} text.`, sort_order: 0, choice_group: '', choice_count: null, feature_draft_id: null, ...extra })
 
@@ -203,6 +204,29 @@ test('class features run in level order, subclass placeholders included', () => 
   const levels = cls.classFeatures.map((r) => Number((typeof r === 'string' ? r : r.classFeature).split('|').pop()))
   assert.deepEqual(levels, [1, 2, 3, 5, 7, 20])
   assert.deepEqual(cls.classFeatures.filter((r) => r.gainSubclassFeature).map((r) => r.classFeature), ['Dark Archetype|The Dark Knight|TDK|3', 'Dark Archetype|The Dark Knight|TDK|7'])
+})
+
+test('a mechanics file fills the matching rows, unsaved, and reports the rest', () => {
+  const ds = FEATURE_TEMPLATES.find((t) => t.key === 'deathStance').build()
+  const pool = emptyFeatureSpec('feat')
+  pool.item = { ...pool.item, usesMax: '9', usesRecovery: 'lr', identifier: 'darkness' }
+  const file = mechanicsFile('The Dark Knight', [
+    { subclass: '', name: 'Dark Arts', level: 2, spec: pool },
+    { subclass: 'harbinger of darkness', name: 'death stance', level: 3, spec: ds },
+    { subclass: 'Harbinger of Darkness', name: 'Death Stance', level: 7, spec: ds },
+    { subclass: 'Vanguard of Darkness', name: 'Vanguard Stance', level: 3, spec: ds },
+  ])
+  const { form, attached, unmatched, classMismatch } = attachMechanicsFile(darkKnight(), file)
+  assert.deepEqual(attached, ['level 2 › Dark Arts', 'harbinger of darkness › level 3 › death stance'])
+  assert.deepEqual(unmatched, ['Harbinger of Darkness › level 7 › Death Stance', 'Vanguard of Darkness › level 3 › Vanguard Stance'])
+  assert.equal(classMismatch, null)
+  const darkArts = form.features.find((f) => f.name === 'Dark Arts')
+  assert.equal(darkArts.mechanics.item.identifier, 'darkness')
+  assert.equal(darkArts.mechanicsDirty, true)
+  assert.equal(form.subclasses[0].features[0].mechanics.item.behavior.mode, 'toggle')
+  assert.equal(form.features.find((f) => f.name === 'Tainted Soul').mechanics, undefined)
+  assert.throws(() => attachMechanicsFile(darkKnight(), { mechanics: [] }), /class mechanics file/)
+  assert.equal(attachMechanicsFile(darkKnight(), mechanicsFile('Oracle', [])).classMismatch, 'Oracle')
 })
 
 test('foundryOverlay keeps activities in order with the hook first', () => {

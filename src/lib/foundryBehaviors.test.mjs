@@ -7,7 +7,7 @@
 // Foundry server. The real-world check is the sandbox's probes/death-stance.md.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { buildNpcActor, emptyChange, emptyEffect, emptyNpcItem, emptyNpcSpec, npcActorToSpec } from './foundryActorBuilder.js'
+import { buildNpcActor, emptyActivity, emptyChange, emptyEffect, emptyNpcItem, emptyNpcSpec, npcActorToSpec } from './foundryActorBuilder.js'
 import { emptyCondition } from './foundryAutomation.js'
 import {
   behaviorChanges,
@@ -16,7 +16,9 @@ import {
   behaviorSummary,
   deathStanceBehavior,
   emptyBehavior,
+  emptyBehaviorAction,
   emptyBehaviorRule,
+  emptySelfCondition,
   eventForOutcome,
   ruleOutcomeFits,
   ruleSummary,
@@ -210,13 +212,14 @@ class FakeDamageRoll {
 
 let world
 
-function setup({ confirm = true, combat = null } = {}) {
+function setup({ confirm = true, combat = null, spend = null } = {}) {
   world = { messages: [], dialogs: 0, damage: [], tempHp: [], created: [], deleted: [], tokenUpdates: [], itemUpdates: [], actorUpdates: [], classUpdates: [], effectUpdates: [] }
   globalThis.foundry = {
     utils: {
       escapeHTML: (s) => String(s),
       mergeObject: (a, b) => ({ ...a, ...b }),
       deepClone: (o) => structuredClone(o),
+      getProperty: (o, path) => path.split('.').reduce((x, k) => x?.[k], o),
     },
     applications: {
       api: {
@@ -224,6 +227,12 @@ function setup({ confirm = true, combat = null } = {}) {
           confirm: async () => {
             world.dialogs++
             return confirm
+          },
+          // "Spend how much?": the number typed, or null when closed.
+          prompt: async ({ ok }) => {
+            world.dialogs++
+            if (spend == null) return null
+            return ok.callback(null, { form: { elements: { spend: { value: String(spend) } } } })
           },
         },
       },
@@ -586,6 +595,290 @@ test('the strike’s own cost can’t drop me either: the hit die catches it', a
   assert.deepEqual(world.actorUpdates, [{ 'system.attributes.hp.value': 9, 'system.attributes.hp.temp': 0 }])
   assert.deepEqual(world.classUpdates, [{ 'system.hd.spent': 1 }])
 })
+
+// A Darkness pool on the owner: the feature whose identifier the rule names.
+function addPool(f, { left = 12, max = 12 } = {}) {
+  const pool = {
+    type: 'feat',
+    name: 'Dark Arts',
+    system: { identifier: 'darkness', uses: { max, spent: max - left, value: left } },
+    async update(data) {
+      world.poolUpdates = [...(world.poolUpdates ?? []), data]
+      this.system.uses.spent = data['system.uses.spent']
+      this.system.uses.value = max - this.system.uses.spent
+    },
+  }
+  f.actor.items.push(pool)
+  return pool
+}
+
+function smiteSpec({ extra = true, ask = true } = {}) {
+  const rule = { ...emptyBehaviorRule('bonusDamage'), label: 'Shadow Smite', event: 'damage', formula: '2d10', damageType: 'necrotic', ask, costPool: 'Darkness', costAmount: '3', costExtra: extra }
+  const spec = emptyFeatureSpec('feat')
+  spec.item = { ...spec.item, name: 'Shadow Smite', behavior: { ...emptyBehavior('passive'), rules: [rule] } }
+  return spec
+}
+
+test('Shadow Smite on a hit: asks how much Darkness, spends it, +1d10 per extra point', async () => {
+  setup({ spend: 5 })
+  const f = makeFeature(smiteSpec())
+  const pool = addPool(f, { left: 12 })
+  const rolls = await use(f, { pass: 'damageBonus', workflow: attackWorkflow({ hit: true }) })
+  assert.equal(world.dialogs, 1)
+  assert.equal(rolls[0].formula, '2d10 + 2d10', '2 points over the cost: 2 more dice')
+  assert.equal(rolls[0].total, 24)
+  assert.equal(pool.system.uses.spent, 5)
+  assert.match(ruleSummary(smiteSpec().item.behavior.rules[0]), /It costs 3 darkness, and you can spend more for an extra die each\./)
+})
+
+test('rule costs read the owner’s discounts too, never below 1', async () => {
+  setup()
+  const f = makeFeature(smiteSpec({ extra: false, ask: false }))
+  f.feature.system.identifier = 'shadow-smite'
+  f.actor.flags = { 'chrab-sync': { discount: { darkness: 2, 'shadow-smite': 4 } } }
+  const pool = addPool(f, { left: 12 })
+  await use(f, { pass: 'damageBonus', workflow: attackWorkflow({ hit: true }) })
+  assert.equal(pool.system.uses.spent, 1, '3 - 6 -> at least 1')
+})
+
+test('a cost the pool can’t cover, or a declined prompt, does nothing', async () => {
+  setup({ spend: 5 })
+  let f = makeFeature(smiteSpec())
+  addPool(f, { left: 2 })
+  assert.deepEqual(await use(f, { pass: 'damageBonus', workflow: attackWorkflow({ hit: true }) }), [])
+  assert.equal(world.dialogs, 0, 'not even asked')
+
+  setup({ spend: null })
+  f = makeFeature(smiteSpec())
+  const pool = addPool(f, { left: 12 })
+  assert.deepEqual(await use(f, { pass: 'damageBonus', workflow: attackWorkflow({ hit: true }) }), [])
+  assert.equal(pool.system.uses.spent, 0)
+
+  // A fixed cost with no prompt just spends it.
+  setup()
+  f = makeFeature(smiteSpec({ extra: false, ask: false }))
+  const quiet = addPool(f, { left: 12 })
+  const rolls = await use(f, { pass: 'damageBonus', workflow: attackWorkflow({ hit: true }) })
+  assert.equal(rolls[0].formula, '2d10')
+  assert.equal(quiet.system.uses.spent, 3)
+  assert.equal(world.dialogs, 0)
+})
+
+test('a bonded ally’s hit: half comes off it and lands on the owner', async () => {
+  setup()
+  const spec = emptyFeatureSpec('feat')
+  spec.item = { ...spec.item, name: 'Defend the Weak', behavior: { ...emptyBehavior('passive'), rules: [{ ...emptyBehaviorRule('shareDamage'), share: '50' }] } }
+  const f = makeFeature(spec)
+  f.feature.actor = f.actor // the item lives on the Dark Knight
+  const ally = { name: 'Mira', uuid: 'Actor.mira' }
+  const wf = { damageItem: { actorUuid: 'Actor.mira', oldHP: 20, newHP: 5, hpDamage: 15, damageDetail: [{ type: 'slashing', value: 15 }] } }
+  await f.run(wf, [{ macroPass: 'preTargetDamageApplication' }], ally, undefined, scimitar, meleeAttack, f.feature)
+  assert.deepEqual(wf.damageItem.damageDetail, [{ type: 'slashing', value: 8 }], '15 -> the ally keeps 8')
+  assert.equal(wf.damageItem.hpDamage, 8)
+  assert.deepEqual(world.damage, [{ damages: [{ value: 7, type: 'slashing' }], options: undefined }], 'the owner takes 7')
+  assert.ok(world.messages.some((m) => /takes 7 of the damage meant for Mira/.test(m.content ?? '')))
+
+  // The owner's own damage passes don't touch the bond path.
+  world.damage = []
+  const own = incoming({ oldHP: 30, damage: 5 })
+  await use(f, { pass: 'preTargetDamageApplication', workflow: own, item: scimitar })
+  assert.deepEqual(world.damage, [])
+  assert.equal(own.damageItem.hpDamage, 5)
+})
+
+function markSpec(refundPool = '') {
+  const spec = emptyFeatureSpec('feat')
+  spec.item = {
+    ...spec.item,
+    name: 'Mark of Darkness',
+    behavior: { ...emptyBehavior('passive'), rules: [{ ...emptyBehaviorRule('refund'), event: 'bondedDowned', refundPool, refundAmount: '2' }] },
+  }
+  return spec
+}
+
+test('a marked creature dropping to 0 gives back a use, once', async () => {
+  setup()
+  const f = makeFeature(markSpec())
+  f.feature.actor = f.actor
+  f.feature.system.uses = { max: '3', spent: 2 }
+  const goblin = { name: 'Goblin', uuid: 'Actor.goblin' }
+  const wf = { damageItem: { actorUuid: 'Actor.goblin', oldHP: 4, newHP: 0, hpDamage: 4, damageDetail: [{ type: 'slashing', value: 9 }] } }
+  const hit = () => f.run(wf, [{ macroPass: 'preTargetDamageApplication' }], goblin, undefined, sword, meleeAttack, f.feature)
+  await hit()
+  assert.deepEqual(world.itemUpdates, [{ 'system.uses.spent': 1 }])
+  f.feature.system.uses.spent = 1
+  await hit()
+  assert.equal(world.itemUpdates.length, 1, 'the same workflow only refunds once')
+  // Not dropping: nothing.
+  const scratch = { damageItem: { ...wf.damageItem, newHP: 2, hpDamage: 2 } }
+  await f.run(scratch, [{ macroPass: 'preTargetDamageApplication' }], goblin, undefined, sword, meleeAttack, f.feature)
+  assert.equal(world.itemUpdates.length, 1)
+})
+
+test('a cursed creature dropping gives back the Darkness it cost', async () => {
+  setup()
+  const f = makeFeature(markSpec('darkness'))
+  f.feature.actor = f.actor
+  const pool = addPool(f, { left: 7 }) // 5 spent
+  const wf = { damageItem: { actorUuid: 'Actor.goblin', oldHP: 3, newHP: 0, hpDamage: 3, damageDetail: [{ type: 'necrotic', value: 6 }] } }
+  await f.run(wf, [{ macroPass: 'preTargetDamageApplication' }], { name: 'Goblin', uuid: 'Actor.goblin' }, undefined, sword, meleeAttack, f.feature)
+  assert.equal(pool.system.uses.spent, 3)
+  assert.ok(world.messages.some((m) => /Goblin falls; Bhern regains 2 darkness/.test(m.content ?? '')))
+})
+
+test('Unstoppable: a damage roll ignores B/P/S resistance until the roll completes', async () => {
+  setup()
+  const spec = emptyFeatureSpec('feat')
+  spec.item = { ...spec.item, name: 'Unstoppable', behavior: { ...emptyBehavior('passive'), rules: [{ ...emptyBehaviorRule('ignoreResistance'), event: 'damage' }] } }
+  const f = makeFeature(spec)
+  let cleanup = null
+  globalThis.Hooks = { once: (name, fn) => name === 'midi-qol.RollComplete' && (cleanup = fn) }
+  const ignore = new Set(['idi.fire'])
+  const activity = { ...meleeAttack, midiProperties: { ignoreTraits: ignore } }
+  const rolls = await use(f, { pass: 'damageBonus', workflow: attackWorkflow({ hit: true }), activity })
+  assert.deepEqual(rolls, [])
+  assert.deepEqual([...ignore], ['idi.fire', 'idr.bludgeoning', 'idr.piercing', 'idr.slashing'])
+  cleanup()
+  assert.deepEqual([...ignore], ['idi.fire'], 'only what it added comes off')
+  assert.match(ruleSummary(spec.item.behavior.rules[0]), /your damage ignores resistance to bludgeoning, piercing and slashing\./)
+  delete globalThis.Hooks
+})
+
+// ---------------------------------------------------------------------------
+// Triggers, checks and actions (the building blocks)
+
+// Foundry's Roll for dice checks and action amounts: average rounded up, like FakeDamageRoll.
+function withRoll(fn) {
+  globalThis.Roll = FakeDamageRoll
+  return fn().finally(() => delete globalThis.Roll)
+}
+
+function ruleFeature(rule, extra = {}) {
+  const spec = emptyFeatureSpec('feat')
+  spec.item = { ...spec.item, name: 'Grave Pact', ...extra, behavior: { ...emptyBehavior('passive'), rules: [rule] } }
+  return spec
+}
+
+test('I take damage: gain Darkness and say so, once per hit, inside the attacker’s roll', () =>
+  withRoll(async () => {
+    setup()
+    const rule = {
+      ...emptyBehaviorRule('nothing'),
+      event: 'hurt',
+      actions: [
+        { ...emptyBehaviorAction('resource'), pool: 'darkness', amount: '1', mode: 'gain' },
+        { ...emptyBehaviorAction('message'), text: 'The darkness feeds on @damageTaken damage.' },
+      ],
+    }
+    const f = makeFeature(ruleFeature(rule))
+    const pool = addPool(f, { left: 5 }) // 7 spent
+    const wf = incoming({ oldHP: 30, damage: 8 })
+    await use(f, { pass: 'preTargetDamageApplication', workflow: wf, item: scimitar })
+    await use(f, { pass: 'preTargetDamageApplication', workflow: wf, item: scimitar })
+    assert.equal(pool.system.uses.spent, 6, 'one Darkness back, once')
+    assert.ok(world.messages.some((m) => /feeds on 8 damage/.test(m.content ?? '')))
+    assert.match(ruleSummary(rule), /^When you take damage, you regain 1 darkness, and a chat message says/)
+  }))
+
+test('checks on me and a dice check gate a rule', () =>
+  withRoll(async () => {
+    setup()
+    const rule = {
+      ...emptyBehaviorRule('tempHpSelf'),
+      event: 'hit',
+      formula: '5',
+      selfConditions: [{ ...emptySelfCondition('hpBelowHalf') }],
+      dice: { formula: '1d6', compare: 'gte', value: '4' },
+    }
+    let f = makeFeature(ruleFeature(rule), { hp: 40 })
+    await use(f, { pass: 'postAttackRoll', workflow: attackWorkflow() })
+    assert.deepEqual(world.tempHp, [], 'not below half (40 of 60)')
+    f = makeFeature(ruleFeature(rule), { hp: 20 })
+    await use(f, { pass: 'postAttackRoll', workflow: attackWorkflow() })
+    assert.deepEqual(world.tempHp, [5], 'below half, and 1d6 averages 4: it happens')
+    assert.ok(world.messages.some((m) => /needs 4 or higher - it happens/.test(m.flavor ?? '')))
+    const miss = makeFeature(ruleFeature({ ...rule, dice: { formula: '1d6', compare: 'gte', value: '5' } }), { hp: 20 })
+    world.tempHp = []
+    await use(miss, { pass: 'postAttackRoll', workflow: attackWorkflow() })
+    assert.deepEqual(world.tempHp, [], 'the check failed')
+    assert.match(ruleSummary(rule), /and you are below half your hit points and roll 1d6 for 4 or higher/)
+  }))
+
+test('I use this feature: store a value, apply an effect to the target', () =>
+  withRoll(async () => {
+    setup()
+    const mark = { ...emptyEffect(), name: 'Soul Mark', byRule: true }
+    const rule = {
+      ...emptyBehaviorRule('nothing'),
+      event: 'used',
+      actions: [
+        { ...emptyBehaviorAction('store'), name: 'Souls', mode: 'add', formula: '2' },
+        { ...emptyBehaviorAction('applyEffect'), effectKey: mark.key, to: 'target', name: 'Soul Mark' },
+      ],
+    }
+    const spec = ruleFeature(rule, { effects: [mark], activities: [{ ...emptyActivity('utility'), name: 'Reap' }] })
+    const f = makeFeature(spec)
+    f.actor.flags = { 'chrab-sync': { stored: { souls: 3 } } }
+    f.feature.effects = f.feature.effects.map((e) => ({ ...e, id: e._id }))
+    const goblinEffects = []
+    const goblin = { name: 'Goblin', actor: { uuid: 'Actor.goblin', createEmbeddedDocuments: async (_, data) => goblinEffects.push(...data) } }
+    const wf = { targets: Object.assign(new Set([goblin]), { first: () => goblin }), hitTargets: Object.assign(new Set(), { first: () => undefined }) }
+    await use(f, { pass: 'postActiveEffects', workflow: wf, item: f.feature, activity: {} })
+    assert.deepEqual(world.actorUpdates, [{ 'flags.chrab-sync.stored.souls': 5 }])
+    assert.equal(goblinEffects[0].name, 'Soul Mark')
+    assert.equal(goblinEffects[0].origin, f.feature.uuid)
+    // ...and the item is wired for it: its own use runs the hook, the rule
+    // effect isn't on any roll, and the stored value is always defined.
+    const built = f.built
+    assert.match(built.flags['midi-qol'].onUseMacroName, /^\[postActiveEffects\]ActivityMacro-/)
+    const reap = Object.values(built.system.activities).find((a) => a.name === 'Reap')
+    assert.deepEqual(reap.effects, [])
+    const floor = built.effects.find((e) => e.flags['chrab-sync']?.synthetic && e.system.changes.some((c) => c.key === 'flags.chrab-sync.stored.souls'))
+    assert.ok(floor, 'stored value floor')
+    // Other items' rolls don't run "I use this feature" rules.
+    world.actorUpdates = []
+    await use(f, { pass: 'postActiveEffects', workflow: wf })
+    assert.deepEqual(world.actorUpdates, [])
+  }))
+
+test('a target failing my save triggers a rule', () =>
+  withRoll(async () => {
+    setup()
+    const rule = { ...emptyBehaviorRule('tempHpSelf'), event: 'failedSave', formula: '3' }
+    const f = makeFeature(ruleFeature(rule))
+    const goblin = { name: 'Goblin' }
+    await use(f, { pass: 'postSave', workflow: { failedSaves: setOf(goblin), hitTargets: setOf(), targets: setOf(goblin) }, activity: { type: 'save' } })
+    assert.deepEqual(world.tempHp, [3])
+    world.tempHp = []
+    await use(f, { pass: 'postSave', workflow: { failedSaves: setOf(), hitTargets: setOf(), targets: setOf(goblin) }, activity: { type: 'save' } })
+    assert.deepEqual(world.tempHp, [], 'everyone saved')
+  }))
+
+test('turn rules: hidden tick rolls on the stance, run as the item’s own use', () =>
+  withRoll(async () => {
+    setup()
+    const rule = { ...emptyBehaviorRule('healSelf'), event: 'turnStart', formula: '4' }
+    const spec = emptyFeatureSpec('feat')
+    spec.item = { ...spec.item, name: 'Grim Vigil', behavior: { ...emptyBehavior('toggle'), rules: [rule] } }
+    const f = makeFeature(spec)
+    const behavior = spec.item.behavior
+    const tickId = `${behavior.key.slice(0, 12)}TkSt`
+    const tick = f.built.system.activities[tickId]
+    assert.equal(tick.isOverTimeFlag, true)
+    assert.equal(tick.overTimeProperties.turnChoice, 'start')
+    assert.equal(tick.midiProperties.automationOnly, true)
+    assert.deepEqual(tick.consumption.targets, [], 'a tick never costs anything')
+    const stance = f.built.effects.find((e) => e.flags['chrab-sync']?.stance)
+    assert.ok(stance.system.changes.some((c) => c.key === 'flags.midi-qol.ActivityOverTime' && c.value === tick.midiProperties.identifier))
+    assert.match(f.built.flags['midi-qol'].onUseMacroName, /^\[postActiveEffects\]ActivityMacro-/)
+    // The tick's use heals, and doesn't toggle the stance.
+    await use(f, { pass: 'postActiveEffects', workflow: {}, item: f.feature, activity: { id: tickId, isOverTimeFlag: true } })
+    assert.deepEqual(world.damage, [{ damages: [{ value: 4, type: 'healing' }], options: undefined }])
+    assert.deepEqual(world.created, [], 'not toggled')
+    assert.match(ruleSummary(rule), /^At the start of each of your turns, you regain 4 hit points\./)
+    // Reads back without the tick.
+    assert.deepEqual(featureItemToSpec(f.built).item.activities, [])
+  }))
 
 test('behaviorMacro escapes nothing it should not: names with quotes still compile', () => {
   const b = deathStanceBehavior()

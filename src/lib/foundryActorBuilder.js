@@ -14,7 +14,7 @@
 // item, unlinked tokens, names and bars hidden from non-owners.
 
 import { conditionRows, conditionText, parseOnUseMacros, scriptCode, scriptPass } from './foundryAutomation.js'
-import { activeBehavior, behaviorChanges, behaviorMacro, behaviorSummary } from './foundryBehaviors.js'
+import { activeBehavior, behaviorChanges, behaviorMacro, behaviorSummary, bondChanges, hasSelfUseRules, storedKeys, turnTicks } from './foundryBehaviors.js'
 
 export const CORE_VERSION = '14.368'
 export const SYSTEM_ID = 'dnd5e'
@@ -103,6 +103,17 @@ export const ACTIVITY_KINDS = [
   { key: 'damage', label: 'Damage (no roll)' },
   { key: 'heal', label: 'Healing' },
   { key: 'utility', label: 'Utility' },
+  { key: 'summon', label: 'Summon' },
+  { key: 'transform', label: 'Transform' },
+]
+
+// dnd5e's transformation presets (CONFIG.DND5E.transformation.presets), plus
+// "custom": keep the user's mind, class and hit points (keepFull below).
+export const TRANSFORM_PRESETS = [
+  { key: 'polymorph', label: 'Polymorph (become the creature)' },
+  { key: 'wildshape', label: 'Wild Shape (keep your mind)' },
+  { key: 'polymorphSelf', label: 'Appearance only' },
+  { key: 'custom', label: 'Keep mind, class, features and hit points' },
 ]
 
 export const AREA_TYPES = ['radius', 'sphere', 'cylinder', 'cone', 'line', 'cube', 'square', 'wall']
@@ -117,6 +128,21 @@ export const ACTIVATION_TYPES = [
   { key: 'special', label: 'Special / free' },
   { key: 'legendary', label: 'Legendary action' },
   { key: 'lair', label: 'Lair action' },
+]
+
+// When midi-qol offers a reaction to its owner, as the activity's
+// reactionCondition (`reaction === "isDamaged"`); midi's doReactions checks it
+// against the trigger. Blank = midi's default, being hit. A reaction to taking
+// damage runs before the damage is worked out, so an effect it puts on its
+// owner (damage reduction) counts against that very hit.
+export const REACTION_TRIGGERS = [
+  { key: '', label: 'You’re hit by an attack (midi default)' },
+  { key: 'isAttacked', label: 'You’re attacked (before the roll)' },
+  { key: 'isHit', label: 'You’re hit by an attack' },
+  { key: 'isDamaged', label: 'You take damage' },
+  { key: 'isMissed', label: 'An attack misses you' },
+  { key: 'isSaveFail', label: 'You fail a saving throw' },
+  { key: 'isTargeted', label: 'You’re targeted' },
 ]
 
 // target.affects.type. Midi-qol reads enemy / ally to auto-target only those
@@ -374,6 +400,7 @@ export function emptyActivity(kind = 'attack') {
     classification: 'weapon',
     ability: '', // '' = Foundry picks (str for melee, dex for ranged / finesse)
     toHit: '', // blank = ability mod + proficiency; a number = flat bonus
+    attackBonus: '', // with toHit blank: an extra bonus on top (a +3 weapon)
     reach: 5,
     range: null,
     longRange: null,
@@ -385,6 +412,7 @@ export function emptyActivity(kind = 'attack') {
     // shared
     damage: [{ formula: '', types: [] }],
     healing: '',
+    healType: 'healing', // heal rolls: 'healing' | 'temphp'
     targetCount: '',
     targetType: 'creature',
     areaType: '',
@@ -392,6 +420,19 @@ export function emptyActivity(kind = 'attack') {
     // custom activities
     name: '', // shown on the sheet and in chat; blank = Foundry's default ("Attack", "Save")
     activation: '', // '' = from the item's section, else an ACTIVATION_TYPES key
+    reactionTrigger: '', // reactions: a REACTION_TRIGGERS key - when midi-qol offers it to the defender
+    ignoreTraits: [], // midi: ['idr', 'idi'] = its damage ignores resistance and immunity
+    durationMinutes: '', // how long it lasts (an aura's area, a summon); '' = instantaneous, 'perm' = until dismissed
+    aura: null, // emptyAura(): a midi region that follows its user's token (see buildAura)
+    // summon / transform: a creature by uuid ("Compendium.x.y.Actor.id" or a
+    // world actor), or - uuid blank - one the player picks from the compendium
+    // browser, up to crMax (a formula) and of these types.
+    creatureUuid: '',
+    creatureName: '',
+    creatureCount: '1', // summon: a formula, e.g. "2" or "1 + @scaling.increase"
+    crMax: '',
+    creatureTypes: [],
+    transformPreset: 'polymorph',
     spend: [], // emptySpend() rows, on top of the item's own uses
     // midi-qol
     triggerKey: '', // key of another activity on this item to roll after this one
@@ -425,6 +466,28 @@ export function identifierFor(text) {
 // A roll midi-qol repeats on each turn of whoever carries one of this item's
 // effects (midi's activity over time). effectKey '' = the item's first
 // effect that lands on a target.
+// An aura: using the activity places a midi-qol region (behavior
+// midi-qol.regionActivity, the way midi's Spirit Guardians works) that
+// follows the user's token. Each rule: when a creature (filtered by
+// disposition) enters / exits / starts / ends its turn inside, use one of the
+// item's other rolls on it (target = that roll's key) or apply / remove one
+// of the item's effects (target = the effect's key; mark it "aura").
+export const AURA_TRIGGERS = [
+  { key: 'entry', label: 'Enters' },
+  { key: 'exit', label: 'Leaves' },
+  { key: 'turnStart', label: 'Starts its turn inside' },
+  { key: 'turnEnd', label: 'Ends its turn inside' },
+]
+export const AURA_ACTIONS = [
+  { key: 'useActivity', label: 'Use a roll on it' },
+  { key: 'applyEffect', label: 'Apply an effect' },
+  { key: 'removeEffect', label: 'Remove an effect' },
+]
+export function emptyAura() {
+  return { radius: '20', affects: 'enemy', oncePerTurn: true, rules: [] }
+}
+const AURA_DISPOSITION = { enemy: -1, all: 0, ally: 1 }
+
 export function emptyOverTimeRoll() {
   return { turn: 'end', saveEnds: true, once: false, effectKey: '' }
 }
@@ -432,7 +495,10 @@ export function emptyOverTimeRoll() {
 export function emptyEffect() {
   // appliedBy: activity keys that apply this effect; empty = every roll on the item
   // stance: on the owner while the item's toggle behavior is on (foundryBehaviors.js)
-  return { key: randomId(), name: '', statuses: [], passive: false, stance: false, onSave: false, specialDuration: [], changes: [], appliedBy: [] }
+  // bond: applied to a target, which then runs the item's "bonded creature" rules (Defend the Weak)
+  // byRule: only a behavior rule's "apply an effect" action puts it on anyone
+  // aura: only an aura's rules apply / remove it
+  return { key: randomId(), name: '', statuses: [], passive: false, stance: false, bond: false, byRule: false, aura: false, onSave: false, specialDuration: [], changes: [], appliedBy: [] }
 }
 
 export function emptyOverTime() {
@@ -824,14 +890,32 @@ function activationFor(item, activity) {
 }
 
 // One "also spends" row -> a dnd5e consumption target.
-export function spendTarget(spend) {
+// Cost discounts (Magus "Dark Arts cost 1 less", The Final Art's -4) live on
+// the owner as flags.chrab-sync.discount.<key>: one per resource (darkness)
+// and one per spending feature (shadow-lance). A pool cost subtracts both and
+// never drops below 1. dnd5e evaluates the cost against the actor's roll data,
+// which includes its flags; the spender's discountFloorEffect makes sure both
+// flags exist (a missing @reference would break the formula).
+export const DISCOUNT_FLAG = 'flags.chrab-sync.discount'
+
+export function discountedCost(amount, pool, itemId) {
+  const keys = [pool, itemId].filter(Boolean).map((k) => `@${DISCOUNT_FLAG}.${k}`)
+  return keys.length ? `max(1, ${amount} - ${keys.join(' - ')})` : amount
+}
+
+// "max(1, 3 - @flags...)" -> "3", for reading a cost back into the editor.
+function plainCost(value) {
+  return String(value ?? '').match(/^max\(1, (\S+) - @flags\.chrab-sync\.discount\./)?.[1] ?? String(value ?? '')
+}
+
+export function spendTarget(spend, itemId = '') {
   const amount = String(spend.amount ?? '').trim() || '1'
   // Each extra step spends one more.
   const scaling = spend.extra ? { mode: 'amount', formula: '1' } : {}
   if (spend.source === 'item') return spend.target ? { type: 'itemUses', target: spend.target, value: amount, scaling } : null
   if (spend.source === 'pool') {
     const identifier = identifierFor(spend.target)
-    return identifier ? { type: 'itemUses', target: identifier, value: amount, scaling } : null
+    return identifier ? { type: 'itemUses', target: identifier, value: discountedCost(amount, identifier, itemId), scaling } : null
   }
   const fixed = SPEND_SOURCES.find((s) => s.key === spend.source)?.target
   const target = fixed ?? String(spend.target ?? '').trim().replace(/^@/, '').replace(/^system\./, '')
@@ -869,7 +953,7 @@ function consumptionFor(item, activity) {
     targets.push({ type: 'itemUses', target: '', value: '1', scaling: {} })
   }
   for (const spend of activity?.spend ?? []) {
-    const target = spendTarget(spend)
+    const target = spendTarget(spend, itemIdentifier(item))
     if (target) targets.push(target)
   }
   const extra = (activity?.spend ?? []).some((s) => s.extra && spendTarget(s))
@@ -908,6 +992,8 @@ function midiPropertiesFor(item, activity, ids, automationOnly) {
     })
   }
   if (activity.overTime) props.identifier = overTimeIdentifier(ids[activity.key])
+  // "idr" / "idi": the target's resistances / immunities don't count against this roll.
+  if (activity.ignoreTraits?.length) props.ignoreTraits = [...activity.ignoreTraits]
   // A roll that only ever happens through another one (a trigger, extra
   // damage, an over-time tick) stays off the activity picker.
   if (automationOnly) props.automationOnly = true
@@ -929,6 +1015,100 @@ function targetFor(activity) {
       type: activity.targetType ?? 'creature',
       choice: false,
       special: '',
+    },
+  }
+}
+
+// The one creature profile a summon / transform uses: by uuid, or (uuid
+// blank) "pick one up to this CR of these types" from the compendium browser.
+function creatureProfile(activity, activityId, extra = {}) {
+  const uuid = String(activity.creatureUuid ?? '').trim()
+  return {
+    _id: `${String(activityId).slice(0, 12)}Prof`,
+    name: String(activity.creatureName ?? '').trim(),
+    uuid: uuid || null,
+    cr: uuid ? '' : String(activity.crMax ?? '').trim(),
+    types: uuid ? [] : [...(activity.creatureTypes ?? [])],
+    level: { min: null, max: null },
+    ...extra,
+  }
+}
+
+// dnd5e 5.3 summon activity (data/activity/summon-data.mjs). The caster's
+// proficiency, attack and save numbers carry over; midi's friendlySummon
+// gives the summons the caster's disposition. Summons don't expire by
+// themselves unless midi's autoRemoveSummonedCreature setting is on.
+function summonData(activity, id) {
+  const byUuid = !!String(activity.creatureUuid ?? '').trim()
+  return {
+    type: 'summon',
+    profiles: [creatureProfile(activity, id, { count: String(activity.creatureCount ?? '').trim() || '1' })],
+    summon: { mode: byUuid ? '' : 'cr', prompt: true },
+    match: { attacks: true, saves: true, proficiency: true, disposition: true, ability: '' },
+    bonuses: { ac: '', hd: '', hp: '', attackDamage: '', saveDamage: '', healing: '' },
+    creatureSizes: [],
+    creatureTypes: [],
+    tempHP: '',
+    friendlySummon: true,
+  }
+}
+
+// dnd5e 5.3 transform activity (data/activity/transform-data.mjs). mode must
+// be "" for a uuid (it defaults to "cr"). midi transforms the user straight
+// away (target self); reverting is from the sheet unless midi's
+// autoUndoTransformations is on.
+function transformData(activity, id) {
+  const byUuid = !!String(activity.creatureUuid ?? '').trim()
+  const preset = TRANSFORM_PRESETS.some((p) => p.key === activity.transformPreset) ? activity.transformPreset : 'polymorph'
+  const custom = preset === 'custom'
+  return {
+    type: 'transform',
+    target: { prompt: false, override: true, template: { contiguous: false, stationary: false, units: 'ft', count: '', type: '', size: '', width: '', height: '' }, affects: { count: '', type: 'self', choice: false, special: '' } },
+    profiles: [creatureProfile(activity, id, { sizes: [], movement: [] })],
+    transform: { customize: custom, mode: byUuid ? '' : 'cr', preset: custom ? '' : preset },
+    settings: custom
+      ? {
+          keep: ['mental', 'hp', 'class', 'feats', 'languages', 'bio', 'vision', 'spells', 'items'],
+          merge: ['saves', 'skills'],
+          effects: ['origin', 'otherOrigin', 'feat', 'spell', 'class', 'background'],
+          other: [],
+          spellLists: [],
+          minimumAC: '',
+          tempFormula: '',
+          transformTokens: true,
+          preset: null,
+        }
+      : null,
+  }
+}
+
+// midi auto-places a region when the activity's range is "self" and its
+// template a radius (utils.ts ~9191), attaches it to the caster
+// (attachToken) and adds its regionActivity behavior with these rules.
+function buildAura(aura, ids) {
+  const rules = (aura.rules ?? [])
+    .map((r) => ({
+      trigger: AURA_TRIGGERS.some((t) => t.key === r.trigger) ? r.trigger : 'entry',
+      action: AURA_ACTIONS.some((a) => a.key === r.action) ? r.action : 'useActivity',
+      // midi resolves it to an activity (id or identifier) or one of the item's effects (id)
+      targetId: ids[r.target] ?? r.target,
+    }))
+    .filter((r) => r.targetId)
+  return {
+    range: { units: 'self', special: '', override: true },
+    target: {
+      prompt: true,
+      override: true,
+      template: { contiguous: false, stationary: false, units: 'ft', count: '', type: 'radius', size: String(Number(aura.radius) || 10), width: '', height: '' },
+      affects: { count: '', type: 'creature', choice: false, special: '' },
+    },
+    regionBehavior: {
+      enabled: true,
+      attachToken: 'caster',
+      dispositionFilter: AURA_DISPOSITION[aura.affects] ?? -1,
+      excludeSource: true,
+      oncePerTurn: aura.oncePerTurn !== false,
+      rules,
     },
   }
 }
@@ -981,6 +1161,13 @@ function buildActivityData(item, activity, effectRefs, index, ids = {}, automati
   }
   const effectCondition = conditionText(activity.effectConditions)
   if (effectCondition) common.effectConditionText = effectCondition
+  if (activity.reactionTrigger && REACTION_TRIGGERS.some((t) => t.key === activity.reactionTrigger)) {
+    common.reactionCondition = `reaction === "${activity.reactionTrigger}"`
+  }
+  const minutes = String(activity.durationMinutes ?? '').trim()
+  if (minutes === 'perm') common.duration = { units: 'perm', concentration: false, override: true }
+  else if (Number(minutes) > 0) common.duration = { value: String(Number(minutes)), units: 'minute', concentration: false, override: true }
+  if (activity.aura) Object.assign(common, buildAura(activity.aura, ids))
   if (activity.otherKey && ids[activity.otherKey] && activity.otherKey !== activity.key) common.otherActivityId = ids[activity.otherKey]
   if (activity.overTime) {
     // rollAs "source": the tick is rolled by this NPC's copy of the item, so
@@ -1008,7 +1195,8 @@ function buildActivityData(item, activity, effectRefs, index, ids = {}, automati
           type: { value: activity.attackType === 'ranged' ? 'ranged' : 'melee', classification: activity.classification || 'weapon' },
           // '' lets dnd5e use the spellcasting ability for spell attacks.
           ability: activity.ability || (activity.classification === 'spell' ? '' : attackAbility(activity)),
-          bonus: flat ? String(activity.toHit) : '',
+          // Not flat: an extra bonus on top of ability + proficiency (a +3 weapon).
+          bonus: flat ? String(activity.toHit) : String(activity.attackBonus ?? '').trim(),
           critical: {},
         },
         damage: { parts: damageParts(activity.damage), critical: {}, includeBase: true },
@@ -1031,7 +1219,11 @@ function buildActivityData(item, activity, effectRefs, index, ids = {}, automati
     case 'damage':
       return { ...common, damage: { parts: damageParts(activity.damage), critical: { allow: false } } }
     case 'heal':
-      return { ...common, healing: { ...damagePart({ formula: activity.healing, types: ['healing'] }) } }
+      return { ...common, healing: { ...damagePart({ formula: activity.healing, types: [activity.healType === 'temphp' ? 'temphp' : 'healing'] }) } }
+    case 'summon':
+      return { ...common, ...summonData(activity, _id) }
+    case 'transform':
+      return { ...common, ...transformData(activity, _id) }
     default:
       return { ...common, type: 'utility', roll: { prompt: false, visible: false } }
   }
@@ -1131,6 +1323,13 @@ function activityBody(spec, activity, inSpell) {
       data.mod = ability ? data[ability] : 0
       return activity.healing ? `Regains ${averageFormula(activity.healing, data)} (${bakeFormula(activity.healing, data)}) Hit Points.` : ''
     }
+    case 'summon':
+    case 'transform': {
+      const who = String(activity.creatureName ?? '').trim() || (activity.creatureUuid ? 'the chosen creature' : `a creature of CR ${activity.crMax || '?'} or lower`)
+      if (activity.kind === 'transform') return `Transforms into ${who}.`
+      const count = String(activity.creatureCount ?? '').trim() || '1'
+      return `Summons ${count === '1' ? who : `${count} × ${who}`}.`
+    }
     default:
       return ''
   }
@@ -1156,16 +1355,29 @@ export function usesLabel(item, spec = null) {
 // first success) replaced the deprecated saveRemove=true in midi 13.0.43;
 // "never ends on a save" still has no saveCount spelling, so it keeps the
 // deprecated saveRemove=false.
+// An NPC's numbers are baked in: midi evaluates the string against whoever
+// carries the effect, which for a monster's poison is the victim. A standalone
+// feature (spec.formulasAsIs) has no owner yet, so its formulas stay as they
+// are and resolve against the carrier - right for a stance on yourself
+// (Vanguard Stance's 1d10 + CON); a feature's effect on a target would read
+// the target's numbers instead.
 export function overTimeValue(spec, item, effect, ot) {
   const data = npcRollData(spec)
+  const asIs = !!spec?.formulasAsIs
+  const value = (formula) => (asIs ? normalizeFormula(formula) : bakeFormula(formula, data)).replace(/\s+/g, '')
   const parts = [`turn=${ot.turn === 'start' ? 'start' : 'end'}`, `label=${(effect.name || item.name || 'Effect').replace(/[,=#]/g, ' ')}`]
   if (ot.saveAbility) {
     const firstSave = (item.activities ?? []).find((a) => a.kind === 'save')
-    const dc = String(ot.saveDc ?? '').trim() ? averageFormula(ot.saveDc, data) : firstSave ? saveDc(spec, firstSave) : 10
+    const own = String(ot.saveDc ?? '').trim()
+    const dc = own
+      ? asIs ? value(own) : averageFormula(own, data)
+      : firstSave
+        ? asIs && isFormulaDc(firstSave.dc) ? value(firstSave.dc) : saveDc(spec, firstSave)
+        : 10
     parts.push(`saveAbility=${ot.saveAbility}`, `saveDC=${dc}`, ot.saveRemoves !== false ? 'saveCount=1-' : 'saveRemove=false')
   }
   if (String(ot.damage ?? '').trim()) {
-    parts.push(`damageRoll=${bakeFormula(ot.damage, data).replace(/\s+/g, '')}`)
+    parts.push(`damageRoll=${value(ot.damage)}`)
     if (ot.damageType) parts.push(`damageType=${ot.damageType}`)
   }
   return parts.join(', ')
@@ -1226,6 +1438,49 @@ function usesFor(item) {
 
 const slugIdentifier = identifierFor
 
+// The item's dnd5e identifier: set by hand (a pool), else from its name.
+export function itemIdentifier(item) {
+  return identifierFor(item?.identifier) || slugIdentifier(item?.name)
+}
+
+// The pools an item's rolls spend from by identifier, for its discount flags.
+function spentPools(item) {
+  return [...new Set((item.activities ?? []).flatMap((a) => (a.spend ?? []).filter((s) => s.source === 'pool').map((s) => identifierFor(s.target))).filter(Boolean))]
+}
+
+// Always-on defaults for the owner flags an item's formulas read, so they
+// always exist (a missing @reference breaks a formula):
+//   - its costs' discount flags, "at least 0" (upgrade runs after any
+//     discount's add, so a discount survives it)
+//   - the values its rules store (flags.chrab-sync.stored.<name>), "+ 0" so
+//     the stored value shows through
+function discountFloorEffect(item) {
+  const pools = spentPools(item)
+  const stored = storedKeys(item.behavior)
+  if (!pools.length && !stored.length) return null
+  const keys = pools.length ? [...pools, itemIdentifier(item)] : []
+  const changes = [
+    ...keys.map((k) => ({ key: `${DISCOUNT_FLAG}.${k}`, value: '0', type: 'upgrade', phase: 'initial' })),
+    ...stored.map((k) => ({ key: `flags.chrab-sync.stored.${k}`, value: '0', type: 'add', phase: 'initial' })),
+  ]
+  return {
+    _id: `${String(item.key ?? randomId()).slice(0, 12)}Cost`,
+    name: `${item.name || 'Feature'}: ${pools.length ? 'cost' : 'stored values'}`,
+    img: item.img || 'icons/svg/aura.svg',
+    description: '',
+    type: 'base',
+    system: { changes },
+    statuses: [],
+    disabled: false,
+    transfer: true,
+    duration: { units: 'seconds', value: null, expiry: null, expired: false },
+    tint: '#ffffff',
+    showIcon: 0,
+    flags: { 'chrab-sync': { synthetic: true } },
+    _stats: { ...STATS },
+  }
+}
+
 function defaultImg(item) {
   if (item.img) return item.img
   if (item.section === 'trait') return 'icons/svg/book.svg'
@@ -1264,6 +1519,10 @@ export function buildNpcItem(spec, item, index = 0, { inSpell = false } = {}) {
   // always shows on the token (showIcon 2) so the table can see it's on.
   const isStance = (e) => toggle && !!e.stance && !e.passive
   kept.forEach((e, i) => {
+    // Rule effects: placed only by a behavior rule's "apply an effect" action.
+    if (e.byRule && !e.passive && behavior) effects[i].flags = { ...effects[i].flags, 'chrab-sync': { byRule: true } }
+    // Aura effects: placed only by an aura's rules (midi's sample marks them dontApply).
+    if (e.aura && !e.passive) effects[i].flags = { ...effects[i].flags, dae: { ...effects[i].flags?.dae, dontApply: true }, 'chrab-sync': { ...effects[i].flags?.['chrab-sync'], aura: true } }
     if (!isStance(e)) return
     effects[i].flags = { ...effects[i].flags, 'chrab-sync': { stance: true } }
     effects[i].showIcon = 2
@@ -1273,15 +1532,18 @@ export function buildNpcItem(spec, item, index = 0, { inSpell = false } = {}) {
   const refsFor = (activity) =>
     kept
       .map((e, i) => [e, effects[i]])
-      .filter(([e, built]) => !built.transfer && !isStance(e) && (!e.appliedBy?.length || e.appliedBy.includes(activity.key)))
+      .filter(([e, built]) => !built.transfer && !isStance(e) && !e.byRule && !e.aura && (!e.appliedBy?.length || e.appliedBy.includes(activity.key)))
       .map(([, built]) => ({ _id: built._id, level: {} }))
   // Ids first, so one activity can point at another (midi triggers).
   const acts = item.activities ?? []
-  const ids = Object.fromEntries(acts.map((a) => [a.key, idFor(a)]))
+  // Effect keys too: an aura rule names the effect it applies by its id.
+  const ids = { ...Object.fromEntries(kept.map((e, i) => [e.key, effects[i]._id])), ...Object.fromEntries(acts.map((a) => [a.key, idFor(a)])) }
   const reachedOnlyThroughOthers = new Set([
     ...acts.map((a) => a.triggerKey),
     ...acts.map((a) => a.otherKey),
     ...acts.filter((a) => a.overTime).map((a) => a.key),
+    // an aura's "use a roll on it" rolls only happen through the aura
+    ...acts.flatMap((a) => (a.aura?.rules ?? []).filter((r) => (r.action || 'useActivity') === 'useActivity').map((r) => r.target)),
   ].filter(Boolean))
 
   // Over-time rolls: the effect that carries them gets the ActivityOverTime
@@ -1317,12 +1579,33 @@ export function buildNpcItem(spec, item, index = 0, { inSpell = false } = {}) {
     const hook = buildActivity(item, hookSpec, [], -1, ids, !toggle)
     hook.target.affects = { ...hook.target.affects, type: 'self', count: '' }
     hook.macroData = { name: `${item.name || 'Feature'} automation`, command: behaviorMacro(item, behavior) }
+    // Turn ticks: hidden activities midi uses at the start / end of the
+    // owner's turn (ActivityOverTime below); using one runs the hook through
+    // the item's own onUseMacroName, and the macro knows them by id.
+    const ticks = turnTicks(behavior).map(({ id, turn }) => {
+      const tickSpec = { ...emptyActivity('utility'), key: id, name: turn === 'start' ? 'Start of turn' : 'End of turn', targetType: 'self', overTime: { turn, saveEnds: false, once: false, effectKey: '' } }
+      const built = buildActivity(item, tickSpec, [], -1, { ...ids, [id]: id }, true)
+      built.overTimeProperties = { ...built.overTimeProperties, rollAs: 'target' }
+      return built
+    })
     const rest = { ...activities }
     for (const id of Object.keys(activities)) delete activities[id]
-    Object.assign(activities, { [hook._id]: hook }, rest)
-    if (toggle) onUseParts.unshift(`[postActiveEffects]ActivityMacro-${hook._id}`)
+    Object.assign(activities, { [hook._id]: hook }, rest, Object.fromEntries(ticks.map((t) => [t._id, t])))
+    // The item's own use runs the hook: a toggle, "I use this feature" rules, or a turn tick.
+    if (toggle || hasSelfUseRules(behavior)) onUseParts.unshift(`[postActiveEffects]ActivityMacro-${hook._id}`)
 
-    const changes = behaviorChanges(behavior)
+    const changes = [
+      ...behaviorChanges(behavior),
+      ...ticks.map((t) => ({ key: 'flags.midi-qol.ActivityOverTime', value: overTimeIdentifier(t._id), type: 'override', phase: 'initial' })),
+    ]
+    // Bond effects land on targets and hook the "bonded creature" rules there;
+    // midi resolves their bare ActivityMacro through effect.origin, this item.
+    const bonds = bondChanges(behavior)
+    kept.forEach((e, i) => {
+      if (!e.bond || e.passive || isStance(e) || !bonds.length) return
+      effects[i].flags = { ...effects[i].flags, 'chrab-sync': { ...effects[i].flags?.['chrab-sync'], bond: true } }
+      effects[i].system.changes.push(...bonds)
+    })
     if (toggle) {
       let stance = effects.find((e) => e.flags?.['chrab-sync']?.stance)
       if (!stance) {
@@ -1338,9 +1621,12 @@ export function buildNpcItem(spec, item, index = 0, { inSpell = false } = {}) {
         for (const e of effects) if (e.flags?.['chrab-sync']?.stance) e.duration = { ...e.duration, units: 'seconds', value: minutes * 60 }
       }
     } else {
-      effects.push(behaviorEffect(item, behavior, 'Auto', { transfer: true, system: { changes } }))
+      // A passive behavior with only bond rules needs no carrier on the owner.
+      if (changes.length) effects.push(behaviorEffect(item, behavior, 'Auto', { transfer: true, system: { changes } }))
     }
   }
+  const floor = discountFloorEffect(item)
+  if (floor) effects.push(floor)
   const onUse = onUseParts.join(',')
 
   const generated = [...(item.activities ?? []).map((a) => activitySummary(spec, a, inSpell)), behaviorSummary(behavior, item.name)].filter(Boolean).join(' ')
@@ -1352,7 +1638,7 @@ export function buildNpcItem(spec, item, index = 0, { inSpell = false } = {}) {
     description: { value: description, chat: '' },
     source: { custom: 'Chrab Corner', rules: '2024' },
     // Set by hand when other features spend this one's uses by identifier.
-    identifier: identifierFor(item.identifier) || slugIdentifier(item.name),
+    identifier: itemIdentifier(item),
     uses: usesFor(item),
     activities,
     properties: item.magical ? ['mgc'] : [],
@@ -1768,8 +2054,10 @@ const isBehaviorHook = (c) => c.key === 'flags.midi-qol.onUseMacroName' && /^\s*
 export function foundryItemToNpcItem(item) {
   const sys = item.system ?? {}
   const behavior = item.flags?.['chrab-sync']?.behavior ?? null
+  // The behavior's hook and turn ticks are rebuilt from it, not read back.
+  const generatedIds = new Set(behavior ? [behavior.key, ...turnTicks(behavior).map((t) => t.id)] : [])
   const acts = Object.values(sys.activities ?? {})
-    .filter((a) => !behavior || a._id !== behavior.key)
+    .filter((a) => !generatedIds.has(a._id))
     .sort((a, b) => (a.sort ?? 0) - (b.sort ?? 0))
   // Over-time ticks are always "special"; the section comes from a real roll.
   const sectionAct = acts.find((a) => !a.isOverTimeFlag) ?? acts[0]
@@ -1805,6 +2093,9 @@ export function foundryItemToNpcItem(item) {
         statuses: e.statuses ?? [],
         passive: !!e.transfer,
         stance: !!e.flags?.['chrab-sync']?.stance,
+        bond: !!e.flags?.['chrab-sync']?.bond,
+        byRule: !!e.flags?.['chrab-sync']?.byRule,
+        aura: !!e.flags?.['chrab-sync']?.aura,
         onSave: false,
         specialDuration: e.flags?.dae?.specialDuration ?? [],
         // ActivityOverTime links come back as the over-time roll's effectKey.
@@ -1829,7 +2120,7 @@ export function foundryItemToNpcItem(item) {
   }
 
   for (const act of acts) {
-    const a = { ...emptyActivity(act.type === 'attack' || act.type === 'save' || act.type === 'damage' || act.type === 'heal' ? act.type : 'utility') }
+    const a = { ...emptyActivity(['attack', 'save', 'damage', 'heal', 'summon', 'transform'].includes(act.type) ? act.type : 'utility') }
     a.key = keyForId[act._id]
     a.name = act.name ?? ''
     const actType = act.activation?.type
@@ -1846,7 +2137,7 @@ export function foundryItemToNpcItem(item) {
         // An item id is 16 mixed-case characters; an identifier is lowercase words.
         const byIdentifier = t.type === 'itemUses' && !isFoundryId(t.target) && /^[a-z0-9]+(-[a-z0-9]+)*$/.test(t.target)
         const source = byIdentifier ? 'pool' : t.type === 'itemUses' ? 'item' : fixed ? fixed.key : 'attribute'
-        return { ...emptySpend(), source, target: fixed ? '' : t.target, amount: String(t.value ?? '1'), extra: t.scaling?.mode === 'amount' }
+        return { ...emptySpend(), source, target: fixed ? '' : t.target, amount: byIdentifier ? plainCost(t.value ?? '1') : String(t.value ?? '1'), extra: t.scaling?.mode === 'amount' }
       })
     const mp = act.midiProperties ?? {}
     if (mp.triggeredActivityId && mp.triggeredActivityId !== 'none' && keyForId[mp.triggeredActivityId]) {
@@ -1856,6 +2147,20 @@ export function foundryItemToNpcItem(item) {
       a.triggerOnlyIf = onlyIf?.[0] ?? ''
       const rest = !onlyIf ? text : text === onlyIf[1] ? '' : text.slice(onlyIf[1].length + 8, -1)
       a.triggerConditions = conditionRows(rest)
+    }
+    a.reactionTrigger = String(act.reactionCondition ?? '').match(/^reaction === "(\w+)"$/)?.[1] ?? ''
+    a.ignoreTraits = [...(act.midiProperties?.ignoreTraits ?? [])]
+    if (act.duration?.override && act.duration.units === 'perm') a.durationMinutes = 'perm'
+    else if (act.duration?.override && act.duration.units === 'minute') a.durationMinutes = String(act.duration.value ?? '')
+    const rb = act.regionBehavior
+    if (rb?.enabled) {
+      const affects = Object.entries(AURA_DISPOSITION).find(([, v]) => v === rb.dispositionFilter)?.[0] ?? 'enemy'
+      a.aura = {
+        radius: String(act.target?.template?.size ?? ''),
+        affects,
+        oncePerTurn: rb.oncePerTurn !== false,
+        rules: (rb.rules ?? []).map((r) => ({ trigger: r.trigger, action: r.action, target: keyForId[r.targetId] ?? r.targetId })),
+      }
     }
     a.useConditions = conditionRows(act.useConditionText)
     a.useConditionReason = act.useConditionReason ?? ''
@@ -1880,6 +2185,7 @@ export function foundryItemToNpcItem(item) {
       a.classification = act.attack?.type?.classification || 'weapon'
       a.ability = act.attack?.ability && act.attack.ability !== 'none' ? act.attack.ability : ''
       a.toHit = act.attack?.flat ? act.attack.bonus : ''
+      a.attackBonus = act.attack?.flat ? '' : act.attack?.bonus ?? ''
       if (a.attackType === 'ranged') {
         a.range = sys.range?.value ?? 30
         a.longRange = sys.range?.long ?? null
@@ -1895,7 +2201,19 @@ export function foundryItemToNpcItem(item) {
     }
     if (act.damage?.parts) a.damage = act.damage.parts.map(partToRow)
     if (!a.damage.length) a.damage = [{ formula: '', types: [] }]
-    if (act.type === 'heal') a.healing = partToRow(act.healing).formula
+    if (act.type === 'summon' || act.type === 'transform') {
+      const prof = act.profiles?.[0] ?? {}
+      a.creatureUuid = prof.uuid ?? ''
+      a.creatureName = prof.name ?? ''
+      a.crMax = prof.cr ?? ''
+      a.creatureTypes = [...(prof.types ?? [])]
+      if (act.type === 'summon') a.creatureCount = String(prof.count ?? '') || '1'
+      else a.transformPreset = act.transform?.customize ? 'custom' : act.transform?.preset || 'polymorph'
+    }
+    if (act.type === 'heal') {
+      a.healing = partToRow(act.healing).formula
+      a.healType = (act.healing?.types ?? []).includes('temphp') ? 'temphp' : 'healing'
+    }
     const tpl = act.target?.template ?? {}
     a.areaType = tpl.type ?? ''
     a.areaSize = tpl.size ?? ''

@@ -1,11 +1,15 @@
-import { DAMAGE_TYPES } from '../../../lib/foundryActorBuilder'
+import { CONDITIONS, DAMAGE_TYPES } from '../../../lib/foundryActorBuilder'
 import {
+  BEHAVIOR_ACTIONS,
   BEHAVIOR_EVENTS,
   BEHAVIOR_OUTCOMES,
+  SELF_CONDITIONS,
   TOGGLE_VISUALS,
   behaviorSummary,
   emptyBehavior,
+  emptyBehaviorAction,
   emptyBehaviorRule,
+  emptySelfCondition,
   eventForOutcome,
   ruleOutcomeFits,
   ruleSummary,
@@ -29,8 +33,161 @@ const WHEN_HELP = [
   ['c.actor, c.item, c.activity', 'the owner, this feature, the roll being made'],
   ['c.level', 'the level tiers count (class or character level)'],
   ['c.incoming', '“would drop to 0”: the damage about to land (midi damage item)'],
+  ['c.damageTaken', '“I take damage”: how much'],
   ['c.workflow.isCritical', 'and anything else on the midi workflow'],
 ]
+
+// Guided checks on the owner ("my HP is below half").
+function SelfConditionRows({ rows, onChange }) {
+  const update = (i, patch) => onChange(rows.map((r, idx) => (idx === i ? { ...r, ...patch } : r)))
+  return (
+    <div className="npc-damage-rows">
+      {rows.length > 0 && <span className="option-picker-label">Only if</span>}
+      {rows.map((row, i) => (
+        <div key={row.key} className="npc-spend-row">
+          <select value={row.id} onChange={(e) => update(i, { ...emptySelfCondition(e.target.value), key: row.key })} aria-label="Check">
+            {SELF_CONDITIONS.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.label}
+              </option>
+            ))}
+          </select>
+          {(row.id === 'hpAtMost' || row.id === 'resourceAtLeast') && (
+            <input type="number" min="0" className="npc-spend-amount" value={row.value} onChange={(e) => update(i, { value: e.target.value })} aria-label="Value" />
+          )}
+          {row.id === 'resourceAtLeast' && (
+            <input className="npc-code-input" value={row.pool} onChange={(e) => update(i, { pool: e.target.value })} placeholder="resource, e.g. darkness" aria-label="Resource" />
+          )}
+          {(row.id === 'hasStatus' || row.id === 'lacksStatus') && (
+            <select value={row.status} onChange={(e) => update(i, { status: e.target.value })} aria-label="Condition">
+              {CONDITIONS.map((c) => (
+                <option key={c} value={c}>
+                  {cap(c)}
+                </option>
+              ))}
+            </select>
+          )}
+          <button type="button" className="icon-button" onClick={() => onChange(rows.filter((_, idx) => idx !== i))} aria-label="Remove check">
+            ×
+          </button>
+        </div>
+      ))}
+      <button type="button" className="secondary npc-small-button" onClick={() => onChange([...rows, emptySelfCondition()])}>
+        + Check on me
+      </button>
+    </div>
+  )
+}
+
+// A rule's extra actions, after its main outcome.
+function ActionRows({ rows, onChange, effects }) {
+  const update = (i, patch) => onChange(rows.map((r, idx) => (idx === i ? { ...r, ...patch } : r)))
+  return (
+    <div className="npc-damage-rows">
+      {rows.length > 0 && <span className="option-picker-label">Also</span>}
+      {rows.map((row, i) => (
+        <div key={row.key} className="npc-spend-row">
+          <select value={row.type} onChange={(e) => update(i, { ...emptyBehaviorAction(e.target.value), key: row.key })} aria-label="Action">
+            {BEHAVIOR_ACTIONS.map((a) => (
+              <option key={a.key} value={a.key}>
+                {a.label}
+              </option>
+            ))}
+          </select>
+          {row.type === 'applyEffect' && (
+            <>
+              <select
+                value={row.effectKey}
+                onChange={(e) => update(i, { effectKey: e.target.value, name: effects.find((x) => x.key === e.target.value)?.name ?? '' })}
+                aria-label="Effect"
+              >
+                <option value="">{effects.length ? 'Pick an effect…' : 'Add an effect set to “Applied by a behavior rule” first'}</option>
+                {effects.map((x) => (
+                  <option key={x.key} value={x.key}>
+                    {x.name || 'Unnamed effect'}
+                  </option>
+                ))}
+              </select>
+              <select value={row.to} onChange={(e) => update(i, { to: e.target.value })} aria-label="To">
+                <option value="self">on me</option>
+                <option value="target">on the target</option>
+              </select>
+            </>
+          )}
+          {row.type === 'resource' && (
+            <>
+              <select value={row.mode} onChange={(e) => update(i, { mode: e.target.value })} aria-label="Gain or spend">
+                <option value="gain">Gain</option>
+                <option value="spend">Spend</option>
+              </select>
+              <input className="npc-spend-amount" value={row.amount} onChange={(e) => update(i, { amount: e.target.value })} aria-label="Amount" />
+              <input className="npc-code-input" value={row.pool} onChange={(e) => update(i, { pool: e.target.value })} placeholder="resource, e.g. darkness" aria-label="Resource" />
+            </>
+          )}
+          {row.type === 'store' && (
+            <>
+              <select value={row.mode} onChange={(e) => update(i, { mode: e.target.value })} aria-label="Set or add">
+                <option value="set">Set</option>
+                <option value="add">Add to</option>
+              </select>
+              <input className="npc-code-input" value={row.name} onChange={(e) => update(i, { name: e.target.value })} placeholder="value name, e.g. souls" aria-label="Value name" />
+              <FormulaInput value={row.formula} onChange={(formula) => update(i, { formula })} placeholder="e.g. 1 or @damageTaken" ariaLabel="Value" />
+            </>
+          )}
+          {row.type === 'message' && (
+            <>
+              <select value={row.style} onChange={(e) => update(i, { style: e.target.value })} aria-label="Where">
+                <option value="chat">In chat</option>
+                <option value="popup">As a popup</option>
+              </select>
+              <input value={row.text} onChange={(e) => update(i, { text: e.target.value })} placeholder="text; @check, @damageTaken and @abilities… are filled in" aria-label="Message" />
+            </>
+          )}
+          <button type="button" className="icon-button" onClick={() => onChange(rows.filter((_, idx) => idx !== i))} aria-label="Remove action">
+            ×
+          </button>
+        </div>
+      ))}
+      <button type="button" className="secondary npc-small-button" onClick={() => onChange([...rows, emptyBehaviorAction()])}>
+        + Action
+      </button>
+      {rows.some((r) => r.type === 'store') && (
+        <p className="npc-hint">
+          Stored values live on the character: any formula can read them as <code>@flags.chrab-sync.stored.&lt;name&gt;</code>.
+        </p>
+      )}
+    </div>
+  )
+}
+
+// "Roll 2d6: it happens on 7 or higher".
+function DiceCheck({ dice, onChange }) {
+  const d = { formula: '', compare: 'gte', value: '', ...dice }
+  return (
+    <div className="dm-form-row">
+      <label>
+        Only if a roll of
+        <input className="npc-code-input" value={d.formula} onChange={(e) => onChange({ ...d, formula: e.target.value })} placeholder="e.g. 2d6 (blank = no roll)" />
+      </label>
+      {d.formula && (
+        <>
+          <label>
+            is
+            <select value={d.compare} onChange={(e) => onChange({ ...d, compare: e.target.value })}>
+              <option value="gte">at least</option>
+              <option value="lte">at most</option>
+              <option value="eq">exactly</option>
+            </select>
+          </label>
+          <label>
+            Total
+            <input type="number" value={d.value} onChange={(e) => onChange({ ...d, value: e.target.value })} />
+          </label>
+        </>
+      )}
+    </div>
+  )
+}
 
 function DamageTypeSelect({ value, onChange, allowNone = true }) {
   return (
@@ -45,11 +202,14 @@ function DamageTypeSelect({ value, onChange, allowNone = true }) {
   )
 }
 
-function RuleEditor({ rule, toggle, onChange, onRemove }) {
+function RuleEditor({ rule, toggle, onChange, onRemove, effects = [] }) {
   const set = (patch) => onChange({ ...rule, ...patch })
   const event = BEHAVIOR_EVENTS.find((e) => e.key === rule.event) ?? BEHAVIOR_EVENTS[0]
   const attackish = event.attack || rule.event === 'damage' || rule.event === 'dealt'
-  const downed = rule.event === 'downed'
+  // Target-pass events (would drop to 0, a bonded creature is hurt): no attack
+  // filters, no prompt, no cost.
+  const downed = !!event.outcomes || !!event.target || !!event.turn
+  const bonded = rule.event === 'bondedHurt' || rule.event === 'bondedDowned'
   const hasType = rule.outcome === 'bonusDamage' || rule.outcome === 'damageSelf'
 
   function setOutcome(outcome) {
@@ -126,16 +286,53 @@ function RuleEditor({ rule, toggle, onChange, onRemove }) {
         </div>
       )}
 
-      <div className="npc-damage-row">
-        <FormulaInput
-          value={rule.formula}
-          onChange={(formula) => set({ formula })}
-          placeholder={rule.outcome === 'bonusDamage' ? 'e.g. 1d10' : rule.outcome === 'stayUp' ? 'e.g. @hitDie + @abilities.con.mod' : 'e.g. 1d10 + @abilities.con.mod'}
-          ariaLabel={rule.outcome === 'stayUp' ? 'Hit points left' : 'Amount'}
-        />
-        {hasType ? <DamageTypeSelect value={rule.damageType} onChange={(damageType) => set({ damageType })} /> : <span />}
-        <span />
-      </div>
+      {rule.outcome === 'ignoreResistance' ? (
+        <fieldset className="tag-checklist">
+          <legend>Ignores resistance to</legend>
+          {DAMAGE_TYPES.map((t) => (
+            <label key={t} className="tag-checklist-item">
+              <input
+                type="checkbox"
+                checked={(rule.ignoreTypes ?? []).includes(t)}
+                onChange={(e) => set({ ignoreTypes: e.target.checked ? [...(rule.ignoreTypes ?? []), t] : (rule.ignoreTypes ?? []).filter((x) => x !== t) })}
+              />
+              {cap(t)}
+            </label>
+          ))}
+        </fieldset>
+      ) : rule.outcome === 'refund' ? (
+        <div className="dm-form-row">
+          <label>
+            Give back
+            <input className="npc-code-input" value={rule.refundPool ?? ''} onChange={(e) => set({ refundPool: e.target.value })} placeholder="blank = a use of this feature, or a resource identifier" />
+          </label>
+          {rule.refundPool && (
+            <label>
+              Amount
+              <input type="number" min="1" value={rule.refundAmount ?? '1'} onChange={(e) => set({ refundAmount: e.target.value })} />
+            </label>
+          )}
+        </div>
+      ) : rule.outcome === 'shareDamage' ? (
+        <div className="dm-form-row">
+          <label>
+            Share of the damage (%)
+            <input type="number" min="1" max="100" value={rule.share ?? '50'} onChange={(e) => set({ share: e.target.value })} />
+          </label>
+        </div>
+      ) : rule.outcome === 'nothing' ? null : (
+        <div className="npc-damage-row">
+          <FormulaInput
+            value={rule.formula}
+            onChange={(formula) => set({ formula })}
+            placeholder={rule.outcome === 'bonusDamage' ? 'e.g. 1d10' : rule.outcome === 'stayUp' ? 'e.g. @hitDie + @abilities.con.mod' : 'e.g. 1d10 + @abilities.con.mod'}
+            ariaLabel={rule.outcome === 'stayUp' ? 'Hit points left' : 'Amount'}
+          />
+          {hasType ? <DamageTypeSelect value={rule.damageType} onChange={(damageType) => set({ damageType })} /> : <span />}
+          <span />
+        </div>
+      )}
+      <ActionRows rows={rule.actions ?? []} onChange={(actions) => set({ actions })} effects={effects} />
       {rule.outcome === 'stayUp' && (
         <div className="dm-form-row">
           <label className="tag-checklist-item">
@@ -190,14 +387,42 @@ function RuleEditor({ rule, toggle, onChange, onRemove }) {
           </label>
         )}
       </div>
-      {downed && (
+      {!downed && (
+        <div className="dm-form-row">
+          <label>
+            Costs from resource
+            <input className="npc-code-input" value={rule.costPool ?? ''} onChange={(e) => set({ costPool: e.target.value })} placeholder="identifier, e.g. darkness (blank = free)" />
+          </label>
+          {rule.costPool && (
+            <>
+              <label>
+                Amount
+                <input type="number" min="1" value={rule.costAmount ?? '1'} onChange={(e) => set({ costAmount: e.target.value })} />
+              </label>
+              <label className="tag-checklist-item">
+                <input type="checkbox" checked={!!rule.costExtra} onChange={(e) => set({ costExtra: e.target.checked })} />
+                Can spend more: +1 die each (asks how much)
+              </label>
+            </>
+          )}
+        </div>
+      )}
+      {downed && !bonded && (
         <p className="npc-hint">
           This runs inside the attacker&apos;s roll, so it never asks: it&apos;s used automatically. It also catches
           this feature&apos;s own costs (“I take the same damage”).
         </p>
       )}
+      {bonded && (
+        <p className="npc-hint">
+          A creature is linked while it carries one of this item&apos;s effects set to apply to “The target, linked”.
+          This runs inside the attacker&apos;s roll, automatically.
+        </p>
+      )}
 
       {!downed && <ConditionRows rows={rule.targetConditions ?? []} onChange={(targetConditions) => set({ targetConditions })} slot="use" label="Only if the target" />}
+      <SelfConditionRows rows={rule.selfConditions ?? []} onChange={(selfConditions) => set({ selfConditions })} />
+      <DiceCheck dice={rule.dice} onChange={(dice) => set({ dice })} />
       <details className="npc-cheatsheet">
         <summary>Custom condition (JavaScript){rule.when ? ': on' : ''}</summary>
         <input
@@ -225,7 +450,9 @@ function RuleEditor({ rule, toggle, onChange, onRemove }) {
         <p className="npc-hint npc-behavior-warn">
           {rule.outcome === 'bonusDamage'
             ? 'Extra damage only works with “I roll damage”.'
-            : downed || rule.outcome === 'stayUp'
+            : bonded || rule.outcome === 'shareDamage' || rule.outcome === 'refund'
+              ? 'Sharing damage goes with “A creature bonded to me is about to take damage”, getting the cost back with “A creature I’ve marked drops to 0”.'
+              : downed || rule.outcome === 'stayUp'
               ? 'Staying up only goes with “I would drop to 0 hit points”.'
               : 'This outcome doesn’t fit this event.'}{' '}
           This rule is skipped until that changes.
@@ -349,6 +576,7 @@ export default function BehaviorFields({ item, onChange }) {
                 key={rule.key}
                 rule={rule}
                 toggle={behavior.mode === 'toggle'}
+                effects={(item.effects ?? []).filter((e) => e.byRule)}
                 onChange={(value) => set({ rules: rules.map((r, idx) => (idx === i ? value : r)) })}
                 onRemove={() => set({ rules: rules.filter((_, idx) => idx !== i) })}
               />

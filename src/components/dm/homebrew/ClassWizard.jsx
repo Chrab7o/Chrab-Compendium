@@ -26,6 +26,7 @@ import VisibilitySelect from './VisibilitySelect'
 import { useAutomationOptions } from './useAutomationOptions'
 import FeatureMechanics from './FeatureMechanics'
 import { attachMechanics, loadDraftSpecs, saveRowMechanics } from './mechanics'
+import { attachMechanicsFile } from '../../../lib/classMechanicsFile'
 import { republishQuietly } from '../../../lib/homebrewFeedPublish'
 import AbilityScorePicker from '../AbilityScorePicker'
 import OptionPicker from '../OptionPicker'
@@ -78,6 +79,7 @@ export default function ClassWizard() {
   const [loading, setLoading] = useState(!isNew)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
+  const [notice, setNotice] = useState(null)
   const [newSubclassLevel, setNewSubclassLevel] = useState('')
   const automationOptions = useAutomationOptions()
   const renderMechanics = (row, patch) => <FeatureMechanics row={row} onChange={patch} linkable={automationOptions} />
@@ -462,6 +464,27 @@ export default function ClassWizard() {
     }
   }
 
+  // A class mechanics file (lib/classMechanicsFile.js): fills each matching
+  // feature's Foundry mechanics, unsaved, for review before Save Class.
+  async function handleLoadMechanics(e) {
+    const file = e.target.files[0]
+    e.target.value = ''
+    if (!file) return
+    setError(null)
+    setNotice(null)
+    try {
+      const result = attachMechanicsFile(form, JSON.parse(await file.text()))
+      if (result.classMismatch && !confirm(`This file is for "${result.classMismatch}", not "${form.name}". Load it anyway?`)) return
+      setForm(result.form)
+      setNotice(
+        `Loaded mechanics for ${result.attached.length} feature${result.attached.length === 1 ? '' : 's'} (marked unsaved - review them, then Save Class).` +
+          (result.unmatched.length ? ` No matching feature for: ${result.unmatched.join('; ')}.` : ''),
+      )
+    } catch (err) {
+      setError(`Loading mechanics failed: ${err.message}`)
+    }
+  }
+
   async function handleImportFiveTools(e) {
     const file = e.target.files[0]
     e.target.value = ''
@@ -505,8 +528,15 @@ export default function ClassWizard() {
               Export to 5etools
             </button>
           )}
+          {!isNew && (
+            <label className="button-link">
+              Load mechanics
+              <input type="file" accept="application/json" onChange={handleLoadMechanics} style={{ display: 'none' }} />
+            </label>
+          )}
         </div>
       </div>
+      {notice && <p className="status-message">{notice}</p>}
 
       {pendingDraft && !draftPromptDismissed && (
         <div className="draft-banner">

@@ -43,7 +43,7 @@ time.
 | --- | --- |
 | **Hook activity** | A utility activity placed **first** on the item, id = `behavior.key`. Its `macroData` is the whole generated script. A toggle's hook is the "Toggle" button on the sheet. A passive one's hook is `automationOnly` (hidden). |
 | **Hook changes** | One `flags.midi-qol.onUseMacroName = "ActivityMacro, <pass>"` change per workflow pass the rules need. Midi resolves the bare `ActivityMacro` to the first activity of the effect's item. Every workflow the owner starts then runs the hook. |
-| **Stance effect** (toggle) | A non-transfer item effect flagged `chrab-sync.stance`, with `showIcon: 2` so its icon always shows on the token. Using the item copies it onto the owner (`origin` = the item), and using it again removes it. Your own effects set to *While toggled on* are used as the stance, for things like AC bonuses or advantage. If you don't add one, a plain one is generated. With a duration ("Lasts N minutes"), every stance effect gets `duration: { units: "seconds", value: N × 60 }`. The macro clears the copied start so it counts from the moment the stance turns on. |
+| **Stance effect** (toggle) | A non-transfer item effect flagged `chrab-sync.stance`, with `showIcon: 2` so its icon always shows on the token. Using the item copies it onto the owner (`origin` = the item), and using it again removes it. Your own effects set to *While toggled on* are used as the stance, for things like AC bonuses or advantage. If you don't add one, a plain one is generated. With a duration ("Lasts N minutes"), every stance effect gets `duration: { units: "seconds", value: N Ã— 60 }`. The macro clears the copied start so it counts from the moment the stance turns on. |
 | **Carrier effect** (passive) | A transfer effect holding the hook changes. It's always on. |
 | **`flags.chrab-sync.behavior`** | The behavior spec, so an export reads back into the editor. |
 
@@ -99,15 +99,15 @@ On a feature (or an NPC item), open **Behavior: stances and reactions**:
 1. **Mode:** *Toggle on / off* for a stance, *Always on* for a passive trait.
 2. **Toggle settings:** the action it takes, how many minutes it lasts (blank = until turned off), the button name,
    the visual, and optionally a Sequencer file. To find a file, open Sequencer's Database Viewer in Foundry and copy an
-   entry such as `jb2a.…`. Limited uses go on the item itself (Uses, e.g. `@prof` per long rest).
+   entry such as `jb2a.â€¦`. Limited uses go on the item itself (Uses, e.g. `@prof` per long rest).
 3. **+ Rule** for each reaction. Pick *When* and *Then*, narrow it with the filters, and write the amount as a formula.
-   The rule's sentence under it shows what it will do. **+ Rule: refuse to fall** starts a "would drop to 0 → stay up"
+   The rule's sentence under it shows what it will do. **+ Rule: refuse to fall** starts a "would drop to 0 â†’ stay up"
    rule that spends a hit die.
    - **Level upgrades:** give the old version an "Up to level" and the new one a "From level". Set "Level tiers count
      levels in class" to the class's identifier.
 4. To change stats while the stance is on, add an effect, set **Applies to** to *This creature, while toggled on*, and
    give it changes (AC bonus, resistance and so on).
-5. The preview pane shows the item and the generated macro. **Send to Foundry**, then open **Chrab Sync → Items →
+5. The preview pane shows the item and the generated macro. **Send to Foundry**, then open **Chrab Sync â†’ Items â†’
    Apply** in the world.
 
 Anything a rule can't express can still use the per-roll **Script** editor (midi-qol automation on a roll). For
@@ -160,7 +160,7 @@ Behaviors and scripts are JavaScript that runs in the browser of whoever uses th
 ## Verify
 
 ```powershell
-npm test        # expect: pass 66, fail 0 (includes the feed's and templates' tests)
+npm test        # expect: pass 111, fail 0 (includes the feed's and templates' tests)
 npm run build
 ```
 
@@ -168,7 +168,7 @@ npm run build
 through `probes/death-stance.md`. That checks the automation itself without the site or the queue.
 
 **Site:**
-- [ ] **Feature Forge → Death Stance → Use** opens a filled-in editor:
+- [ ] **Feature Forge â†’ Death Stance â†’ Use** opens a filled-in editor:
   - The description is the class text.
   - Uses are `@prof` per long rest.
   - There's one *While toggled on* effect with advantage on attacks.

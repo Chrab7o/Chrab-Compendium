@@ -77,6 +77,15 @@ overlay matches it.
 
 Sub-features (each Dark Art) have their own panel.
 
+**Loading a whole class's mechanics at once:** the class editor's **Load mechanics** button reads a class mechanics
+file (`src/lib/classMechanicsFile.js`).
+- **Where the file comes from:** a sandbox script such as `build-dark-knight-probe.mjs` writes
+  `samples/dark-knight-mechanics.json` alongside its Plutonium test file.
+- **What loading does:** each entry fills the feature row with the same subclass, name and level, marked **unsaved**.
+  Rows that don't match are listed. Review the panels, then **Save Class**: the drafts are created and linked the
+  normal way, and the feed republishes.
+- **Already-linked rows:** a row already linked to a draft has that draft updated.
+
 **Changing it later:**
 - **Text:** edit the class.
 - **Mechanics:** edit them in the class's panel, or in the Feature Forge. The panel's **Open in Feature Forge** link

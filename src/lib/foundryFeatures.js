@@ -43,7 +43,9 @@ export const FEATURE_DRAFT_FLAG = 'featureDraftId'
 
 // A stand-in owner for the builder's NPC-shaped math. Only used for things
 // Foundry recomputes from the real owner anyway; descriptions never print it.
-const NEUTRAL_OWNER = { ...emptyNpcSpec(), name: 'you' }
+// formulasAsIs: over-time strings keep their @references for the real owner
+// instead of baking this stand-in's numbers.
+const NEUTRAL_OWNER = { ...emptyNpcSpec(), name: 'you', formulasAsIs: true }
 
 export function emptyFeatureSpec(kind = 'feat') {
   return {
