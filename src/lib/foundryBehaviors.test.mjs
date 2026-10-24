@@ -212,8 +212,8 @@ class FakeDamageRoll {
 
 let world
 
-function setup({ confirm = true, combat = null, spend = null } = {}) {
-  world = { messages: [], dialogs: 0, damage: [], tempHp: [], created: [], deleted: [], tokenUpdates: [], itemUpdates: [], actorUpdates: [], classUpdates: [], effectUpdates: [] }
+function setup({ confirm = true, combat = null, spend = null, pick = null } = {}) {
+  world = { messages: [], prompts: [], popups: [], dialogs: 0, damage: [], tempHp: [], created: [], deleted: [], tokenUpdates: [], itemUpdates: [], actorUpdates: [], classUpdates: [], effectUpdates: [] }
   globalThis.foundry = {
     utils: {
       escapeHTML: (s) => String(s),
@@ -224,15 +224,21 @@ function setup({ confirm = true, combat = null, spend = null } = {}) {
     applications: {
       api: {
         DialogV2: {
-          confirm: async () => {
+          confirm: async (config) => {
             world.dialogs++
+            world.prompts.push(config.content)
             return confirm
           },
-          // "Spend how much?": the number typed, or null when closed.
-          prompt: async ({ ok }) => {
+          // "Spend how much?" / "Which ability?": the form's values, or null when closed.
+          input: async (config) => {
             world.dialogs++
+            world.prompts.push(config.content)
+            if (/name="ability"/.test(config.content)) return pick == null ? null : { ability: pick }
             if (spend == null) return null
-            return ok.callback(null, { form: { elements: { spend: { value: String(spend) } } } })
+            return { spend: String(spend) }
+          },
+          prompt: async (config) => {
+            world.popups.push(config.content)
           },
         },
       },
@@ -528,7 +534,12 @@ test('the first time a hit would drop me, a hit die keeps me up instead', async 
   assert.equal(wf.damageItem.newHP, 9)
   assert.equal(wf.damageItem.hpDamage, 3)
   assert.deepEqual(world.classUpdates, [{ 'system.hd.spent': 1 }], 'one d10 hit die spent')
-  assert.ok(world.messages.some((m) => /stays up with 9 HP \(spent a d10 hit die\)/.test(m.flavor ?? '')))
+  const upCard = world.messages.find((m) => /stays up with 9 HP/.test(m.content ?? ''))
+  assert.ok(upCard, 'a Refuse to Fall card')
+  assert.match(upCard.content, /Spends a d10 hit die/)
+  assert.match(upCard.content, /Death reaches for you/, 'with its flavor')
+  assert.equal(world.dialogs, 1, 'the player was asked first')
+  assert.match(world.prompts[0], /Costs a d10 hit die \(7 left\)/)
   assert.equal(f.actor.effects[0].flags['chrab-sync'].spent[deathStanceRuleKey(f)], true, 'marked on the stance effect')
 
   // Only once per stance.
@@ -723,7 +734,7 @@ test('a cursed creature dropping gives back the Darkness it cost', async () => {
   const wf = { damageItem: { actorUuid: 'Actor.goblin', oldHP: 3, newHP: 0, hpDamage: 3, damageDetail: [{ type: 'necrotic', value: 6 }] } }
   await f.run(wf, [{ macroPass: 'preTargetDamageApplication' }], { name: 'Goblin', uuid: 'Actor.goblin' }, undefined, sword, meleeAttack, f.feature)
   assert.equal(pool.system.uses.spent, 3)
-  assert.ok(world.messages.some((m) => /Goblin falls; Bhern regains 2 darkness/.test(m.content ?? '')))
+  assert.ok(world.messages.some((m) => /Goblin falls.*Bhern regains 2 darkness/.test(m.content ?? '')))
 })
 
 test('Unstoppable: a damage roll ignores B/P/S resistance until the roll completes', async () => {
@@ -796,7 +807,7 @@ test('checks on me and a dice check gate a rule', () =>
     f = makeFeature(ruleFeature(rule), { hp: 20 })
     await use(f, { pass: 'postAttackRoll', workflow: attackWorkflow() })
     assert.deepEqual(world.tempHp, [5], 'below half, and 1d6 averages 4: it happens')
-    assert.ok(world.messages.some((m) => /needs 4 or higher - it happens/.test(m.flavor ?? '')))
+    assert.ok(world.messages.some((m) => /needs 4 or higher - it happens/.test(m.content ?? '')))
     const miss = makeFeature(ruleFeature({ ...rule, dice: { formula: '1d6', compare: 'gte', value: '5' } }), { hp: 20 })
     world.tempHp = []
     await use(miss, { pass: 'postAttackRoll', workflow: attackWorkflow() })
@@ -885,4 +896,174 @@ test('behaviorMacro escapes nothing it should not: names with quotes still compi
   b.rules[0].label = 'Bhern\'s "Blood" </script>'
   const code = behaviorMacro({ name: 'It\'s "Death"' }, b)
   assert.doesNotThrow(() => new AsyncFunction('workflow', 'args', 'actor', 'token', 'rolledItem', 'rolledActivity', 'macroItem', code))
+})
+
+// --- Chat cards and prompts (foundryChat.js runtime)
+
+test('a necrotic strike posts one flavored card with every step', async () => {
+  setup({ confirm: true })
+  const f = makeFeature(deathStanceSpec())
+  f.feature.img = 'icons/death-stance.webp'
+  await use(f, { pass: 'damageBonus', workflow: attackWorkflow({ hit: true }) })
+  const strike = world.messages.find((m) => /Necrotic Strike/.test(m.content ?? ''))
+  assert.ok(strike)
+  for (const words of [/chrab-card/, /icons\/death-stance\.webp/, /#c4102f/, /bite through your blade/, /Hit on Goblin/, /\+6 necrotic damage<\/strong> added to the hit/, /Bhern takes 6 necrotic damage/]) {
+    assert.match(strike.content, words)
+  }
+  // The prompt showed the same card, with what it will do.
+  assert.match(world.prompts[0], /Hit on Goblin/)
+  assert.match(world.prompts[0], /you can deal an extra 1d10 necrotic damage/)
+})
+
+test('toggling the stance on and off posts its flavor', async () => {
+  setup()
+  const f = makeFeature(deathStanceSpec())
+  await stanceOn(f)
+  assert.match(world.messages.at(-1).content, /Darkness floods your veins/)
+  assert.match(world.messages.at(-1).content, /is active for 1 minute/)
+  await stanceOn(f)
+  assert.match(world.messages.at(-1).content, /ebbs back into the shadows/)
+})
+
+test('declining Refuse to Fall: I drop', async () => {
+  setup({ confirm: false })
+  const f = makeFeature(deathStanceSpec(), { level: 7 })
+  await stanceOn(f)
+  const wf = incoming({ oldHP: 12, damage: 20 })
+  await use(f, { pass: 'preTargetDamageApplication', workflow: wf, item: scimitar })
+  assert.equal(wf.damageItem.newHP, 0)
+  assert.deepEqual(world.classUpdates, [], 'no hit die spent')
+})
+
+test('the prompt goes to the owning player when the GM’s client runs the attack', async () => {
+  setup()
+  const asked = []
+  const gm = { id: 'gm', name: 'GM', isGM: true, active: true, isSelf: true, hasPermission: () => true }
+  const player = {
+    id: 'p1',
+    name: 'Sam',
+    isGM: false,
+    active: true,
+    async query(name, data, options) {
+      asked.push({ name, data, options })
+      return true
+    },
+  }
+  globalThis.game = { combat: null, user: gm, users: Object.assign([gm, player], { activeGM: gm }) }
+  const f = makeFeature(deathStanceSpec(), { level: 7 })
+  f.actor.testUserPermission = (user, level) => user.id === 'p1' && level === 'OWNER'
+  await stanceOn(f)
+  const wf = incoming({ oldHP: 12, damage: 20 })
+  await use(f, { pass: 'preTargetDamageApplication', workflow: wf, item: scimitar })
+  assert.equal(world.dialogs, 0, 'nothing pops up on the GM')
+  assert.equal(asked.length, 1)
+  assert.equal(asked[0].name, 'dialog')
+  assert.equal(asked[0].data.type, 'confirm')
+  assert.match(asked[0].data.config.content, /Bhern would drop to 0 hit points/)
+  assert.equal(asked[0].options.timeout, 120000)
+  assert.equal(wf.damageItem.newHP, 9, 'Sam said yes')
+
+  // No answer (the query fails or times out): no.
+  player.query = async () => {
+    throw new Error('timed out')
+  }
+  const f2 = makeFeature(deathStanceSpec(), { level: 7 })
+  f2.actor.testUserPermission = (user) => user.id === 'p1'
+  await stanceOn(f2)
+  const wf2 = incoming({ oldHP: 12, damage: 20 })
+  await use(f2, { pass: 'preTargetDamageApplication', workflow: wf2, item: scimitar })
+  assert.equal(wf2.damageItem.newHP, 0)
+})
+
+// A creature in the scene that effects can land on.
+function creature(name) {
+  return {
+    name,
+    uuid: `Actor.${name.toLowerCase()}`,
+    isOwner: true,
+    effects: [],
+    async createEmbeddedDocuments(type, data) {
+      const docs = data.map((d, i) => ({ ...structuredClone(d), id: `${name}${this.effects.length + i}` }))
+      this.effects.push(...docs)
+      return docs
+    },
+    async deleteEmbeddedDocuments(type, ids) {
+      this.effects = this.effects.filter((e) => !ids.includes(e.id))
+    },
+  }
+}
+
+test('Mark of Darkness on a hit: asks, spends a use, moves the mark, and remembers who marked', async () => {
+  const mark = {
+    ...emptyEffect(),
+    name: 'Marked by Darkness',
+    byRule: true,
+    changes: [{ ...emptyChange('custom'), path: 'flags.midi-qol.grants.advantage.attack.all', type: 'custom', value: 'workflow?.actor?.uuid === "{owner}"' }],
+  }
+  const rule = {
+    ...emptyBehaviorRule('nothing'),
+    event: 'hit',
+    label: 'Mark of Darkness',
+    costOwnUses: true,
+    actions: [{ ...emptyBehaviorAction('applyEffect'), effectKey: mark.key, to: 'target', unique: true, name: mark.name }],
+  }
+  assert.equal(rule.ask, true, 'a choice: asks by default')
+  setup({ confirm: true })
+  const f = makeFeature(ruleFeature(rule, { effects: [mark] }))
+  f.feature.system.uses = { max: '3', spent: 1, value: 2 }
+  const goblin = creature('Goblin')
+  const orc = creature('Orc')
+  orc.effects.push({ id: 'old', name: 'Marked by Darkness', origin: f.feature.uuid, flags: { 'chrab-sync': { copyOf: mark.key } } })
+  globalThis.canvas = { tokens: { placeables: [{ actor: orc }, { actor: goblin }] } }
+  const wf = { ...attackWorkflow({ hit: true }), hitTargets: setOf({ name: 'Goblin', actor: goblin }) }
+  await use(f, { pass: 'postAttackRoll', workflow: wf })
+  delete globalThis.canvas
+
+  assert.equal(world.dialogs, 1)
+  assert.match(world.prompts[0], /Costs 1 use of Grave Pact\. You have 2 uses of Grave Pact\./)
+  assert.deepEqual(world.itemUpdates, [{ 'system.uses.spent': 2 }])
+  assert.deepEqual(orc.effects, [], 'the old mark is gone')
+  assert.equal(goblin.effects.length, 1)
+  const placed = goblin.effects[0]
+  assert.equal(placed.origin, f.feature.uuid)
+  assert.equal(placed.flags['chrab-sync'].appliedBy, 'Actor.bhern')
+  const changes = placed.system?.changes ?? placed.changes
+  assert.equal(changes[0].value, 'workflow?.actor?.uuid === "Actor.bhern"')
+  const posted = world.messages.at(-1).content
+  for (const words of [/Spends 1 use of Grave Pact \(1 left\)/, /Marked by Darkness leaves Orc/, /Goblin gains <strong>Marked by Darkness/]) assert.match(posted, words)
+
+  // Out of uses: nothing, not even a prompt.
+  setup({ confirm: true })
+  f.feature.system.uses = { max: '3', spent: 3, value: 0 }
+  await use(f, { pass: 'postAttackRoll', workflow: wf })
+  assert.equal(world.dialogs, 0)
+})
+
+test('Curse: the player picks the ability its save penalty applies to', async () => {
+  const penalty = {
+    ...emptyEffect(),
+    name: 'Cursed Saves',
+    byRule: true,
+    changes: [{ ...emptyChange('custom'), path: 'system.abilities.{ability}.bonuses.save', type: 'add', value: '-2' }],
+  }
+  const rule = {
+    ...emptyBehaviorRule('nothing'),
+    event: 'used',
+    ask: false,
+    actions: [{ ...emptyBehaviorAction('applyEffect'), effectKey: penalty.key, to: 'target', pickAbility: true }],
+  }
+  setup({ pick: 'wis' })
+  const f = makeFeature(ruleFeature(rule, { name: 'Curse', effects: [penalty] }))
+  const goblin = creature('Goblin')
+  await use(f, { pass: 'postActiveEffects', workflow: { targets: setOf({ name: 'Goblin', actor: goblin }) }, item: f.feature, activity: {} })
+  assert.match(world.prompts[0], /Which ability\?/)
+  const placed = goblin.effects[0]
+  assert.equal(placed.name, 'Cursed Saves (Wisdom)')
+  assert.equal((placed.system?.changes ?? placed.changes)[0].key, 'system.abilities.wis.bonuses.save')
+
+  // Closing the picker: no curse.
+  setup({ pick: null })
+  const g = creature('Goblin')
+  await use(f, { pass: 'postActiveEffects', workflow: { targets: setOf({ name: 'Goblin', actor: g }) }, item: f.feature, activity: {} })
+  assert.deepEqual(g.effects, [])
 })

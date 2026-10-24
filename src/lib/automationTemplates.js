@@ -15,8 +15,9 @@
 // more for +1 die each".
 
 import { CONDITIONS, DAMAGE_TYPES, NPC_ABILITIES, NPC_SKILLS, emptyActivity, emptyChange, emptyEffect, emptySpend, identifierFor } from './foundryActorBuilder.js'
-import { TOGGLE_VISUALS, emptyBehavior, emptyBehaviorRule } from './foundryBehaviors.js'
+import { TOGGLE_VISUALS, emptyBehavior, emptyBehaviorAction, emptyBehaviorRule } from './foundryBehaviors.js'
 import { emptyScript } from './foundryAutomation.js'
+import { CARD_COLOR_OPTIONS } from './foundryChat.js'
 import { FEATURE_TEMPLATES, emptyFeatureSpec } from './foundryFeatures.js'
 
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1)
@@ -34,6 +35,14 @@ const ABILITY_OPTIONS = NPC_ABILITIES.map((a) => [a, ABILITY_NAMES[a]])
 const DAMAGE_TYPE_OPTIONS = [['', '(no type)'], ...PARAM_OPTIONS.damageTypes]
 const CONDITION_OPTIONS = [['', 'None'], ...PARAM_OPTIONS.conditions]
 const AREA_OPTIONS = [['', 'No area'], ['radius', 'Radius'], ['cone', 'Cone'], ['line', 'Line'], ['cube', 'Cube']]
+
+// How its chat cards read (foundryChat.js): a flavor line and an accent color.
+function flavorParams(example = '') {
+  return [
+    { key: 'flavor', label: 'Flavor text', kind: 'text', default: '', hint: `A line on its chat card and prompt${example ? `, e.g. “${example}”` : ''}.` },
+    { key: 'cardColor', label: 'Card color', kind: 'select', default: 'shadow', options: CARD_COLOR_OPTIONS },
+  ]
+}
 
 const list = (v) => (Array.isArray(v) ? v.filter(Boolean) : [])
 const text = (v) => String(v ?? '').trim()
@@ -395,18 +404,27 @@ const mark = {
   key: 'mark',
   group: 'Things you use',
   label: 'Mark or curse a target',
-  help: 'Puts a named effect on one creature so everyone can see it’s marked (Mark of Darkness, Curse). Optional: a penalty to one of its saving throws while marked.',
+  help: 'Puts a named effect on one creature so everyone can see it’s marked (Mark of Darkness, Curse, Mark of Devastation). Use it on a target, or have it offered each time you hit. Optional: one mark at a time, a save penalty (or one the player picks each time), extra damage taken, advantage and disadvantage.',
   params: [
     ...costParams('bonus'),
     { key: 'effectName', label: 'Effect name', kind: 'text', default: 'Marked', hint: 'Shown on the target, e.g. Marked by Darkness.' },
     { key: 'target', label: 'Target', kind: 'select', default: 'one', options: [['one', 'One creature'], ['ally', 'An ally']] },
     { key: 'range', label: 'Range (ft)', kind: 'number', default: '60' },
+    { key: 'onHit', label: 'Also offered when you hit a creature (asks)', kind: 'checkbox', default: false, hint: 'Mark of Darkness: “when you touch or hit a creature”. Costs a use of this feature, or the resource above.' },
+    { key: 'oneAtATime', label: 'Only one creature marked at a time', kind: 'checkbox', default: true },
     { key: 'savePenalty', label: 'Penalty to its saving throws (e.g. -2)', kind: 'formula', default: '' },
-    { key: 'penaltyAbility', label: 'For saves of', kind: 'select', default: 'all', options: [['all', 'Every ability'], ...ABILITY_OPTIONS] },
+    { key: 'penaltyAbility', label: 'For saves of', kind: 'select', default: 'all', options: [['all', 'Every ability'], ['pick', 'An ability the player picks each time'], ...ABILITY_OPTIONS] },
     { key: 'extraDamage', label: 'Takes extra damage from every source', kind: 'formula', default: '', hint: 'Curse: 1d6. Rolled each time it takes damage (midi damage modification).' },
     { key: 'grantsAdvantage', label: 'Attacks against it have advantage', kind: 'checkbox', default: false },
     { key: 'disAttacks', label: 'It has disadvantage on attack rolls', kind: 'checkbox', default: false },
     { key: 'disSaves', label: 'It has disadvantage on saving throws', kind: 'checkbox', default: false },
+    {
+      key: 'onlyYou',
+      label: 'Those three count only between it and you',
+      kind: 'checkbox',
+      default: false,
+      hint: 'Mark of Devastation: your attacks against it, its attacks against you, its saves against your abilities.',
+    },
     {
       key: 'onDrop',
       label: 'When the marked creature drops to 0',
@@ -415,6 +433,7 @@ const mark = {
       options: [['', 'Nothing'], ['use', 'Give back a use of this feature'], ['cost', 'Give back the resource it cost']],
       hint: 'Mark of Darkness: a use back, to mark a new creature for free. Curse: the Darkness back.',
     },
+    ...flavorParams('Shadows coil around your prey; it cannot hide from you now.'),
   ],
   build(values) {
     const name = text(values.effectName)
@@ -423,23 +442,56 @@ const mark = {
     if (values.onDrop === 'cost' && !pool) throw new Error('“Give back the resource it cost” needs a resource it spends.')
     const penalty = text(values.savePenalty)
     const extra = text(values.extraDamage)
+    const pick = values.penaltyAbility === 'pick'
+    // "{owner}" becomes whoever applied the mark (foundryBehaviors effectCopy).
+    const onlyYou = !!values.onlyYou
+    const flag = (path, condition) => change('custom', condition, { path, type: 'custom' })
     const changes = [
-      penalty && (values.penaltyAbility && values.penaltyAbility !== 'all' ? change('saveOne', penalty, { param: values.penaltyAbility }) : change('saveAll', penalty)),
+      penalty &&
+        (pick
+          ? change('custom', penalty, { path: 'system.abilities.{ability}.bonuses.save', type: 'add' })
+          : values.penaltyAbility && values.penaltyAbility !== 'all'
+            ? change('saveOne', penalty, { param: values.penaltyAbility })
+            : change('saveAll', penalty)),
       // A positive damage modification: midi rolls it against the marked creature on every hit.
       extra && change('custom', extra, { path: 'system.traits.dm.midi.all', type: 'override' }),
-      values.grantsAdvantage && change('grantsAdv'),
-      values.disAttacks && change('disAttack'),
-      values.disSaves && change('disSave', '', { param: 'all' }),
+      values.grantsAdvantage && (onlyYou ? flag('flags.midi-qol.grants.advantage.attack.all', 'workflow?.actor?.uuid === "{owner}"') : change('grantsAdv')),
+      values.disAttacks && (onlyYou ? flag('flags.midi-qol.disadvantage.attack.all', 'targetActorUuid === "{owner}"') : change('disAttack')),
+      values.disSaves && (onlyYou ? flag('flags.midi-qol.disadvantage.ability.save.all', 'workflow?.actor?.uuid === "{owner}"') : change('disSave', '', { param: 'all' })),
     ].filter(Boolean)
+    if (pick && !penalty) throw new Error('Set the save penalty the player picks an ability for.')
     let roll = applyTarget({ ...emptyActivity('utility') }, values.target)
     if (num(values.range)) roll = { ...roll, range: num(values.range) }
-    // Getting the cost back is a rule run on the marked creature: the mark is a linked (bond) effect.
-    const refund = values.onDrop
-      ? { ...emptyBehaviorRule('refund'), event: 'bondedDowned', refundPool: values.onDrop === 'cost' ? pool : '', refundAmount: String(num(values.poolCost) || 1) }
-      : null
+    // The mark is placed by the feature's rules, so it can move (one at a
+    // time), ask for an ability, and remember who placed it. Getting the cost
+    // back is a rule run on the marked creature: the mark is also a linked
+    // (bond) effect.
+    const effect = { ...emptyEffect(), name, changes, byRule: true, bond: !!values.onDrop }
+    const place = { ...emptyBehaviorAction('applyEffect'), effectKey: effect.key, name, to: 'target', unique: values.oneAtATime !== false, pickAbility: pick }
+    const flavor = text(values.flavor)
+    const rules = [{ ...emptyBehaviorRule('nothing'), event: 'used', ask: false, flavor, actions: [place] }]
+    if (values.onHit) {
+      const [usesMax] = USES[values.uses] ?? ['']
+      if (!usesMax && !pool) throw new Error('Offering it on a hit needs limited uses or a resource to spend.')
+      const cost = pool ? ruleCost(values) : { costOwnUses: true, costAmount: '1' }
+      rules.push({
+        ...emptyBehaviorRule('nothing'),
+        event: 'hit',
+        ask: true,
+        flavor,
+        ...cost,
+        // Not again on a creature that already carries this mark.
+        when: '!c.target?.actor?.effects?.some((e) => e.origin === c.item.uuid)',
+        actions: [{ ...place, key: emptyBehaviorAction().key }],
+      })
+    }
+    if (values.onDrop) {
+      rules.push({ ...emptyBehaviorRule('refund'), event: 'bondedDowned', flavor: '', refundPool: values.onDrop === 'cost' ? pool : '', refundAmount: String(num(values.poolCost) || 1) })
+    }
+    const behavior = emptyBehavior('passive')
     return usedFeature(values, [roll], {
-      effects: [{ ...emptyEffect(), name, changes, bond: !!refund }],
-      behavior: refund ? { ...emptyBehavior('passive'), rules: [refund] } : null,
+      effects: [effect],
+      behavior: { ...behavior, flavor: { ...behavior.flavor, color: values.cardColor || '' }, rules },
     })
   },
 }
@@ -448,23 +500,29 @@ const utility = {
   key: 'utility',
   group: 'Things you use',
   label: 'Use and spend: no roll',
-  help: 'A button that spends its cost (uses, Darkness) and says so in chat, for features the table resolves by hand (Shadow Warp, Shadow Image, Absorb Wounds).',
+  help: 'A button that spends its cost (uses, Darkness), for features the table resolves by hand. With an announcement it posts a card saying what it lets you do (Soul Surge: take another action this turn).',
   params: [
     ...costParams('action'),
     { key: 'target', label: 'Target', kind: 'select', default: 'self', options: [['self', 'Yourself'], ['one', 'One creature'], ['ally', 'An ally']] },
     { key: 'range', label: 'Range (ft)', kind: 'number', default: '' },
+    { key: 'announce', label: 'Announcement', kind: 'text', default: '', hint: 'e.g. @actor can take one more action this turn. Blank = midi’s own card only.' },
+    ...flavorParams('The darkness surges through you, driving you onward.'),
   ],
   build(values) {
     let roll = applyTarget({ ...emptyActivity('utility') }, values.target)
     if (num(values.range) && values.target !== 'self') roll = { ...roll, range: num(values.range) }
+    if (text(values.announce)) return scripted(values, roll, 'announce', { text: text(values.announce) })
     return usedFeature(values, [roll])
   },
 }
 
 // Script templates: an activity whose midi-qol macro (a foundryAutomation
-// recipe) does the work after the roll.
+// recipe) does the work after the roll. Recipes with a chat card take the
+// template's flavor and card color.
 function scripted(values, activity, recipe, params, item = {}) {
-  const script = { ...emptyScript(recipe), params: { ...emptyScript(recipe).params, ...params } }
+  const base = emptyScript(recipe).params
+  const card = 'flavor' in base ? { flavor: text(values.flavor), color: values.cardColor || '' } : {}
+  const script = { ...emptyScript(recipe), params: { ...base, ...card, ...params } }
   return usedFeature(values, [{ ...activity, script }], item)
 }
 
@@ -472,10 +530,15 @@ const teleport = {
   key: 'teleport',
   group: 'Things you use',
   label: 'Teleport yourself',
-  help: 'After you use it, click a spot within range and your token moves there instantly (Shadow Warp). Right-click to cancel.',
-  params: [...costParams('bonus'), { key: 'range', label: 'Up to (ft)', kind: 'number', default: '30' }],
+  help: 'After you use it, click a spot within range and your token moves there instantly (Shadow Warp). Right-click to cancel. Name your mark and it first offers to warp beside the creature carrying it, seen or not.',
+  params: [
+    ...costParams('bonus'),
+    { key: 'range', label: 'Up to (ft)', kind: 'number', default: '30' },
+    { key: 'toMark', label: 'Or beside the creature carrying your mark', kind: 'text', default: '', hint: 'The mark’s effect name, e.g. Marked by Darkness.' },
+    ...flavorParams('You step into the shadows and out of another.'),
+  ],
   build(values) {
-    return scripted(values, { ...emptyActivity('utility'), targetType: 'self' }, 'teleport', { range: String(num(values.range) || 30) })
+    return scripted(values, { ...emptyActivity('utility'), targetType: 'self' }, 'teleport', { range: String(num(values.range) || 30), toMark: text(values.toMark) })
   },
 }
 
@@ -484,7 +547,7 @@ const takeHit = {
   group: 'Reactions',
   label: 'Take a creature’s damage instead',
   help: 'Target the creature that was just hurt and use it: you enter how much damage it took, it regains that much, and you take it instead (Absorb Wounds). Midi only offers reactions to the creature that was hit, so you use this one yourself.',
-  params: [...costParams('reaction'), { key: 'range', label: 'Range (ft)', kind: 'number', default: '30' }],
+  params: [...costParams('reaction'), { key: 'range', label: 'Range (ft)', kind: 'number', default: '30' }, ...flavorParams('Darkness pulls the wound out of them and into you.')],
   build(values) {
     let roll = { ...emptyActivity('utility'), targetType: 'creature', targetCount: '1' }
     if (num(values.range)) roll = { ...roll, range: num(values.range) }
@@ -502,6 +565,7 @@ const sacrifice = {
     { key: 'formula', label: 'Damage to you', kind: 'formula', default: '3d10' },
     { key: 'damageType', label: 'Damage type', kind: 'select', default: 'necrotic', options: DAMAGE_TYPE_OPTIONS },
     { key: 'range', label: 'Allies within (ft)', kind: 'number', default: '30' },
+    ...flavorParams('You bleed darkness, and it hardens into armor around your allies.'),
   ],
   build(values) {
     if (!text(values.formula)) throw new Error('Set the damage.')
@@ -510,6 +574,24 @@ const sacrifice = {
       damageType: values.damageType || '',
       range: String(num(values.range) || 30),
     })
+  },
+}
+
+const weaponWave = {
+  key: 'weaponWave',
+  group: 'Things you use',
+  label: 'Weapon attack against everyone in an area',
+  help: 'Place the area (a 30 ft line), then one attack roll with your melee weapon is checked against every creature in it, each hit dealing the weapon’s damage plus extra (Death Wave: +1d8). Asks which weapon if you carry more than one.',
+  params: [
+    ...costParams('action'),
+    { key: 'area', label: 'Area', kind: 'select', default: 'line', options: AREA_OPTIONS.filter(([key]) => key) },
+    { key: 'areaSize', label: 'Area size (ft)', kind: 'number', default: '30' },
+    { key: 'extra', label: 'Extra damage on each hit', kind: 'formula', default: '1d8' },
+    ...flavorParams('Your blade sheds a wave of darkness that tears through everything before you.'),
+  ],
+  build(values) {
+    const roll = { ...emptyActivity('utility'), targetType: 'enemy', areaType: values.area || 'line', areaSize: String(num(values.areaSize) || 30) }
+    return scripted(values, roll, 'weaponWave', { extra: text(values.extra) })
   },
 }
 
@@ -527,12 +609,14 @@ const bond = {
     { key: 'target', label: 'Bonds', kind: 'select', default: 'ally', options: [['ally', 'An ally'], ['one', 'Any creature']] },
     { key: 'range', label: 'Range (ft)', kind: 'number', default: '30' },
     { key: 'lasts', label: 'Lasts', kind: 'select', default: '', options: [['', 'Until removed'], ['longRest', 'Until a long rest'], ['turnStartSource', 'Until the start of your next turn']] },
+    ...flavorParams('The tether of shadow pulls taut, and you take the blow meant for them.'),
   ],
   build(values) {
     const share = Math.min(100, Math.max(1, num(values.share) || 50))
     let roll = applyTarget({ ...emptyActivity('utility') }, values.target === 'one' ? 'one' : 'ally')
     if (num(values.range)) roll = { ...roll, range: num(values.range) }
-    const behavior = { ...emptyBehavior('passive'), rules: [{ ...emptyBehaviorRule('shareDamage'), share: String(share) }] }
+    const base = emptyBehavior('passive')
+    const behavior = { ...base, flavor: { ...base.flavor, color: values.cardColor || '' }, rules: [{ ...emptyBehaviorRule('shareDamage'), share: String(share), flavor: text(values.flavor) }] }
     const effect = { ...emptyEffect(), name: text(values.effectName) || 'Bonded', bond: true, specialDuration: values.lasts ? [values.lasts] : [] }
     return usedFeature(values, [roll], { effects: [effect], behavior })
   },
@@ -583,8 +667,12 @@ const ATTACK_FILTERS = [
   { key: 'attackSource', label: 'Made with', kind: 'select', default: 'any', options: [['any', 'Anything'], ['weapon', 'A weapon (or unarmed)'], ['spell', 'A spell']] },
 ]
 
-function ruleFeature(rule) {
-  return featureSpec({ section: 'trait', behavior: { ...emptyBehavior('passive'), rules: [rule] } })
+function ruleFeature(rule, values = {}) {
+  const behavior = emptyBehavior('passive')
+  return featureSpec({
+    section: 'trait',
+    behavior: { ...behavior, flavor: { ...behavior.flavor, color: values.cardColor || '' }, rules: [{ ...rule, flavor: text(values.flavor) }] },
+  })
 }
 
 function ruleCost(values) {
@@ -608,6 +696,7 @@ const onHitDamage = {
     { key: 'critOnly', label: 'Critical hits only', kind: 'checkbox', default: false },
     { key: 'selfCost', label: 'You take the same damage', kind: 'checkbox', default: false },
     ...COST_PARAMS,
+    ...flavorParams('Dark energy surges down your blade and into the wound.'),
   ],
   build(values) {
     if (!text(values.damage)) throw new Error('Set the damage.')
@@ -623,7 +712,7 @@ const onHitDamage = {
       critOnly: !!values.critOnly,
       selfCost: values.selfCost ? 'same' : 'none',
       ...ruleCost(values),
-    })
+    }, values)
   },
 }
 
@@ -642,6 +731,7 @@ const onHitBenefit = {
     { key: 'ask', label: 'Ask first', kind: 'checkbox', default: false },
     { key: 'oncePerTurn', label: 'Once per turn', kind: 'checkbox', default: false },
     ...COST_PARAMS,
+    ...flavorParams('The darkness drinks from the wound and pours the stolen life back into you.'),
   ],
   build(values) {
     if (!text(values.formula)) throw new Error('Set the amount.')
@@ -657,7 +747,7 @@ const onHitBenefit = {
       ask: !!values.ask,
       oncePerTurn: !!values.oncePerTurn,
       ...ruleCost(values),
-    })
+    }, values)
   },
 }
 
@@ -688,6 +778,8 @@ const stance = {
     { key: 'healEachTurn', label: 'Healing at the start of each of your turns', kind: 'formula', default: '', hint: 'The Final Art: 2d8.' },
     { key: 'discountPool', label: 'While on, a resource costs less', kind: 'text', default: '', hint: 'The resource’s identifier, e.g. darkness.' },
     { key: 'discountAmount', label: 'Less by', kind: 'number', default: '' },
+    { key: 'flavorOn', label: 'Flavor when it starts', kind: 'text', default: '', hint: 'On its chat card, e.g. “A barrier of shadow knits itself around you.”' },
+    { key: 'flavorOff', label: 'Flavor when it ends', kind: 'text', default: '' },
   ],
   build(values) {
     const tempHp = text(values.tempHp)
@@ -715,8 +807,39 @@ const stance = {
       behavior: {
         ...behavior,
         toggle: { ...behavior.toggle, activation: values.activation || 'bonus', duration: text(values.minutes), visual: values.visual || 'necrotic', freeOff: !usesMax },
+        flavor: { ...behavior.flavor, on: text(values.flavorOn), off: text(values.flavorOff) },
       },
     })
+  },
+}
+
+// A chat card at the start (or end) of your turn, always or while you have
+// one of some conditions - for rules the table applies (Inevitable).
+const turnReminder = {
+  key: 'turnReminder',
+  group: 'Always on',
+  label: 'Reminder on your turn',
+  help: 'Posts a card at the start or end of each of your turns in combat - always, or only while you have one of the chosen conditions (Inevitable: when something holds you in place, its saves succeed after one turn). @name is you, @statuses your current conditions.',
+  params: [
+    { key: 'turn', label: 'When', kind: 'select', default: 'start', options: [['start', 'Start of your turn'], ['end', 'End of your turn']] },
+    { key: 'whileAny', label: 'Only while you have', kind: 'conditions', hint: 'Blank = every turn.' },
+    { key: 'text', label: 'What it says', kind: 'text', default: '' },
+    ...flavorParams(),
+  ],
+  build(values) {
+    const words = text(values.text)
+    if (!words) throw new Error('Write what the reminder says.')
+    const statuses = list(values.whileAny)
+    const base = emptyBehavior('passive')
+    const rule = {
+      ...emptyBehaviorRule('nothing'),
+      event: values.turn === 'end' ? 'turnEnd' : 'turnStart',
+      ask: false,
+      flavor: text(values.flavor),
+      when: statuses.length ? `${JSON.stringify(statuses)}.some((s) => c.actor.statuses?.has(s))` : '',
+      actions: [{ ...emptyBehaviorAction('message'), text: words, style: 'chat' }],
+    }
+    return featureSpec({ section: 'trait', behavior: { ...base, flavor: { ...base.flavor, color: values.cardColor || '' }, rules: [rule] } })
   },
 }
 
@@ -800,6 +923,7 @@ const aura = {
     { key: 'dc', label: 'Save DC', kind: 'formula', default: '8 + @prof + @abilities.con.mod' },
     { key: 'onSave', label: 'On a success', kind: 'select', default: 'half', options: [['half', 'Half damage'], ['none', 'No damage'], ['full', 'Full damage (the save is for something else)']] },
     { key: 'drain', label: 'You heal for half the damage it deals', kind: 'checkbox', default: false },
+    ...flavorParams('The darkness feeds, and so do you.'),
     { key: 'failCondition', label: 'Condition on a failed save', kind: 'select', default: '', options: CONDITION_OPTIONS, hint: 'Until the start of its next turn, e.g. frightened.' },
     {
       key: 'failEffect',
@@ -854,7 +978,11 @@ const aura = {
     // The drain: a rule on this feature's own damage landing (the aura's roll
     // is used by you, so your hook sees it).
     const behavior = values.drain
-      ? { ...emptyBehavior('passive'), rules: [{ ...emptyBehaviorRule('healSelf'), event: 'dealt', label: 'Drain', formula: 'floor(@dealt / 2)', when: 'c.activity?.item?.id === c.item.id' }] }
+      ? {
+          ...emptyBehavior('passive'),
+          flavor: { ...emptyBehavior('passive').flavor, color: values.cardColor || '' },
+          rules: [{ ...emptyBehaviorRule('healSelf'), event: 'dealt', label: 'Drain', flavor: text(values.flavor), formula: 'floor(@dealt / 2)', when: 'c.activity?.item?.id === c.item.id' }],
+        }
       : null
     return usedFeature(values, activities, { effects, behavior })
   },
@@ -908,6 +1036,7 @@ const transform = {
 export const AUTOMATION_TEMPLATES = [
   defenses,
   passiveBonus,
+  turnReminder,
   resourcePool,
   costReduction,
   attack,
@@ -919,6 +1048,7 @@ export const AUTOMATION_TEMPLATES = [
   bond,
   teleport,
   sacrifice,
+  weaponWave,
   utility,
   reaction,
   takeHit,

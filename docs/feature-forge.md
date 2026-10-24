@@ -160,7 +160,7 @@ Behaviors and scripts are JavaScript that runs in the browser of whoever uses th
 ## Verify
 
 ```powershell
-npm test        # expect: pass 111, fail 0 (includes the feed's and templates' tests)
+npm test        # expect: pass 121, fail 0 (includes the feed's and templates' tests)
 npm run build
 ```
 

@@ -151,7 +151,7 @@ const acts = (item) => Object.values(item.system.activities)
 const DARK = { pool: 'darkness' }
 
 test('every type template builds a valid item from its defaults or a minimal setting', () => {
-  const minimal = { defenses: { resist: ['fire'] }, passiveBonus: { ac: '1' }, selfBuff: { ac: '1' }, mark: {}, utility: {}, stance: {}, saveOrSuffer: { condition: 'prone' }, reaction: { ac: '2' }, aura: { ac: '1' }, summon: { crMax: '1' }, transform: { crMax: '1' } }
+  const minimal = { defenses: { resist: ['fire'] }, passiveBonus: { ac: '1' }, selfBuff: { ac: '1' }, mark: {}, utility: {}, stance: {}, saveOrSuffer: { condition: 'prone' }, reaction: { ac: '2' }, aura: { ac: '1' }, turnReminder: { text: 'Hi' }, summon: { crMax: '1' }, transform: { crMax: '1' } }
   for (const t of AUTOMATION_TEMPLATES.filter((x) => x.kind === 'type')) {
     const { item } = fromTemplate(t.key, minimal[t.key] ?? {})
     assert.equal(item.type, 'feat', t.key)
@@ -218,10 +218,39 @@ test('passive bonus: skill advantage, save advantage, senses', () => {
 })
 
 test('mark: a named effect on the target, with an optional save penalty', () => {
-  const { item } = fromTemplate('mark', { effectName: 'Cursed by Darkness', savePenalty: '-2', penaltyAbility: 'wis' })
-  assert.equal(item.effects[0].name, 'Cursed by Darkness')
-  assert.deepEqual(item.effects[0].system.changes.map((c) => [c.key, c.value]), [['system.abilities.wis.bonuses.save', '-2']])
-  assert.equal(acts(item)[0].target.affects.count, '1')
+  const { item, spec } = fromTemplate('mark', { effectName: 'Cursed by Darkness', savePenalty: '-2', penaltyAbility: 'wis' })
+  const effect = item.effects.find((e) => e.name === 'Cursed by Darkness')
+  assert.deepEqual(effect.system.changes.map((c) => [c.key, c.value]), [['system.abilities.wis.bonuses.save', '-2']])
+  // Placed by the feature's own "I use this feature" rule, not by the roll.
+  assert.equal(effect.flags['chrab-sync'].byRule, true)
+  const [use] = acts(item).filter((a) => a.name !== 'Automation')
+  assert.equal(use.target.affects.count, '1')
+  assert.deepEqual(use.effects, [])
+  const [rule] = spec.item.behavior.rules
+  assert.deepEqual([rule.event, rule.ask, rule.actions[0].to, rule.actions[0].unique], ['used', false, 'target', true])
+})
+
+test('Mark of Darkness: offered on a hit for a use; Curse: the player picks the ability', () => {
+  const { spec } = fromTemplate('mark', { activation: 'special', uses: 'prof-lr', effectName: 'Marked by Darkness', onHit: true, onDrop: 'use', flavor: 'Shadows coil.' })
+  const onHit = spec.item.behavior.rules.find((r) => r.event === 'hit')
+  assert.deepEqual([onHit.outcome, onHit.ask, onHit.costOwnUses, onHit.flavor], ['nothing', true, true, 'Shadows coil.'])
+  assert.equal(onHit.actions[0].unique, true)
+  assert.match(buildFromTemplate(findTemplate('mark'), { onHit: true }).error, /limited uses or a resource/)
+
+  const curse = fromTemplate('mark', { ...DARK, poolCost: 2, effectName: 'Cursed by Darkness', savePenalty: '-2', penaltyAbility: 'pick' })
+  const cursed = curse.item.effects.find((e) => e.name === 'Cursed by Darkness')
+  assert.deepEqual(cursed.system.changes.map((c) => [c.key, c.value]), [['system.abilities.{ability}.bonuses.save', '-2']])
+  assert.equal(curse.spec.item.behavior.rules[0].actions[0].pickAbility, true)
+})
+
+test('Mark of Devastation: advantage and disadvantage only between it and you', () => {
+  const { item } = fromTemplate('mark', { effectName: 'Devastated', grantsAdvantage: true, disAttacks: true, disSaves: true, onlyYou: true })
+  const effect = item.effects.find((e) => e.name === 'Devastated')
+  assert.deepEqual(effect.system.changes.map((c) => [c.key, c.value]), [
+    ['flags.midi-qol.grants.advantage.attack.all', 'workflow?.actor?.uuid === "{owner}"'],
+    ['flags.midi-qol.disadvantage.attack.all', 'targetActorUuid === "{owner}"'],
+    ['flags.midi-qol.disadvantage.ability.save.all', 'workflow?.actor?.uuid === "{owner}"'],
+  ])
 })
 
 test('Vanguard Stance: a toggle with disadvantage and temp HP each turn', () => {
@@ -352,9 +381,10 @@ test('Mark of Darkness and Curse: getting the cost back when the mark drops', ()
   const markEffect = mark.item.effects.find((e) => e.name === 'Marked by Darkness')
   assert.equal(markEffect.flags['chrab-sync'].bond, true)
   assert.deepEqual(markEffect.system.changes.map((c) => c.value), ['ActivityMacro, preTargetDamageApplication'])
-  assert.deepEqual(mark.spec.item.behavior.rules.map((r) => [r.event, r.outcome, r.refundPool]), [['bondedDowned', 'refund', '']])
+  const refunds = (spec) => spec.item.behavior.rules.filter((r) => r.outcome === 'refund')
+  assert.deepEqual(refunds(mark.spec).map((r) => [r.event, r.outcome, r.refundPool]), [['bondedDowned', 'refund', '']])
   const curse = fromTemplate('mark', { ...DARK, poolCost: 2, effectName: 'Cursed', onDrop: 'cost' })
-  assert.deepEqual(curse.spec.item.behavior.rules.map((r) => [r.refundPool, r.refundAmount]), [['darkness', '2']])
+  assert.deepEqual(refunds(curse.spec).map((r) => [r.refundPool, r.refundAmount]), [['darkness', '2']])
   assert.deepEqual(buildFromTemplate(findTemplate('mark'), { onDrop: 'cost' }), { error: '“Give back the resource it cost” needs a resource it spends.' })
 })
 
@@ -510,4 +540,49 @@ test('Harbinger L19: aura damage on entry and each turn, the save only locks in,
   const vanguard = fromTemplate('aura', { ac: '-3', abilityPenalty: 3 }).item
   const inside = vanguard.effects.find((e) => e.flags['chrab-sync']?.aura)
   assert.deepEqual(inside.system.changes.filter((c) => c.key.startsWith('system.abilities')).map((c) => c.value), ['-3', '-3', '-3', '-3', '-3', '-3'])
+})
+
+test('Death Wave and Soul Surge: script recipes that report in a flavored card', () => {
+  const wave = fromTemplate('weaponWave', { ...DARK, poolCost: 5, flavor: 'A wave of darkness.', cardColor: 'necrotic' })
+  const [roll] = acts(wave.item)
+  assert.deepEqual([roll.target.template.type, roll.target.template.size, roll.target.affects.type], ['line', '30', 'enemy'])
+  assert.match(roll.macroData.command, /completeActivityUse/)
+  assert.match(roll.macroData.command, /A wave of darkness\./)
+  assert.match(roll.macroData.command, /#c4102f/)
+  assert.match(roll.macroData.command, /system\.bonuses\.mwak\.damage/)
+
+  const surge = fromTemplate('utility', { activation: 'bonus', uses: '1-lr', announce: '@actor can take one more action this turn.' })
+  assert.match(acts(surge.item)[0].macroData.command, /can take one more action this turn/)
+  assert.equal(acts(fromTemplate('utility', {}).item)[0].macroData, undefined, 'no announcement: no script')
+})
+
+test('Inevitable: a reminder card at the start of your turn, only while something holds you', async () => {
+  const { spec, item } = fromTemplate('turnReminder', { whileAny: ['grappled', 'restrained'], text: '@name is held (@statuses).', flavor: 'Nothing holds you.' })
+  const [rule] = spec.item.behavior.rules
+  assert.deepEqual([rule.event, rule.outcome, rule.ask], ['turnStart', 'nothing', false])
+  // The hidden start-of-turn tick, named by an always-on effect.
+  const tick = acts(item).find((a) => a.isOverTimeFlag)
+  assert.equal(tick.overTimeProperties.turnChoice, 'start')
+  assert.ok(item.effects.some((e) => e.transfer && e.system.changes.some((c) => c.key === 'flags.midi-qol.ActivityOverTime')))
+  assert.match(buildFromTemplate(findTemplate('turnReminder'), {}).error, /Write what/)
+
+  // Run the tick: a card only while grappled or restrained.
+  const posted = []
+  globalThis.foundry = { utils: { escapeHTML: (s) => String(s), getProperty: (o, p) => p.split('.').reduce((x, k) => x?.[k], o) }, applications: { api: {} } }
+  globalThis.ChatMessage = { getSpeaker: () => ({}), implementation: { create: async (m) => posted.push(m) } }
+  globalThis.CONFIG = { statusEffects: [{ id: 'restrained', name: 'Restrained' }] }
+  globalThis.game = {}
+  const actor = { name: 'Bhern', uuid: 'Actor.bhern', statuses: new Set(['restrained']), effects: [], items: [], getRollData: () => ({}) }
+  const feature = { id: item._id, uuid: `Actor.bhern.Item.${item._id}`, effects: [], flags: {}, system: {}, getRollData: () => ({}) }
+  const AsyncFunction = Object.getPrototypeOf(async () => {}).constructor
+  const hook = acts(item).find((a) => a.macroData?.command?.includes('const SETUP'))
+  const run = new AsyncFunction('workflow', 'args', 'actor', 'token', 'rolledItem', 'rolledActivity', 'macroItem', hook.macroData.command)
+  await run({}, [{ macroPass: 'postActiveEffects' }], actor, undefined, feature, { id: tick._id }, feature)
+  assert.equal(posted.length, 1)
+  assert.match(posted[0].content, /Bhern is held \(Restrained\)\./)
+  assert.match(posted[0].content, /Nothing holds you\./)
+  actor.statuses = new Set(['poisoned'])
+  await run({}, [{ macroPass: 'postActiveEffects' }], actor, undefined, feature, { id: tick._id }, feature)
+  assert.equal(posted.length, 1, 'not held: no card')
+  for (const k of ['foundry', 'ChatMessage', 'CONFIG', 'game']) delete globalThis[k]
 })

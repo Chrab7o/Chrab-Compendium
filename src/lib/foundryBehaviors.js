@@ -21,6 +21,7 @@
 // dependency on the Chrab Sync module at play time.
 
 import { conditionText } from './foundryAutomation.js'
+import { CARD_COLORS, CHAT_RUNTIME, cardColor } from './foundryChat.js'
 
 export const BEHAVIOR_MODES = [
   { key: 'passive', label: 'Always on' },
@@ -66,8 +67,13 @@ export const BEHAVIOR_ACTIONS = [
   { key: 'message', label: 'Show a message' },
 ]
 
+// applyEffect extras: unique - only one creature carries it at a time (the
+// mark moves); pickAbility - the player picks an ability each time, filling
+// "{ability}" in the effect's change keys (Curse: -2 to that ability's saves).
+// Any "{owner}" in its change values becomes the owner's uuid, for midi
+// conditions that mean "against whoever applied it".
 export function emptyBehaviorAction(type = 'message') {
-  return { key: newId(), type, effectKey: '', to: 'self', pool: '', amount: '1', mode: type === 'resource' ? 'gain' : 'set', name: '', formula: '1', text: '', style: 'chat' }
+  return { key: newId(), type, effectKey: '', to: 'self', unique: false, pickAbility: false, pool: '', amount: '1', mode: type === 'resource' ? 'gain' : 'set', name: '', formula: '1', text: '', style: 'chat' }
 }
 
 // Guided checks on the owner, compiled to JavaScript over c.actor.
@@ -209,18 +215,25 @@ export function emptyBehavior(mode = 'toggle') {
       freeOff: true, // turning it off gives back the use it spent
       visual: 'necrotic',
       sequencerFile: '',
-      announce: true, // a chat line when it turns on or off
+      announce: true, // a chat card when it turns on or off
     },
+    // Chat cards: color (a CARD_COLORS key or #rrggbb; blank = the toggle's
+    // visual, else shadow violet) and the toggle's flavor lines.
+    flavor: { color: '', on: '', off: '' },
     rules: [],
   }
 }
 
 const DEFAULT_FORMULAS = { bonusDamage: '1d6', stayUp: '@hitDie + @abilities.con.mod' }
 
+// Outcomes that are a choice ("you may…"), so new rules ask first.
+const ASKS_BY_DEFAULT = ['bonusDamage', 'stayUp', 'nothing']
+
 export function emptyBehaviorRule(outcome = 'healSelf') {
   return {
     key: newId(),
     label: '', // shown in chat and in the "use it?" prompt
+    flavor: '', // a line of flavor text on its chat card and prompt
     event: eventForOutcome(outcome, 'attackRoll'),
     attackRange: 'any', // 'any' | 'melee' | 'ranged'
     attackSource: 'any', // 'any' | 'weapon' | 'spell'
@@ -230,7 +243,7 @@ export function emptyBehaviorRule(outcome = 'healSelf') {
     maxLevel: '', // only up to this level
     oncePerTurn: false,
     oncePerStance: false, // toggles: once each time the stance is turned on
-    ask: false, // "Use <label>?" before it happens
+    ask: ASKS_BY_DEFAULT.includes(outcome), // "Use <label>?" to the owner's player before it happens
     targetConditions: [], // foundryAutomation condition rows, against the first target
     when: '', // extra JavaScript condition, advanced
     outcome,
@@ -248,9 +261,11 @@ export function emptyBehaviorRule(outcome = 'healSelf') {
     actions: [], // emptyBehaviorAction() rows, after the outcome
     // A cost from a resource pool (a feature's uses, found by its identifier,
     // e.g. darkness). costExtra: the player may spend more, +1 die each.
+    // costOwnUses: spends this feature's own uses instead (Mark of Darkness).
     costPool: '',
     costAmount: '1',
     costExtra: false,
+    costOwnUses: false,
   }
 }
 
@@ -374,12 +389,12 @@ export function ruleSummary(rule) {
   else if (ev.key === 'turnEnd') when = 'At the end of each of your turns'
   else when = rule.attackRange !== 'any' || rule.attackSource !== 'any' ? `After your ${attack} deals damage` : 'After you deal damage'
   const extra = []
-  const n = Number(rule.naturalMin)
+  const natural = Number(rule.naturalMin)
   for (const words of selfConditionWords(rule.selfConditions)) extra.push(`and ${words}`)
   const dice = rule.dice ?? {}
   if (String(dice.formula ?? '').trim()) extra.push(`and roll ${String(dice.formula).trim()} for ${Number(dice.value) || 0} ${DICE_COMPARES[dice.compare] ?? 'or higher'}`)
   if (!ev.outcomes && !ev.target && !ev.self && !ev.failedSave && !ev.turn) {
-    if (n > 1) extra.push(n >= 20 ? 'and roll a 20 on the d20' : `and roll a ${n === 19 ? '19 or 20' : `${n} or higher`} on the d20`)
+    if (natural > 1) extra.push(natural >= 20 ? 'and roll a 20 on the d20' : `and roll a ${natural === 19 ? '19 or 20' : `${natural} or higher`} on the d20`)
     if (rule.critOnly) extra.push('and score a critical hit')
   }
   const tier = levelWords(rule)
@@ -429,9 +444,14 @@ export function ruleSummary(rule) {
     .filter(Boolean)
     .join('')
   const pool = poolId(rule.costPool)
-  const cost = pool && !ev.outcomes && !ev.target && !ev.turn
-    ? ` It costs ${Number(rule.costAmount) || 1} ${pool.replace(/-/g, ' ')}${rule.costExtra ? ', and you can spend more for an extra die each' : ''}.`
-    : ''
+  const n = Number(rule.costAmount) || 1
+  const cost = !canCost(ev)
+    ? ''
+    : rule.costOwnUses
+      ? ` It uses ${n === 1 ? 'one' : n} of this feature’s uses.`
+      : pool
+        ? ` It costs ${n} ${pool.replace(/-/g, ' ')}${rule.costExtra ? ', and you can spend more for an extra die each' : ''}.`
+        : ''
   const steps = (rule.actions ?? []).map(actionWords).filter(Boolean)
   const all = [what, ...steps].filter(Boolean)
   const body = all.length ? all.join(', and ') : 'nothing happens'
@@ -440,8 +460,11 @@ export function ruleSummary(rule) {
 
 function actionWords(a) {
   switch (a.type) {
-    case 'applyEffect':
-      return a.effectKey ? `${a.to === 'target' ? 'the target gains' : 'you gain'} ${a.name ? `“${a.name}”` : 'an effect'}` : ''
+    case 'applyEffect': {
+      if (!a.effectKey) return ''
+      const what = `${a.to === 'target' ? 'the target gains' : 'you gain'} ${a.name ? `“${a.name}”` : 'an effect'}`
+      return `${what}${a.pickAbility ? ' for an ability score you choose' : ''}${a.unique ? ' (one creature at a time)' : ''}`
+    }
     case 'resource': {
       const pool = poolId(a.pool)
       return pool ? `you ${a.mode === 'spend' ? 'spend' : 'regain'} ${formulaWords(a.amount) || 1} ${pool.replace(/-/g, ' ')}` : ''
@@ -479,23 +502,35 @@ export function behaviorSummary(behavior, itemName = '') {
 // ---------------------------------------------------------------------------
 // The hook macro
 
+// Bonded-creature rules happen to someone else and staying up has its own
+// cost (a hit die); everything else can cost a resource or a use.
+function canCost(ev) {
+  return !ev.bond && !ev.outcomes
+}
+
 // Only what the runtime reads, with defaults resolved here so the macro
 // doesn't have to.
 function runtimeRule(rule, toggle) {
   const ev = ruleEvent(rule)
   // Target-pass events (downed, bonded, I take damage) and turn ticks: no
-  // attack filters, no prompt, no cost - they run inside someone else's roll,
-  // or on the GM's client.
+  // attack filters. Their prompts still reach the owner's player (chrabDialog).
   const downed = !!ev.outcomes || !!ev.target || !!ev.turn
   const attacky = !downed && !ev.self && !ev.failedSave
+  const actions = (rule.actions ?? []).map(runtimeAction).filter(Boolean)
+  const pool = poolId(rule.costPool)
+  const amount = Math.max(1, Number(rule.costAmount) || 1)
+  const cost = !canCost(ev) ? null : rule.costOwnUses ? { pool: '', own: true, amount, extra: false } : pool ? { pool, own: false, amount, extra: !!rule.costExtra } : null
   const dice = rule.dice ?? {}
   return {
     key: rule.key,
     event: ev.key,
     label: String(rule.label ?? '').trim(),
+    flavor: String(rule.flavor ?? '').trim(),
+    // The prompt's "what happens" line.
+    summary: ruleOutcomeFits(rule) ? ruleSummary(rule) : '',
     pass: ev.pass,
     dice: String(dice.formula ?? '').trim() ? { formula: String(dice.formula).trim(), compare: dice.compare || 'gte', value: Number(dice.value) || 0 } : null,
-    actions: (rule.actions ?? []).map(runtimeAction).filter(Boolean),
+    actions,
     attackOnly: attacky && (!!ev.attack || rule.attackRange !== 'any' || rule.attackSource !== 'any'),
     range: !attacky || rule.attackRange === 'any' ? '' : rule.attackRange,
     source: !attacky || rule.attackSource === 'any' ? '' : rule.attackSource,
@@ -508,9 +543,11 @@ function runtimeRule(rule, toggle) {
     maxLevel: Number(rule.maxLevel) || 0,
     oncePerTurn: !!rule.oncePerTurn,
     oncePerStance: toggle && !!rule.oncePerStance,
-    // Staying up happens inside someone else's attack, on their client: a
-    // prompt would go to whoever is attacking, so it never asks.
-    ask: !downed && !!rule.ask,
+    // Asked of the owner's player even inside someone else's attack; a bond
+    // (sharing a hit, getting a cost back) just happens.
+    ask: !ev.bond && !!rule.ask,
+    // Always-on resistance bypasses would post a card on every attack.
+    quiet: rule.outcome === 'ignoreResistance' && !rule.ask && !cost && !actions.length,
     outcome: rule.outcome,
     formula: String(rule.formula ?? '').trim() || '0',
     type: rule.damageType || '',
@@ -520,7 +557,7 @@ function runtimeRule(rule, toggle) {
     share: rule.outcome === 'shareDamage' ? Math.min(100, Math.max(1, Number(rule.share) || 50)) : 0,
     ignore: rule.outcome === 'ignoreResistance' ? (rule.ignoreTypes ?? []).filter(Boolean) : [],
     refund: rule.outcome === 'refund' ? { pool: poolId(rule.refundPool), amount: Math.max(1, Number(rule.refundAmount) || 1) } : null,
-    cost: !downed && poolId(rule.costPool) ? { pool: poolId(rule.costPool), amount: Math.max(1, Number(rule.costAmount) || 1), extra: !!rule.costExtra } : null,
+    cost,
   }
 }
 
@@ -528,7 +565,7 @@ function runtimeRule(rule, toggle) {
 function runtimeAction(a) {
   switch (a.type) {
     case 'applyEffect':
-      return a.effectKey ? { type: a.type, effectKey: a.effectKey, to: a.to === 'target' ? 'target' : 'self' } : null
+      return a.effectKey ? { type: a.type, effectKey: a.effectKey, to: a.to === 'target' ? 'target' : 'self', unique: !!a.unique, pick: !!a.pickAbility } : null
     case 'resource':
       return poolId(a.pool) ? { type: a.type, pool: poolId(a.pool), amount: String(a.amount ?? '').trim() || '1', mode: a.mode === 'spend' ? 'spend' : 'gain' } : null
     case 'store':
@@ -579,10 +616,23 @@ const HEADER = (name) => `// ${name} - Chrab Corner feature behavior, generated 
 export function behaviorMacro(item, behavior) {
   const rules = (behavior.rules ?? []).filter(ruleOutcomeFits)
   const toggle = behavior.mode === 'toggle'
+  const flavor = behavior.flavor ?? {}
+  // Card color: the chosen one, else the stance's visual, else shadow violet.
+  const visual = toggle && CARD_COLORS[behavior.toggle?.visual] ? behavior.toggle.visual : ''
   const setup = {
     name: String(item?.name ?? '').trim() || 'Feature',
     levelClass: String(behavior.levelClass ?? '').trim(),
-    toggle: toggle ? { freeOff: behavior.toggle?.freeOff !== false, announce: behavior.toggle?.announce !== false, visual: visualFor(behavior) } : null,
+    color: cardColor(flavor.color || visual),
+    toggle: toggle
+      ? {
+          freeOff: behavior.toggle?.freeOff !== false,
+          announce: behavior.toggle?.announce !== false,
+          visual: visualFor(behavior),
+          minutes: Number(behavior.toggle?.duration) || 0,
+          on: String(flavor.on ?? '').trim(),
+          off: String(flavor.off ?? '').trim(),
+        }
+      : null,
     rules: rules.map((r) => runtimeRule(r, toggle)),
     // turn tick activity id -> "start" | "end"
     ticks: Object.fromEntries(turnTicks(behavior).map((t) => [t.id, t.turn])),
@@ -603,8 +653,10 @@ const feature = macroItem;
 const me = actor;
 if (!feature || !me) return;
 const speaker = ChatMessage.getSpeaker({ actor: me });
-const say = (html) => ChatMessage.implementation.create({ speaker, content: html });
 const esc = (s) => foundry.utils.escapeHTML ? foundry.utils.escapeHTML(String(s)) : String(s);
+${CHAT_RUNTIME}
+// A chat card for this feature: title, flavor line, then steps as they happen.
+const card = (title, flavor, steps = []) => ({ title: title || SETUP.name, flavor, steps: [...steps], rolls: [], img: feature.img, color: SETUP.color });
 const isStance = (e) => e.origin === feature.uuid && !!e.flags?.[FLAG]?.stance;
 const myToken = () => {
   const t = token ?? me.getActiveTokens?.()[0];
@@ -642,10 +694,11 @@ if (pass.toLowerCase() === "pretargetdamageapplication" && owner && me.uuid !== 
       d.hpDamage = Math.max(0, (Number(d.hpDamage) || 0) - share);
       d.newHP = Math.max(0, (Number(d.oldHP) || 0) - d.hpDamage);
       await owner.applyDamage([{ value: share, type: hurt[0].type }]);
-      await ChatMessage.implementation.create({
-        speaker: ChatMessage.getSpeaker({ actor: owner }),
-        content: "<p><strong>" + esc(sharing.label || SETUP.name) + "</strong>: " + esc(owner.name) + " takes " + share + " of the damage meant for " + esc(me.name) + ".</p>",
-      });
+      await chrabPost(card(sharing.label, sharing.flavor, [
+        esc(me.name) + " is hit for " + total + " damage",
+        esc(owner.name) + " takes " + share + " of the damage meant for " + esc(me.name),
+        esc(me.name) + " takes " + (total - share),
+      ]), owner);
     }
   }
   // Marked: dropping to 0 gives the owner the cost back (once per creature per workflow).
@@ -659,11 +712,10 @@ if (pass.toLowerCase() === "pretargetdamageapplication" && owner && me.uuid !== 
     const back = r.pool ? Math.min(r.amount, spent) : Math.min(1, spent);
     if (from && back > 0) {
       await from.update({ "system.uses.spent": spent - back });
-      await ChatMessage.implementation.create({
-        speaker: ChatMessage.getSpeaker({ actor: owner }),
-        content: "<p><strong>" + esc(refunding.label || SETUP.name) + "</strong>: " + esc(me.name) + " falls; " + esc(owner.name) + " regains " +
-          (r.pool ? back + " " + esc(r.pool) : "a use of " + esc(SETUP.name)) + ".</p>",
-      });
+      await chrabPost(card(refunding.label, refunding.flavor, [
+        esc(me.name) + " falls",
+        esc(owner.name) + " regains " + (r.pool ? back + " " + esc(r.pool.replace(/-/g, " ")) : "a use of " + esc(SETUP.name)),
+      ]), owner);
     }
   }
   return;
@@ -722,7 +774,7 @@ if (ownUse && !tick && SETUP.toggle && pass.toLowerCase() === "postactiveeffects
     await me.deleteEmbeddedDocuments("ActiveEffect", active.map((e) => e.id));
     const uses = feature.system?.uses;
     if (SETUP.toggle.freeOff && uses?.max && Number(uses.spent) > 0) await feature.update({ "system.uses.spent": Number(uses.spent) - 1 });
-    if (SETUP.toggle.announce) await say("<p><strong>" + esc(SETUP.name) + "</strong> ends.</p>");
+    if (SETUP.toggle.announce) await chrabPost(card(SETUP.name, SETUP.toggle.off, ["<strong>" + esc(SETUP.name) + "</strong> ends."]), me);
   } else {
     // A stance that ran out on its own leaves the fallback light behind.
     await visualOff();
@@ -737,7 +789,10 @@ if (ownUse && !tick && SETUP.toggle && pass.toLowerCase() === "postactiveeffects
     if (!data.length) return ui.notifications.warn(SETUP.name + ": this item has no stance effect to turn on.");
     const created = await me.createEmbeddedDocuments("ActiveEffect", data);
     await visualOn(created[0]);
-    if (SETUP.toggle.announce) await say("<p><strong>" + esc(SETUP.name) + "</strong> is active.</p>");
+    if (SETUP.toggle.announce) {
+      const lasts = SETUP.toggle.minutes ? " for " + SETUP.toggle.minutes + (SETUP.toggle.minutes === 1 ? " minute" : " minutes") : "";
+      await chrabPost(card(SETUP.name, SETUP.toggle.on, ["<strong>" + esc(SETUP.name) + "</strong> is active" + lasts + "."]), me);
+    }
   }
 }
 
@@ -750,7 +805,12 @@ const natural = Number(workflow?.diceRoll) || 0;
 const hits = workflow?.hitTargets?.size ?? 0;
 const dealt = (workflow?.damageList ?? []).reduce((sum, d) => sum + (Number(d.hpDamage) || 0) + (Number(d.tempDamage) || 0), 0);
 const target = workflow?.hitTargets?.first?.() ?? workflow?.failedSaves?.first?.() ?? workflow?.targets?.first?.();
-const rollData = { ...(feature.getRollData?.() ?? me.getRollData()), natural, hits, dealt };
+// name / statuses: for messages ("@name is @statuses").
+const statusNames = [...(me.statuses ?? [])].map((s) => {
+  const name = CONFIG.statusEffects?.find?.((e) => e.id === s)?.name;
+  return name ? game.i18n?.localize?.(name) ?? name : s;
+});
+const rollData = { ...(feature.getRollData?.() ?? me.getRollData()), natural, hits, dealt, name: me.name, statuses: statusNames.join(", ") };
 
 async function targetPasses(expression) {
   if (!target || !globalThis.MidiQOL?.evalCondition) return false;
@@ -783,21 +843,35 @@ async function whenPasses(rule, extra = {}) {
   }
 }
 
-async function ask(rule) {
-  const text = rule.label || SETUP.name;
-  const DialogV2 = foundry.applications?.api?.DialogV2;
-  if (!DialogV2) return true;
-  return !!(await DialogV2.confirm({
-    window: { title: SETUP.name },
-    content: "<p>Use <strong>" + esc(text) + "</strong>?</p>",
-    rejectClose: false,
-    modal: true,
-  }));
+// What set a rule off, for its card and prompt.
+const targetName = () => target?.name ?? target?.document?.name ?? target?.actor?.name ?? "";
+function triggerText(rule, vars = {}) {
+  const on = targetName() ? " " + esc(targetName()) : "";
+  switch (rule.event) {
+    case "attackRoll": return "Attack roll" + (on ? " against" + on : "") + ": natural " + natural;
+    case "hit": return (workflow?.isCritical ? "Critical hit" : "Hit") + (on ? " on" + on : "") + (activity?.item?.name ? " with " + esc(activity.item.name) : "");
+    case "damage": return (workflow?.isCritical ? "Critical hit" : "Hit") + (on ? " on" + on : "");
+    case "dealt": return dealt + " damage dealt" + (on ? " to" + on : "");
+    case "hurt": return esc(me.name) + " takes " + (vars.damageTaken ?? 0) + " damage";
+    case "failedSave": return (on ? on.trim() : "A target") + " fails the saving throw";
+    case "used": return esc(me.name) + " uses " + esc(SETUP.name) + (on ? " on" + on : "");
+    case "turnStart": return "The start of " + esc(me.name) + "'s turn";
+    case "turnEnd": return "The end of " + esc(me.name) + "'s turn";
+    case "downed": return esc(me.name) + " would drop to 0 hit points";
+    default: return "";
+  }
+}
+// The prompt shows the card so far plus what the rule will do.
+const preview = (rule, c, extra = []) => ({ ...c, steps: [...c.steps, ...extra, rule.summary ? "<em>" + esc(rule.summary) + "</em>" : ""] });
+async function ask(rule, c, extra = []) {
+  return chrabConfirm(me, preview(rule, c, extra), "Use " + esc(rule.label || SETUP.name) + "?");
 }
 
-// --- Costs from a resource pool: the owner's feature whose identifier is the
-// pool's (darkness), spending its uses.
+// --- Costs: a resource pool (the owner's feature whose identifier is the
+// pool's, e.g. darkness) or this feature's own uses, spending uses either way.
 const poolItem = (id) => me.items.find((i) => i.system?.identifier === id) ?? null;
+const costItem = (c) => (c.own ? feature : poolItem(c.pool));
+const costName = (c, n) => (c.own ? (n === 1 ? "use" : "uses") + " of " + SETUP.name : c.pool.replace(/-/g, " "));
 function usesLeft(item) {
   const u = item?.system?.uses;
   if (!u) return 0;
@@ -806,21 +880,18 @@ function usesLeft(item) {
 }
 // How much to spend: the fixed amount, or what the player picks (at least
 // the amount) when it can be more. 0 = declined.
-async function askSpend(rule, left, c = rule.cost) {
-  const text = esc(rule.label || SETUP.name);
-  const DialogV2 = foundry.applications?.api?.DialogV2;
-  if (!c.extra) return !rule.ask || (await ask(rule)) ? c.amount : 0;
-  if (!DialogV2) return c.amount;
-  const picked = await DialogV2.prompt({
-    window: { title: SETUP.name },
-    content: "<p>Use <strong>" + text + "</strong>? Spend how much " + esc(c.pool) + " (" + left + " left)? Each point over " + c.amount + " adds a die.</p>" +
-      '<input type="number" name="spend" value="' + c.amount + '" min="' + c.amount + '" max="' + left + '" autofocus>',
-    ok: { label: "Use", callback: (event, button) => Number(button.form.elements.spend.value) },
-    rejectClose: false,
-    modal: true,
+async function askSpend(rule, left, cost, c) {
+  const has = "You have " + left + " " + esc(costName(cost, left)) + ".";
+  if (!cost.extra) return !rule.ask || (await ask(rule, c, ["Costs " + cost.amount + " " + esc(costName(cost, cost.amount)) + ". " + has])) ? cost.amount : 0;
+  const picked = await chrabDialog(me, "input", {
+    window: { title: rule.label || SETUP.name },
+    content: chrabCardHtml(preview(rule, c, [has + " Each point over " + cost.amount + " adds a die."])) +
+      '<p><strong>Use ' + esc(rule.label || SETUP.name) + '? Spend how much?</strong></p>' +
+      '<input type="number" name="spend" value="' + cost.amount + '" min="' + cost.amount + '" max="' + left + '" autofocus>',
+    ok: { label: "Use it" },
   });
-  const n = Math.floor(Number(picked) || 0);
-  return n >= c.amount ? Math.min(n, left) : 0;
+  const n = Math.floor(Number(picked?.spend) || 0);
+  return n >= cost.amount ? Math.min(n, left) : 0;
 }
 async function spendPool(item, n) {
   await item.update({ "system.uses.spent": (Number(item.system.uses.spent) || 0) + n });
@@ -860,44 +931,101 @@ async function stayUp(incoming) {
     let formula = rule.formula;
     const die = rule.spendHitDie || /@hitDie\\b/.test(formula) ? hitDieClass() : null;
     if (rule.spendHitDie && !die) continue; // no hit dice left: I fall
+    const c = card(rule.label, rule.flavor, [triggerText(rule)]);
+    if (rule.ask && !(await ask(rule, c, rule.spendHitDie ? ["Costs a " + die.system.hd.denomination + " hit die (" + hitDiceLeft(die) + " left)."] : []))) continue;
     formula = formula.replace(/@hitDie\\b/g, "1" + (die?.system?.hd?.denomination || "d8"));
     if (rule.oncePerTurn) await markTurn(rule);
     if (rule.oncePerStance) await markStance(rule);
-    if (rule.spendHitDie) await die.update({ "system.hd.spent": (Number(die.system.hd.spent) || 0) + 1 });
+    if (rule.spendHitDie) {
+      await die.update({ "system.hd.spent": (Number(die.system.hd.spent) || 0) + 1 });
+      c.steps.push("Spends a " + die.system.hd.denomination + " hit die");
+    }
     const r = await roll({ ...rule, formula }, { type: "healing" });
     const hp = Math.max(1, Math.floor(r.total));
-    const label = rule.label || SETUP.name;
-    await r.toMessage({ speaker, flavor: esc(label) + ": " + esc(me.name) + " stays up with " + hp + " HP" + (rule.spendHitDie ? " (spent a " + die.system.hd.denomination + " hit die)" : "") });
+    c.steps.push("<strong>" + esc(me.name) + " stays up with " + hp + " HP</strong>");
+    c.rolls.push(r);
+    await chrabPost(c, me);
     return hp;
   }
   return 0;
 }
+function hitDiceLeft(cls) {
+  return Number(cls.system?.hd?.value ?? (Number(cls.system?.levels) || 0) - (Number(cls.system?.hd?.spent) || 0));
+}
 
 // --- A rule's own dice check: "roll 2d6, go on if 7 or higher".
-async function diceCheck(rule) {
+async function diceCheck(rule, c) {
   const r = await new Roll(rule.dice.formula, rollData).evaluate();
-  const c = rule.dice;
-  const ok = c.compare === "lte" ? r.total <= c.value : c.compare === "eq" ? r.total === c.value : r.total >= c.value;
+  const d = rule.dice;
+  const ok = d.compare === "lte" ? r.total <= d.value : d.compare === "eq" ? r.total === d.value : r.total >= d.value;
   rollData.check = r.total;
-  const needs = c.compare === "lte" ? c.value + " or lower" : c.compare === "eq" ? "exactly " + c.value : c.value + " or higher";
-  await r.toMessage?.({ speaker, flavor: esc(rule.label || SETUP.name) + ": needs " + needs + (ok ? " - it happens" : " - nothing") });
+  const needs = d.compare === "lte" ? d.value + " or lower" : d.compare === "eq" ? "exactly " + d.value : d.value + " or higher";
+  c.steps.push("Rolls " + esc(d.formula) + ": " + r.total + ", needs " + needs + (ok ? " - it happens" : " - nothing happens"));
+  c.rolls.push(r);
   return ok;
 }
 
-// --- A rule's actions, after its outcome.
-async function runActions(rule) {
+// A copy of one of this item's effects, ready to put on a creature.
+async function effectCopy(src, a, c) {
+  const data = src.toObject();
+  delete data._id;
+  delete data.start;
+  Object.assign(data, { origin: feature.uuid, transfer: false, disabled: false });
+  const changeLists = [data.changes, data.system?.changes].filter(Array.isArray);
+  if (a.pick) {
+    const names = { str: "Strength", dex: "Dexterity", con: "Constitution", int: "Intelligence", wis: "Wisdom", cha: "Charisma" };
+    const picked = await chrabDialog(me, "input", {
+      window: { title: SETUP.name },
+      content: chrabCardHtml(c) + "<p><strong>Which ability?</strong></p><select name=\\"ability\\">" +
+        Object.entries(names).map(([k, v]) => '<option value="' + k + '">' + v + "</option>").join("") + "</select>",
+      ok: { label: "Choose" },
+    });
+    const ab = picked?.ability;
+    if (!names[ab]) return null;
+    data.name = (data.name || SETUP.name) + " (" + names[ab] + ")";
+    for (const list of changeLists) for (const ch of list) ch.key = String(ch.key).replaceAll("{ability}", ab);
+  }
+  // "{owner}": conditions that mean "against whoever applied it" (Mark of Devastation).
+  for (const list of changeLists) for (const ch of list) ch.value = String(ch.value ?? "").replaceAll("{owner}", me.uuid);
+  data.flags = { ...data.flags, [FLAG]: { ...data.flags?.[FLAG], copyOf: src.id ?? src._id, appliedBy: me.uuid } };
+  return data;
+}
+
+// Takes a unique effect (a mark) off every other creature in the scene.
+async function removeOtherCopies(src, keep, c) {
+  const id = src.id ?? src._id;
+  const actors = new Set((globalThis.canvas?.tokens?.placeables ?? []).map((t) => t.actor).filter(Boolean));
+  for (const actor of actors) {
+    if (actor === keep) continue;
+    const old = (actor.effects ?? []).filter((e) => e.origin === feature.uuid && e.flags?.[FLAG]?.copyOf === id).map((e) => e.id);
+    if (!old.length) continue;
+    if (actor.isOwner === false) await MidiQOL.socket().executeAsGM("removeEffects", { actorUuid: actor.uuid, effects: old });
+    else await actor.deleteEmbeddedDocuments("ActiveEffect", old);
+    c.steps.push(esc(src.name || "The effect") + " leaves " + esc(actor.name));
+  }
+}
+
+// --- A rule's actions, after its outcome. Each adds a line to the card.
+async function runActions(rule, c) {
   for (const a of rule.actions ?? []) {
     try {
       if (a.type === "applyEffect") {
         const src = feature.effects.find((e) => (e.id ?? e._id) === a.effectKey);
         const who = a.to === "target" ? target?.actor : me;
-        if (!src || !who) continue;
-        const data = src.toObject();
-        delete data._id;
-        delete data.start;
-        Object.assign(data, { origin: feature.uuid, transfer: false, disabled: false });
+        if (!src) continue;
+        if (!who) {
+          c.steps.push("No target for " + esc(src.name || "the effect"));
+          continue;
+        }
+        const data = await effectCopy(src, a, c);
+        if (!data) {
+          c.steps.push("No ability chosen: nothing happens");
+          continue;
+        }
+        if (a.unique) await removeOtherCopies(src, who, c);
         if (who.isOwner === false) await MidiQOL.socket().executeAsGM("createEffects", { actorUuid: who.uuid, effects: [data] });
         else await who.createEmbeddedDocuments("ActiveEffect", [data]);
+        c.steps.push(esc(who.name) + " gains <strong>" + esc(data.name || SETUP.name) + "</strong>");
       } else if (a.type === "resource") {
         const it = poolItem(a.pool);
         if (!it) continue;
@@ -905,20 +1033,23 @@ async function runActions(rule) {
         const now = Number(it.system.uses.spent) || 0;
         const next = a.mode === "spend" ? now + Math.min(n, usesLeft(it)) : Math.max(0, now - n);
         if (next !== now) await it.update({ "system.uses.spent": next });
+        c.steps.push((a.mode === "spend" ? "Spends " : "Regains ") + Math.abs(next - now) + " " + esc(a.pool.replace(/-/g, " ")));
       } else if (a.type === "store") {
         // On the owner, so any formula can read it: @flags.chrab-sync.stored.<name>.
         const n = Number((await new Roll(a.formula, rollData).evaluate()).total) || 0;
         const path = "flags." + FLAG + ".stored." + a.name;
         const now = Number(foundry.utils.getProperty(me, path)) || 0;
-        await me.update({ [path]: a.mode === "add" ? now + n : n });
+        const value = a.mode === "add" ? now + n : n;
+        await me.update({ [path]: value });
+        c.steps.push(esc(a.name.replace(/-/g, " ")) + ": " + value);
       } else if (a.type === "message") {
         const text = a.text.replace(/@([\\w.-]+)/g, (m, p) => {
           const v = foundry.utils.getProperty(rollData, p);
           return v === undefined ? m : String(v);
         });
-        // A popup doesn't hold up the roll.
-        if (a.style === "popup") foundry.applications?.api?.DialogV2?.prompt({ window: { title: SETUP.name }, content: "<p>" + esc(text) + "</p>", rejectClose: false });
-        else await say("<p><strong>" + esc(rule.label || SETUP.name) + "</strong>: " + esc(text) + "</p>");
+        // A popup goes to the owner's player and doesn't hold up the roll.
+        if (a.style === "popup") chrabDialog(me, "prompt", { window: { title: SETUP.name }, content: chrabCardHtml(card(rule.label, rule.flavor, [esc(text)])), modal: false });
+        else c.steps.push(esc(text));
       }
     } catch (err) {
       console.warn("chrab-sync | " + SETUP.name + ": action " + a.type + " failed", err);
@@ -926,21 +1057,23 @@ async function runActions(rule) {
   }
 }
 
-async function hurtMe(amount, type, why) {
+// The owner takes damage from their own feature (a cost). c: the card to note it on.
+async function hurtMe(amount, type, why, c) {
   if (amount <= 0) return;
-  const words = "<p><strong>" + esc(why) + "</strong>: " + esc(me.name) + " takes " + amount + (type ? " " + esc(type) : "") + " damage.</p>";
+  const words = esc(me.name) + " takes " + amount + (type ? " " + esc(type) : "") + " damage";
+  const note = async () => (c ? c.steps.push(words) : chrabPost(card(why, "", [words]), me));
   // My own cost can drop me too; ignore: true below means it's exactly amount.
   const hp = me.system?.attributes?.hp;
   if (hp && hp.value > 0 && hp.value + (Number(hp.temp) || 0) - amount <= 0) {
     const up = await stayUp(null);
     if (up) {
       await me.update({ "system.attributes.hp.value": up, "system.attributes.hp.temp": 0 });
-      return say(words);
+      return note();
     }
   }
   // ignore: exactly this amount - the owner's resistances don't change a cost.
   await me.applyDamage([type ? { value: amount, type } : { value: amount }], { ignore: true });
-  await say(words);
+  await note();
 }
 
 // --- Someone's damage is about to land on me (a target pass). Midi applies
@@ -956,31 +1089,38 @@ async function fire(rule, vars = {}) {
   if (rule.oncePerTurn && usedThisTurn(rule)) return [];
   if (rule.oncePerStance && usedThisStance(rule)) return [];
   if (!(await whenPasses(rule, vars))) return [];
-  if (rule.dice && !(await diceCheck(rule))) return [];
-  // A cost: enough in the pool, then how much (asking when it can be more).
+  // The card: what set it off, then each step as it happens.
+  const c = card(rule.label, rule.flavor, [triggerText(rule, vars)]);
+  if (rule.dice && !(await diceCheck(rule, c))) {
+    await chrabPost(c, me);
+    return [];
+  }
+  // A cost: enough in the pool (or uses left), then how much (asking when it can be more).
   let pool = null;
   let spent = 0;
   let cost = null;
   if (rule.cost) {
     // Discounts on the owner (Magus upgrades, The Final Art): never below 1.
     const discount = me.flags?.[FLAG]?.discount ?? {};
-    const off = (Number(discount[rule.cost.pool]) || 0) + (Number(discount[feature.system?.identifier]) || 0);
+    const off = rule.cost.own ? 0 : (Number(discount[rule.cost.pool]) || 0) + (Number(discount[feature.system?.identifier]) || 0);
     cost = { ...rule.cost, amount: Math.max(1, rule.cost.amount - off) };
-    pool = poolItem(cost.pool);
+    pool = costItem(cost);
     const left = usesLeft(pool);
     if (!pool || left < cost.amount) {
-      if (rule.ask) ui.notifications?.info?.((rule.label || SETUP.name) + ": not enough " + cost.pool + " (" + left + " left).");
+      if (rule.ask) ui.notifications?.info?.((rule.label || SETUP.name) + ": not enough " + costName(cost, 2) + " (" + left + " left).");
       return [];
     }
-    spent = await askSpend(rule, left, cost);
+    spent = await askSpend(rule, left, cost, c);
     if (!spent) return [];
-  } else if (rule.ask && !(await ask(rule))) return [];
+    c.steps.push("Spends " + spent + " " + esc(costName(cost, spent)) + " (" + (left - spent) + " left)");
+  } else if (rule.ask && !(await ask(rule, c))) return [];
   if (rule.oncePerTurn) await markTurn(rule);
   if (rule.oncePerStance) await markStance(rule);
   if (pool && spent) await spendPool(pool, spent);
   const out = [];
-  await outcome(rule, { ...rule, formula: withExtraDice(rule.formula, spent ? spent - cost.amount : 0) }, out);
-  await runActions(rule);
+  await outcome(rule, { ...rule, formula: withExtraDice(rule.formula, spent ? spent - cost.amount : 0) }, out, c);
+  await runActions(rule, c);
+  if (!rule.quiet) await chrabPost(c, me);
   return out;
 }
 
@@ -1044,24 +1184,28 @@ for (const rule of SETUP.rules) {
 if (pass.toLowerCase() === "damagebonus") return bonus;
 
 // --- A rule's main outcome. use: the rule with any extra dice added.
-async function outcome(rule, use, bonus) {
+async function outcome(rule, use, bonus, c) {
   const label = rule.label || SETUP.name;
   if (rule.outcome === "bonusDamage") {
     const r = await roll(use, { flavor: label, isCritical: rule.critDoubles && !!workflow?.isCritical });
     bonus.push(r);
-    if (rule.selfCost) await hurtMe(r.total, rule.type, label);
+    // The dice show on midi's damage card, as part of the hit.
+    c.steps.push("<strong>+" + r.total + (rule.type ? " " + esc(rule.type) : "") + " damage</strong> added to the hit" + (workflow?.isCritical && rule.critDoubles ? " (dice doubled for the critical)" : ""));
+    if (rule.selfCost) await hurtMe(r.total, rule.type, label, c);
   } else if (rule.outcome === "healSelf") {
     const r = await roll(use, { type: "healing" });
-    await r.toMessage({ speaker, flavor: label + " - healing" });
+    c.rolls.push(r);
+    c.steps.push("<strong>" + esc(me.name) + " regains " + r.total + " HP</strong>");
     await me.applyDamage([{ value: r.total, type: "healing" }]);
   } else if (rule.outcome === "tempHpSelf") {
     const r = await roll(use, { type: "temphp" });
-    await r.toMessage({ speaker, flavor: label + " - temporary hit points" });
+    c.rolls.push(r);
+    c.steps.push("<strong>" + esc(me.name) + " gains " + r.total + " temporary HP</strong>");
     await me.applyTempHP(r.total);
   } else if (rule.outcome === "damageSelf") {
     const r = await roll(use);
-    await r.toMessage({ speaker, flavor: label });
-    await hurtMe(r.total, rule.type, label);
+    c.rolls.push(r);
+    await hurtMe(r.total, rule.type, label, c);
   } else if (rule.outcome === "ignoreResistance") {
     // "idr.slashing": midi's per-activity ignore list, read when the damage is
     // worked out. Added for this roll only.
@@ -1071,6 +1215,7 @@ async function outcome(rule, use, bonus) {
       for (const k of added) ignore.add(k);
       if (added.length) Hooks.once("midi-qol.RollComplete", () => added.forEach((k) => ignore.delete(k)));
     }
+    c.steps.push("This damage ignores resistance to " + esc(rule.ignore.join(", ")));
   }
 }
 `
@@ -1088,9 +1233,13 @@ async function outcome(rule, use, bonus) {
 // Advantage on attacks and the uses (proficiency bonus per long rest) live on
 // the item - see the deathStance template in foundryFeatures.js.
 export function deathStanceBehavior() {
+  // Restoring hit points on a crit isn't a choice in the text, so it just
+  // happens (with its card); the necrotic strike and refusing to fall are
+  // "you may", so the player is asked.
   const harvest = {
     ...emptyBehaviorRule('healSelf'),
     label: 'Death Stance: Blood Harvest',
+    flavor: 'The darkness drinks from the wound and pours the stolen life back into you.',
     attackRange: 'melee',
     formula: '1d10 + @abilities.con.mod',
   }
@@ -1099,6 +1248,7 @@ export function deathStanceBehavior() {
   const strike = {
     ...emptyBehaviorRule('bonusDamage'),
     label: 'Death Stance: Necrotic Strike',
+    flavor: 'You let the darkness bite through your blade - and it takes its share from you as well.',
     event: 'damage',
     attackRange: 'melee',
     ask: true,
@@ -1109,12 +1259,19 @@ export function deathStanceBehavior() {
   const undying = {
     ...emptyBehaviorRule('stayUp'),
     label: 'Death Stance: Refuse to Fall',
+    flavor: 'Death reaches for you, and the darkness will not let go.',
+    ask: true,
     oncePerStance: true,
   }
   const behavior = emptyBehavior('toggle')
   return {
     ...behavior,
     levelClass: 'the-dark-knight',
+    flavor: {
+      color: 'necrotic',
+      on: 'Darkness floods your veins. Your eyes burn red and every heartbeat calls for blood.',
+      off: 'The darkness ebbs back into the shadows, for now.',
+    },
     // Uses are limited now, so leaving early doesn't give one back.
     toggle: { ...behavior.toggle, duration: '1', freeOff: false },
     rules: [early, upgraded, strike, undying],

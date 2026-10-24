@@ -14,6 +14,7 @@ import {
   ruleOutcomeFits,
   ruleSummary,
 } from '../../../lib/foundryBehaviors'
+import { CARD_COLORS, CARD_COLOR_OPTIONS, cardColor } from '../../../lib/foundryChat'
 import { ConditionRows } from './AutomationFields'
 import FormulaInput from './FormulaInput'
 
@@ -112,6 +113,14 @@ function ActionRows({ rows, onChange, effects }) {
                 <option value="self">on me</option>
                 <option value="target">on the target</option>
               </select>
+              <label className="tag-checklist-item">
+                <input type="checkbox" checked={!!row.unique} onChange={(e) => update(i, { unique: e.target.checked })} />
+                One creature at a time
+              </label>
+              <label className="tag-checklist-item">
+                <input type="checkbox" checked={!!row.pickAbility} onChange={(e) => update(i, { pickAbility: e.target.checked })} />
+                Player picks an ability
+              </label>
             </>
           )}
           {row.type === 'resource' && (
@@ -154,6 +163,14 @@ function ActionRows({ rows, onChange, effects }) {
       {rows.some((r) => r.type === 'store') && (
         <p className="npc-hint">
           Stored values live on the character: any formula can read them as <code>@flags.chrab-sync.stored.&lt;name&gt;</code>.
+        </p>
+      )}
+      {rows.some((r) => r.type === 'applyEffect' && (r.pickAbility || r.unique)) && (
+        <p className="npc-hint">
+          One at a time: applying it takes it off whoever had it (a mark moves). Picks an ability: the player chooses
+          one each time, and <code>{'{ability}'}</code> in the effect&apos;s change keys becomes it, e.g.{' '}
+          <code>system.abilities.{'{ability}'}.bonuses.save</code>. Any <code>{'{owner}'}</code> in a change&apos;s value
+          becomes this creature, for conditions like <code>workflow?.actor?.uuid === &quot;{'{owner}'}&quot;</code>.
         </p>
       )}
     </div>
@@ -252,6 +269,16 @@ function RuleEditor({ rule, toggle, onChange, onRemove, effects = [] }) {
         <label>
           Label
           <input value={rule.label} onChange={(e) => set({ label: e.target.value })} placeholder="shown in chat, e.g. Blood Harvest" />
+        </label>
+      </div>
+      <div className="dm-form-row">
+        <label className="npc-wide-field">
+          Flavor text
+          <input
+            value={rule.flavor ?? ''}
+            onChange={(e) => set({ flavor: e.target.value })}
+            placeholder="on its chat card and prompt, e.g. The darkness drinks from the wound…"
+          />
         </label>
       </div>
 
@@ -370,7 +397,7 @@ function RuleEditor({ rule, toggle, onChange, onRemove, effects = [] }) {
           Up to level
           <input type="number" min="1" max="20" value={rule.maxLevel ?? ''} placeholder="any" onChange={(e) => set({ maxLevel: e.target.value })} />
         </label>
-        {!downed && (
+        {!bonded && (
           <label className="tag-checklist-item">
             <input type="checkbox" checked={!!rule.ask} onChange={(e) => set({ ask: e.target.checked })} />
             Ask first (the player chooses each time)
@@ -387,13 +414,29 @@ function RuleEditor({ rule, toggle, onChange, onRemove, effects = [] }) {
           </label>
         )}
       </div>
-      {!downed && (
+      {!bonded && !event.outcomes && (
         <div className="dm-form-row">
           <label>
-            Costs from resource
-            <input className="npc-code-input" value={rule.costPool ?? ''} onChange={(e) => set({ costPool: e.target.value })} placeholder="identifier, e.g. darkness (blank = free)" />
+            Costs
+            <select value={rule.costOwnUses ? 'own' : rule.costPool ? 'pool' : ''} onChange={(e) => set({ costOwnUses: e.target.value === 'own', costPool: e.target.value === 'pool' ? rule.costPool || 'darkness' : '' })}>
+              <option value="">Nothing</option>
+              <option value="own">Uses of this feature</option>
+              <option value="pool">A resource</option>
+            </select>
           </label>
-          {rule.costPool && (
+          {rule.costOwnUses && (
+            <label>
+              Uses
+              <input type="number" min="1" value={rule.costAmount ?? '1'} onChange={(e) => set({ costAmount: e.target.value })} />
+            </label>
+          )}
+          {!rule.costOwnUses && rule.costPool && (
+            <label>
+              Resource
+              <input className="npc-code-input" value={rule.costPool ?? ''} onChange={(e) => set({ costPool: e.target.value })} placeholder="identifier, e.g. darkness" />
+            </label>
+          )}
+          {!rule.costOwnUses && rule.costPool && (
             <>
               <label>
                 Amount
@@ -409,8 +452,9 @@ function RuleEditor({ rule, toggle, onChange, onRemove, effects = [] }) {
       )}
       {downed && !bonded && (
         <p className="npc-hint">
-          This runs inside the attacker&apos;s roll, so it never asks: it&apos;s used automatically. It also catches
-          this feature&apos;s own costs (“I take the same damage”).
+          This runs inside the attacker&apos;s roll, usually on the GM&apos;s screen. “Ask first” still asks the
+          player who owns this creature, on their screen (no answer in two minutes counts as no).
+          {rule.outcome === 'stayUp' && ' It also catches this feature’s own costs (“I take the same damage”).'}
         </p>
       )}
       {bonded && (
@@ -532,6 +576,47 @@ function ToggleFields({ toggle, set }) {
   )
 }
 
+// How its chat cards look: a color, and for a stance a line when it starts and ends.
+function FlavorFields({ flavor, toggle, visual, set }) {
+  const fallback = toggle && CARD_COLORS[visual] ? visual : 'shadow'
+  return (
+    <div className="npc-overtime">
+      <span className="option-picker-label">Chat cards</span>
+      <div className="dm-form-row">
+        <label>
+          Card color
+          <select value={flavor.color ?? ''} onChange={(e) => set({ color: e.target.value })}>
+            <option value="">{toggle && CARD_COLORS[visual] ? 'Same as the visual' : 'Shadow (violet)'}</option>
+            {CARD_COLOR_OPTIONS.map(([key, label]) => (
+              <option key={key} value={key}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <span className="npc-behavior-swatch" style={{ background: cardColor(flavor.color || fallback) }} aria-hidden="true" />
+      </div>
+      {toggle && (
+        <div className="dm-form-row">
+          <label className="npc-wide-field">
+            Flavor when it starts
+            <input value={flavor.on ?? ''} onChange={(e) => set({ on: e.target.value })} placeholder="e.g. Darkness floods your veins…" />
+          </label>
+          <label className="npc-wide-field">
+            Flavor when it ends
+            <input value={flavor.off ?? ''} onChange={(e) => set({ off: e.target.value })} placeholder="e.g. The darkness ebbs back…" />
+          </label>
+        </div>
+      )}
+      <p className="npc-hint">
+        Each rule posts one card in chat when it happens: what set it off, anything it spent, the dice and the result.
+        Rules set to “Ask first” show the same card to the player who owns the creature, on their screen, before
+        anything happens.
+      </p>
+    </div>
+  )
+}
+
 // "Behavior": a toggle (stance) and/or rules that react to the owner's OTHER
 // items - "when I make a melee attack roll... I regain hit points". Compiled by
 // lib/foundryBehaviors.js into one midi-qol macro plus the effect that hooks it.
@@ -569,6 +654,14 @@ export default function BehaviorFields({ item, onChange }) {
           </p>
         )}
         {behavior?.mode === 'toggle' && <ToggleFields toggle={{ ...emptyBehavior().toggle, ...behavior.toggle }} set={(patch) => set({ toggle: { ...behavior.toggle, ...patch } })} />}
+        {behavior && (
+          <FlavorFields
+            flavor={{ ...emptyBehavior().flavor, ...behavior.flavor }}
+            toggle={behavior.mode === 'toggle'}
+            visual={behavior.toggle?.visual}
+            set={(patch) => set({ flavor: { ...emptyBehavior().flavor, ...behavior.flavor, ...patch } })}
+          />
+        )}
         {behavior && (
           <>
             {rules.map((rule, i) => (

@@ -50,6 +50,7 @@ Every template under **Things you use** also has the cost settings:
 | Group | Template | Settings | Dark Knight features it makes |
 | --- | --- | --- | --- |
 | Always on | **Defenses** | Advantage on saves against (conditions), immune to conditions, resistance / immunity / vulnerability (damage types), reduce all damage by, reduce nonmagical physical damage by | Tainted Soul, Unstoppable |
+| Always on | **Reminder on your turn** | Start or end of your turn, only while you have one of some conditions (blank = always), the text (`@name`, `@statuses` fill in), flavor, color. A chat card from a hidden turn tick, in combat. | Inevitable |
 | Always on | **Passive bonus** | AC, initiative, walk/fly/swim/climb speed, the four senses, weapon attack bonus, melee/ranged weapon damage bonus, spell attack and DC bonus, weapon crit range, advantage on saves (abilities) and on skills | Vanguard L7 (WIS saves), Imposing Presence's Intimidation, Fighting Styles (Defense +1 AC, Dueling +2 damage, Blind Fighting blindsight 10 ft) |
 | Resources | **Cost reduction** | Resource, amount, only these features (blank = all). Never below 1. | Magus L7 (Shadow Lance, Grasp of Shadows −1), Magus L19 (all −2) |
 | Resources | **Resource pool** | Identifier (default `darkness`), size (default `@scale.the-dark-knight.darkness-points`), refills on | Dark Arts (Darkness) |
@@ -106,6 +107,49 @@ built-in setting for it, so the change stores the condition and is built as a co
   or else its item, applies that status or an effect named for it.
 - **Reading it back:** exports read it back into the editor by that expression.
 - **Unconfirmed:** that this works in Foundry. Run the sandbox's `probes/defenses.md`.
+
+## Chat cards and prompts
+
+Every automation step reports in a **chat card**, and every choice is a **prompt to the player who owns the
+creature**. Both come from one shared runtime (`src/lib/foundryChat.js`, `CHAT_RUNTIME`) pasted into each generated
+macro: behavior rules and the Feature Forge script recipes.
+
+- **The card:** the feature's name and icon, a colored border, a line of flavor text, then one line per step, with
+  the dice rendered underneath. For example, "Hit on Goblin with Longsword", "Spends 3 darkness (4 left)", "+12
+  necrotic damage added to the hit", "Bhern takes 12 necrotic damage". A rule posts one card when it happens. Stances
+  post one when they start and end. Always-on resistance bypasses stay quiet.
+- **Flavor:** each rule has a **Flavor text** line. The behavior has a **Card color** (shadow violet by default, or
+  the stance's visual) and, for a stance, flavor lines for starting and ending. Templates that post cards have
+  **Flavor text** and **Card color** settings.
+- **The prompt:** "Ask first" shows the card so far (what triggered it, its cost, what it will do) with **Use it** /
+  **Not now**. Costs that can be more ask how much.
+  - It goes to the player who owns the creature, on their screen, through Foundry's user queries
+    (`DialogV2.query`'s `dialog` query, permission `QUERY_USER`, which players have by default). This matters for
+    rules that run inside someone else's attack, usually on the GM's client: "I would drop to 0" (Refuse to Fall) and
+    "I take damage". Those can now ask.
+  - The player is the creature's active non-GM owner (their own character first), else the GM.
+  - No answer within two minutes counts as no, and the attack carries on.
+  - Bonded-creature rules (sharing a hit, getting a cost back) never ask.
+- **Default:** new rules whose outcome is a choice (extra damage, staying up, "only the actions") ask first. Heals
+  and temp HP that the text grants outright just happen, with their card.
+- **Costs from the feature's own uses:** a rule's Costs can be "Uses of this feature" (Mark of Darkness on a hit).
+- **Apply-an-effect options:**
+  - **One creature at a time:** applying it removes the copies on everyone else in the scene (a mark moves).
+  - **Player picks an ability:** `{ability}` in the effect's change keys becomes the choice, and the effect is named
+    after it (Curse's −2 saves).
+  - **`{owner}`:** in a change's value, this becomes the applier's actor uuid, for midi conditions such as
+    `workflow?.actor?.uuid === "{owner}"`.
+
+**New with this:**
+- **Mark or curse:** marks are placed by the feature's own rules, which makes these options possible:
+  - also offered on a hit (asks, costs a use)
+  - one at a time
+  - a save penalty on an ability the player picks
+  - "those count only between it and you", for Mark of Devastation
+- **Teleport:** can offer to warp beside the creature carrying your mark (Shadow Warp).
+- **Use and spend:** can post an announcement (Soul Surge, Shadow Image).
+- **Weapon attack against everyone in an area:** Death Wave. It asks which melee weapon, then makes one attack roll
+  against each AC through `MidiQOL.completeActivityUse`, with the extra damage as a short-lived melee damage bonus.
 
 ## Dark Knight roadmap
 

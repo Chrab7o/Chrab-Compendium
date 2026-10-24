@@ -10,6 +10,7 @@ import {
   emptyScript,
   scriptCode,
 } from '../../../lib/foundryAutomation'
+import { CARD_COLOR_OPTIONS } from '../../../lib/foundryChat'
 import OptionPicker from '../OptionPicker'
 import FormulaInput, { AttributePathInput } from './FormulaInput'
 
@@ -149,10 +150,100 @@ export function OverTimeRollFields({ activity, set, item }) {
   )
 }
 
+// Recipes that report in a chat card (foundryAutomation CARD_PARAMS).
+function CardParams({ p, set }) {
+  if (!('flavor' in p)) return null
+  return (
+    <div className="dm-form-row">
+      <label className="npc-wide-field">
+        Flavor text
+        <input value={p.flavor ?? ''} onChange={(e) => set({ flavor: e.target.value })} placeholder="a line on its chat card, e.g. Shadows coil around you…" />
+      </label>
+      <label>
+        Card color
+        <select value={p.color ?? ''} onChange={(e) => set({ color: e.target.value })}>
+          <option value="">Shadow (violet)</option>
+          {CARD_COLOR_OPTIONS.filter(([key]) => key !== 'shadow').map(([key, label]) => (
+            <option key={key} value={key}>
+              {label}
+            </option>
+          ))}
+        </select>
+      </label>
+    </div>
+  )
+}
+
 function RecipeParams({ script, setParams }) {
   const p = script.params ?? {}
   const set = (patch) => setParams({ ...p, ...patch })
-  switch (script.recipe) {
+  return (
+    <>
+      <RecipeFields recipe={script.recipe} p={p} set={set} />
+      <CardParams p={p} set={set} />
+    </>
+  )
+}
+
+function RecipeFields({ recipe, p, set }) {
+  switch (recipe) {
+    case 'teleport':
+      return (
+        <div className="dm-form-row">
+          <label>
+            Range (ft.)
+            <input type="number" min="5" step="5" value={p.range} onChange={(e) => set({ range: e.target.value })} />
+          </label>
+          <label className="npc-wide-field">
+            Or warp beside a creature carrying your mark
+            <input value={p.toMark ?? ''} onChange={(e) => set({ toMark: e.target.value })} placeholder="the mark's effect name, e.g. Marked by Darkness (blank = off)" />
+          </label>
+        </div>
+      )
+    case 'sacrifice':
+      return (
+        <div className="dm-form-row">
+          <label>
+            You take
+            <FormulaInput value={p.formula} onChange={(formula) => set({ formula })} placeholder="3d10" ariaLabel="Damage you take" />
+          </label>
+          <label>
+            Damage type
+            <DamageTypeSelect value={p.damageType} onChange={(damageType) => set({ damageType })} />
+          </label>
+          <label>
+            Allies within (ft.)
+            <input type="number" min="5" step="5" value={p.range} onChange={(e) => set({ range: e.target.value })} />
+          </label>
+        </div>
+      )
+    case 'takeHit':
+      return (
+        <div className="dm-form-row">
+          <label>
+            You take it as
+            <DamageTypeSelect value={p.damageType} onChange={(damageType) => set({ damageType })} />
+          </label>
+        </div>
+      )
+    case 'announce':
+      return (
+        <div className="dm-form-row">
+          <label className="npc-wide-field">
+            What it says
+            <input value={p.text ?? ''} onChange={(e) => set({ text: e.target.value })} placeholder="e.g. @actor can take one more action this turn." />
+          </label>
+        </div>
+      )
+    case 'weaponWave':
+      return (
+        <div className="dm-form-row">
+          <label>
+            Extra damage on each hit
+            <FormulaInput value={p.extra} onChange={(extra) => set({ extra })} placeholder="1d8" ariaLabel="Extra damage" />
+          </label>
+        </div>
+      )
     case 'targetStatDamage':
       return (
         <div className="dm-form-row">
