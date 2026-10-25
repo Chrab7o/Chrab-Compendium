@@ -37,7 +37,7 @@ export default function FeatureMechanics({ row, onChange, linkable = [] }) {
   }
 
   function unlink() {
-    if (!confirm('Remove the mechanics from this feature? The Feature Forge keeps its copy, so you can link it again.')) return
+    if (!confirm('Remove the mechanics from this feature? The Item Forge keeps its copy, so you can link it again.')) return
     onChange({ feature_draft_id: null, mechanics: undefined, mechanicsDirty: false, mechanicsMissing: false })
   }
 
@@ -60,7 +60,7 @@ export default function FeatureMechanics({ row, onChange, linkable = [] }) {
                   + Start blank
                 </button>
                 <label>
-                  Use a Feature Forge feature
+                  Use an Item Forge item
                   <select value="" onChange={(e) => link(e.target.value)}>
                     <option value="">Choose…</option>
                     {linkable.map((o) => (
@@ -76,7 +76,7 @@ export default function FeatureMechanics({ row, onChange, linkable = [] }) {
           )}
           {row.mechanicsMissing && !spec && (
             <p className="npc-hint npc-behavior-warn">
-              This feature is linked to a Feature Forge draft that couldn&apos;t be loaded.{' '}
+              This feature is linked to an Item Forge item that couldn&apos;t be loaded.{' '}
               <button type="button" className="secondary npc-small-button" onClick={unlink}>
                 Unlink
               </button>
@@ -104,11 +104,11 @@ export default function FeatureMechanics({ row, onChange, linkable = [] }) {
               </NpcSpecContext.Provider>
               <div className="dm-form-actions">
                 {row.feature_draft_id ? (
-                  <Link to={`/dm/feature-forge/${row.feature_draft_id}/edit`} target="_blank" rel="noreferrer" className="button-link secondary">
-                    Open in Feature Forge (macro preview, send to Foundry)
+                  <Link to={`/dm/item-forge/${row.feature_draft_id}/edit`} target="_blank" rel="noreferrer" className="button-link secondary">
+                    Open in the Item Forge (macro preview, send to Foundry)
                   </Link>
                 ) : (
-                  <span className="npc-hint">Saved to the Feature Forge when you save the class.</span>
+                  <span className="npc-hint">Saved to the Item Forge when you save the class.</span>
                 )}
                 <button type="button" className="danger npc-small-button" onClick={unlink}>
                   Remove mechanics

@@ -60,7 +60,8 @@ async function replaceWith(target, data, { keepSpent = false } = {}) {
 // Returns { item, mode: 'created' | 'updated', copies }. Throws on failure.
 export async function applyQueuedFeature(entry, { updateCopies = true } = {}) {
   const data = foundry.utils.deepClone(entry.queued_item)
-  if (!['feat', 'spell'].includes(data?.type)) throw new Error('Queued data is not a feature or spell item.')
+  // Item Forge drafts: features, spells and gear (weapons, armor, wondrous items, consumables).
+  if (!['feat', 'spell', 'weapon', 'equipment', 'consumable', 'loot'].includes(data?.type)) throw new Error('Queued data is not a feature, spell or item.')
   data.flags = foundry.utils.mergeObject(data.flags ?? {}, { [MODULE_ID]: { [FEATURE_FLAG_KEY]: entry.id } })
 
   const existing = findDraftItem(entry.id)

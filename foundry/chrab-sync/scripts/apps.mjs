@@ -205,7 +205,7 @@ export class SyncApp extends ApplicationV2 {
             <label>
               <input type="checkbox" name="pickItem" value="${esc(f.id)}" ${result?.ok ? 'disabled' : 'checked'}>
               <strong>${esc(f.name)}</strong>
-              <span class="chrab-sync-meta">${f.kind === 'spell' ? 'Spell' : 'Feature'} · ${target}${owners} · sent ${esc(new Date(f.queued_at).toLocaleString())}</span>
+              <span class="chrab-sync-meta">${f.kind === 'spell' ? 'Spell' : f.kind === 'gear' ? 'Item' : 'Feature'} · ${target}${owners} · sent ${esc(new Date(f.queued_at).toLocaleString())}</span>
             </label>
             ${result ? `<span class="chrab-sync-result ${result.ok ? 'ok' : 'fail'}">${esc(result.text)}</span>` : ''}
           </li>`
@@ -213,7 +213,7 @@ export class SyncApp extends ApplicationV2 {
       .join('')
     const pending = this.features.filter((f) => !this.featureResults[f.id]?.ok).length
     return `
-      ${this.features.length ? `<ul class="chrab-sync-list">${rows}</ul>` : this.loaded && !this.message ? '<p class="chrab-sync-message">No features waiting. Send them from the Feature Forge on the Compendium site.</p>' : ''}
+      ${this.features.length ? `<ul class="chrab-sync-list">${rows}</ul>` : this.loaded && !this.message ? '<p class="chrab-sync-message">No items waiting. Send them from the Item Forge on the Compendium site.</p>' : ''}
       <label class="chrab-sync-inline"><input type="checkbox" name="updateCopies" ${this.updateCopies ? 'checked' : ''}> Also update copies already on characters (keeps their spent uses)</label>
       <p class="chrab-sync-meta">Features can carry scripts that run in players' browsers once they're on a character. They were written by a DM on the Compendium site.</p>
       <footer class="chrab-sync-footer">

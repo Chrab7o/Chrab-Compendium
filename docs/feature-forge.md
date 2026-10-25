@@ -1,5 +1,8 @@
 # Feature Forge and behaviors
 
+> The Feature Forge is now the **Item Forge** (`/dm/item-forge`), the item library NPCs link. See
+> `docs/feature-forge-guided.md` for the guided editor and the library.
+
 ## What this is
 
 Two pieces, built together:

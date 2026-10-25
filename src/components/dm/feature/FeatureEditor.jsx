@@ -5,12 +5,15 @@ import {
   FEATURE_KINDS,
   FEAT_TYPES,
   buildFeatureItem,
+  gearType,
+  rarityLabel,
   emptyFeatureSpec,
   featureItemToSpec,
   featureName,
   featureSpecFromRow,
 } from '../../../lib/foundryFeatures'
 import { featureDraftLinks, republishQuietly } from '../../../lib/foundryClassPackPublish'
+import { npcsUsingDraft } from '../../../lib/itemLibraryStore'
 import { useCampaignContext } from '../../../contexts/CampaignContext'
 import { ItemCard } from '../npc/ActionBuilder'
 import { NpcSpecContext } from '../npc/FormulaInput'
@@ -18,7 +21,19 @@ import { SpellCard } from '../npc/SpellcastingPanel'
 import { downloadFeatureItem } from './downloadItem'
 import { OWNER_CONTEXT } from './ownerContext'
 import TemplatePicker from './TemplatePicker'
+import FeatureWizard from './FeatureWizard'
+import { DescriptionBlocks, GearStatFields } from './GearFields'
 import { buildFromTemplate, findTemplate } from '../../../lib/automationTemplates'
+
+// Guided (FeatureWizard) or All fields (the item card form), remembered per browser.
+const MODE_KEY = 'featureForge.mode'
+function storedMode() {
+  try {
+    return localStorage.getItem(MODE_KEY) === 'all' ? 'all' : 'guided'
+  } catch {
+    return 'guided'
+  }
+}
 
 function stripHtml(html) {
   return String(html ?? '')
@@ -34,6 +49,10 @@ function stripHtml(html) {
 // Right-hand preview: the item card as Foundry will show it, plus the
 // generated behavior macro for anyone who wants to read what will run.
 function FeaturePreview({ spec }) {
+  const gearLabel =
+    spec.kind === 'gear'
+      ? [rarityLabel(spec.gear.rarity), gearType(spec).subtypes.find(([k]) => k === spec.gear.subtype)?.[1], spec.gear.attunement && '(requires attunement)'].filter(Boolean).join(' ')
+      : ''
   const { item, error } = useMemo(() => {
     try {
       return { item: buildFeatureItem(spec), error: null }
@@ -44,7 +63,7 @@ function FeaturePreview({ spec }) {
   if (error) return <aside className="npc-statblock"><p className="status-message error">{error}</p></aside>
   const activities = Object.values(item.system.activities ?? {})
   const hook = item.flags?.['chrab-sync']?.behavior ? activities[0] : null
-  const typeLabel = item.type === 'spell' ? 'Spell' : FEAT_TYPES.find((t) => t.key === item.system.type?.value)?.label ?? 'Feature'
+  const typeLabel = gearLabel || (item.type === 'spell' ? 'Spell' : FEAT_TYPES.find((t) => t.key === item.system.type?.value)?.label ?? 'Feature')
   return (
     <aside className="npc-statblock" aria-label="Item preview">
       <h2>{item.name}</h2>
@@ -101,7 +120,7 @@ export default function FeatureEditor() {
   // ?template=: a template with settings asks for them first (TemplatePicker).
   const startTemplate = isNew ? findTemplate(search.get('template')) : null
   const [spec, setSpec] = useState(
-    () => (startTemplate && !startTemplate.params.length ? buildFromTemplate(startTemplate).spec : null) ?? emptyFeatureSpec(search.get('kind') === 'spell' ? 'spell' : 'feat'),
+    () => (startTemplate && !startTemplate.params.length ? buildFromTemplate(startTemplate).spec : null) ?? emptyFeatureSpec(['spell', 'gear'].includes(search.get('kind')) ? search.get('kind') : 'feat'),
   )
   const [pickingTemplate, setPickingTemplate] = useState(!!startTemplate?.params.length)
   const [campaignId, setCampaignId] = useState(currentCampaignId || '')
@@ -112,6 +131,17 @@ export default function FeatureEditor() {
   const [savedAt, setSavedAt] = useState(null)
   const [syncStatus, setSyncStatus] = useState('draft')
   const [usedBy, setUsedBy] = useState([]) // class / subclass features this automates
+  const [onNpcs, setOnNpcs] = useState([]) // NPC Forge drafts that link it
+  const [mode, setMode] = useState(storedMode)
+
+  function switchMode(next) {
+    setMode(next)
+    try {
+      localStorage.setItem(MODE_KEY, next)
+    } catch {
+      // private window: just don't remember it
+    }
+  }
 
   useEffect(() => {
     if (!draftId) return
@@ -119,6 +149,9 @@ export default function FeatureEditor() {
     featureDraftLinks(draftId).then((links) => {
       if (!cancelled) setUsedBy(links)
     })
+    npcsUsingDraft(draftId)
+      .then((npcs) => !cancelled && setOnNpcs(npcs))
+      .catch(() => {})
     return () => {
       cancelled = true
     }
@@ -179,7 +212,7 @@ export default function FeatureEditor() {
       const notice = await republishQuietly()
       if (notice) setError(notice)
     }
-    if (!draftId) navigate(`/dm/feature-forge/${result.data.id}/edit`, { replace: true })
+    if (!draftId) navigate(`/dm/item-forge/${result.data.id}/edit`, { replace: true })
     return result.data.id
   }
 
@@ -196,18 +229,21 @@ export default function FeatureEditor() {
     if (savedId) downloadFeatureItem(spec, savedId)
   }
 
+  // Resolves true when the form was replaced (the wizard's Start step moves on).
   async function handleImport(e) {
     const file = e.target.files[0]
     e.target.value = ''
-    if (!file) return
+    if (!file) return false
     setError(null)
     try {
       const item = JSON.parse(await file.text())
       const next = featureItemToSpec(item)
-      if (name && !confirm(`Replace everything on this form with "${item.name}"?`)) return
+      if (name && !confirm(`Replace everything on this form with "${item.name}"?`)) return false
       setSpec(next)
+      return true
     } catch (err) {
       setError(`Import failed: ${err.message}`)
+      return false
     }
   }
 
@@ -216,8 +252,27 @@ export default function FeatureEditor() {
   return (
     <section className="page-wide">
       <div className="view-header">
-        <h1>{isNew && !draftId ? 'New feature' : `Edit ${name || 'feature'}`}</h1>
+        <h1>{isNew && !draftId ? 'New item' : `Edit ${name || 'item'}`}</h1>
         <div className="dm-form-actions">
+          <div className="fw-mode" role="group" aria-label="Editor layout">
+            <button type="button" className={mode === 'guided' ? 'is-on' : ''} aria-pressed={mode === 'guided'} onClick={() => switchMode('guided')}>
+              Guided
+            </button>
+            <button type="button" className={mode === 'all' ? 'is-on' : ''} aria-pressed={mode === 'all'} onClick={() => switchMode('all')}>
+              All fields
+            </button>
+          </div>
+          <label className="fw-campaign">
+            Campaign
+            <select value={campaignId} onChange={(e) => setCampaignId(e.target.value)}>
+              <option value="">None</option>
+              {campaigns.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </label>
           <label className="button-link">
             Load Foundry item
             <input type="file" accept="application/json" onChange={handleImport} style={{ display: 'none' }} />
@@ -263,6 +318,21 @@ export default function FeatureEditor() {
         </div>
       )}
 
+      {onNpcs.length > 0 && (
+        <div className="draft-banner feature-used-by">
+          <span>
+            On{' '}
+            {onNpcs.map((npc, i) => (
+              <span key={npc.id}>
+                {i > 0 && ', '}
+                <Link to={`/dm/npc-forge/${npc.id}/edit`}>{npc.name || 'Untitled NPC'}</Link>
+              </span>
+            ))}
+            . Changes here show on {onNpcs.length === 1 ? 'it' : 'them'} on the site right away; re-send {onNpcs.length === 1 ? 'it' : 'them'} from the NPC Forge to update Foundry.
+          </span>
+        </div>
+      )}
+
       <div className="npc-forge-layout">
         <form
           className="dm-form"
@@ -271,75 +341,92 @@ export default function FeatureEditor() {
             save()
           }}
         >
-          <div className="dm-form-row">
-            <label>
-              Kind
-              <select value={spec.kind} onChange={(e) => set({ kind: e.target.value })}>
-                {FEATURE_KINDS.map((k) => (
-                  <option key={k.key} value={k.key}>
-                    {k.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            {spec.kind === 'feat' && (
-              <>
+          {mode === 'guided' ? (
+            <NpcSpecContext.Provider value={OWNER_CONTEXT}>
+              <FeatureWizard
+                spec={spec}
+                set={set}
+                replace={setSpec}
+                onImport={handleImport}
+                showStart={isNew && !draftId && !startTemplate}
+                linkedText={usedBy.length > 0}
+              />
+            </NpcSpecContext.Provider>
+          ) : (
+            <>
+              <div className="dm-form-row">
                 <label>
-                  Feature type
-                  <select value={spec.featType} onChange={(e) => set({ featType: e.target.value })}>
-                    {FEAT_TYPES.map((t) => (
-                      <option key={t.key} value={t.key}>
-                        {t.label}
+                  Kind
+                  <select value={spec.kind} onChange={(e) => set({ kind: e.target.value })}>
+                    {FEATURE_KINDS.map((k) => (
+                      <option key={k.key} value={k.key}>
+                        {k.label}
                       </option>
                     ))}
                   </select>
                 </label>
-                <label>
-                  Requirements
-                  <input value={spec.requirements} onChange={(e) => set({ requirements: e.target.value })} placeholder="e.g. Fighter 3" />
-                </label>
-              </>
-            )}
-            <label>
-              Campaign
-              <select value={campaignId} onChange={(e) => setCampaignId(e.target.value)}>
-                <option value="">None</option>
-                {campaigns.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
+                {spec.kind === 'feat' && (
+                  <>
+                    <label>
+                      Feature type
+                      <select value={spec.featType} onChange={(e) => set({ featType: e.target.value })}>
+                        {FEAT_TYPES.map((t) => (
+                          <option key={t.key} value={t.key}>
+                            {t.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label>
+                      Requirements
+                      <input value={spec.requirements} onChange={(e) => set({ requirements: e.target.value })} placeholder="e.g. Fighter 3" />
+                    </label>
+                  </>
+                )}
+              </div>
 
-          <NpcSpecContext.Provider value={OWNER_CONTEXT}>
-            {spec.kind === 'spell' ? (
-              <SpellCard spell={spec.spell} onChange={(spell) => set({ spell })} standalone />
-            ) : (
-              <>
-                <label>
-                  Icon
-                  <input value={spec.item.img} onChange={(e) => set({ item: { ...spec.item, img: e.target.value } })} placeholder="Foundry path, e.g. icons/svg/skull.svg" />
-                </label>
-                <div className="repeatable-rows">
-                  <ItemCard item={spec.item} onChange={(item) => set({ item })} standalone />
-                </div>
-              </>
-            )}
-          </NpcSpecContext.Provider>
+              <NpcSpecContext.Provider value={OWNER_CONTEXT}>
+                {spec.kind === 'spell' ? (
+                  <SpellCard spell={spec.spell} onChange={(spell) => set({ spell })} standalone />
+                ) : spec.kind === 'gear' ? (
+                  <>
+                    <GearStatFields gear={spec.gear} setGear={(patch) => set({ gear: { ...spec.gear, ...patch } })} />
+                    <label>
+                      Icon
+                      <input value={spec.item.img} onChange={(e) => set({ item: { ...spec.item, img: e.target.value } })} placeholder="Foundry path" />
+                    </label>
+                    <h3>Description</h3>
+                    <DescriptionBlocks blocks={spec.gear.blocks} onChange={(blocks) => set({ gear: { ...spec.gear, blocks } })} />
+                    <div className="repeatable-rows">
+                      <ItemCard item={spec.item} onChange={(item) => set({ item })} standalone />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <label>
+                      Icon
+                      <input value={spec.item.img} onChange={(e) => set({ item: { ...spec.item, img: e.target.value } })} placeholder="Foundry path, e.g. icons/svg/skull.svg" />
+                    </label>
+                    <div className="repeatable-rows">
+                      <ItemCard item={spec.item} onChange={(item) => set({ item })} standalone />
+                    </div>
+                  </>
+                )}
+              </NpcSpecContext.Provider>
 
-          <p className="status-message">
-            Formulas resolve against whoever owns the item in Foundry: <code>@abilities.con.mod</code> is that
-            character&apos;s CON modifier. Scripts and behaviors run in the browser of the player who uses the item.
-          </p>
+              <p className="status-message">
+                Formulas resolve against whoever owns the item in Foundry: <code>@abilities.con.mod</code> is that
+                character&apos;s CON modifier. Scripts and behaviors run in the browser of the player who uses the item.
+              </p>
+            </>
+          )}
 
           {error && <p className="status-message error">{error}</p>}
           <div className="dm-form-actions">
             <button type="submit" disabled={saving}>
               {saving ? 'Saving...' : isNew && !draftId ? 'Create feature' : 'Save changes'}
             </button>
-            <button type="button" className="secondary" onClick={() => navigate('/dm/feature-forge')}>
+            <button type="button" className="secondary" onClick={() => navigate('/dm/item-forge')}>
               Back to list
             </button>
             {savedAt && (

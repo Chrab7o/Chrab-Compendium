@@ -147,12 +147,186 @@ function SpellPicker({ records, title, onAdd, onClose, takenKeys }) {
   )
 }
 
+// The pieces of a spell's card. SpellCard stacks them; the guided Feature
+// Forge (feature/FeatureWizard.jsx) splits them over its Basics and "How it's
+// used" steps.
+
+// Name, level, school, and for an NPC how it casts it.
+export function SpellNameFields({ spell, set, standalone = false }) {
+  return (
+    <div className="dm-form-row">
+      <label>
+        Name
+        <input value={spell.name} onChange={(e) => set({ name: e.target.value })} placeholder="e.g. Hellfire Lance" />
+      </label>
+      <label>
+        Level
+        <select value={spell.level} onChange={(e) => set({ level: Number(e.target.value) })}>
+          {Array.from({ length: 10 }, (_, i) => (
+            <option key={i} value={i}>
+              {spellLevelLabel(i)}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label>
+        School
+        <select value={spell.school} onChange={(e) => set({ school: e.target.value })}>
+          {Object.entries(SPELL_SCHOOLS).map(([k, v]) => (
+            <option key={k} value={k}>
+              {v}
+            </option>
+          ))}
+        </select>
+      </label>
+      {!standalone && (
+        <label>
+          Cast
+          <select value={spell.method} onChange={(e) => set({ method: e.target.value })}>
+            {SPELL_METHODS.map((m) => (
+              <option key={m.key} value={m.key}>
+                {m.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+      {!standalone && spell.method === 'perDay' && (
+        <label>
+          Times per day
+          <input type="number" min="1" value={spell.usesPerDay} onChange={(e) => set({ usesPerDay: Number(e.target.value) || 1 })} />
+        </label>
+      )}
+    </div>
+  )
+}
+
+// Casting time, range, area and duration.
+export function SpellCastingFields({ spell, set }) {
+  const setIn = (field, patch) => set({ [field]: { ...spell[field], ...patch } })
+  return (
+    <div className="dm-form-row">
+      <label>
+        Casting time
+        <select value={spell.activation.type} onChange={(e) => setIn('activation', { type: e.target.value })}>
+          {CAST_TIMES.map((t) => (
+            <option key={t.key} value={t.key}>
+              {t.label}
+            </option>
+          ))}
+        </select>
+      </label>
+      {['minute', 'hour'].includes(spell.activation.type) && (
+        <label>
+          How many
+          <input type="number" min="1" value={spell.activation.value} onChange={(e) => setIn('activation', { value: Number(e.target.value) || 1 })} />
+        </label>
+      )}
+      <label>
+        Range
+        <select value={spell.range.units} onChange={(e) => setIn('range', { units: e.target.value })}>
+          {RANGE_UNITS.map((u) => (
+            <option key={u.key} value={u.key}>
+              {u.label}
+            </option>
+          ))}
+        </select>
+      </label>
+      {['ft', 'mi'].includes(spell.range.units) && (
+        <label>
+          Distance
+          <input type="number" min="0" value={spell.range.value} onChange={(e) => setIn('range', { value: e.target.value })} />
+        </label>
+      )}
+      <label>
+        Area
+        <select value={spell.area.type} onChange={(e) => setIn('area', { type: e.target.value })}>
+          <option value="">None</option>
+          {AREA_TYPES.map((t) => (
+            <option key={t} value={t}>
+              {cap(t)}
+            </option>
+          ))}
+        </select>
+      </label>
+      {spell.area.type && (
+        <label>
+          Area size (ft.)
+          <input type="number" min="0" step="5" value={spell.area.size} onChange={(e) => setIn('area', { size: e.target.value })} />
+        </label>
+      )}
+      <label>
+        Duration
+        <select value={spell.duration.units} onChange={(e) => setIn('duration', { units: e.target.value })}>
+          {DURATION_UNITS.map((u) => (
+            <option key={u.key} value={u.key}>
+              {u.label}
+            </option>
+          ))}
+        </select>
+      </label>
+      {['round', 'minute', 'hour', 'day'].includes(spell.duration.units) && (
+        <label>
+          How long
+          <input type="number" min="1" value={spell.duration.value} onChange={(e) => setIn('duration', { value: e.target.value })} />
+        </label>
+      )}
+    </div>
+  )
+}
+
+// Components, concentration and ritual.
+export function SpellComponentFields({ spell, set }) {
+  const setIn = (field, patch) => set({ [field]: { ...spell[field], ...patch } })
+  return (
+    <>
+      <div className="dm-form-row">
+        <label className="tag-checklist-item">
+          <input type="checkbox" checked={!!spell.components.v} onChange={(e) => setIn('components', { v: e.target.checked })} />
+          Verbal
+        </label>
+        <label className="tag-checklist-item">
+          <input type="checkbox" checked={!!spell.components.s} onChange={(e) => setIn('components', { s: e.target.checked })} />
+          Somatic
+        </label>
+        <label className="tag-checklist-item">
+          <input type="checkbox" checked={!!spell.components.m} onChange={(e) => setIn('components', { m: e.target.checked })} />
+          Material
+        </label>
+        <label className="tag-checklist-item">
+          <input type="checkbox" checked={!!spell.concentration} onChange={(e) => set({ concentration: e.target.checked })} />
+          Concentration
+        </label>
+        <label className="tag-checklist-item">
+          <input type="checkbox" checked={!!spell.ritual} onChange={(e) => set({ ritual: e.target.checked })} />
+          Ritual
+        </label>
+      </div>
+      {spell.components.m && (
+        <label>
+          Materials
+          <input value={spell.materials} onChange={(e) => set({ materials: e.target.value })} placeholder="a pinch of sulfur" />
+        </label>
+      )}
+    </>
+  )
+}
+
+export function SpellUpcastField({ spell, set }) {
+  if (!(Number(spell.level) > 0)) return null
+  return (
+    <label>
+      Each slot level above {spellLevelLabel(spell.level)} adds
+      <FormulaInput value={spell.upcast} onChange={(upcast) => set({ upcast })} placeholder="e.g. 1d6 (blank = no upcasting)" ariaLabel="Upcast step" showHint={false} />
+    </label>
+  )
+}
+
 // standalone: a player's spell on its own (the Feature Forge) - always cast
 // with slots, so there's no NPC casting method to pick and nothing to remove.
 export function SpellCard({ spell, onChange, onRemove, standalone = false }) {
   const [open, setOpen] = useState(standalone || !spell.name)
   const set = (patch) => onChange({ ...spell, ...patch })
-  const setIn = (field, patch) => set({ [field]: { ...spell[field], ...patch } })
   const updateList = (field, i, value) => set({ [field]: spell[field].map((x, idx) => (idx === i ? value : x)) })
 
   function removeActivity(i) {
@@ -181,151 +355,10 @@ export function SpellCard({ spell, onChange, onRemove, standalone = false }) {
       </button>
       {open && (
         <div className="npc-spell-body">
-          <div className="dm-form-row">
-            <label>
-              Name
-              <input value={spell.name} onChange={(e) => set({ name: e.target.value })} placeholder="e.g. Hellfire Lance" />
-            </label>
-            <label>
-              Level
-              <select value={spell.level} onChange={(e) => set({ level: Number(e.target.value) })}>
-                {Array.from({ length: 10 }, (_, i) => (
-                  <option key={i} value={i}>
-                    {spellLevelLabel(i)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              School
-              <select value={spell.school} onChange={(e) => set({ school: e.target.value })}>
-                {Object.entries(SPELL_SCHOOLS).map(([k, v]) => (
-                  <option key={k} value={k}>
-                    {v}
-                  </option>
-                ))}
-              </select>
-            </label>
-            {!standalone && (
-              <label>
-                Cast
-                <select value={spell.method} onChange={(e) => set({ method: e.target.value })}>
-                  {SPELL_METHODS.map((m) => (
-                    <option key={m.key} value={m.key}>
-                      {m.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
-            {!standalone && spell.method === 'perDay' && (
-              <label>
-                Times per day
-                <input type="number" min="1" value={spell.usesPerDay} onChange={(e) => set({ usesPerDay: Number(e.target.value) || 1 })} />
-              </label>
-            )}
-          </div>
-          <div className="dm-form-row">
-            <label>
-              Casting time
-              <select value={spell.activation.type} onChange={(e) => setIn('activation', { type: e.target.value })}>
-                {CAST_TIMES.map((t) => (
-                  <option key={t.key} value={t.key}>
-                    {t.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            {['minute', 'hour'].includes(spell.activation.type) && (
-              <label>
-                How many
-                <input type="number" min="1" value={spell.activation.value} onChange={(e) => setIn('activation', { value: Number(e.target.value) || 1 })} />
-              </label>
-            )}
-            <label>
-              Range
-              <select value={spell.range.units} onChange={(e) => setIn('range', { units: e.target.value })}>
-                {RANGE_UNITS.map((u) => (
-                  <option key={u.key} value={u.key}>
-                    {u.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            {['ft', 'mi'].includes(spell.range.units) && (
-              <label>
-                Distance
-                <input type="number" min="0" value={spell.range.value} onChange={(e) => setIn('range', { value: e.target.value })} />
-              </label>
-            )}
-            <label>
-              Area
-              <select value={spell.area.type} onChange={(e) => setIn('area', { type: e.target.value })}>
-                <option value="">None</option>
-                {AREA_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {cap(t)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            {spell.area.type && (
-              <label>
-                Area size (ft.)
-                <input type="number" min="0" step="5" value={spell.area.size} onChange={(e) => setIn('area', { size: e.target.value })} />
-              </label>
-            )}
-            <label>
-              Duration
-              <select value={spell.duration.units} onChange={(e) => setIn('duration', { units: e.target.value })}>
-                {DURATION_UNITS.map((u) => (
-                  <option key={u.key} value={u.key}>
-                    {u.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            {['round', 'minute', 'hour', 'day'].includes(spell.duration.units) && (
-              <label>
-                How long
-                <input type="number" min="1" value={spell.duration.value} onChange={(e) => setIn('duration', { value: e.target.value })} />
-              </label>
-            )}
-          </div>
-          <div className="dm-form-row">
-            <label className="tag-checklist-item">
-              <input type="checkbox" checked={!!spell.components.v} onChange={(e) => setIn('components', { v: e.target.checked })} />
-              Verbal
-            </label>
-            <label className="tag-checklist-item">
-              <input type="checkbox" checked={!!spell.components.s} onChange={(e) => setIn('components', { s: e.target.checked })} />
-              Somatic
-            </label>
-            <label className="tag-checklist-item">
-              <input type="checkbox" checked={!!spell.components.m} onChange={(e) => setIn('components', { m: e.target.checked })} />
-              Material
-            </label>
-            <label className="tag-checklist-item">
-              <input type="checkbox" checked={!!spell.concentration} onChange={(e) => set({ concentration: e.target.checked })} />
-              Concentration
-            </label>
-            <label className="tag-checklist-item">
-              <input type="checkbox" checked={!!spell.ritual} onChange={(e) => set({ ritual: e.target.checked })} />
-              Ritual
-            </label>
-          </div>
-          {spell.components.m && (
-            <label>
-              Materials
-              <input value={spell.materials} onChange={(e) => set({ materials: e.target.value })} placeholder="a pinch of sulfur" />
-            </label>
-          )}
-          {Number(spell.level) > 0 && (
-            <label>
-              Each slot level above {spellLevelLabel(spell.level)} adds
-              <FormulaInput value={spell.upcast} onChange={(upcast) => set({ upcast })} placeholder="e.g. 1d6 (blank = no upcasting)" ariaLabel="Upcast step" showHint={false} />
-            </label>
-          )}
+          <SpellNameFields spell={spell} set={set} standalone={standalone} />
+          <SpellCastingFields spell={spell} set={set} />
+          <SpellComponentFields spell={spell} set={set} />
+          <SpellUpcastField spell={spell} set={set} />
           <label>
             Description (HTML or plain text - blank uses the generated roll text)
             <textarea rows={4} value={spell.description} onChange={(e) => set({ description: e.target.value })} />

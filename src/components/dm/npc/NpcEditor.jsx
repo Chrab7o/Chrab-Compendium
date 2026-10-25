@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../../../lib/supabaseClient'
 import { CREATURE_TYPES, LANGUAGE_OPTIONS } from '../../../lib/homebrew'
@@ -6,6 +6,7 @@ import {
   CONDITIONS,
   CR_OPTIONS,
   DAMAGE_TYPES,
+  ITEM_SECTIONS,
   NPC_ABILITIES,
   NPC_SIZES,
   NPC_SKILLS,
@@ -15,13 +16,19 @@ import {
   buildNpcActor,
   emptyNpcSpec,
   npcActorToSpec,
+  npcRollData,
 } from '../../../lib/foundryActorBuilder'
+import { emptyFeatureSpec } from '../../../lib/foundryFeatures'
+import { inlineCopy, itemLink, librarySpecFromNpcItem, linkFromNpcItem, linkedDraftIds, missingLinks, resolveNpcSpec } from '../../../lib/itemLibrary'
+import { loadLibraryRows, saveLibraryItem } from '../../../lib/itemLibraryStore'
 import { useCampaignContext } from '../../../contexts/CampaignContext'
 import AbilityScorePicker from '../AbilityScorePicker'
 import OptionPicker from '../OptionPicker'
 import ActionBuilder from './ActionBuilder'
 import SpellcastingPanel from './SpellcastingPanel'
 import StatblockPreview from './StatblockPreview'
+import LibraryPicker from './LibraryPicker'
+import LibraryItemDialog from '../feature/LibraryItemDialog'
 import { downloadNpcActor } from './downloadActor'
 
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1)
@@ -49,7 +56,8 @@ function toOptionalNumber(value) {
 // NPC Forge editor: form on the left, live statblock on the right. The form
 // state *is* the spec stored in npc_drafts.spec, so there's no form<->row
 // conversion layer - lib/foundryActorBuilder.js turns it into a Foundry actor
-// only at download time.
+// only at download time. Items linked from the Item Forge library are stored
+// as links and resolved (lib/itemLibrary.js) before anything reads them.
 export default function NpcEditor() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -64,6 +72,10 @@ export default function NpcEditor() {
   const [error, setError] = useState(null)
   const [savedAt, setSavedAt] = useState(null)
   const [syncStatus, setSyncStatus] = useState('draft')
+  const [sentAt, setSentAt] = useState(null) // queued_at: library items changed after it are stale in Foundry
+  const [libraryRows, setLibraryRows] = useState(() => new Map()) // draft id -> library row
+  const [picking, setPicking] = useState(null) // section key the library picker adds to
+  const [editingItem, setEditingItem] = useState(null) // { draftId, section, initialSpec } for LibraryItemDialog
 
   useEffect(() => {
     if (isNew) return
@@ -83,6 +95,7 @@ export default function NpcEditor() {
           setSpec({ ...emptyNpcSpec(), ...data.spec })
           setCampaignId(data.campaign_id ?? '')
           setSyncStatus(data.sync_status ?? 'draft')
+          setSentAt(data.queued_at ?? null)
         }
         setLoading(false)
       })
@@ -91,8 +104,61 @@ export default function NpcEditor() {
     }
   }, [id, isNew])
 
+  // Linked library items: loaded when a new link appears, and again whenever
+  // the tab regains focus, in case one was edited in the Item Forge meanwhile.
+  const linkIds = linkedDraftIds(spec).join(',')
+  const refreshLibrary = useCallback(async (ids) => {
+    try {
+      const rows = await loadLibraryRows(ids)
+      setLibraryRows((old) => new Map([...old, ...rows]))
+    } catch (err) {
+      setError(`Couldn't load library items: ${err.message}`)
+    }
+  }, [])
+  useEffect(() => {
+    if (!linkIds) return
+    refreshLibrary(linkIds.split(','))
+    const onFocus = () => refreshLibrary(linkIds.split(','))
+    window.addEventListener('focus', onFocus)
+    return () => window.removeEventListener('focus', onFocus)
+  }, [linkIds, refreshLibrary])
+
+  const librarySpecs = useMemo(() => new Map([...libraryRows].map(([id, row]) => [id, row.spec])), [libraryRows])
+  const resolved = useMemo(() => resolveNpcSpec(spec, librarySpecs), [spec, librarySpecs])
+  const missing = useMemo(() => (linkIds ? missingLinks(spec, librarySpecs) : []), [spec, librarySpecs, linkIds])
+  const ownerCtx = useMemo(() => ({ spec: resolved, rollData: npcRollData(resolved) }), [resolved])
+
   function set(patch) {
     setSpec((s) => ({ ...s, ...patch }))
+  }
+
+  const keepRow = (row) => setLibraryRows((old) => new Map(old).set(row.id, row))
+  const setItems = (update) => setSpec((s) => ({ ...s, items: update(s.items) }))
+
+  async function moveToLibrary(item) {
+    setError(null)
+    try {
+      const row = await saveLibraryItem(null, librarySpecFromNpcItem(item), { campaignId })
+      keepRow(row)
+      setItems((items) => items.map((i) => (i.key === item.key ? linkFromNpcItem(i, row.id) : i)))
+    } catch (err) {
+      setError(`Couldn't move it to the library: ${err.message}`)
+    }
+  }
+
+  function privateCopy(link) {
+    const row = libraryRows.get(link.draftId)
+    if (!row || !confirm(`Make a copy of "${row.name}" that only this NPC has? Later changes to the library item won't reach it.`)) return
+    setItems((items) => items.map((i) => (i.key === link.key ? inlineCopy(i, row.spec) : i)))
+  }
+
+  const library = {
+    rows: libraryRows,
+    sentAt,
+    onAdd: (section) => setPicking(section),
+    onEdit: (link) => setEditingItem({ draftId: link.draftId }),
+    onCopy: privateCopy,
+    onMoveToLibrary: moveToLibrary,
   }
 
   function setNested(field, patch) {
@@ -109,7 +175,7 @@ export default function NpcEditor() {
     const payload = { name: spec.name || 'Untitled NPC', cr: Number(spec.cr) || 0, campaign_id: campaignId || null, spec }
     if (queue) {
       Object.assign(payload, {
-        queued_actor: buildNpcActor(spec, { draftId }),
+        queued_actor: buildNpcActor(resolved, { draftId }),
         // queued_at is stamped by the npc_drafts_touch_spec trigger.
         sync_status: 'queued',
         sync_error: null,
@@ -126,13 +192,14 @@ export default function NpcEditor() {
     setDraftId(result.data.id)
     setSavedAt(new Date())
     setSyncStatus(result.data.sync_status)
+    setSentAt(result.data.queued_at ?? null)
     // A brand-new draft has no id until the insert, so its first queued
     // actor couldn't carry the npcDraftId flag the module matches on -
     // rebuild it now that the id exists.
     if (queue && !draftId) {
       const fixed = await supabase
         .from('npc_drafts')
-        .update({ queued_actor: buildNpcActor(spec, { draftId: result.data.id }) })
+        .update({ queued_actor: buildNpcActor(resolved, { draftId: result.data.id }) })
         .eq('id', result.data.id)
       if (fixed.error) setError(fixed.error.message)
     }
@@ -155,7 +222,7 @@ export default function NpcEditor() {
 
   async function handleDownload() {
     const savedId = await save()
-    if (savedId) downloadNpcActor(spec, savedId)
+    if (savedId) downloadNpcActor(resolved, savedId)
   }
 
   async function handleImport(e) {
@@ -435,10 +502,20 @@ export default function NpcEditor() {
           </div>
 
           <h2>Statblock</h2>
-          <ActionBuilder spec={spec} items={spec.items} onChange={(items) => set({ items })} />
+          <p className="status-message">
+            Items come from the Item Forge library, so a Bite or Frightful Presence built once can go on any creature.
+            Its to-hit and DCs use this NPC&apos;s stats.
+          </p>
+          {missing.length > 0 && (
+            <p className="status-message error">
+              {missing.length === 1 ? 'One linked item' : `${missing.length} linked items`} couldn&apos;t be loaded and
+              {missing.length === 1 ? ' is' : ' are'} left out of the statblock.
+            </p>
+          )}
+          <ActionBuilder spec={resolved} items={spec.items} onChange={(items) => set({ items })} library={library} />
 
           <h2>Spellcasting</h2>
-          <SpellcastingPanel spec={spec} onChange={set} />
+          <SpellcastingPanel spec={resolved} onChange={set} />
 
           <h2>Token &amp; art</h2>
           <p className="status-message">
@@ -505,8 +582,34 @@ export default function NpcEditor() {
           </div>
         </form>
 
-        <StatblockPreview spec={spec} />
+        <StatblockPreview spec={resolved} />
       </div>
+
+      {picking && (
+        <LibraryPicker
+          sectionLabel={ITEM_SECTIONS.find((s) => s.key === picking)?.label ?? 'the statblock'}
+          onPick={(row) => {
+            keepRow(row)
+            setItems((items) => [...items, itemLink(row.id, { section: picking })])
+          }}
+          onNew={() => setEditingItem({ draftId: null, section: picking, initialSpec: { ...emptyFeatureSpec('feat'), featType: 'monster' } })}
+          onClose={() => setPicking(null)}
+        />
+      )}
+      {editingItem && (
+        <LibraryItemDialog
+          draftId={editingItem.draftId}
+          initialSpec={editingItem.initialSpec}
+          ownerCtx={ownerCtx}
+          campaignId={campaignId}
+          npcId={draftId}
+          onSaved={(row) => {
+            keepRow(row)
+            if (!editingItem.draftId) setItems((items) => [...items, itemLink(row.id, { section: editingItem.section })])
+          }}
+          onClose={() => setEditingItem(null)}
+        />
+      )}
     </section>
   )
 }

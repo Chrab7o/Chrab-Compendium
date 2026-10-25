@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom'
 import Nav from './components/Nav'
 import Home from './pages/Home'
 import EntryDetail from './pages/EntryDetail'
@@ -27,7 +27,6 @@ import DMLongTermPlanningPage from './pages/dm/DMLongTermPlanningPage'
 import DMSphereGridPage from './pages/dm/DMSphereGridPage'
 import DMCharacterNotesPage from './pages/dm/DMCharacterNotesPage'
 import SessionPlanEditorPage from './pages/dm/SessionPlanEditorPage'
-import DMItemMakerPage from './pages/dm/DMItemMakerPage'
 import DMShopsPage from './pages/dm/DMShopsPage'
 import DMNameGeneratorPage from './pages/dm/DMNameGeneratorPage'
 import DMScreenPage from './pages/dm/DMScreenPage'
@@ -52,6 +51,13 @@ import RequireDM from './components/RequireDM'
 import RequireAuth from './components/RequireAuth'
 import NewEntryFab from './components/dm/NewEntryFab'
 import CloudBackdrop from './components/CloudBackdrop'
+
+// The Feature Forge became the Item Forge: old links and bookmarks still land.
+function FeatureForgeRedirect() {
+  const { '*': rest } = useParams()
+  const { search } = useLocation()
+  return <Navigate to={`/dm/item-forge${rest ? `/${rest}` : ''}${search}`} replace />
+}
 
 export default function App() {
   return (
@@ -127,13 +133,14 @@ export default function App() {
               <Route path="session-planner/:id" element={<SessionPlanEditorPage />} />
               <Route path="long-term-planning" element={<DMLongTermPlanningPage />} />
               <Route path="sphere-grid" element={<DMSphereGridPage />} />
-              <Route path="item-maker" element={<DMItemMakerPage />} />
+              <Route path="item-maker" element={<Navigate to="/dm/item-forge" replace />} />
               <Route path="npc-forge" element={<DMNpcForgePage />} />
               <Route path="npc-forge/new" element={<NpcEditor />} />
               <Route path="npc-forge/:id/edit" element={<NpcEditor />} />
-              <Route path="feature-forge" element={<DMFeatureForgePage />} />
-              <Route path="feature-forge/new" element={<FeatureEditor />} />
-              <Route path="feature-forge/:id/edit" element={<FeatureEditor />} />
+              <Route path="item-forge" element={<DMFeatureForgePage />} />
+              <Route path="item-forge/new" element={<FeatureEditor />} />
+              <Route path="item-forge/:id/edit" element={<FeatureEditor />} />
+              <Route path="feature-forge/*" element={<FeatureForgeRedirect />} />
               <Route path="shops" element={<DMShopsPage />} />
               <Route path="name-generator" element={<DMNameGeneratorPage />} />
               <Route path="screen" element={<DMScreenPage />} />

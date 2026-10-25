@@ -6687,6 +6687,239 @@ button.aw-chip:hover {
   margin: 0 0 0.3rem;
 }
 
+/* Guided Feature Forge (feature/FeatureWizard.jsx): the Automation Builder's
+   pieces laid out on the page instead of in a dialog. */
+.fw-mode {
+  display: inline-flex;
+  border: 2px solid var(--accent);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.fw-mode button {
+  border: 0;
+  border-radius: 0;
+  padding: 0.35rem 0.8rem;
+  background: var(--surface-2);
+  color: var(--text);
+  font-weight: 700;
+  box-shadow: none;
+  filter: none;
+  transform: none;
+}
+
+.fw-mode button:hover {
+  background: var(--surface);
+  box-shadow: none;
+  filter: none;
+  transform: none;
+}
+
+.fw-mode button.is-on,
+.fw-mode button.is-on:hover {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.fw-campaign {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.fw {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.fw-steps {
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+/* The step chips are buttons: the li keeps the chip look, the button inside is
+   plain (every base-button effect reset, see docs/ui-conventions.md). */
+.aw-progress.fw-steps li,
+.aw-progress.fw-roll-progress li {
+  padding: 0;
+}
+
+.aw-progress.fw-steps li button,
+.aw-progress.fw-roll-progress li button {
+  padding: 0.25rem 0.75rem;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  box-shadow: none;
+  filter: none;
+  transform: none;
+}
+
+.aw-progress.fw-steps li button:hover:not(:disabled),
+.aw-progress.fw-roll-progress li button:hover {
+  background: none;
+  text-decoration: underline;
+  box-shadow: none;
+  filter: none;
+  transform: none;
+}
+
+.fw-panel {
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.fw-nav,
+.fw-roll-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.fw-self-start {
+  align-self: flex-start;
+}
+
+.fw-roll {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.fw-roll-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.fw-roll-head > strong {
+  margin-right: auto;
+}
+
+.aw-progress.fw-roll-progress {
+  margin: 0;
+}
+
+.fw-effect-open {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  border: 2px solid var(--accent-2);
+  border-radius: var(--radius-sm);
+}
+
+.fw-problems {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.fw-problems p {
+  margin: 0;
+}
+
+.fw-review {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fw-review-part {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+
+.fw-review-part ol,
+.fw-review-part ul {
+  margin: 0;
+  padding-left: 1.2rem;
+}
+
+/* Item Forge gear: the written description (feature/GearFields.jsx). */
+.fw-description {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.fw-syntax {
+  margin: 0;
+  padding-left: 1.2rem;
+  font-size: var(--text-sm);
+}
+
+.fw-description-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.6rem 0.8rem;
+  border: 2px solid var(--accent-2);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.fw-description-html p,
+.fw-description-html ul,
+.fw-description-html blockquote {
+  margin: 0 0 0.5rem;
+}
+
+.fw-description-html ul {
+  padding-left: 1.2rem;
+}
+
+.fw-filter {
+  align-self: flex-start;
+  margin-bottom: 0.6rem;
+}
+
+/* The guided steps in a dialog (LibraryItemDialog, LibraryPicker). */
+.fw-dialog {
+  width: min(900px, calc(100% - 32px));
+}
+
+.fw-library-list {
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+/* NPC Forge: an item linked from the Item Forge library. */
+.npc-linked-item {
+  border-left: 4px solid var(--accent-purple);
+}
+
+.npc-linked-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.npc-linked-line {
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+.npc-badge.npc-badge-warn {
+  background: var(--danger);
+  color: var(--on-accent);
+}
+
 .npc-statblock {
   position: sticky;
   top: 1rem;

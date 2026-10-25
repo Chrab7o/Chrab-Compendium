@@ -22,6 +22,7 @@ import CatalogPicker from '../../components/dm/shops/CatalogPicker'
 import ShopTransactions from '../../components/dm/shops/ShopTransactions'
 import ShopPreview from '../../components/dm/shops/ShopPreview'
 import ItemDialog from '../../components/shops/ItemDialog'
+import { descriptionMarkdown, hasDescription } from '../../lib/itemDescription'
 
 const emptyDraft = { name: '', slug: '', blurb: '', campaign_id: '', visibility: 'dm', kind: 'exchange' }
 const emptyManual = { name: '', rarity: '', description: '', price: '' }
@@ -34,7 +35,7 @@ const emptyManual = { name: '', rarity: '', description: '', price: '' }
 //   that players buy from and sell to on the shop page.
 //
 // Restocking is a total re-randomisation by design. Items the DM added on
-// purpose (homebrew from the Item Maker, or typed in by hand) are kept, since
+// purpose (homebrew from the Item Forge, or typed in by hand) are kept, since
 // a reroll is about the random stock, not about discarding deliberate choices.
 export default function DMShopsPage() {
   const [shops, setShops] = useState([])
@@ -401,10 +402,8 @@ export default function DMShopsPage() {
   const openAddPanel = useCallback(async () => {
     setShowAdd(true)
     if (homebrew.length > 0) return
-    const { data } = await supabase
-      .from('item_maker_items')
-      .select('id, name, item')
-      .order('name', { ascending: true })
+    // Item Forge magic items and gear (feature_drafts, kind 'gear').
+    const { data } = await supabase.from('feature_drafts').select('id, name, spec').eq('kind', 'gear').order('name', { ascending: true })
     setHomebrew(data ?? [])
   }, [homebrew.length])
 
@@ -433,31 +432,18 @@ export default function DMShopsPage() {
     })
   }
 
-  // The Item Maker owns its own item shape - a list of 'feature' blocks (a
-  // named ability with a description) and 'text' blocks (free prose). Flatten
-  // those to the markdown this page's descriptions use, matching how a named
-  // 5etools sub-entry is rendered: a run-in bold lead.
-  //
-  // It has no rarity field, so homebrew arrives unrated; that is what the
-  // manual form's rarity select is for if one is wanted.
-  function blocksToMarkdown(blocks = []) {
-    return blocks
-      .map((block) => {
-        if (block.type === 'text') return (block.content ?? '').trim()
-        const heading = [block.name, block.subtitle].filter(Boolean).join(' — ')
-        const body = [block.leadIn, block.description].filter((s) => s && s.trim()).join(' ').trim()
-        if (!heading) return body
-        return body ? `**${heading}.** ${body}` : `**${heading}.**`
-      })
-      .filter((s) => s.trim())
-      .join('\n\n')
-  }
+  // An Item Forge item comes in as its written description (the Item Maker's
+  // blocks, flattened to this page's markdown), or its plain text if it has no
+  // blocks, with its rarity in this page's words. The price is set on the
+  // shelf row, per shop.
+  const SHOP_RARITY = { uncommon: 'uncommon', rare: 'rare', veryRare: 'very rare', legendary: 'legendary' }
 
   function addHomebrew(record) {
+    const gear = record.spec?.gear ?? {}
     addRow({
       name: record.name || 'Untitled',
-      rarity: null,
-      description: blocksToMarkdown(record.item?.blocks),
+      rarity: SHOP_RARITY[gear.rarity] ?? null,
+      description: hasDescription(gear.blocks) ? descriptionMarkdown(gear.blocks) : String(record.spec?.item?.description ?? '').trim(),
       origin: 'homebrew',
     })
   }
@@ -836,7 +822,7 @@ export default function DMShopsPage() {
 
               {homebrew.length > 0 && (
                 <>
-                  <h3>...or from the Item Maker</h3>
+                  <h3>...or from the Item Forge</h3>
                   <ul className="shop-homebrew">
                     {homebrew.map((record) => (
                       <li key={record.id}>

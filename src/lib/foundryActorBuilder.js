@@ -530,7 +530,8 @@ export function emptyNpcItem(section = 'action') {
     img: '',
     legendaryCost: 1,
     usesMax: '',
-    usesRecovery: '', // '' | 'lr' | 'sr' | 'day' | 'recharge'
+    usesRecovery: '', // '' | 'lr' | 'sr' | 'day' | 'dawn' | 'dusk' | 'recharge' | 'none' (charges that never come back)
+    usesRecoverFormula: '', // with a period: how many come back ("1d6 + 1"); blank = all of them
     rechargeOn: 5,
     identifier: '', // '' = from the name; other features spend these uses by it ('pool' spends)
     magical: false, // 'mgc' property + midi magicDamage/magicEffect on every roll
@@ -1341,8 +1342,9 @@ function activityBody(spec, activity, inSpell) {
 export function usesLabel(item, spec = null) {
   if (item.usesRecovery === 'recharge') return `Recharge ${item.rechargeOn >= 6 ? '6' : `${item.rechargeOn || 5}–6`}`
   if (!item.usesMax) return ''
-  const per = { lr: 'Long Rest', sr: 'Short Rest', day: 'Day' }[item.usesRecovery] ?? 'Day'
   const max = spec && /[@d]/.test(String(item.usesMax)) ? averageFormula(item.usesMax, npcRollData(spec)) : item.usesMax
+  if (item.usesRecovery === 'none') return `${max} charges`
+  const per = { lr: 'Long Rest', sr: 'Short Rest', day: 'Day', dawn: 'Dawn', dusk: 'Dusk' }[item.usesRecovery] ?? 'Day'
   return `${max}/${per}`
 }
 
@@ -1432,8 +1434,10 @@ function usesFor(item) {
     return { max: '1', spent: 0, recovery: [{ period: 'recharge', formula: String(item.rechargeOn || 5) }] }
   }
   if (item.usesMax) {
+    if (item.usesRecovery === 'none') return { max: normalizeFormula(item.usesMax), spent: 0, recovery: [] }
     const period = item.usesRecovery || 'day'
-    return { max: normalizeFormula(item.usesMax), spent: 0, recovery: [{ period, type: 'recoverAll' }] }
+    const formula = String(item.usesRecoverFormula ?? '').trim()
+    return { max: normalizeFormula(item.usesMax), spent: 0, recovery: [formula ? { period, type: 'formula', formula: normalizeFormula(formula) } : { period, type: 'recoverAll' }] }
   }
   return { max: '', spent: 0, recovery: [] }
 }
@@ -2092,7 +2096,8 @@ export function foundryItemToNpcItem(item) {
     img: item.img ?? '',
     legendaryCost: sectionAct?.activation?.value ?? 1,
     usesMax: recovery?.period === 'recharge' ? '' : sys.uses?.max ?? '',
-    usesRecovery: recovery?.period ?? '',
+    usesRecovery: recovery?.period ?? (sys.uses?.max ? 'none' : ''),
+    usesRecoverFormula: recovery?.type === 'formula' ? recovery.formula ?? '' : '',
     rechargeOn: recovery?.period === 'recharge' ? Number(recovery.formula) || 5 : 5,
     // Kept only when it isn't simply the name's (a pool other features spend by it).
     identifier: sys.identifier && sys.identifier !== slugIdentifier(item.name) ? sys.identifier : '',

@@ -219,7 +219,7 @@ function DamageTypeSelect({ value, onChange, allowNone = true }) {
   )
 }
 
-function RuleEditor({ rule, toggle, onChange, onRemove, effects = [] }) {
+export function RuleEditor({ rule, toggle, onChange, onRemove, effects = [] }) {
   const set = (patch) => onChange({ ...rule, ...patch })
   const event = BEHAVIOR_EVENTS.find((e) => e.key === rule.event) ?? BEHAVIOR_EVENTS[0]
   const attackish = event.attack || rule.event === 'damage' || rule.event === 'dealt'
@@ -511,7 +511,7 @@ function RuleEditor({ rule, toggle, onChange, onRemove, effects = [] }) {
   )
 }
 
-function ToggleFields({ toggle, set }) {
+export function ToggleFields({ toggle, set }) {
   const visual = TOGGLE_VISUALS.find((v) => v.key === toggle.visual)
   return (
     <>
@@ -577,7 +577,7 @@ function ToggleFields({ toggle, set }) {
 }
 
 // How its chat cards look: a color, and for a stance a line when it starts and ends.
-function FlavorFields({ flavor, toggle, visual, set }) {
+export function FlavorFields({ flavor, toggle, visual, set }) {
   const fallback = toggle && CARD_COLORS[visual] ? visual : 'shadow'
   return (
     <div className="npc-overtime">

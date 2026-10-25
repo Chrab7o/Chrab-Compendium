@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabaseClient'
-import { FEAT_TYPES, buildFeatureItem, featureItemToSpec, featureName } from '../../lib/foundryFeatures'
+import { FEAT_TYPES, buildFeatureItem, featureItemToSpec, featureName, gearType, itemMakerRecordToSpec, rarityLabel } from '../../lib/foundryFeatures'
 import { AUTOMATION_TEMPLATES } from '../../lib/automationTemplates'
 import { useCampaignContext } from '../../contexts/CampaignContext'
 import { downloadFeatureItem } from '../../components/dm/feature/downloadItem'
 import { SyncBadge } from './DMNpcForgePage'
 
-// Feature Forge list: single features and spells, built on the site and sent
+// Item Forge list (the Feature Forge until it became the item library): single features and spells, built on the site and sent
 // to the world's Items directory through Chrab Sync (its Items tab), ready to
 // drag onto characters. Templates start from a finished feature.
 export default function DMFeatureForgePage() {
@@ -15,8 +15,11 @@ export default function DMFeatureForgePage() {
   const { campaigns, campaignId } = useCampaignContext()
   const [drafts, setDrafts] = useState([])
   const [worlds, setWorlds] = useState([])
+  const [npcUses, setNpcUses] = useState(() => new Map()) // draft id -> names of NPCs that link it
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [notice, setNotice] = useState(null)
+  const [show, setShow] = useState('') // '' | 'feat' | 'spell' | 'gear'
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -25,6 +28,13 @@ export default function DMFeatureForgePage() {
     else setDrafts(data ?? [])
     const { data: worldRows } = await supabase.from('foundry_worlds').select('world_id, title')
     setWorlds(worldRows ?? [])
+    // NPC Forge links (lib/itemLibrary.js), read from each NPC's items.
+    const { data: npcRows } = await supabase.from('npc_drafts').select('name, items:spec->items')
+    const uses = new Map()
+    for (const npc of npcRows ?? []) {
+      for (const id of new Set((npc.items ?? []).map((i) => i?.draftId).filter(Boolean))) uses.set(id, [...(uses.get(id) ?? []), npc.name || 'Untitled NPC'])
+    }
+    setNpcUses(uses)
     setLoading(false)
   }, [])
 
@@ -45,10 +55,32 @@ export default function DMFeatureForgePage() {
         .select()
         .single()
       if (saveError) throw saveError
-      navigate(`/dm/feature-forge/${data.id}/edit`)
+      navigate(`/dm/item-forge/${data.id}/edit`)
     } catch (err) {
       setError(`Import failed: ${err.message}`)
     }
+  }
+
+  // The old Item Maker's saved items (item_maker_items) come in once each as
+  // wondrous items with their written description; spec.gear.source remembers
+  // which record, so running it again only brings in what's new.
+  async function handleItemMakerImport() {
+    setError(null)
+    setNotice(null)
+    const { data: records, error: loadError } = await supabase.from('item_maker_items').select('id, name, item').order('name')
+    if (loadError) return setError(`Couldn't read the Item Maker's items: ${loadError.message}`)
+    const done = new Set(drafts.map((d) => d.spec?.gear?.source?.itemMaker).filter(Boolean))
+    const fresh = (records ?? []).filter((r) => !done.has(r.id))
+    if (!fresh.length) return setNotice(records?.length ? 'Every Item Maker item is already in the library.' : 'The Item Maker has no saved items.')
+    if (!confirm(`Bring ${fresh.length} Item Maker item${fresh.length === 1 ? '' : 's'} into the library as wondrous items? Set each one's kind and rarity afterwards.`)) return
+    const rows = fresh.map((r) => {
+      const spec = itemMakerRecordToSpec(r)
+      return { name: featureName(spec) || 'Untitled', kind: 'gear', campaign_id: campaignId || null, spec }
+    })
+    const { error: saveError } = await supabase.from('feature_drafts').insert(rows)
+    if (saveError) return setError(`Import failed: ${saveError.message}`)
+    setNotice(`Brought in ${rows.length} item${rows.length === 1 ? '' : 's'} from the Item Maker.`)
+    load()
   }
 
   async function handleSend(draft) {
@@ -69,13 +101,17 @@ export default function DMFeatureForgePage() {
     const spec = structuredClone(draft.spec)
     if (spec.kind === 'spell') spec.spell.name = copyName
     else spec.item.name = copyName
+    // A copy isn't the imported Item Maker record, so a re-import won't skip it.
+    if (spec.gear?.source) spec.gear.source = null
     const { error: saveError } = await supabase.from('feature_drafts').insert({ name: copyName, kind: draft.kind, campaign_id: draft.campaign_id, spec })
     if (saveError) setError(saveError.message)
     else load()
   }
 
   async function handleDelete(draft) {
-    if (!confirm(`Delete "${draft.name}"? This only removes the draft here, not any item already in Foundry.`)) return
+    const npcs = npcUses.get(draft.id) ?? []
+    const onNpcs = npcs.length ? ` It's on ${npcs.join(', ')}, which will lose it the next time they're saved or sent.` : ''
+    if (!confirm(`Delete "${draft.name}"?${onNpcs} This only removes it here, not any item already in Foundry.`)) return
     const { error: deleteError } = await supabase.from('feature_drafts').delete().eq('id', draft.id)
     if (deleteError) setError(deleteError.message)
     else load()
@@ -83,17 +119,27 @@ export default function DMFeatureForgePage() {
 
   const campaignName = (id) => campaigns.find((c) => c.id === id)?.name
   const worldTitle = (id) => worlds.find((w) => w.world_id === id)?.title
-  const kindLabel = (draft) =>
-    draft.kind === 'spell' ? 'Spell' : FEAT_TYPES.find((t) => t.key === draft.spec?.featType)?.label ?? 'Feature'
+  const kindLabel = (draft) => {
+    if (draft.kind === 'spell') return 'Spell'
+    if (draft.kind === 'gear') {
+      const gear = draft.spec?.gear ?? {}
+      const type = gearType(draft.spec).subtypes.find(([k]) => k === gear.subtype)?.[1] ?? 'Item'
+      return [rarityLabel(gear.rarity), type].filter(Boolean).join(' ')
+    }
+    return FEAT_TYPES.find((t) => t.key === draft.spec?.featType)?.label ?? 'Feature'
+  }
+  const shown = show ? drafts.filter((d) => d.kind === show) : drafts
 
   return (
     <section className="page-wide">
       <div className="view-header">
-        <h1>Feature Forge</h1>
+        <h1>Item Forge</h1>
       </div>
       <p className="view-subtitle">
-        Custom class features, feats and spells with their own automation - stances, &ldquo;when I hit…&rdquo; rules,
-        midi-qol scripts. Send them to Foundry and they land in the Items directory, ready to drag onto a character.
+        The item library: class features, feats, monster abilities and spells with their own automation - stances,
+        &ldquo;when I hit…&rdquo; rules, midi-qol scripts. NPCs in the NPC Forge link these items, so one Bite works on
+        every creature that has it. Send one to Foundry and it lands in the Items directory, ready to drag onto a
+        character.
       </p>
 
       <div className="dm-panel">
@@ -107,7 +153,7 @@ export default function DMFeatureForgePage() {
               {t.kind === 'example' && <span className="badge">Example</span>}
               <span className="dm-list-meta">{t.help}</span>
               <div className="dm-list-actions">
-                <Link to={`/dm/feature-forge/new?template=${t.key}`}>Use</Link>
+                <Link to={`/dm/item-forge/new?template=${t.key}`}>Use</Link>
               </div>
             </li>
           ))}
@@ -116,33 +162,57 @@ export default function DMFeatureForgePage() {
 
       <div className="dm-panel">
         <div className="dm-panel-header">
-          <h2>Drafts</h2>
+          <h2>Library</h2>
           <div className="dm-form-actions">
             <label className="button-link">
               Import Foundry item
               <input type="file" accept="application/json" onChange={handleImport} style={{ display: 'none' }} />
             </label>
-            <Link to="/dm/feature-forge/new?kind=spell" className="button-link">
+            <button type="button" className="secondary" onClick={handleItemMakerImport}>
+              Import from the Item Maker
+            </button>
+            <Link to="/dm/item-forge/new?kind=gear" className="button-link">
+              + New magic item
+            </Link>
+            <Link to="/dm/item-forge/new?kind=spell" className="button-link">
               + New spell
             </Link>
-            <Link to="/dm/feature-forge/new" className="button-link">
-              + New feature
+            <Link to="/dm/item-forge/new" className="button-link">
+              + New item
             </Link>
           </div>
         </div>
+        <div className="fw-mode fw-filter" role="group" aria-label="Show">
+          {[
+            ['', 'Everything'],
+            ['feat', 'Features'],
+            ['gear', 'Magic items & gear'],
+            ['spell', 'Spells'],
+          ].map(([key, label]) => (
+            <button key={key} type="button" className={show === key ? 'is-on' : ''} aria-pressed={show === key} onClick={() => setShow(key)}>
+              {label}
+            </button>
+          ))}
+        </div>
         {error && <p className="status-message error">{error}</p>}
+        {notice && <p className="status-message">{notice}</p>}
         {loading ? (
           <p className="status-message">Loading...</p>
         ) : (
           <ul className="dm-list">
-            {drafts.map((draft) => (
+            {shown.map((draft) => (
               <li key={draft.id}>
                 <span>{draft.name}</span>
                 <span className="dm-list-meta">{kindLabel(draft)}</span>
+                {npcUses.get(draft.id)?.length > 0 && (
+                  <span className="badge" title={npcUses.get(draft.id).join(', ')}>
+                    On {npcUses.get(draft.id).length} NPC{npcUses.get(draft.id).length === 1 ? '' : 's'}
+                  </span>
+                )}
                 {draft.campaign_id && <span className="badge badge-campaign">{campaignName(draft.campaign_id) ?? 'Campaign'}</span>}
                 <SyncBadge draft={draft} worldTitle={worldTitle(draft.foundry_world_id)} />
                 <div className="dm-list-actions">
-                  <Link to={`/dm/feature-forge/${draft.id}/edit`}>Edit</Link>
+                  <Link to={`/dm/item-forge/${draft.id}/edit`}>Edit</Link>
                   <button type="button" className="secondary" onClick={() => handleSend(draft)}>
                     {draft.sync_status === 'draft' ? 'Send to Foundry' : 'Re-send'}
                   </button>
@@ -158,7 +228,7 @@ export default function DMFeatureForgePage() {
                 </div>
               </li>
             ))}
-            {drafts.length === 0 && <li className="status-message">No features yet.</li>}
+            {shown.length === 0 && <li className="status-message">No items yet.</li>}
           </ul>
         )}
       </div>
