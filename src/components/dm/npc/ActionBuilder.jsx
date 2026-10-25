@@ -1,4 +1,4 @@
-import { useContext, useMemo } from 'react'
+import { useContext, useMemo, useState } from 'react'
 import {
   ACTIVATION_TYPES,
   REACTION_TRIGGERS,
@@ -34,6 +34,8 @@ import OptionPicker from '../OptionPicker'
 import FormulaInput, { AttributePathInput, NpcSpecContext } from './FormulaInput'
 import { ConditionRows, OverTimeRollFields, ScriptEditor } from './AutomationFields'
 import BehaviorFields from './BehaviorFields'
+import AutomationWizard from '../feature/AutomationWizard'
+import { flowSummary, hasFlow } from '../../../lib/automationFlow'
 
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1)
 
@@ -373,6 +375,51 @@ function AuraFields({ activity, set, item }) {
   )
 }
 
+// A built flow (the Automation Builder) for one roll. While a roll has one it
+// replaces the recipe script, so the script picker is hidden.
+function FlowField({ activity, set, item }) {
+  const [open, setOpen] = useState(false)
+  const built = hasFlow(activity)
+  return (
+    <div className="npc-flow">
+      {built ? (
+        <>
+          <span className="npc-flow-label">Built automation</span>
+          <ol className="npc-flow-summary">
+            {flowSummary(activity.flow).map((line, i) => (
+              <li key={i}>{line}</li>
+            ))}
+          </ol>
+        </>
+      ) : (
+        <span className="npc-hint">Build this roll’s macro step by step: when it happens, if what is true, then what happens.</span>
+      )}
+      <div className="repeatable-row-controls">
+        <button type="button" className="secondary npc-small-button" onClick={() => setOpen(true)}>
+          {built ? 'Edit automation' : 'Build automation…'}
+        </button>
+        {built && (
+          <button
+            type="button"
+            className="danger npc-small-button"
+            onClick={() => confirm('Remove the built automation from this roll?') && set({ flow: null })}
+          >
+            Remove
+          </button>
+        )}
+      </div>
+      {open && (
+        <AutomationWizard
+          activity={activity}
+          item={item}
+          onAccept={(flow) => set({ flow: flow.blocks.length ? flow : null })}
+          onClose={() => setOpen(false)}
+        />
+      )}
+    </div>
+  )
+}
+
 // Midi-qol automation for one roll, collapsed until used.
 function AutomationSection({ activity, set, item }) {
   const active = [
@@ -382,7 +429,7 @@ function AutomationSection({ activity, set, item }) {
     activity.effectConditions?.length && 'effect condition',
     activity.overTime && 'over time',
     activity.aura && 'aura',
-    activity.script && 'script',
+    hasFlow(activity) ? 'built' : activity.script && 'script',
   ].filter(Boolean)
   const hasEffects = item.effects.some((e) => !e.passive)
   return (
@@ -404,7 +451,8 @@ function AutomationSection({ activity, set, item }) {
         )}
         <OverTimeRollFields activity={activity} set={set} item={item} />
         {!activity.overTime && <AuraFields activity={activity} set={set} item={item} />}
-        <ScriptEditor activity={activity} set={set} />
+        <FlowField activity={activity} set={set} item={item} />
+        {!hasFlow(activity) && <ScriptEditor activity={activity} set={set} />}
       </div>
     </details>
   )

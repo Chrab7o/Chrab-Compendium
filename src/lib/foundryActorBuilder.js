@@ -14,6 +14,7 @@
 // item, unlinked tokens, names and bars hidden from non-owners.
 
 import { conditionRows, conditionText, parseOnUseMacros, scriptCode, scriptPass } from './foundryAutomation.js'
+import { flowCode, flowPasses, hasFlow } from './automationFlow.js'
 import { activeBehavior, behaviorChanges, behaviorMacro, behaviorSummary, bondChanges, hasSelfUseRules, storedKeys, turnTicks } from './foundryBehaviors.js'
 
 export const CORE_VERSION = '14.368'
@@ -444,6 +445,7 @@ export function emptyActivity(kind = 'attack') {
     otherKey: '', // another roll on this item rolled as extra damage on each hit (midi "other activity")
     overTime: null, // emptyOverTimeRoll(): repeats each turn on whoever has an effect from this item
     script: null, // foundryAutomation emptyScript(): activity macro
+    flow: null, // automationFlow emptyFlow(): built step by step; replaces the script when it has steps
   }
 }
 
@@ -1180,7 +1182,7 @@ function buildActivityData(item, activity, effectRefs, index, ids = {}, automati
       postRemoveConditionText: activity.overTime.once ? 'true' : '',
     }
   }
-  const code = scriptCode(activity.script)
+  const code = hasFlow(activity) ? flowCode(activity.flow, { ids, itemName: item.name }) : scriptCode(activity.script)
   if (code.trim()) common.macroData = { name: common.name || 'Chrab Corner script', command: code }
 
   switch (activity.kind) {
@@ -1564,7 +1566,16 @@ export function buildNpcItem(spec, item, index = 0, { inSpell = false } = {}) {
   })
 
   // Scripts: each roll's own macro, run only when that roll is used.
-  const onUseParts = acts.filter((a) => scriptCode(a.script).trim()).map((a) => `[${scriptPass(a.script)}]ActivityMacro-${ids[a.key]}`)
+  // A built flow is one macro listed at every pass it needs.
+  const onUseParts = acts.flatMap((a) =>
+    hasFlow(a)
+      ? flowPasses(a.flow).map((pass) => `[${pass}]ActivityMacro-${ids[a.key]}`)
+      : scriptCode(a.script).trim()
+        ? [`[${scriptPass(a.script)}]ActivityMacro-${ids[a.key]}`]
+        : [],
+  )
+  // Flows ride along by activity id so an export reads back into the builder.
+  const flows = Object.fromEntries(acts.filter(hasFlow).map((a) => [ids[a.key], a.flow]))
 
   // A behavior's hook goes FIRST: midi resolves the bare "ActivityMacro" in
   // the effect's onUseMacroName change to the item's first activity.
@@ -1671,7 +1682,9 @@ export function buildNpcItem(spec, item, index = 0, { inSpell = false } = {}) {
     flags: {
       ...(onUse ? { 'midi-qol': { onUseMacroName: onUse } } : {}),
       // The behavior spec rides along so an export reads back into the editor.
-      ...(behavior ? { 'chrab-sync': { behavior } } : {}),
+      ...(behavior || Object.keys(flows).length
+        ? { 'chrab-sync': { ...(behavior ? { behavior } : {}), ...(Object.keys(flows).length ? { flows } : {}) } }
+        : {}),
     },
     _stats: { ...STATS },
   }
@@ -2177,7 +2190,9 @@ export function foundryItemToNpcItem(item) {
         effectKey: tickEffect[act._id] ?? '',
       }
     }
-    if (String(act.macroData?.command ?? '').trim()) {
+    const flow = item.flags?.['chrab-sync']?.flows?.[act._id]
+    if (flow) a.flow = structuredClone(flow)
+    else if (String(act.macroData?.command ?? '').trim()) {
       a.script = { recipe: 'custom', pass: macroPasses[act._id] || 'postActiveEffects', params: {}, code: act.macroData.command, edited: true }
     }
     if (act.type === 'attack') {
