@@ -59,7 +59,7 @@ Every template under **Things you use** also has the cost settings:
 | Things you use | **Heal or temporary HP** | Amount, hit points or temp HP, target (self / ally / creature), range | Restore Vitality, Deflecting Darkness (approximation) |
 | Things you use | **Self buff** | Lasts (until your next turn starts or ends, until you're attacked, until removed), AC, fly / walk speed, resistances, advantage on attacks or saves | Shadow Veil, Wings of Darkness |
 | Things you use | **Extra damage after a hit** | Damage and type. Takes no action by default. | Shadow Smite |
-| Things you use | **Mark or curse** | Effect name, target (creature / ally), range, save penalty, extra damage taken from every source, attacks against it have advantage, disadvantage on its attacks or saves | Mark of Darkness, Curse (+1d6), Mark of Devastation |
+| Things you use | **Mark or curse** | Effect name, target (creature / ally), range, save penalty (one ability, all, or one the player picks before paying), extra damage when an attack hits it, attacks against it have advantage, disadvantage on its attacks or saves | Mark of Darkness, Curse (+1d6), Mark of Devastation |
 | Things you use | **Bond: share a creature's damage** | Share %, bond name, ally or any creature, range, lasts | Defend the Weak (50%), Necromancer's Split Damage later |
 | Things you use | **Teleport yourself** | Range | Shadow Warp |
 | Things you use | **Missiles: pick a target for each** | Missiles, more per slot level up, damage per missile and type, range (blank: the spell's own, in any units), roll once for all. After use, a blue range ring; click a creature per missile (again to stack, shift-click for the rest, right-click takes one back, Esc cancels). One roll per creature (`alter(n)`: 1d6 + 1 ×3 = 3d6 + 3). The extra missiles come from dnd5e's `system.scaling` on the use card. Tested against a stand-in canvas only. | Lunar Missile Barrage (3 × 1d6 + 1 radiant, 120 ft), Magic Missile |
@@ -208,6 +208,16 @@ These are in the order I suggest building them. Each one unlocks the Dark Knight
     proficiency unless *Uses my attack and save numbers* is off (a familiar), and take your side (midi
     `friendlySummon`). Transform presets are dnd5e's; "keep mind, class, features and HP" is a customized settings
     block.
+  - **Mark extra damage:** the effect carries `flags.chrab-sync.extraDamage` and the feature's
+    `preTargetDamageApplication` hook. When an attack hits the marked creature, the hook rolls it and adds it to midi's
+    `damageItem.damageDetail` (temp HP first), once per attack, with a chat line. It used to be
+    `system.traits.dm.midi.all`, but that's a damage reduction field: a positive value does nothing under midi's
+    default order, and with the "max DR value" rule it takes the dice off the hit.
+  - **A feature's own use runs its hook** through `[postActiveEffects]ActivityMacro.<hook id>` (plus `[preItemRoll]` when
+    a "when used" rule asks for an ability). midi 14 runs `ActivityMacro-<id>` only when that roll itself is used
+    (Workflow.ts `resolveActivityMacroCall`), so the dash form never ran for the roll a passive feature is used with
+    (the Curse's bonus action) or for turn ticks. The ability is asked at preItemRoll, before dnd5e spends the cost;
+    cancelling returns false, which stops the use with nothing spent. A toggle still flips only from its own roll.
   - **Summon placement (Chrab Sync 0.2.2+, `foundry/chrab-sync/scripts/summons.mjs`):** a summon with a range in feet
     shows a blue ring at that range while placing and refuses a spot outside it. *One at a time: using it again
     moves it* (`flags.chrab-sync.singleSummon`, the activity ids) teleports the creature the item already has on the

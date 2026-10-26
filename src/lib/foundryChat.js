@@ -63,8 +63,13 @@ function chrabCardHtml(card, extra = "") {
     (steps.length ? '<ul style="margin:4px 0;padding-left:18px">' + steps.map((s) => "<li>" + s + "</li>").join("") + "</ul>" : "") +
     extra + "</div>";
 }
+// The scripts apply their own damage. A DamageRoll on the message would make
+// dnd5e add its damage tray (every roll added together, aimed at whoever is
+// targeted: the user, for a self-targeted spell), so they go on as plain rolls.
 async function chrabPost(card, who) {
-  const rolls = (card.rolls ?? []).filter(Boolean);
+  const Damage = CONFIG.Dice?.DamageRoll;
+  const plain = (r) => (Damage && r instanceof Damage && r.toJSON && globalThis.Roll?.fromData ? Roll.fromData({ ...r.toJSON(), class: "Roll" }) : r);
+  const rolls = (card.rolls ?? []).filter(Boolean).map(plain);
   let dice = "";
   for (const r of rolls) dice += r.render ? await r.render() : "";
   return ChatMessage.implementation.create({ speaker: ChatMessage.getSpeaker({ actor: who }), content: chrabCardHtml(card, dice), rolls });

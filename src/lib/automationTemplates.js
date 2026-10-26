@@ -414,7 +414,7 @@ const mark = {
     { key: 'oneAtATime', label: 'Only one creature marked at a time', kind: 'checkbox', default: true },
     { key: 'savePenalty', label: 'Penalty to its saving throws (e.g. -2)', kind: 'formula', default: '' },
     { key: 'penaltyAbility', label: 'For saves of', kind: 'select', default: 'all', options: [['all', 'Every ability'], ['pick', 'An ability the player picks each time'], ...ABILITY_OPTIONS] },
-    { key: 'extraDamage', label: 'Takes extra damage from every source', kind: 'formula', default: '', hint: 'Curse: 1d6. Rolled each time it takes damage (midi damage modification).' },
+    { key: 'extraDamage', label: 'Takes extra damage when hit by an attack', kind: 'formula', default: '', hint: 'Curse: 1d6. Rolled on each attack that hits it, from anyone, and added to that hit.' },
     { key: 'grantsAdvantage', label: 'Attacks against it have advantage', kind: 'checkbox', default: false },
     { key: 'disAttacks', label: 'It has disadvantage on attack rolls', kind: 'checkbox', default: false },
     { key: 'disSaves', label: 'It has disadvantage on saving throws', kind: 'checkbox', default: false },
@@ -453,8 +453,6 @@ const mark = {
           : values.penaltyAbility && values.penaltyAbility !== 'all'
             ? change('saveOne', penalty, { param: values.penaltyAbility })
             : change('saveAll', penalty)),
-      // A positive damage modification: midi rolls it against the marked creature on every hit.
-      extra && change('custom', extra, { path: 'system.traits.dm.midi.all', type: 'override' }),
       values.grantsAdvantage && (onlyYou ? flag('flags.midi-qol.grants.advantage.attack.all', 'workflow?.actor?.uuid === "{owner}"') : change('grantsAdv')),
       values.disAttacks && (onlyYou ? flag('flags.midi-qol.disadvantage.attack.all', 'targetActorUuid === "{owner}"') : change('disAttack')),
       values.disSaves && (onlyYou ? flag('flags.midi-qol.disadvantage.ability.save.all', 'workflow?.actor?.uuid === "{owner}"') : change('disSave', '', { param: 'all' })),
@@ -466,7 +464,10 @@ const mark = {
     // time), ask for an ability, and remember who placed it. Getting the cost
     // back is a rule run on the marked creature: the mark is also a linked
     // (bond) effect.
-    const effect = { ...emptyEffect(), name, changes, byRule: true, bond: !!values.onDrop }
+    // Extra damage is added by the feature's hook on the marked creature (not
+    // midi's dm.midi, a damage reduction field: a positive value there does
+    // nothing, or with the "max DR value" rule takes the dice OFF the hit).
+    const effect = { ...emptyEffect(), name, changes, byRule: true, bond: !!values.onDrop, extraDamage: extra }
     const place = { ...emptyBehaviorAction('applyEffect'), effectKey: effect.key, name, to: 'target', unique: values.oneAtATime !== false, pickAbility: pick }
     const flavor = text(values.flavor)
     const rules = [{ ...emptyBehaviorRule('nothing'), event: 'used', ask: false, flavor, actions: [place] }]

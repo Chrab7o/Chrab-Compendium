@@ -253,7 +253,7 @@ test('a linked feature is the whole Feature Forge item, with the row’s words',
   const ds = one(pack, 'Death Stance')
   // What made the toggle work in the Plutonium probe: flags, the hook macro, effects, uses.
   assert.equal(ds.flags['chrab-sync'].featureDraftId, 'draft-ds')
-  assert.match(ds.flags['midi-qol'].onUseMacroName, /^\[postActiveEffects\]ActivityMacro-/)
+  assert.match(ds.flags['midi-qol'].onUseMacroName, /^\[postActiveEffects\]ActivityMacro\./)
   assert.match(Object.values(ds.system.activities)[0].macroData.command, /const SETUP = /)
   assert.equal(ds.effects[0].flags['chrab-sync'].stance, true)
   assert.equal(ds.system.uses.max, '@prof')

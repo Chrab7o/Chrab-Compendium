@@ -107,11 +107,12 @@ function addSyncButton(html, count, tab) {
 }
 
 // An automation's "Show a pop-up" step (the Compendium's Automation Builder):
-// the player who rolled sees it right away; the GM gets a whisper flagged
-// chrab-sync.popup, shown here as a pop-up too.
+// whoever rolled sees it right away; the character's players and the GM get a
+// whisper flagged chrab-sync.popup, shown here as a pop-up too. Only for the
+// users it's whispered to (a GM sees every whisper).
 Hooks.on('createChatMessage', (message) => {
   const text = message.flags?.[MODULE_ID]?.popup
-  if (!text || !game.user.isGM || message.author?.id === game.user.id) return
+  if (!text || message.author?.id === game.user.id || !(message.whisper ?? []).includes(game.user.id)) return
   const who = message.speaker?.alias || message.author?.name || 'A player'
   ui.notifications.warn(`${who}: ${text}`)
 })

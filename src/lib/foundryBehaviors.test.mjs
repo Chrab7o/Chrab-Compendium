@@ -58,7 +58,9 @@ test('Death Stance builds as a toggle: hook first, stance effect, hooks on it', 
   assert.equal(hook.target.affects.type, 'self')
   assert.equal(hook.midiProperties?.automationOnly, undefined, 'a toggle must stay usable')
   assert.match(hook.macroData.command, /const SETUP = /)
-  assert.equal(item.flags['midi-qol'].onUseMacroName, `[postActiveEffects]ActivityMacro-${behavior.key}`)
+  // The dot form runs the hook whichever of the item's rolls is used (midi
+  // only runs ActivityMacro-<id> for that roll itself).
+  assert.equal(item.flags['midi-qol'].onUseMacroName, `[postActiveEffects]ActivityMacro.${behavior.key}`)
 
   // One stance effect (the template's own, with advantage on attacks): not
   // applied by any activity, icon always shown, lasting 1 minute, and carrying
@@ -229,12 +231,15 @@ function setup({ confirm = true, combat = null, spend = null, pick = null } = {}
             world.prompts.push(config.content)
             return confirm
           },
-          // "Spend how much?" / "Which ability?": the form's values, or null when closed.
+          // "Spend how much?" / "Which ability?": the form's values, null when
+          // closed, or an extra button's action ('no' = "Not now").
           input: async (config) => {
             world.dialogs++
             world.prompts.push(config.content)
+            world.buttons = config.buttons ?? []
             if (/name="ability"/.test(config.content)) return pick == null ? null : { ability: pick }
             if (spend == null) return null
+            if (spend === 'no') return 'no'
             return { spend: String(spend) }
           },
           prompt: async (config) => {
@@ -665,6 +670,14 @@ test('a cost the pool can’t cover, or a declined prompt, does nothing', async 
   assert.deepEqual(await use(f, { pass: 'damageBonus', workflow: attackWorkflow({ hit: true }) }), [])
   assert.equal(pool.system.uses.spent, 0)
 
+  // "Spend how much?" has its own "Not now" button, which spends nothing.
+  setup({ spend: 'no' })
+  f = makeFeature(smiteSpec())
+  const declined = addPool(f, { left: 12 })
+  assert.deepEqual(await use(f, { pass: 'damageBonus', workflow: attackWorkflow({ hit: true }) }), [])
+  assert.deepEqual(world.buttons.map((b) => [b.action, b.label]), [['no', 'Not now']])
+  assert.equal(declined.system.uses.spent, 0)
+
   // A fixed cost with no prompt just spends it.
   setup()
   f = makeFeature(smiteSpec({ extra: false, ask: false }))
@@ -841,7 +854,7 @@ test('I use this feature: store a value, apply an effect to the target', () =>
     // ...and the item is wired for it: its own use runs the hook, the rule
     // effect isn't on any roll, and the stored value is always defined.
     const built = f.built
-    assert.match(built.flags['midi-qol'].onUseMacroName, /^\[postActiveEffects\]ActivityMacro-/)
+    assert.match(built.flags['midi-qol'].onUseMacroName, /^\[postActiveEffects\]ActivityMacro\./)
     const reap = Object.values(built.system.activities).find((a) => a.name === 'Reap')
     assert.deepEqual(reap.effects, [])
     const floor = built.effects.find((e) => e.flags['chrab-sync']?.synthetic && e.system.changes.some((c) => c.key === 'flags.chrab-sync.stored.souls'))
@@ -850,6 +863,91 @@ test('I use this feature: store a value, apply an effect to the target', () =>
     world.actorUpdates = []
     await use(f, { pass: 'postActiveEffects', workflow: wf })
     assert.deepEqual(world.actorUpdates, [])
+  }))
+
+// The Curse: a bonus action that costs Darkness and places a mark whose save
+// penalty is for an ability the player picks, and which adds 1d6 to attacks
+// that hit the marked creature.
+function curseSpec() {
+  const cursed = {
+    ...emptyEffect(),
+    name: 'Cursed by Darkness',
+    byRule: true,
+    extraDamage: '1d6',
+    changes: [{ ...emptyChange('custom'), path: 'system.abilities.{ability}.bonuses.save', value: '-2', type: 'add' }],
+  }
+  const rule = {
+    ...emptyBehaviorRule('nothing'),
+    event: 'used',
+    ask: false,
+    actions: [{ ...emptyBehaviorAction('applyEffect'), effectKey: cursed.key, to: 'target', unique: true, pickAbility: true }],
+  }
+  return ruleFeature(rule, { name: 'Curse', effects: [cursed], activities: [{ ...emptyActivity('utility'), name: 'Curse', activation: 'bonus' }] })
+}
+
+test('the Curse asks for the ability before its cost is paid; backing out cancels the use', () =>
+  withRoll(async () => {
+    const goblinEffects = []
+    const goblin = { name: 'Goblin', actor: { uuid: 'Actor.goblin', createEmbeddedDocuments: async (_, data) => goblinEffects.push(...data) } }
+    const workflow = () => ({ targets: setOf(goblin), hitTargets: setOf() })
+
+    // Wired to run for the bonus action too, and to ask first (preItemRoll).
+    const built = makeFeature(curseSpec()).built
+    const hookId = Object.keys(built.system.activities)[0]
+    assert.deepEqual(built.flags['midi-qol'].onUseMacroName.split(','), [`[preItemRoll]ActivityMacro.${hookId}`, `[postActiveEffects]ActivityMacro.${hookId}`])
+
+    // Cancelled: midi gets false and stops before dnd5e spends the Darkness.
+    setup({ pick: null })
+    let f = makeFeature(curseSpec())
+    f.feature.effects = f.feature.effects.map((e) => ({ ...e, id: e._id }))
+    const cancelled = workflow()
+    assert.equal(await use(f, { pass: 'preItemRoll', workflow: cancelled, item: f.feature, activity: {} }), false)
+    assert.equal(world.dialogs, 1)
+    assert.deepEqual(world.buttons.map((b) => b.label), ['Cancel'], 'a way to say no besides the X')
+
+    // Picked: remembered on the workflow and used once the cost is paid, with no second prompt.
+    setup({ pick: 'wis' })
+    f = makeFeature(curseSpec())
+    f.feature.effects = f.feature.effects.map((e) => ({ ...e, id: e._id }))
+    const wf = workflow()
+    assert.equal(await use(f, { pass: 'preItemRoll', workflow: wf, item: f.feature, activity: {} }), undefined)
+    assert.deepEqual(wf.chrabPicks, { [f.built.effects[0]._id]: 'wis' })
+    await use(f, { pass: 'postActiveEffects', workflow: wf, item: f.feature, activity: {} })
+    assert.equal(world.dialogs, 1)
+    assert.equal(goblinEffects[0].name, 'Cursed by Darkness (Wisdom)')
+    assert.deepEqual(goblinEffects[0].system.changes.map((c) => c.key), ['system.abilities.wis.bonuses.save', 'flags.midi-qol.onUseMacroName'])
+  }))
+
+test('a cursed creature takes the extra 1d6 from attacks that hit it, not from anything else', () =>
+  withRoll(async () => {
+    setup()
+    const f = makeFeature(curseSpec())
+    const effect = f.built.effects[0]
+    assert.equal(effect.flags['chrab-sync'].extraDamage, '1d6')
+    assert.ok(!effect.system.changes.some((c) => c.key.startsWith('system.traits.dm')), 'no midi damage reduction')
+    f.feature.actor = f.actor
+    // The goblin carries the curse; the hook runs as a target pass on it.
+    const goblin = { name: 'Goblin', uuid: 'Actor.goblin', effects: [{ ...structuredClone(effect), id: 'fx0', origin: f.feature.uuid, disabled: false }] }
+    const hit = (activity) => ({
+      activity,
+      damageItem: { actorUuid: 'Actor.goblin', oldHP: 10, oldTempHP: 2, tempDamage: 0, newTempHP: 2, hpDamage: 5, newHP: 5, damageDetail: [{ type: 'slashing', value: 5 }] },
+    })
+    const run = (wf) => f.run(wf, [{ macroPass: 'preTargetDamageApplication' }], goblin, undefined, sword, wf.activity, f.feature)
+
+    // 1d6 rolls 4 here: 2 of it into the temporary hit points, 2 more off the 5 left.
+    const wf = hit(meleeAttack)
+    await run(wf)
+    assert.deepEqual(wf.damageItem.damageDetail, [{ type: 'slashing', value: 5 }, { type: 'slashing', value: 4 }])
+    assert.deepEqual([wf.damageItem.tempDamage, wf.damageItem.newTempHP, wf.damageItem.hpDamage, wf.damageItem.newHP], [2, 0, 7, 3])
+    assert.match(world.messages.at(-1).content, /\+4 damage<\/strong> to Goblin from Cursed by Darkness/)
+    // Once per attack, however many times midi calls the pass.
+    await run(wf)
+    assert.equal(wf.damageItem.damageDetail.length, 2)
+
+    // A spell's save, a fall: no extra.
+    const save = hit({ type: 'save' })
+    await run(save)
+    assert.deepEqual(save.damageItem.damageDetail, [{ type: 'slashing', value: 5 }])
   }))
 
 test('a target failing my save triggers a rule', () =>
@@ -881,7 +979,7 @@ test('turn rules: hidden tick rolls on the stance, run as the item’s own use',
     assert.deepEqual(tick.consumption.targets, [], 'a tick never costs anything')
     const stance = f.built.effects.find((e) => e.flags['chrab-sync']?.stance)
     assert.ok(stance.system.changes.some((c) => c.key === 'flags.midi-qol.ActivityOverTime' && c.value === tick.midiProperties.identifier))
-    assert.match(f.built.flags['midi-qol'].onUseMacroName, /^\[postActiveEffects\]ActivityMacro-/)
+    assert.match(f.built.flags['midi-qol'].onUseMacroName, /^\[postActiveEffects\]ActivityMacro\./)
     // The tick's use heals, and doesn't toggle the stance.
     await use(f, { pass: 'postActiveEffects', workflow: {}, item: f.feature, activity: { id: tickId, isOverTimeFlag: true } })
     assert.deepEqual(world.damage, [{ damages: [{ value: 4, type: 'healing' }], options: undefined }])

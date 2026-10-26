@@ -199,6 +199,8 @@ function run(spec, { pass, workflow, item: kept = null, activity = {}, token }) 
     getRollData: () => ({ abilities: { con: { mod: 3 } }, prof: 3 }),
     applyDamage: async (d, o) => world.damage.push({ d, o }),
     applyTempHP: async () => {},
+    // Player p1 owns Bhern.
+    testUserPermission: (u, level) => level === 'OWNER' && u.id === 'p1',
   }
   const item = kept ?? {
     name: built.name,
@@ -386,8 +388,8 @@ test('an attack can be made a critical hit, with a pop-up for the player and the
   const notices = []
   globalThis.ui = { notifications: { warn: (t) => notices.push(t) } }
   globalThis.ChatMessage.create = async (d) => world.messages.push(d)
-  game.user = { isGM: false }
-  game.users = [{ id: 'gm1', isGM: true, active: true }, { id: 'p1', isGM: false, active: true }]
+  game.user = { id: 'p1', isGM: false }
+  game.users = [{ id: 'gm1', isGM: true, active: true }, { id: 'p1', isGM: false, active: true }, { id: 'p2', isGM: false, active: true }]
   // A check sees the variables of earlier blocks, so the values come first.
   const flow = {
     ...emptyFlow(),
@@ -408,6 +410,16 @@ test('an attack can be made a critical hit, with a pop-up for the player and the
   assert.deepEqual(notices, ['Crit on a 18!'])
   const whisper = world.messages.find((m) => m.flags?.['chrab-sync']?.popup)
   assert.deepEqual(whisper.whisper, ['gm1'], 'the GM gets it, flagged for Chrab Sync to pop up')
+
+  // The GM rolls for Bhern: the GM's own notice, and Bhern's player (not
+  // another player) gets the whisper.
+  game.user = { id: 'gm1', isGM: true }
+  world.messages.length = 0
+  notices.length = 0
+  await run(featureWith(flow), { pass: 'postAttackRoll', workflow: { ...attackWorkflow(), diceRoll: 18, isCritical: false }, activity: { criticalThreshold: 20 } })
+  assert.deepEqual(notices, ['Crit on a 18!'])
+  assert.deepEqual(world.messages.find((m) => m.flags?.['chrab-sync']?.popup).whisper, ['p1'], 'the player sees it when the GM rolls')
+  game.user = { id: 'p1', isGM: false }
 
   // A crit always hits, even a roll that missed the target's AC.
   const missed = { ...attackWorkflow({ hit: false }), diceRoll: 19, isCritical: false }
@@ -545,16 +557,18 @@ function mapWith(tokens, { clicks = [], keys = [] } = {}) {
     tokens: { placeables: tokens, setTargets: (ids) => (map.targeted = ids) },
     interface: { addChild: () => {} },
     stage: {
-      on: (event, fn) => {
+      // The pickers listen in the capture phase, ahead of the token under the cursor.
+      addEventListener: (event, fn, options) => {
+        assert.equal(options?.capture, true)
         const next = () => {
           const c = clicks.shift()
           if (!c) return
-          fn({ button: 0, shiftKey: false, getLocalPosition: () => c.at.center, ...c })
+          fn({ button: 0, shiftKey: false, getLocalPosition: () => c.at.center, stopPropagation() {}, ...c })
           queueMicrotask(next)
         }
         queueMicrotask(next)
       },
-      off: () => {},
+      removeEventListener: () => {},
     },
   }
   globalThis.document = { addEventListener: (type, fn) => keys.length && queueMicrotask(() => fn({ key: keys.shift(), stopPropagation() {}, preventDefault() {} })), removeEventListener() {} }

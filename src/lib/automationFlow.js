@@ -1094,12 +1094,15 @@ async function remember(name, n, minutes) {
 async function forget(name) {
   await item.update({ ["flags.chrab-sync.memory.-=" + name]: null });
 }
-// A pop-up for whoever rolled; the GM's comes from Chrab Sync, which turns a
-// whisper flagged chrab-sync.popup into one (and it's still a whisper without it).
+// A pop-up for whoever rolled, here. Everyone else who should see it - the
+// character's players (when the GM rolls for them) and, if asked, the GMs -
+// gets a whisper flagged chrab-sync.popup, which Chrab Sync shows as a pop-up
+// on their screen (without it, it's still a whisper).
 async function popup(text, gm) {
   ui.notifications?.warn?.(text);
-  if (!gm || game.user?.isGM) return;
-  const to = (game.users?.filter?.((u) => u.isGM && u.active) ?? []).map((u) => u.id);
+  const me = game.user?.id;
+  const owns = (u) => !u.isGM && !!actor?.testUserPermission?.(u, "OWNER");
+  const to = (game.users?.filter?.((u) => u.active && u.id !== me && ((gm && u.isGM) || owns(u))) ?? []).map((u) => u.id);
   if (!to.length) return;
   await ChatMessage.create({ content: "<p><strong>" + chrabEsc(FLOW.name) + ":</strong> " + chrabEsc(text) + "</p>", whisper: to, speaker: ChatMessage.getSpeaker({ actor }), flags: { "chrab-sync": { popup: text } } });
 }

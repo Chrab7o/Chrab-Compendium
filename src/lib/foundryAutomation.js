@@ -188,7 +188,7 @@ async function chrabPickTargets(self, { range = 0, count = 1, who = "any", stack
   const done = await new Promise((resolve) => {
     const stage = canvas.stage;
     const finish = (value) => {
-      stage.off("pointerdown", onDown);
+      stage.removeEventListener("pointerdown", onDown, { capture: true });
       globalThis.document?.removeEventListener("keydown", onKey, true);
       resolve(value);
     };
@@ -200,10 +200,14 @@ async function chrabPickTargets(self, { range = 0, count = 1, who = "any", stack
       event.stopPropagation();
       event.preventDefault();
     };
+    // Capture phase: a token the user controls (any token, for a GM) takes
+    // the click and stops it (Token#_onClickLeft), so the stage would never
+    // hear it. A click on a creature is the picker's: no select, no HUD.
     const onDown = (event) => {
       const point = event.getLocalPosition(stage);
       const t = candidates().filter((c) => c.bounds?.contains(point.x, point.y)).at(-1);
       if (!t) return;
+      event.stopPropagation();
       if (event.button === 2 || (!stack && event.button === 0 && picks.has(t))) {
         const n = (picks.get(t) ?? 0) - 1;
         if (n > 0) picks.set(t, n);
@@ -216,7 +220,7 @@ async function chrabPickTargets(self, { range = 0, count = 1, who = "any", stack
       draw();
       if (left() <= 0) finish(true);
     };
-    stage.on("pointerdown", onDown);
+    stage.addEventListener("pointerdown", onDown, { capture: true });
     globalThis.document?.addEventListener("keydown", onKey, true);
   });
   layer?.destroy({ children: true });
@@ -527,10 +531,11 @@ export function scriptPass(script) {
 
 // "[postDamageRoll]ActivityMacro-abc,[damageBonus]ActivityMacro-def" ->
 // { abc: 'postDamageRoll', def: 'damageBonus' }, for reading exports back.
+// A behavior hook's "ActivityMacro.<id>" reads the same way.
 export function parseOnUseMacros(value) {
   const out = {}
   for (const part of String(value ?? '').split(',')) {
-    const m = part.trim().match(/^\[(\w+)\]ActivityMacro-(\w+)$/)
+    const m = part.trim().match(/^\[(\w+)\]ActivityMacro[-.](\w+)$/)
     if (m) out[m[2]] = m[1]
   }
   return out

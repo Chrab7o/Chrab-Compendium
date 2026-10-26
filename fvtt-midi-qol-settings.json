@@ -1,0 +1,1118 @@
+{
+  "configSettings": {
+    "gmAutoAttack": true,
+    "gmAutoDamage": "always",
+    "showItemDetails": "all",
+    "itemTypeList": [
+      "weapon",
+      "equipment",
+      "consumable",
+      "tool",
+      "loot",
+      "class",
+      "spell",
+      "feat",
+      "backpack"
+    ],
+    "autoRollAttack": true,
+    "autoFastForward": [],
+    "autoTarget": "wallsBlockIgnoreIncapacitated",
+    "autoCheckHit": "all",
+    "autoCheckSaves": "allShow",
+    "checkSaveText": false,
+    "autoRollDamage": "always",
+    "autoApplyDamage": "noCard",
+    "damageImmunities": "immunityPhysical",
+    "autoItemEffects": "applyRemove",
+    "rangeTarget": "alwaysIgnoreDefeated",
+    "playerRollSaves": "rer",
+    "playerSaveTimeout": 10,
+    "rollNPCSaves": "auto",
+    "preRollChecks": false,
+    "mergeCard": true,
+    "mergeCardCondensed": true,
+    "hideNPCNames": "",
+    "useTokenNames": true,
+    "fullAuto": false,
+    "allowUseMacro": true,
+    "rollOtherDamage": "none",
+    "removeButtons": "off",
+    "gmRemoveButtons": "all",
+    "concentrationAutomation": false,
+    "singleConcentrationRoll": true,
+    "optionalRules": {
+      "actionSpecialDurationImmediate": false,
+      "activeDefence": false,
+      "activeDefenceModifier": 12,
+      "activeDefenceShow": "self",
+      "activeDefenceDC": true,
+      "challengeModeArmor": "none",
+      "challengeModeArmorScale": false,
+      "checkFlanking": "advonly",
+      "flankingBonus": "advantage",
+      "flankingRequiresVisibility": false,
+      "checkRange": "none",
+      "targetMustBeSeen": "enforce",
+      "coverCalculation": "none",
+      "displayBonusRolls": true,
+      "criticalNat20": false,
+      "criticalSaves": false,
+      "distanceIncludesHeight": true,
+      "distanceMeasurement": "center",
+      "incapacitated": "nothing",
+      "invisAdvantage": "RAW2024",
+      "hiddenAdvantage": "none",
+      "maxDRValue": true,
+      "nearbyAllyRanged": 0,
+      "nearbyFoe": 5,
+      "optionalCritRule": -1,
+      "removeHiddenInvis": true,
+      "wallsBlockRange": "center",
+      "mergeCardMulti": false,
+      "mergeCardMultiDamage": false,
+      "displayProperties": true,
+      "DRAllPerDamageDetail": true,
+      "activeDefenceShowGM": false,
+      "enableddbGL": false,
+      "enforceReactions": "all",
+      "recordAOO": "all",
+      "autoRerollInitiative": false,
+      "invisVision": false,
+      "vitalityResource": "",
+      "vitalityDeadCondition": "dead",
+      "vitalityDeathRequires": "vitalityOnly",
+      "showFlankingHighlight": false,
+      "vitalityItem": "",
+      "visionTestHeight": "center",
+      "surfaceOcclusion": false,
+      "surfaceVisionFog": false,
+      "templateOriginHeight": "base"
+    },
+    "optionalRulesEnabled": true,
+    "defaultSaveMult": 0.5,
+    "keepRollStats": true,
+    "saveStatsEvery": 20,
+    "playerStatsOnly": true,
+    "removeConcentration": true,
+    "usePlayerPortrait": true,
+    "doReactions": "allMI",
+    "gmDoReactions": "allMI",
+    "reactionTimeout": 10,
+    "requiresTargets": "none",
+    "showReactionAttackRoll": "none",
+    "autoCEEffects": "itempri",
+    "rollOtherSpellDamage": "none",
+    "promptDamageRoll": true,
+    "gmFastForwardSpells": false,
+    "fastForwardSpells": false,
+    "accelKeysOverride": false,
+    "enableddbGL": false,
+    "showReactionChatMessage": true,
+    "rollNPCLinkedSaves": "auto",
+    "gmConsumeResource": "none",
+    "consumeResource": "none",
+    "gmLateTargeting": "none",
+    "lateTargeting": "none",
+    "addWounded": 50,
+    "addDead": "none",
+    "convenientEffectsReaction": "Reaction",
+    "fixStickyKeys": true,
+    "autoFailSavesFriendly": false,
+    "worldKeyMappings": false,
+    "toggleOptionalRules": false,
+    "saveDROrder": "DRSaveDr",
+    "fumbleSound": "sounds/dice.wav",
+    "criticalSound": "sounds/dice.wav",
+    "diceSound": "sounds/dice.wav",
+    "rollChecksBlind": [],
+    "rollSavesBlind": [],
+    "rollSkillsBlind": [
+      "ins"
+    ],
+    "displaySaveAdvantage": true,
+    "recordAOO": "all",
+    "enforceReactions": "none",
+    "enforceBonusActions": "none",
+    "playerDamageCard": "none",
+    "playerCardDamageDifferent": true,
+    "displayHitResultNumeric": false,
+    "rollAlternate": "off",
+    "allowActorUseMacro": true,
+    "skillAbilityCheckAdvantage": true,
+    "keyMapping": {
+      "DND5E.Advantage": "altKey",
+      "DND5E.Disadvantage": "ctrlKey",
+      "DND5E.Critical": "altKey",
+      "DND5E.Versatile": "shiftKey"
+    },
+    "addWoundedStyle": "none",
+    "paranoidGM": false,
+    "tempHPDamageConcentrationCheck": false,
+    "showDSN": true,
+    "showFastForward": true,
+    "highlightSuccess": true,
+    "confirmAttackDamage": "none",
+    "requireMagical": "off",
+    "itemRollStartWorkflow": false,
+    "ignoreSpellReactionRestriction": false,
+    "damageImmunityMultiplier": 0,
+    "damageResistanceMultiplier": 0.5,
+    "damageVulnerabilityMultiplier": 2,
+    "attackPerTarget": false,
+    "autoRemoveTemplate": true,
+    "removeConcentrationEffects": "effects",
+    "undoWorkflow": false,
+    "enforceSingleWeaponTarget": false,
+    "quickSettings": true,
+    "midiWoundedCondition": "bleeding",
+    "midiDeadCondition": "dead",
+    "midiUnconsciousCondition": "none",
+    "griddedGridless": false,
+    "concentrationIncapacitatedConditionCheck": true,
+    "mergeCardMulti": false,
+    "autoCompleteWorkflow": true,
+    "useCustomSounds": false,
+    "addFakeDice": true,
+    "doConcentrationCheck": "chat",
+    "undoChatColor": "Delete",
+    "midiFieldsTab": true,
+    "effectActivation": false,
+    "v3DamageApplication": false,
+    "averageDamage": "none",
+    "midiPropertiesTabRole": "0",
+    "autoRemoveSummonedCreature": true,
+    "autoRemoveInstantaneousTemplate": true,
+    "collapsibleTargets": true,
+    "enableDDBGL": false,
+    "highLightCriticalAttackOnly": false,
+    "defaultSaveMultiplier": 0.5,
+    "confirmAmmunition": false,
+    "gmConfirmAmmunition": false,
+    "useDamageDetail": true,
+    "addChatDamageButtons": "none",
+    "gridlessFudge": 0,
+    "activationAutomation": "chat",
+    "activityNamePrefix": true,
+    "gmRequireAmmunition": false,
+    "gmAttackDamageCards": false,
+    "playerRequireAmmunition": false,
+    "markPlayerDefeated": false,
+    "markNonPlayerDefeated": true,
+    "checkTwoHanded": false,
+    "waitForDamageApplication": true,
+    "displayProperties": true,
+    "autoUndoTransformations": false,
+    "savesBeforeDamage": false,
+    "gmAutoFastForward": [],
+    "preferredGM": "",
+    "criticalDamage": "default",
+    "criticalDamageGM": "default",
+    "coloredBorders": "borderNamesText",
+    "damageCardStyle": "flexbox",
+    "conditionEditorEnabled": true,
+    "addSheetButtons": false,
+    "constrainTemplatePlacement": false,
+    "templateSnapping": "full",
+    "gmAttackDisplay": "hidden",
+    "gmDamageDisplay": "hidden",
+    "gmAttackDsn": "none",
+    "gmDamageDsn": "none",
+    "singleDamageCalculation": true,
+    "saveSummaryStyle": "midi",
+    "hidePlayerDamageCard": true,
+    "defaultOtherActivity": "auto",
+    "blindRollDisplay": "hidden"
+  },
+  "midiSoundSettings": {
+    "any": {},
+    "version": "0.9.48"
+  },
+  "itemRollButtons": false,
+  "autoRemoveTargets": "dead",
+  "coloredBorders": "borderNamesText",
+  "criticalDamage": "default",
+  "criticalDamageGM": "default",
+  "debounceInterval": 0,
+  "dragDropTargeting": false,
+  "enableWorkflow": true,
+  "forceHideRoll": true,
+  "nsaFlag": true,
+  "saveToChatCard": false,
+  "playerControlsInvisibleTokens": false,
+  "replaceDefaultActivities": true,
+  "targetConfirmation": {
+    "enabled": false,
+    "always": false,
+    "noneTargeted": false,
+    "hasAttack": false,
+    "hasCreatureTarget": false,
+    "targetSelf": false,
+    "hasAoE": false,
+    "hasRangedAoE": false,
+    "longRange": false,
+    "inCover": false,
+    "allies": false,
+    "mixedDisposition": false,
+    "gridPosition": {
+      "x": 0,
+      "y": 0
+    }
+  },
+  "useWeakReferences": false,
+  "flags": {
+    "exportSource": {
+      "system": "dnd5e",
+      "coreVersion": "14.368",
+      "systemVersion": "5.3.3",
+      "midiVersion": "14.0.16"
+    }
+  },
+  "modules": {
+    "about-time": {
+      "title": "About Time",
+      "active": false,
+      "installed": true,
+      "version": "14.0.1",
+      "compatibility": "14.999"
+    },
+    "auraeffects": {
+      "title": "Aura Effects",
+      "active": true,
+      "installed": true,
+      "version": "2.2.3",
+      "compatibility": "14.368"
+    },
+    "autoanimations": {
+      "title": "Automated Animations",
+      "active": true,
+      "installed": true,
+      "version": "8.0.0",
+      "compatibility": "14"
+    },
+    "automated-conditions-5e": {
+      "title": "Automated Conditions 5e",
+      "active": true,
+      "installed": true,
+      "version": "14.533.19.7",
+      "compatibility": "14.369"
+    },
+    "better-fogwar": {
+      "title": "Better Fog of War",
+      "active": true,
+      "installed": true,
+      "version": "0.1.0",
+      "compatibility": "14"
+    },
+    "blind-skill-rolls": {
+      "title": "Blind Skill Rolls",
+      "active": true,
+      "installed": true,
+      "version": "1.4.1",
+      "compatibility": "14.363"
+    },
+    "cat": {
+      "title": "Coven's Automation Toolkit",
+      "active": true,
+      "installed": true,
+      "version": "0.0.8",
+      "compatibility": "14"
+    },
+    "character-chat-selector": {
+      "title": "Character Chat Selector",
+      "active": true,
+      "installed": true,
+      "version": "3.5.1",
+      "compatibility": "14"
+    },
+    "chatlog-prune": {
+      "title": "Chat Log Prune",
+      "active": true,
+      "installed": true,
+      "version": "1.1.11",
+      "compatibility": "14.999"
+    },
+    "chrab-sync": {
+      "title": "Chrab Sync",
+      "active": true,
+      "installed": true,
+      "version": "0.2.184",
+      "compatibility": "14.368"
+    },
+    "chris-premades": {
+      "title": "Cauldron of Plentiful Resources",
+      "active": true,
+      "installed": true,
+      "version": "2.0.2",
+      "compatibility": "14"
+    },
+    "combat-tracker-dock": {
+      "title": "Carousel Combat Tracker",
+      "active": true,
+      "installed": true,
+      "version": "5.0.2",
+      "compatibility": "14"
+    },
+    "combined-maps": {
+      "title": "Combined Maps",
+      "active": true,
+      "installed": true,
+      "version": "1.0.2",
+      "compatibility": "12"
+    },
+    "combined-maps2": {
+      "title": "Combined Maps2",
+      "active": true,
+      "installed": true,
+      "version": "1.0.2",
+      "compatibility": "14"
+    },
+    "crunch-my-party": {
+      "title": "Crunch My Party!",
+      "active": true,
+      "installed": true,
+      "version": "14.1.0",
+      "compatibility": "14"
+    },
+    "czepeku": {
+      "title": "CZEPEKU Universe",
+      "active": true,
+      "installed": true,
+      "version": "1.1.0",
+      "compatibility": "14"
+    },
+    "czepeku-113-chthonic-lighthouse": {
+      "title": "Cze and Peku - Chthonic Lighthouse",
+      "active": true,
+      "installed": true,
+      "version": "1.0.4",
+      "compatibility": "13"
+    },
+    "czepeku-136-gryphon-roost-inn": {
+      "title": "Cze and Peku - Gryphon Roost Inn",
+      "active": true,
+      "installed": true,
+      "version": "1.0.3",
+      "compatibility": "13"
+    },
+    "czepeku-145-annis-hag-lair": {
+      "title": "Cze and Peku - Annis Hag Lair",
+      "active": true,
+      "installed": true,
+      "version": "1.0.3",
+      "compatibility": "13"
+    },
+    "czepeku-184-yggdrasil-trunk": {
+      "title": "Cze and Peku - Yggdrasil Trunk",
+      "active": true,
+      "installed": true,
+      "version": "1.0.3",
+      "compatibility": "13"
+    },
+    "czepeku-206-monster-hunter-restaurant": {
+      "title": "Cze and Peku - Monster Hunter Restaurant",
+      "active": true,
+      "installed": true,
+      "version": "1.0.1",
+      "compatibility": "13"
+    },
+    "czepeku-221-hidden-witches-hut": {
+      "title": "Cze and Peku - Hidden Witches Hut",
+      "active": true,
+      "installed": true,
+      "version": "1.0.1",
+      "compatibility": "13"
+    },
+    "czepeku-231-iron-age-hamlet": {
+      "title": "Cze and Peku - Iron Age Hamlet",
+      "active": true,
+      "installed": true,
+      "version": "1.0.1",
+      "compatibility": "13"
+    },
+    "czepeku-246-fairy-treetop-village": {
+      "title": "Cze and Peku - Fairy Treetop Village",
+      "active": true,
+      "installed": true,
+      "version": "1.0.0",
+      "compatibility": "13"
+    },
+    "czepeku-286-wild-west-town": {
+      "title": "Cze and Peku - Wild West Town",
+      "active": true,
+      "installed": true,
+      "version": "1.0.1",
+      "compatibility": "13"
+    },
+    "czepeku-29-depths-of-the-festerwood": {
+      "title": "Cze and Peku - Depths of the Festerwood",
+      "active": true,
+      "installed": true,
+      "version": "1.0.3",
+      "compatibility": "13"
+    },
+    "czepeku-36-temple-of-couatl-interior": {
+      "title": "Cze and Peku - Temple of the Couatl Interior",
+      "active": true,
+      "installed": true,
+      "version": "1.0.2",
+      "compatibility": "13"
+    },
+    "czepeku-42-overgrown-magic-forest": {
+      "title": "Cze and Peku - Overgrown Magic Forest",
+      "active": true,
+      "installed": true,
+      "version": "1.0.5",
+      "compatibility": "13"
+    },
+    "czepeku-86-grand-opera-house": {
+      "title": "Cze and Peku - Grand Opera House",
+      "active": true,
+      "installed": true,
+      "version": "1.0.3",
+      "compatibility": "13"
+    },
+    "czepeku-ancient-city-plaza": {
+      "title": "Czepeku - Ancient City Plaza",
+      "active": true,
+      "installed": true,
+      "version": "1.0.0",
+      "compatibility": "13"
+    },
+    "czepeku-dragons-memorial": {
+      "title": "Czepeku - Dragon's Memorial",
+      "active": true,
+      "installed": true,
+      "version": "1.0.0",
+      "compatibility": "13"
+    },
+    "czepeku-scenes-014-Oasis-City": {
+      "title": "Czepeku Scenes - Oasis City",
+      "active": true,
+      "installed": true,
+      "version": "1.0.1",
+      "compatibility": "13"
+    },
+    "czepeku-scenes-042-arctic-expedition": {
+      "title": "Czepeku Scenes - Arctic Expedition",
+      "active": true,
+      "installed": true,
+      "version": "1.0.0",
+      "compatibility": "11"
+    },
+    "czepeku-scenes-077-chthonic-lighthouse": {
+      "title": "Czepeku Scenes - Chthonic Lighthouse",
+      "active": true,
+      "installed": true,
+      "version": "1.0.0",
+      "compatibility": "11"
+    },
+    "czepeku-scenes-089-fairy-treetop-village": {
+      "title": "Czepeku Scenes - Fairy Treetop Village",
+      "active": true,
+      "installed": true,
+      "version": "1.0.0",
+      "compatibility": "11"
+    },
+    "czepeku-scenes-091-wild-west-saloon": {
+      "title": "Czepeku Scenes - Wild West Saloon",
+      "active": true,
+      "installed": true,
+      "version": "1.0.0",
+      "compatibility": "11"
+    },
+    "czepeku-scenes-096-village-farmhouse": {
+      "title": "Czepeku Scenes - Village Farmhouse",
+      "active": true,
+      "installed": true,
+      "version": "1.0.0",
+      "compatibility": "11"
+    },
+    "czepeku-scenes-annis-hag-lair": {
+      "title": "Czepeku Scenes - Annis Hag Lair",
+      "active": true,
+      "installed": true,
+      "version": "1.0.0",
+      "compatibility": "13"
+    },
+    "czepeku-scenes-badger-hill-shop": {
+      "title": "Czepeku Scenes - Badger Hill Shop",
+      "active": true,
+      "installed": true,
+      "version": "1.0.0",
+      "compatibility": "13"
+    },
+    "czepeku-scenes-black-market-streets": {
+      "title": "Czepeku Scenes - Black Market Streets",
+      "active": true,
+      "installed": true,
+      "version": "1.0.0",
+      "compatibility": "13"
+    },
+    "czepeku-scenes-depths-of-the-festerwood": {
+      "title": "Czepeku Scenes - Depths of the Festerwood",
+      "active": true,
+      "installed": true,
+      "version": "1.0.0",
+      "compatibility": "12"
+    },
+    "czepeku-scenes-iron-age-hamlet": {
+      "title": "Czepeku Scenes - Iron Age Hamlet",
+      "active": true,
+      "installed": true,
+      "version": "1.0.0",
+      "compatibility": "13"
+    },
+    "czepeku-scenes-mushroom-infested-mines": {
+      "title": "Czepeku Scenes - Mushroom Infested Mines",
+      "active": true,
+      "installed": true,
+      "version": "1.0.0",
+      "compatibility": "12"
+    },
+    "czepeku-scenes-oasis-expedition": {
+      "title": "Czepeku Scenes - Oasis Expedition",
+      "active": true,
+      "installed": true,
+      "version": "1.0.0",
+      "compatibility": "12"
+    },
+    "czepeku-scenes-rocky-desert-vista": {
+      "title": "Czepeku Scenes - Rocky Desert Vista",
+      "active": true,
+      "installed": true,
+      "version": "1.0.0",
+      "compatibility": "13"
+    },
+    "czepeku-scenes-temple-of-the-couatl-bossroom": {
+      "title": "Czepeku Scenes - Temple of the Couatl Bossroom",
+      "active": true,
+      "installed": true,
+      "version": "1.0.0",
+      "compatibility": "13"
+    },
+    "czepeku-scenes-wild-west-town": {
+      "title": "Czepeku Scenes - Wild West Town",
+      "active": true,
+      "installed": true,
+      "version": "1.0.0",
+      "compatibility": "13"
+    },
+    "dae": {
+      "title": "Dynamic effects using Active Effects (DAE)",
+      "active": true,
+      "installed": true,
+      "version": "14.0.19",
+      "compatibility": "14.368"
+    },
+    "dd-import": {
+      "title": "Universal Battlemap Importer",
+      "active": true,
+      "installed": true,
+      "version": "6.1.1",
+      "compatibility": "14"
+    },
+    "dfreds-convenient-effects": {
+      "title": "DFreds Convenient Effects",
+      "active": true,
+      "installed": true,
+      "version": "9.2.8",
+      "compatibility": "14"
+    },
+    "dfreds-effects-panel": {
+      "title": "DFreds Effects Panel",
+      "active": true,
+      "installed": true,
+      "version": "6.2.4",
+      "compatibility": "14"
+    },
+    "dice-calculator": {
+      "title": "Dice Tray",
+      "active": true,
+      "installed": true,
+      "version": "4.0.6",
+      "compatibility": "14"
+    },
+    "dice-so-nice": {
+      "title": "Dice So Nice!",
+      "active": true,
+      "installed": true,
+      "version": "6.4.4",
+      "compatibility": "14.368"
+    },
+    "disposition-initiative": {
+      "title": "Disposition Initiative",
+      "active": true,
+      "installed": true,
+      "version": "1.0.0",
+      "compatibility": "14"
+    },
+    "dnd5e-animations": {
+      "title": "D&D5e Animations",
+      "active": true,
+      "installed": true,
+      "version": "3.3.0",
+      "compatibility": "14"
+    },
+    "downtime-dnd5e": {
+      "title": "Downtime (Dnd5e)",
+      "active": true,
+      "installed": true,
+      "version": "13.0.9",
+      "compatibility": "14"
+    },
+    "droplet": {
+      "title": "Droplet",
+      "active": true,
+      "installed": true,
+      "version": "3.0.3",
+      "compatibility": "14"
+    },
+    "dynamic-soundscapes": {
+      "title": "Dynamic Soundscapes",
+      "active": true,
+      "installed": true,
+      "version": "4.0.0",
+      "compatibility": "14"
+    },
+    "effectmacro": {
+      "title": "Effect Macro",
+      "active": false,
+      "installed": true,
+      "version": "14.0.1",
+      "compatibility": "14"
+    },
+    "emojify": {
+      "title": "Emojify",
+      "active": true,
+      "installed": true,
+      "version": "3.0.0",
+      "compatibility": "14"
+    },
+    "epic-rolls-5e": {
+      "title": "Epic Rolls 5e",
+      "active": true,
+      "installed": true,
+      "version": "6.0.0",
+      "compatibility": "14"
+    },
+    "fa-nexus": {
+      "title": "FA Nexus",
+      "active": true,
+      "installed": true,
+      "version": "0.5.3",
+      "compatibility": "14"
+    },
+    "filepicker-plus": {
+      "title": "Filepicker Plus",
+      "active": true,
+      "installed": true,
+      "version": "6.0.1",
+      "compatibility": "14"
+    },
+    "find-the-culprit": {
+      "title": "Find the Culprit",
+      "active": true,
+      "installed": true,
+      "version": "3.3.0",
+      "compatibility": "14.360"
+    },
+    "follow-me-if-you-can": {
+      "title": "Follow Me If You Can!",
+      "active": true,
+      "installed": true,
+      "version": "1.4.0",
+      "compatibility": "13"
+    },
+    "fvtt-perf-optim": {
+      "title": "Prime Performance",
+      "active": true,
+      "installed": true,
+      "version": "0.12.9",
+      "compatibility": "14.361"
+    },
+    "fvtt-youtube-player": {
+      "title": "Youtube Player Widget",
+      "active": true,
+      "installed": true,
+      "version": "4.0.1",
+      "compatibility": "14"
+    },
+    "fxmaster": {
+      "title": "Gambit's FXMaster",
+      "active": true,
+      "installed": true,
+      "version": "8.4.2",
+      "compatibility": "14"
+    },
+    "gambitsTemplatePreviewer": {
+      "title": "Gambit's Template Previewer",
+      "active": true,
+      "installed": true,
+      "version": "2.1.2",
+      "compatibility": "14"
+    },
+    "gm-vision": {
+      "title": "GM Vision",
+      "active": true,
+      "installed": true,
+      "version": "2.0.5",
+      "compatibility": "14"
+    },
+    "group-tokens": {
+      "title": "Group Tokens",
+      "active": true,
+      "installed": true,
+      "version": "0.0.7",
+      "compatibility": "14"
+    },
+    "hot-pan": {
+      "title": "Hot Pan & Zoom!",
+      "active": true,
+      "installed": true,
+      "version": "14.0.1",
+      "compatibility": "14"
+    },
+    "item-piles": {
+      "title": "Item Piles",
+      "active": true,
+      "installed": true,
+      "version": "3.3.4",
+      "compatibility": "14"
+    },
+    "itemacro": {
+      "title": "Item Macro",
+      "active": false,
+      "installed": true,
+      "version": "3.0.1",
+      "compatibility": "13.344"
+    },
+    "ivan-duch-music-packs": {
+      "title": "Ivan Duch's Music Packs",
+      "active": true,
+      "installed": true,
+      "version": "3.5.0",
+      "compatibility": "14.361"
+    },
+    "JB2A_DnD5e": {
+      "title": "JB2A - Jules and Ben's Animated Assets - Free Content",
+      "active": true,
+      "installed": true,
+      "version": "0.9.4",
+      "compatibility": "14"
+    },
+    "lib-dfreds-migrations": {
+      "title": "Lib: DFreds Migrations",
+      "active": true,
+      "installed": true,
+      "version": "1.0.4",
+      "compatibility": "14"
+    },
+    "lib-dfreds-ui-extender": {
+      "title": "Lib: DFreds UI Extender",
+      "active": true,
+      "installed": true,
+      "version": "2.5.0",
+      "compatibility": "14"
+    },
+    "lib-wrapper": {
+      "title": "libWrapper",
+      "active": true,
+      "installed": true,
+      "version": "1.13.5.1",
+      "compatibility": "14"
+    },
+    "LockView": {
+      "title": "Lock View",
+      "active": true,
+      "installed": true,
+      "version": "2.1.0",
+      "compatibility": "14"
+    },
+    "media-optimizer": {
+      "title": "Media Optimizer",
+      "active": true,
+      "installed": true,
+      "version": "6.0.1",
+      "compatibility": "14"
+    },
+    "mergewalls": {
+      "title": "Merge Walls",
+      "active": true,
+      "installed": true,
+      "version": "14.0.1",
+      "compatibility": "14.999"
+    },
+    "midi-item-showcase-community": {
+      "title": "Midi Item Showcase - Community",
+      "active": true,
+      "installed": true,
+      "version": "2.0.2",
+      "compatibility": "14.364"
+    },
+    "midi-qol": {
+      "title": "Midi QOL",
+      "active": true,
+      "installed": true,
+      "version": "14.0.16",
+      "compatibility": "14.368"
+    },
+    "mob-attack-tool": {
+      "title": "Mob Attack Tool",
+      "active": true,
+      "installed": true,
+      "version": "0.19.0",
+      "compatibility": "14"
+    },
+    "monks-active-tiles": {
+      "title": "Monk's Active Tile Triggers",
+      "active": true,
+      "installed": true,
+      "version": "14.01",
+      "compatibility": "14"
+    },
+    "monks-combat-details": {
+      "title": "Monk's Combat Details",
+      "active": true,
+      "installed": true,
+      "version": "14.03",
+      "compatibility": "14"
+    },
+    "monks-little-details": {
+      "title": "Monk's Little Details",
+      "active": true,
+      "installed": true,
+      "version": "14.01",
+      "compatibility": "14"
+    },
+    "monks-scene-navigation": {
+      "title": "Monk's Scene Navigation",
+      "active": true,
+      "installed": true,
+      "version": "14.02",
+      "compatibility": "14"
+    },
+    "monks-tokenbar": {
+      "title": "Monk's TokenBar",
+      "active": true,
+      "installed": true,
+      "version": "14.01",
+      "compatibility": "14"
+    },
+    "monks-wall-enhancement": {
+      "title": "Monk's Wall Enhancement",
+      "active": true,
+      "installed": true,
+      "version": "14.01",
+      "compatibility": "14"
+    },
+    "moulinette": {
+      "title": "Moulinette Media Search",
+      "active": true,
+      "installed": true,
+      "version": "14.1.0",
+      "compatibility": "14"
+    },
+    "multilevel-tokens": {
+      "title": "Multilevel Tokens, by Beneos",
+      "active": true,
+      "installed": true,
+      "version": "14.1.5",
+      "compatibility": "14"
+    },
+    "xxxxxxxxx": {
+      "title": "z Synthetic compatibility entry for midi-qol; please ignore. This is not a real module.",
+      "active": true,
+      "installed": true,
+      "version": "2.19.8.v14"
+    },
+    "polyglot": {
+      "title": "Polyglot",
+      "active": true,
+      "installed": true,
+      "version": "2.10.4",
+      "compatibility": "14"
+    },
+    "psfx": {
+      "title": "PSFX - Peri's Sound Effects",
+      "active": true,
+      "installed": true,
+      "version": "0.18.0",
+      "compatibility": "14"
+    },
+    "quick-insert": {
+      "title": "Quick Insert - Search Widget",
+      "active": true,
+      "installed": true,
+      "version": "3.7.8",
+      "compatibility": "14.364"
+    },
+    "quick-module-enable": {
+      "title": "Quick Module Enable",
+      "active": true,
+      "installed": true,
+      "version": "1.4.2",
+      "compatibility": "14.359"
+    },
+    "restored-keep-levels": {
+      "title": "Restored Keep - Scene Levels Demo",
+      "active": true,
+      "installed": true,
+      "version": "1.4.0",
+      "compatibility": "14"
+    },
+    "retroactive-advantage-5e": {
+      "title": "Retroactive Advantage DnD5e",
+      "active": true,
+      "installed": true,
+      "version": "14.0.1",
+      "compatibility": "14"
+    },
+    "rich-info-tooltips": {
+      "title": "Rich Info Tooltips",
+      "active": true,
+      "installed": true,
+      "version": "3.0.0",
+      "compatibility": "14"
+    },
+    "roll-from-compendium": {
+      "title": "Quick Send To Chat",
+      "active": true,
+      "installed": true,
+      "version": "1.10.0",
+      "compatibility": "14"
+    },
+    "scene-express": {
+      "title": "Scene Express",
+      "active": true,
+      "installed": true,
+      "version": "0.14.1",
+      "compatibility": "14"
+    },
+    "scene-packer": {
+      "title": "Library: Scene Packer",
+      "active": true,
+      "installed": true,
+      "version": "2.8.13",
+      "compatibility": "14"
+    },
+    "sequencer": {
+      "title": "Sequencer",
+      "active": true,
+      "installed": true,
+      "version": "4.3.0",
+      "compatibility": "14"
+    },
+    "side-effects": {
+      "title": "Side Effects",
+      "active": true,
+      "installed": true,
+      "version": "0.0.4",
+      "compatibility": "14"
+    },
+    "simplefog": {
+      "title": "Simple Fog - Manual Fog of War",
+      "active": true,
+      "installed": true,
+      "version": "1.5.10",
+      "compatibility": "14"
+    },
+    "smarttarget": {
+      "title": "Smart Target",
+      "active": true,
+      "installed": true,
+      "version": "4.0.3",
+      "compatibility": "14"
+    },
+    "socketlib": {
+      "title": "socketlib",
+      "active": true,
+      "installed": true,
+      "version": "v1.1.4",
+      "compatibility": "14"
+    },
+    "soundscape-adventure": {
+      "title": "Soundscape Adventure",
+      "active": true,
+      "installed": true,
+      "version": "6.1.0",
+      "compatibility": "14"
+    },
+    "theripper-premium-hub": {
+      "title": "TheRipper93's Module Hub",
+      "active": true,
+      "installed": true,
+      "version": "6.0.2",
+      "compatibility": "14"
+    },
+    "token-action-hud-core": {
+      "title": "Token Action HUD Core",
+      "active": true,
+      "installed": true,
+      "version": "2.1.2",
+      "compatibility": "14.468"
+    },
+    "token-action-hud-dnd5e": {
+      "title": "Token Action HUD D&D 5e",
+      "active": true,
+      "installed": true,
+      "version": "2.1.0",
+      "compatibility": "14.360"
+    },
+    "tokenflip": {
+      "title": "Token Flip",
+      "active": true,
+      "installed": true,
+      "version": "5.0.1",
+      "compatibility": "14"
+    },
+    "tokenmagic": {
+      "title": "Token Magic FX",
+      "active": true,
+      "installed": true,
+      "version": "0.8.4",
+      "compatibility": "14.363"
+    },
+    "tokenmagic-automatic-wounds": {
+      "title": "Token Magic FX - Automatic Wounds",
+      "active": true,
+      "installed": true,
+      "version": "1.1.27",
+      "compatibility": "14"
+    },
+    "tokenwarp": {
+      "title": "Token Warp",
+      "active": true,
+      "installed": true,
+      "version": "14.365.4.1",
+      "compatibility": "14.365"
+    },
+    "vision-5e": {
+      "title": "Vision 5e",
+      "active": true,
+      "installed": true,
+      "version": "3.2.3",
+      "compatibility": "14"
+    },
+    "vtta-tokenizer": {
+      "title": "Tokenizer",
+      "active": true,
+      "installed": true,
+      "version": "5.0.3",
+      "compatibility": "14"
+    },
+    "world-setting-sync": {
+      "title": "World Setting Sync",
+      "active": true,
+      "installed": true,
+      "version": "3.0.0",
+      "compatibility": "14"
+    },
+    "zoom-pan-options": {
+      "title": "Zoom/Pan Options",
+      "active": true,
+      "installed": true,
+      "version": "2.2.1",
+      "compatibility": "14"
+    }
+  }
+}

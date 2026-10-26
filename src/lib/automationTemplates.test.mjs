@@ -354,11 +354,15 @@ test('scripted templates: teleport, take a hit, sacrifice', () => {
 test('Curse and Mark of Devastation: what being marked does', () => {
   const { item } = fromTemplate('mark', { effectName: 'Devastated', extraDamage: '1d8', grantsAdvantage: true, disAttacks: true, disSaves: true })
   assert.deepEqual(item.effects[0].system.changes.map((c) => [c.key, c.value]), [
-    ['system.traits.dm.midi.all', '1d8'],
     ['flags.midi-qol.grants.advantage.attack.all', '1'],
     ['flags.midi-qol.disadvantage.attack.all', '1'],
     ['flags.midi-qol.disadvantage.ability.save.all', '1'],
+    // Extra damage: not midi's dm.midi (a reduction field), but the feature's
+    // hook on the marked creature's incoming damage.
+    ['flags.midi-qol.onUseMacroName', 'ActivityMacro, preTargetDamageApplication'],
   ])
+  assert.equal(item.effects[0].flags['chrab-sync'].extraDamage, '1d8')
+  assert.equal(featureItemToSpec(item).item.effects[0].extraDamage, '1d8', 'reads back')
 })
 
 test('Vanguard L7: a feature’s over-time temp HP keeps its formula for the real owner', () => {
@@ -701,7 +705,7 @@ test('missiles: a blue ring, a target per missile, damage per creature', async (
   const goblin = square('Goblin', 1500) // 50 ft
   const ogre = square('Ogre', 2950, 2) // 122.5 ft to its center, 120 to its near side
   const far = square('Far', 4000) // 175 ft
-  const at = (t, o = {}) => ({ button: 0, shiftKey: false, getLocalPosition: () => t.center, ...o })
+  const at = (t, o = {}) => ({ button: 0, shiftKey: false, getLocalPosition: () => t.center, stopPropagation() {}, ...o })
   const clicks = [at(goblin), at(far), at(goblin), at(goblin, { button: 2 }), at(ogre, { shiftKey: true })]
   const ring = { layer: null }
   globalThis.canvas = {
@@ -711,7 +715,9 @@ test('missiles: a blue ring, a target per missile, damage per creature', async (
     tokens: { placeables: [self, goblin, ogre, far] },
     interface: { addChild: (c) => (ring.layer = c) },
     stage: {
-      on: (event, fn) => {
+      // The pickers listen in the capture phase, ahead of the token under the cursor.
+      addEventListener: (event, fn, options) => {
+        assert.equal(options?.capture, true)
         const next = () => {
           const c = clicks.shift()
           if (!c) return
@@ -720,7 +726,7 @@ test('missiles: a blue ring, a target per missile, damage per creature', async (
         }
         queueMicrotask(next)
       },
-      off: () => {},
+      removeEventListener: () => {},
     },
   }
   const warned = []

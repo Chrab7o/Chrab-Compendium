@@ -15,7 +15,7 @@
 
 import { conditionRows, conditionText, parseOnUseMacros, scriptCode, scriptPass } from './foundryAutomation.js'
 import { flowCode, flowPasses, hasFlow } from './automationFlow.js'
-import { activeBehavior, behaviorChanges, behaviorMacro, behaviorSummary, bondChanges, hasSelfUseRules, storedKeys, turnTicks } from './foundryBehaviors.js'
+import { activeBehavior, behaviorChanges, behaviorMacro, behaviorSummary, bondChanges, extraDamageChanges, hasSelfUseRules, picksOnUse, storedKeys, turnTicks } from './foundryBehaviors.js'
 
 export const CORE_VERSION = '14.368'
 export const SYSTEM_ID = 'dnd5e'
@@ -502,7 +502,9 @@ export function emptyEffect() {
   // bond: applied to a target, which then runs the item's "bonded creature" rules (Defend the Weak)
   // byRule: only a behavior rule's "apply an effect" action puts it on anyone
   // aura: only an aura's rules apply / remove it
-  return { key: randomId(), name: '', statuses: [], passive: false, stance: false, bond: false, byRule: false, aura: false, onSave: false, specialDuration: [], changes: [], appliedBy: [] }
+  // extraDamage: a formula the carrier takes on top of each attack that hits it
+  //   (a Curse's 1d6); the item's behavior hook adds it (foundryBehaviors.js)
+  return { key: randomId(), name: '', statuses: [], passive: false, stance: false, bond: false, byRule: false, aura: false, onSave: false, specialDuration: [], changes: [], appliedBy: [], extraDamage: '' }
 }
 
 export function emptyOverTime() {
@@ -1613,8 +1615,15 @@ export function buildNpcItem(spec, item, index = 0, { inSpell = false } = {}) {
     const rest = { ...activities }
     for (const id of Object.keys(activities)) delete activities[id]
     Object.assign(activities, { [hook._id]: hook }, rest, Object.fromEntries(ticks.map((t) => [t._id, t])))
-    // The item's own use runs the hook: a toggle, "I use this feature" rules, or a turn tick.
-    if (toggle || hasSelfUseRules(behavior)) onUseParts.unshift(`[postActiveEffects]ActivityMacro-${hook._id}`)
+    // The item's own use runs the hook: a toggle, "I use this feature" rules,
+    // or a turn tick. "ActivityMacro.<id>" runs it whichever of the item's
+    // rolls is used; midi 14 runs "ActivityMacro-<id>" only for that roll
+    // itself (Workflow.ts resolveActivityMacroCall), which skips the roll a
+    // passive feature is used with (the Curse's bonus action) and the ticks.
+    // An ability to pick is asked before the use's costs are paid
+    // (preItemRoll), so backing out spends nothing.
+    if (toggle || hasSelfUseRules(behavior)) onUseParts.unshift(`[postActiveEffects]ActivityMacro.${hook._id}`)
+    if (picksOnUse(behavior)) onUseParts.unshift(`[preItemRoll]ActivityMacro.${hook._id}`)
 
     const changes = [
       ...behaviorChanges(behavior),
@@ -1622,11 +1631,16 @@ export function buildNpcItem(spec, item, index = 0, { inSpell = false } = {}) {
     ]
     // Bond effects land on targets and hook the "bonded creature" rules there;
     // midi resolves their bare ActivityMacro through effect.origin, this item.
+    // Extra damage rides the same target hook.
     const bonds = bondChanges(behavior)
     kept.forEach((e, i) => {
-      if (!e.bond || e.passive || isStance(e) || !bonds.length) return
-      effects[i].flags = { ...effects[i].flags, 'chrab-sync': { ...effects[i].flags?.['chrab-sync'], bond: true } }
-      effects[i].system.changes.push(...bonds)
+      if (e.passive || isStance(e)) return
+      const extra = String(e.extraDamage ?? '').trim()
+      if (extra) effects[i].flags = { ...effects[i].flags, 'chrab-sync': { ...effects[i].flags?.['chrab-sync'], extraDamage: extra } }
+      const hooks = e.bond ? [...bonds] : []
+      if (extra && !hooks.some((c) => /preTargetDamageApplication/.test(c.value))) hooks.push(...extraDamageChanges())
+      if (e.bond && bonds.length) effects[i].flags = { ...effects[i].flags, 'chrab-sync': { ...effects[i].flags?.['chrab-sync'], bond: true } }
+      effects[i].system.changes.push(...hooks)
     })
     if (toggle) {
       let stance = effects.find((e) => e.flags?.['chrab-sync']?.stance)
@@ -2127,6 +2141,7 @@ export function foundryItemToNpcItem(item) {
         bond: !!e.flags?.['chrab-sync']?.bond,
         byRule: !!e.flags?.['chrab-sync']?.byRule,
         aura: !!e.flags?.['chrab-sync']?.aura,
+        extraDamage: String(e.flags?.['chrab-sync']?.extraDamage ?? ''),
         onSave: false,
         specialDuration: e.flags?.dae?.specialDuration ?? [],
         // ActivityOverTime links come back as the over-time roll's effectKey.

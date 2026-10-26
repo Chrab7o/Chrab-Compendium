@@ -12,7 +12,7 @@
 //     and then runs the hook for every item the owner uses, at that pass.
 //   - passive: that effect is a transfer effect, always on.
 //     toggle:  using the item runs the hook from the item's own onUseMacroName
-//     ([postActiveEffects]ActivityMacro-<hook id>), which copies the item's
+//     ([postActiveEffects]ActivityMacro.<hook id>), which copies the item's
 //     stance effects onto the owner (origin = the item) or removes them. While
 //     they're on, the hooks fire. A visual (Sequencer if installed, else a
 //     token light) follows the stance.
@@ -336,6 +336,17 @@ export function behaviorChanges(behavior) {
 
 export function bondChanges(behavior) {
   return bondPasses(behavior).map(hookChange)
+}
+
+// An effect with extraDamage hooks its carrier's incoming damage, like a bond.
+export function extraDamageChanges() {
+  return [hookChange('preTargetDamageApplication')]
+}
+
+// "I use this feature" rules that ask for an ability (a Curse's save penalty):
+// asked at preItemRoll, before the use's costs, so backing out is free.
+export function picksOnUse(behavior) {
+  return (behavior?.rules ?? []).filter(ruleOutcomeFits).some((r) => ruleEvent(r).self && (r.actions ?? []).some((a) => a.type === 'applyEffect' && a.effectKey && a.pickAbility))
 }
 
 // ---------------------------------------------------------------------------
@@ -671,6 +682,32 @@ const owner = feature.actor ?? feature.parent;
 if (pass.toLowerCase() === "pretargetdamageapplication" && owner && me.uuid !== owner.uuid) {
   const d = workflow?.damageItem;
   if (!d || (d.actorUuid && d.actorUuid !== me.uuid)) return;
+  // Extra damage (a Curse's 1d6): one of this item's effects on me says how
+  // much more an attack that hits me deals. Added to midi's damageDetail,
+  // which is what it applies, temporary hit points first. Once per effect
+  // per attack.
+  const landed = (d.damageDetail ?? []).filter((x) => !["temphp", "healing", "midi-none"].includes(x.type) && Number(x.value) > 0);
+  if (workflow?.activity?.type === "attack" && landed.length) {
+    const added = (workflow.chrabExtra ??= new Set());
+    for (const e of (me.effects ?? []).filter((e) => !e.disabled && e.origin === feature.uuid && e.flags?.[FLAG]?.extraDamage)) {
+      if (added.has(me.uuid + e.id)) continue;
+      added.add(me.uuid + e.id);
+      const r = await new Roll(String(e.flags[FLAG].extraDamage), owner.getRollData?.() ?? {}).evaluate();
+      const extra = Math.max(0, Math.floor(Number(r.total) || 0));
+      if (!extra) continue;
+      d.damageDetail.push({ ...landed[0], value: extra });
+      const tempLeft = Math.max(0, (Number(d.oldTempHP) || 0) - (Number(d.tempDamage) || 0));
+      const toTemp = Math.min(tempLeft, extra);
+      d.tempDamage = (Number(d.tempDamage) || 0) + toTemp;
+      d.newTempHP = Math.max(0, (Number(d.oldTempHP) || 0) - d.tempDamage);
+      d.hpDamage = (Number(d.hpDamage) || 0) + extra - toTemp;
+      d.newHP = Math.max(0, (Number(d.oldHP) || 0) - d.hpDamage);
+      if (Number.isFinite(Number(d.totalDamage))) d.totalDamage = Number(d.totalDamage) + extra;
+      const c = card(e.name, "", ["<strong>+" + extra + " damage</strong> to " + esc(me.name) + " from " + esc(e.name)]);
+      c.rolls.push(r);
+      await chrabPost(c, owner);
+    }
+  }
   if (owner.isOwner === false) {
     console.warn("chrab-sync | " + SETUP.name + ": this user can't update " + owner.name + ", so " + me.name + "'s link does nothing here.");
     return;
@@ -766,7 +803,12 @@ async function visualOff() {
 const ownUse = rolledItem?.uuid === feature.uuid;
 // A turn tick: midi using one of this item's hidden tick activities at the start / end of the owner's turn.
 const tick = ownUse ? SETUP.ticks?.[rolledActivity?.id] ?? null : null;
-if (ownUse && !tick && SETUP.toggle && pass.toLowerCase() === "postactiveeffects" && !workflow?.chrabToggled?.has(feature.uuid)) {
+// The hook's own activity: midi passes it as macroActivity. The item's
+// onUseMacroName runs the hook for every roll on the item, so a toggle flips
+// only when the toggle roll itself is used.
+const hookActivity = typeof macroActivity === "undefined" ? null : macroActivity;
+const toggleUse = !hookActivity || !rolledActivity || rolledActivity.id === hookActivity.id;
+if (ownUse && !tick && toggleUse && SETUP.toggle && pass.toLowerCase() === "postactiveeffects" && !workflow?.chrabToggled?.has(feature.uuid)) {
   (workflow.chrabToggled ??= new Set()).add(feature.uuid);
   const active = me.effects.filter(isStance);
   if (active.length) {
@@ -889,6 +931,8 @@ async function askSpend(rule, left, cost, c) {
       '<p><strong>Use ' + esc(rule.label || SETUP.name) + '? Spend how much?</strong></p>' +
       '<input type="number" name="spend" value="' + cost.amount + '" min="' + cost.amount + '" max="' + left + '" autofocus>',
     ok: { label: "Use it" },
+    // A way to say no besides closing the window: it answers "no", so nothing is spent.
+    buttons: [{ action: "no", label: "Not now", icon: "fa-solid fa-xmark" }],
   });
   const n = Math.floor(Number(picked?.spend) || 0);
   return n >= cost.amount ? Math.min(n, left) : 0;
@@ -965,6 +1009,19 @@ async function diceCheck(rule, c) {
   return ok;
 }
 
+const ABILITY_NAMES = { str: "Strength", dex: "Dexterity", con: "Constitution", int: "Intelligence", wis: "Wisdom", cha: "Charisma" };
+// "Which ability?": a key of ABILITY_NAMES, or null when closed or cancelled.
+async function askAbility(c) {
+  const picked = await chrabDialog(me, "input", {
+    window: { title: SETUP.name },
+    content: chrabCardHtml(c) + "<p><strong>Which ability?</strong></p><select name=\\"ability\\">" +
+      Object.entries(ABILITY_NAMES).map(([k, v]) => '<option value="' + k + '">' + v + "</option>").join("") + "</select>",
+    ok: { label: "Choose" },
+    buttons: [{ action: "no", label: "Cancel", icon: "fa-solid fa-xmark" }],
+  });
+  return ABILITY_NAMES[picked?.ability] ? picked.ability : null;
+}
+
 // A copy of one of this item's effects, ready to put on a creature.
 async function effectCopy(src, a, c) {
   const data = src.toObject();
@@ -973,15 +1030,10 @@ async function effectCopy(src, a, c) {
   Object.assign(data, { origin: feature.uuid, transfer: false, disabled: false });
   const changeLists = [data.changes, data.system?.changes].filter(Array.isArray);
   if (a.pick) {
-    const names = { str: "Strength", dex: "Dexterity", con: "Constitution", int: "Intelligence", wis: "Wisdom", cha: "Charisma" };
-    const picked = await chrabDialog(me, "input", {
-      window: { title: SETUP.name },
-      content: chrabCardHtml(c) + "<p><strong>Which ability?</strong></p><select name=\\"ability\\">" +
-        Object.entries(names).map(([k, v]) => '<option value="' + k + '">' + v + "</option>").join("") + "</select>",
-      ok: { label: "Choose" },
-    });
-    const ab = picked?.ability;
-    if (!names[ab]) return null;
+    // Picked before the costs were paid (preItemRoll, below), else asked now.
+    const ab = workflow?.chrabPicks?.[a.effectKey] ?? (await askAbility(c));
+    if (!ABILITY_NAMES[ab]) return null;
+    const names = ABILITY_NAMES;
     data.name = (data.name || SETUP.name) + " (" + names[ab] + ")";
     for (const list of changeLists) for (const ch of list) ch.key = String(ch.key).replaceAll("{ability}", ab);
   }
@@ -1127,6 +1179,23 @@ async function fire(rule, vars = {}) {
 // --- This feature's own use: "I use this feature" rules, or on a turn tick
 // the turn rules - once per workflow.
 if (ownUse) {
+  // Before the use's costs are paid: the abilities its rules need. Backing
+  // out cancels the use (midi stops on false), so nothing is spent.
+  if (pass.toLowerCase() === "preitemroll" && !tick) {
+    const picks = SETUP.rules.filter((r) => r.event === "used").flatMap((r) => (r.actions ?? []).filter((a) => a.type === "applyEffect" && a.pick));
+    for (const a of picks) {
+      if (workflow?.chrabPicks?.[a.effectKey]) continue;
+      const src = feature.effects.find((e) => (e.id ?? e._id) === a.effectKey);
+      const who = a.to === "target" ? workflow?.targets?.first?.()?.name : me.name;
+      const ab = await askAbility(card(SETUP.name, "", [esc(src?.name || SETUP.name) + (who ? " on " + esc(who) : "")]));
+      if (!ab) {
+        ui.notifications?.info?.(SETUP.name + ": cancelled, nothing spent.");
+        return false;
+      }
+      (workflow.chrabPicks ??= {})[a.effectKey] = ab;
+    }
+    return;
+  }
   if (pass.toLowerCase() === "postactiveeffects" && !(workflow.chrabUsed ??= new Set()).has(feature.uuid)) {
     workflow.chrabUsed.add(feature.uuid);
     const event = tick ? (tick === "end" ? "turnEnd" : "turnStart") : "used";
