@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { CONDITIONS, DAMAGE_TYPES, NPC_ABILITIES } from '../../../lib/foundryActorBuilder'
 import { CREATURE_TYPES, SIZE_LABELS, SIZE_ORDER, conditionPresets, emptyCondition } from '../../../lib/foundryAutomation'
 import { SELF_CONDITIONS, emptySelfCondition } from '../../../lib/foundryBehaviors'
@@ -8,39 +8,32 @@ import {
   FLOW_CHECKS,
   FLOW_STEPS,
   FLOW_VALUES,
-  blockSummary,
   checksFor,
-  emptyBlock,
   emptyCheck,
-  emptyFlow,
-  emptyStep,
+  emptyLine,
+  emptySection,
   flowCode,
   flowProblems,
   flowTrigger,
+  lineWords,
   mathFormula,
-  sortBlocks,
+  scriptMemories,
+  scriptScopes,
   stepsFor,
+  toScript,
   triggersFor,
   valuesFor,
-  varsBefore,
 } from '../../../lib/automationFlow'
 import OptionPicker from '../OptionPicker'
 
-// The Automation Builder: a roll's macro, put together one question at a
-// time. Each block walks When -> If -> Then -> Otherwise -> Anything else?,
-// and the loop repeats until Review, where it's accepted. The pieces and the
-// code they become are in lib/automationFlow.js.
+// The Automation Builder: a roll's macro, written like a short script. Each
+// point in the roll ("After the attack roll") holds lines run top to bottom:
+// set a variable, a remembered number, if / otherwise (nested as deep as you
+// like), or a step that does something. A folded line reads like code; click
+// it to fill in its boxes. The model and the code it becomes are in
+// lib/automationFlow.js.
 
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1)
-
-const SCREENS = [
-  { key: 'when', label: 'When' },
-  { key: 'if', label: 'If' },
-  { key: 'then', label: 'Then' },
-  { key: 'else', label: 'Otherwise' },
-  { key: 'more', label: 'Anything else?' },
-  { key: 'review', label: 'Review' },
-]
 
 const KIND_DEFAULT_TRIGGER = { attack: 'damage', save: 'damage', damage: 'damage', heal: 'damage' }
 
@@ -69,7 +62,7 @@ function MathField({ value, onChange, vars, placeholder, label }) {
             </button>
           ))
         ) : (
-          <span className="npc-hint">No variables yet: grab a value first, or use numbers, dice and @references.</span>
+          <span className="npc-hint">No variables yet: set one on a line above, or use numbers, dice and @references.</span>
         )}
       </div>
       {String(value ?? '').trim() && (
@@ -267,9 +260,9 @@ function CheckEditor({ check, onChange, onRemove, vars, featureName }) {
 }
 
 // ---------------------------------------------------------------------------
-// Then: one step
+// One line's boxes (every kind but if)
 
-function StepEditor({ step, onChange, onRemove, onMove, index, count, vars, ctx, effects, featureName }) {
+function StepFields({ step, onChange, vars, ctx, effects, featureName, memories }) {
   const def = FLOW_STEPS.find((s) => s.key === step.type)
   const set = (patch) => onChange({ ...step, ...patch })
   const value = FLOW_VALUES.find((v) => v.key === step.source)
@@ -296,30 +289,24 @@ function StepEditor({ step, onChange, onRemove, onMove, index, count, vars, ctx,
     </div>
   )
 
+  const nameField = (
+    <input className="npc-code-input aw-var-input" value={step.name} onChange={(e) => set({ name: e.target.value.replace(/\s+/g, '_') })} aria-label="Variable name" placeholder="name" />
+  )
+
   return (
-    <div className="aw-piece">
-      <div className="aw-piece-head">
-        <span className="aw-step-number">{index + 1}</span>
-        <strong>{def?.label ?? step.type}</strong>
-        <span className="aw-piece-tools">
-          <button type="button" className="icon-button" onClick={() => onMove(-1)} disabled={index === 0} aria-label="Move up">
-            ↑
-          </button>
-          <button type="button" className="icon-button" onClick={() => onMove(1)} disabled={index === count - 1} aria-label="Move down">
-            ↓
-          </button>
-          <button type="button" className="icon-button" onClick={onRemove} aria-label="Remove step">
-            ×
-          </button>
-        </span>
-      </div>
+    <>
       {def?.help && <span className="npc-hint">{def.help}</span>}
 
       {step.type === 'value' && (
         <>
+          <div className="aw-equation">
+            <span className="aw-keyword">set</span>
+            {nameField}
+            <span className="aw-equals">=</span>
+          </div>
           <div className="dm-form-row">
             <label>
-              Grab
+              The value
               <select
                 value={step.source}
                 onChange={(e) => {
@@ -366,27 +353,11 @@ function StepEditor({ step, onChange, onRemove, onMove, index, count, vars, ctx,
                 <input value={step.question} onChange={(e) => set({ question: e.target.value })} placeholder="How many points do you spend?" />
               </label>
             )}
-            {value?.param === 'memory' && (
-              <label>
-                Remembered as
-                <input className="npc-code-input" value={step.memory} onChange={(e) => set({ memory: e.target.value.replace(/\s+/g, '_') })} placeholder="e.g. critAt" />
-              </label>
-            )}
-            <label>
-              Save it as
-              <input className="npc-code-input" value={step.name} onChange={(e) => set({ name: e.target.value.replace(/\s+/g, '_') })} aria-label="Variable name" />
-            </label>
           </div>
           {value?.param === 'formula' && (
             <label>
               Dice
               <MathField value={step.formula} onChange={(formula) => set({ formula })} vars={vars} placeholder="e.g. 1d20, or 2d6 + @prof" label="Dice" />
-            </label>
-          )}
-          {value?.param === 'memory' && (
-            <label>
-              If nothing is remembered (or it was forgotten)
-              <MathField value={step.start} onChange={(start) => set({ start })} vars={vars} placeholder="e.g. 20, or critAt" label="Starting value" />
             </label>
           )}
           {showFields}
@@ -396,10 +367,12 @@ function StepEditor({ step, onChange, onRemove, onMove, index, count, vars, ctx,
       {step.type === 'math' && (
         <>
           <div className="aw-equation">
-            <input className="npc-code-input aw-var-input" value={step.name} onChange={(e) => set({ name: e.target.value.replace(/\s+/g, '_') })} aria-label="Variable name" />
+            <span className="aw-keyword">set</span>
+            {nameField}
             <span className="aw-equals">=</span>
-            <MathField value={step.expr} onChange={(expr) => set({ expr })} vars={vars} placeholder="e.g. floor(hp / 2) + @prof" label="Math" />
+            <MathField value={step.expr} onChange={(expr) => set({ expr })} vars={vars} placeholder="e.g. CritAt - 1, or floor(hp / 2) + @prof" label="Math" />
           </div>
+          {memories.has(step.name) && <span className="npc-hint">{step.name} is a remembered number: this is saved for next time.</span>}
           <span className="npc-hint">
             + − * / and brackets, dice like 2d6, <code>floor()</code> <code>ceil()</code> <code>round()</code> <code>min(a, b)</code> <code>max(a, b)</code>, and your stats as @references (<code>@prof</code>,{' '}
             <code>@abilities.con.mod</code>).
@@ -446,35 +419,48 @@ function StepEditor({ step, onChange, onRemove, onMove, index, count, vars, ctx,
         </>
       )}
 
-      {step.type === 'remember' && (
+      {step.type === 'memory' && (
         <>
-          <div className="dm-form-row">
-            <label>
-              Do
-              <select value={step.mode === 'forget' ? 'forget' : 'set'} onChange={(e) => set({ mode: e.target.value })}>
-                <option value="set">Remember a number</option>
-                <option value="forget">Forget it (back to its starting value)</option>
-              </select>
-            </label>
-            <label>
-              Remember it as
-              <input className="npc-code-input" value={step.memory} onChange={(e) => set({ memory: e.target.value.replace(/\s+/g, '_') })} placeholder="e.g. critAt" />
-            </label>
-            {step.mode !== 'forget' && (
-              <label>
-                Forget after (minutes)
-                <input type="number" min="0" step="0.1" value={step.forget} onChange={(e) => set({ forget: e.target.value })} placeholder="never" />
-              </label>
-            )}
+          <div className="aw-equation">
+            <span className="aw-keyword">remembered</span>
+            {nameField}
           </div>
-          {step.mode !== 'forget' && amount('The number', 'e.g. saved - 1')}
+          <div className="dm-form-row">
+            <label className="npc-wide-field">
+              Starts at (and goes back to when forgotten)
+              <MathField value={step.start} onChange={(start) => set({ start })} vars={vars} placeholder="e.g. 20" label="Starting value" />
+            </label>
+            <label>
+              Forget after (minutes)
+              <input type="number" min="0" step="0.1" value={step.forget} onChange={(e) => set({ forget: e.target.value })} placeholder="never" />
+            </label>
+          </div>
           <span className="npc-hint">
-            Kept on this item. Forgetting counts game time, without a new “remember”: a combat round is 6 seconds, so 1 minute is 10 rounds.
+            Kept on this item. Use it like any variable below; “set {step.name || 'it'} = …” saves the new value. Forgetting counts game time
+            since the last change: a combat round is 6 seconds, so 1 minute is 10 rounds.
           </span>
         </>
       )}
 
-      {step.type === 'makeCrit' && <span className="npc-hint">Put a check before it, like “The attack hit”. Midi rolls the damage once, as a crit.</span>}
+      {step.type === 'forget' && (
+        <label className="aw-inline">
+          Forget
+          <select value={step.name} onChange={(e) => set({ name: e.target.value })}>
+            <option value="">Pick one…</option>
+            {[...memories.keys()].map((m) => (
+              <option key={m} value={m}>
+                {m}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+
+      {step.type === 'makeCrit' && (
+        <span className="npc-hint">
+          A crit always hits, so a roll that missed becomes a hit too: don’t require “The attack hit” for it. Midi rolls the damage once, as a crit.
+        </span>
+      )}
 
       {step.type === 'damageRoll' && (
         <>
@@ -597,73 +583,225 @@ function StepEditor({ step, onChange, onRemove, onMove, index, count, vars, ctx,
           aria-label="Custom code"
         />
       )}
-    </div>
+    </>
   )
 }
 
-// Grouped "add a step" buttons, only the ones that work at this point.
-function StepPalette({ ctx, onAdd }) {
+// ---------------------------------------------------------------------------
+// The script
+
+// What every line needs to know about the whole script: the variables it can
+// see (scopes), the remembered numbers, problems by line, which lines are
+// unfolded, and the item's effects.
+const ScriptContext = createContext(null)
+
+const stripWhere = (text) => (text.includes('”: ') ? text.slice(text.indexOf('”: ') + 3) : text)
+
+// The "+ Add a line" menu: variables first, then if, then everything else
+// that works at this point of the roll.
+function AddLine({ ctx, onAdd }) {
   const steps = stepsFor(ctx)
   const groups = [...new Set(steps.map((s) => s.group))]
+  const group = (g) => (
+    <optgroup key={g} label={g}>
+      {steps
+        .filter((s) => s.group === g)
+        .map((s) => (
+          <option key={s.key} value={s.key}>
+            {s.label}
+          </option>
+        ))}
+    </optgroup>
+  )
   return (
-    <div className="aw-palette">
-      {groups.map((g) => (
-        <div key={g} className="aw-palette-group">
-          <span className="aw-palette-label">{g}</span>
-          <div className="aw-palette-buttons">
-            {steps
-              .filter((s) => s.group === g)
-              .map((s) => (
-                <button key={s.key} type="button" className="secondary npc-small-button" onClick={() => onAdd(s.key)} title={s.help ?? ''}>
-                  + {s.label}
-                </button>
-              ))}
-          </div>
-        </div>
+    <select className="aw-add-line" value="" onChange={(e) => e.target.value && onAdd(e.target.value)} aria-label="Add a line">
+      <option value="">+ Add a line</option>
+      {groups.filter((g) => g === 'Variables').map(group)}
+      <optgroup label="Logic">
+        <option value="if">If… (otherwise…)</option>
+      </optgroup>
+      {groups.filter((g) => g !== 'Variables').map(group)}
+    </select>
+  )
+}
+
+// A list of lines: a section's, or one branch of an if. owner: the key its
+// end is known by in the scopes ("<section key>", "<if key>:then"...).
+function LineList({ lines, owner, onChange }) {
+  const sc = useContext(ScriptContext)
+  const end = sc.scopes.get(`${owner}:end`) ?? { vars: [], ctx: sc.defaultCtx }
+  const add = (type) => {
+    let line
+    if (type === 'value') {
+      const base = valuesFor(end.ctx)[0]
+      line = emptyLine('value', { suggestName: freeName(base?.name ?? 'value', end.vars) })
+      if (base) line.source = base.key
+    } else if (type === 'math') {
+      line = { ...emptyLine('math', { suggestName: freeName('total', end.vars) }), show: false }
+    } else {
+      line = emptyLine(type)
+    }
+    sc.open(line.key)
+    onChange([...lines, line])
+  }
+  return (
+    <div className="aw-lines">
+      {lines.map((line, i) => (
+        <LineItem
+          key={line.key}
+          line={line}
+          first={i === 0}
+          last={i === lines.length - 1}
+          onChange={(next) => onChange(lines.map((x, j) => (j === i ? next : x)))}
+          onRemove={() => onChange(lines.filter((_, j) => j !== i))}
+          onMove={(d) => {
+            const next = [...lines]
+            ;[next[i], next[i + d]] = [next[i + d], next[i]]
+            onChange(next)
+          }}
+        />
       ))}
+      <AddLine ctx={end.ctx} onAdd={add} />
     </div>
   )
 }
 
-function StepList({ flow, blockIndex, branch, ctx, effects, featureName, onChange }) {
-  const block = flow.blocks[blockIndex]
-  const steps = block[branch] ?? []
-  const setSteps = (next) => onChange({ ...block, [branch]: next })
-  const add = (type) => {
-    const taken = varsBefore(flow, { block: blockIndex, branch, step: steps.length })
-    const base = type === 'value' ? valuesFor(ctx)[0] : null
-    const step = emptyStep(type, { suggestName: type === 'value' ? freeName(base?.name ?? 'value', taken) : type === 'math' ? freeName('total', taken) : '' })
-    if (base) step.source = base.key
-    setSteps([...steps, step])
-  }
+// An if's boxes: what it checks, and whether all or any of it must hold.
+function IfFields({ line, onChange, vars, ctx }) {
+  const sc = useContext(ScriptContext)
+  const checks = line.checks ?? []
+  const set = (patch) => onChange({ ...line, ...patch })
   return (
     <>
-      {steps.length > 0 && (
+      {checks.length > 1 && (
+        <label className="aw-inline">
+          Runs when
+          <select value={line.join === 'any' ? 'any' : 'all'} onChange={(e) => set({ join: e.target.value })}>
+            <option value="all">all of these are true</option>
+            <option value="any">any one of these is true</option>
+          </select>
+        </label>
+      )}
+      {checks.length > 0 && (
         <div className="aw-pieces">
-          {steps.map((s, i) => (
-            <StepEditor
-              key={s.key}
-              step={s}
-              index={i}
-              count={steps.length}
-              ctx={ctx}
-              effects={effects}
-              featureName={featureName}
-              vars={varsBefore(flow, { block: blockIndex, branch, step: i })}
-              onChange={(next) => setSteps(steps.map((x, idx) => (idx === i ? next : x)))}
-              onRemove={() => setSteps(steps.filter((_, idx) => idx !== i))}
-              onMove={(d) => {
-                const next = [...steps]
-                ;[next[i], next[i + d]] = [next[i + d], next[i]]
-                setSteps(next)
-              }}
-            />
+          {checks.map((c, i) => (
+            <div key={c.key}>
+              {i > 0 && <span className="aw-and">{line.join === 'any' ? 'or' : 'and'}</span>}
+              <CheckEditor
+                check={c}
+                vars={vars}
+                featureName={sc.featureName}
+                onChange={(next) => set({ checks: checks.map((x, j) => (j === i ? next : x)) })}
+                onRemove={() => set({ checks: checks.filter((_, j) => j !== i) })}
+              />
+            </div>
           ))}
         </div>
       )}
-      <p className="aw-question-small">{steps.length ? 'Next step?' : 'Pick the first step:'}</p>
-      <StepPalette ctx={ctx} onAdd={add} />
+      <select className="aw-add-line" value="" onChange={(e) => e.target.value && set({ checks: [...checks, emptyCheck(e.target.value)] })} aria-label="Add a check">
+        <option value="">{checks.length ? '+ Another check' : '+ What it checks'}</option>
+        {checksFor(ctx).map((c) => (
+          <option key={c.key} value={c.key}>
+            {c.label}
+          </option>
+        ))}
+      </select>
     </>
+  )
+}
+
+function LineItem({ line, onChange, onRemove, onMove, first, last }) {
+  const sc = useContext(ScriptContext)
+  const { vars, ctx } = sc.scopes.get(line.key) ?? { vars: [], ctx: sc.defaultCtx }
+  const open = sc.isOpen(line.key)
+  const problems = sc.problems.get(line.key) ?? []
+  const isIf = line.type === 'if'
+  const elseKey = `${line.key}:else`
+  return (
+    <div className={`aw-line${isIf ? ' is-if' : ''}`}>
+      <div className="aw-line-row">
+        <button type="button" className={`aw-line-text${problems.length ? ' is-bad' : ''}`} onClick={() => sc.toggle(line.key)} aria-expanded={open}>
+          <code>
+            {lineWords(line)}
+            {isIf ? ':' : ''}
+          </code>
+          {problems.length > 0 && <span className="aw-line-flag">needs a fix</span>}
+        </button>
+        <span className="aw-piece-tools">
+          <button type="button" className="icon-button" onClick={() => onMove(-1)} disabled={first} aria-label="Move up">
+            ↑
+          </button>
+          <button type="button" className="icon-button" onClick={() => onMove(1)} disabled={last} aria-label="Move down">
+            ↓
+          </button>
+          <button type="button" className="icon-button" onClick={onRemove} aria-label="Remove line">
+            ×
+          </button>
+        </span>
+      </div>
+      {open && (
+        <div className="aw-line-fields">
+          {isIf ? (
+            <IfFields line={line} onChange={onChange} vars={vars} ctx={ctx} />
+          ) : (
+            <StepFields step={line} onChange={onChange} vars={vars} ctx={ctx} effects={sc.effects} featureName={sc.featureName} memories={sc.memories} />
+          )}
+          {problems.map((p) => (
+            <p key={p} className="status-message error">
+              {stripWhere(p)}
+            </p>
+          ))}
+          <button type="button" className="secondary npc-small-button fw-self-start" onClick={() => sc.toggle(line.key)}>
+            Done
+          </button>
+        </div>
+      )}
+      {isIf && (
+        <>
+          <div className="aw-branch">
+            <LineList lines={line.then ?? []} owner={`${line.key}:then`} onChange={(then) => onChange({ ...line, then })} />
+          </div>
+          {line.else?.length || sc.isOpen(elseKey) ? (
+            <>
+              <code className="aw-line-else">otherwise:</code>
+              <div className="aw-branch">
+                <LineList lines={line.else ?? []} owner={elseKey} onChange={(next) => onChange({ ...line, else: next })} />
+              </div>
+            </>
+          ) : (
+            <button type="button" className="secondary npc-small-button aw-add-else" onClick={() => sc.open(elseKey)}>
+              + otherwise
+            </button>
+          )}
+        </>
+      )}
+    </div>
+  )
+}
+
+function SectionEditor({ section, kind, onChange, onRemove, canRemove }) {
+  const sc = useContext(ScriptContext)
+  const trig = flowTrigger(section.trigger)
+  return (
+    <section className="aw-section">
+      <div className="aw-section-head">
+        <select value={section.trigger} onChange={(e) => onChange({ ...section, trigger: e.target.value })} aria-label="When this part runs">
+          {triggersFor(kind).map((t) => (
+            <option key={t.key} value={t.key}>
+              {t.label}
+            </option>
+          ))}
+        </select>
+        {canRemove && (
+          <button type="button" className="icon-button" onClick={onRemove} aria-label="Remove this part">
+            ×
+          </button>
+        )}
+      </div>
+      <span className="npc-hint">{trig.help}</span>
+      <LineList lines={section.lines} owner={section.key} onChange={(lines) => onChange({ ...section, lines })} />
+      {!section.lines.length && sc.hasLines && <span className="npc-hint">Nothing here yet. It’s left out when you save.</span>}
+    </section>
   )
 }
 
@@ -671,201 +809,80 @@ function StepList({ flow, blockIndex, branch, ctx, effects, featureName, onChang
 // The builder
 
 // activity: the roll being automated; item: its item (for effects).
-// onAccept(flow) gets the finished flow; a flow with no blocks means "remove it".
+// onAccept(flow) gets the finished script, or null to remove the automation.
 export default function AutomationWizard({ activity, item, onAccept, onClose }) {
   const kind = activity.kind
   const featureName = item?.name ?? ''
   const effects = item?.effects ?? []
   const ref = useRef(null)
   const [flow, setFlow] = useState(() => {
-    const start = activity.flow ? structuredClone(activity.flow) : emptyFlow()
-    if (!start.blocks.length) start.blocks.push(emptyBlock(KIND_DEFAULT_TRIGGER[kind] ?? 'done'))
+    const start = toScript(activity.flow ? structuredClone(activity.flow) : null)
+    if (!start.sections.length) start.sections = [emptySection(KIND_DEFAULT_TRIGGER[kind] ?? 'done')]
     return start
   })
-  const [blockKey, setBlockKey] = useState(() => (activity.flow?.blocks?.length ? null : flow.blocks[0].key))
-  const [screen, setScreen] = useState(activity.flow?.blocks?.length ? 'review' : 'when')
-  const [pickingCheck, setPickingCheck] = useState(false)
-  const [wantsElse, setWantsElse] = useState(false)
+  const [openKeys, setOpenKeys] = useState(() => new Set())
+  const [showCode, setShowCode] = useState(false)
 
   useEffect(() => {
     const dialog = ref.current
     if (dialog && !dialog.open) dialog.showModal()
   }, [])
 
-  const bi = Math.max(0, flow.blocks.findIndex((b) => b.key === blockKey))
-  const block = flow.blocks[bi]
-  const ctx = { trigger: block?.trigger, kind }
-  const setBlock = (next) => setFlow((f) => ({ ...f, blocks: f.blocks.map((b) => (b.key === next.key ? next : b)) }))
-  const problems = useMemo(() => flowProblems(flow, kind), [flow, kind])
-  const code = useMemo(() => (screen === 'review' ? flowCode(flow, { itemName: featureName }) : ''), [screen, flow, featureName])
+  // What gets saved: parts with no lines are left out.
+  const saved = useMemo(() => ({ ...flow, sections: flow.sections.filter((x) => x.lines.length) }), [flow])
+  const hasLines = saved.sections.length > 0
+  const scopes = useMemo(() => scriptScopes(flow, kind), [flow, kind])
+  const memories = useMemo(() => scriptMemories(flow), [flow])
+  const problemList = useMemo(() => flowProblems(saved, kind), [saved, kind])
+  const problems = useMemo(() => {
+    const byKey = new Map()
+    for (const p of problemList) byKey.set(p.key, [...(byKey.get(p.key) ?? []), p.text])
+    return byKey
+  }, [problemList])
+  const code = useMemo(() => (showCode ? flowCode(saved, { itemName: featureName }) : ''), [showCode, saved, featureName])
 
-  const go = (next) => {
-    setPickingCheck(false)
-    setScreen(next)
+  const setSections = (sections) => setFlow((f) => toScript({ ...f, sections }))
+  const toggle = (key) =>
+    setOpenKeys((keys) => {
+      const next = new Set(keys)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  const context = {
+    scopes,
+    memories,
+    problems,
+    effects,
+    featureName,
+    hasLines,
+    defaultCtx: { trigger: flow.sections[0]?.trigger, kind },
+    isOpen: (key) => openKeys.has(key),
+    open: (key) => setOpenKeys((keys) => new Set(keys).add(key)),
+    toggle,
   }
-  const openBlock = (key, next = 'when') => {
-    setBlockKey(key)
-    setWantsElse(!!flow.blocks.find((b) => b.key === key)?.otherwise?.length)
-    go(next)
-  }
-  const newBlock = (trigger, next) => {
-    const b = emptyBlock(trigger)
-    setFlow((f) => ({ ...f, blocks: sortBlocks([...f.blocks, b]) }))
-    setBlockKey(b.key)
-    setWantsElse(false)
-    go(next)
-  }
-  // Blocks stay in the order midi runs them, so variables flow forward.
-  const pickTrigger = (trigger) => setFlow((f) => ({ ...f, blocks: sortBlocks(f.blocks.map((b) => (b.key === block.key ? { ...b, trigger } : b))) }))
+  const used = new Set(flow.sections.map((x) => x.trigger))
+  const free = triggersFor(kind).filter((t) => !used.has(t.key))
 
-  const blockProblems = problems.filter((p) => p.block === bi)
-  const screenIndex = SCREENS.findIndex((s) => s.key === screen)
-  const trig = block ? flowTrigger(block.trigger) : null
-
-  let body
-  if (screen === 'when') {
-    body = (
-      <>
-        <h3 className="aw-question">When does it happen?</h3>
-        <p className="npc-hint">The point in {featureName || 'this feature'}’s roll where this part runs.</p>
-        <div className="aw-choices">
-          {triggersFor(kind).map((t) => (
-            <button key={t.key} type="button" className={`aw-choice${block.trigger === t.key ? ' is-selected' : ''}`} onClick={() => pickTrigger(t.key)}>
-              <strong>{t.label}</strong>
-              <span>{t.help}</span>
-            </button>
-          ))}
+  return (
+    <dialog
+      ref={ref}
+      className="item-dialog aw-dialog"
+      onClose={onClose}
+      onCancel={(e) => {
+        if (!confirm('Close the builder? Changes since the last accept are lost.')) e.preventDefault()
+      }}
+    >
+      <header className="item-dialog-header">
+        <div>
+          <h2>Build automation</h2>
+          <p className="dm-list-meta">{featureName || 'Untitled feature'}</p>
         </div>
-      </>
-    )
-  } else if (screen === 'if') {
-    const checks = block.checks ?? []
-    const vars = varsBefore(flow, { block: bi, branch: 'checks' })
-    const palette = (
-      <div className="aw-choices aw-choices-compact">
-        {checksFor(ctx).map((c) => (
-          <button
-            key={c.key}
-            type="button"
-            className="aw-choice"
-            onClick={() => {
-              setBlock({ ...block, checks: [...checks, emptyCheck(c.key)] })
-              setPickingCheck(false)
-            }}
-          >
-            <strong>{c.label}</strong>
-          </button>
-        ))}
-      </div>
-    )
-    body = (
-      <>
-        <h3 className="aw-question">Is there a condition?</h3>
-        <p className="npc-hint">
-          {trig.short}. Only conditions that are known by then are listed.
-        </p>
-        {!checks.length && !pickingCheck ? (
-          <div className="aw-yes-no">
-            <button type="button" className="secondary" onClick={() => go('then')}>
-              No, it always happens
-            </button>
-            <button type="button" onClick={() => setPickingCheck(true)}>
-              Yes, only if…
-            </button>
-          </div>
-        ) : (
-          <>
-            <div className="aw-pieces">
-              {checks.map((c, i) => (
-                <div key={c.key}>
-                  {i > 0 && <span className="aw-and">and</span>}
-                  <CheckEditor
-                    check={c}
-                    vars={vars}
-                    featureName={featureName}
-                    onChange={(next) => setBlock({ ...block, checks: checks.map((x, idx) => (idx === i ? next : x)) })}
-                    onRemove={() => setBlock({ ...block, checks: checks.filter((_, idx) => idx !== i) })}
-                  />
-                </div>
-              ))}
-            </div>
-            {pickingCheck || !checks.length ? (
-              <>
-                <p className="aw-question-small">{checks.length ? 'And also…' : 'Only if…'}</p>
-                {palette}
-              </>
-            ) : (
-              <button type="button" className="secondary npc-small-button" onClick={() => setPickingCheck(true)}>
-                + Another condition (all must be true)
-              </button>
-            )}
-          </>
-        )}
-      </>
-    )
-  } else if (screen === 'then' || (screen === 'else' && wantsElse)) {
-    const branch = screen === 'then' ? 'steps' : 'otherwise'
-    body = (
-      <>
-        <h3 className="aw-question">{screen === 'then' ? 'What happens?' : 'What happens instead?'}</h3>
-        <p className="npc-hint">
-          {blockSummary({ ...block, steps: [], otherwise: [] }).replace(/: nothing happens\.$/, '')}
-          {screen === 'else' ? ', and the condition isn’t met' : ''}. Steps run top to bottom; each can use the variables made above it.
-        </p>
-        <StepList flow={flow} blockIndex={bi} branch={branch} ctx={ctx} effects={effects} featureName={featureName} onChange={setBlock} />
-      </>
-    )
-  } else if (screen === 'else') {
-    body = (
-      <>
-        <h3 className="aw-question">If the condition isn’t met, should anything happen instead?</h3>
-        <div className="aw-yes-no">
-          <button
-            type="button"
-            className="secondary"
-            onClick={() => {
-              setBlock({ ...block, otherwise: [] })
-              go('more')
-            }}
-          >
-            No, nothing happens
-          </button>
-          <button type="button" onClick={() => setWantsElse(true)}>
-            Yes, otherwise…
-          </button>
-        </div>
-      </>
-    )
-  } else if (screen === 'more') {
-    body = (
-      <>
-        <h3 className="aw-question">Anything else?</h3>
-        <p className="aw-summary">{blockSummary(block)}</p>
-        {blockProblems.map((p) => (
-          <p key={p.text} className="status-message error">
-            {p.text}
-          </p>
-        ))}
-        <div className="aw-choices">
-          <button type="button" className="aw-choice" onClick={() => newBlock(block.trigger, 'if')}>
-            <strong>Another conditional, at the same time</strong>
-            <span>{trig.short}, if something else is true…</span>
-          </button>
-          <button type="button" className="aw-choice" onClick={() => newBlock(block.trigger, 'when')}>
-            <strong>Something at a different time</strong>
-            <span>Before the attack, after it’s all done…</span>
-          </button>
-          <button type="button" className="aw-choice is-selected" onClick={() => go('review')}>
-            <strong>No, that’s everything</strong>
-            <span>Review it, then accept and save.</span>
-          </button>
-        </div>
-      </>
-    )
-  } else {
-    body = (
-      <>
-        <h3 className="aw-question">Review</h3>
+        <button type="button" className="secondary" onClick={() => ref.current?.close()}>
+          Close
+        </button>
+      </header>
+      <div className="item-dialog-body aw-body">
         <div className="dm-form-row">
           <label>
             Chat card title
@@ -882,108 +899,62 @@ export default function AutomationWizard({ activity, item, onAccept, onClose }) 
             </select>
           </label>
         </div>
-        {flow.blocks.length ? (
-          <ol className="aw-review">
-            {flow.blocks.map((b, i) => (
-              <li key={b.key}>
-                <p>{blockSummary(b)}</p>
-                {problems
-                  .filter((p) => p.block === i)
-                  .map((p) => (
-                    <p key={p.text} className="status-message error">
-                      {p.text}
-                    </p>
-                  ))}
-                <div className="dm-list-actions">
-                  <button type="button" className="secondary npc-small-button" onClick={() => openBlock(b.key, 'when')}>
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    className="danger npc-small-button"
-                    onClick={() => setFlow({ ...flow, blocks: flow.blocks.filter((x) => x.key !== b.key) })}
-                  >
-                    Remove
-                  </button>
-                </div>
-              </li>
+        <p className="npc-hint">
+          Lines run top to bottom, like code. Each can use the variables set above it. Click a line to fill in its boxes.
+        </p>
+        <ScriptContext.Provider value={context}>
+          {flow.sections.map((section, i) => (
+            <SectionEditor
+              key={section.key}
+              section={section}
+              kind={kind}
+              canRemove={flow.sections.length > 1}
+              onChange={(next) => setSections(flow.sections.map((x, j) => (j === i ? next : x)))}
+              onRemove={() => setSections(flow.sections.filter((_, j) => j !== i))}
+            />
+          ))}
+        </ScriptContext.Provider>
+        {free.length > 0 && (
+          <select className="aw-add-line" value="" onChange={(e) => e.target.value && setSections([...flow.sections, emptySection(e.target.value)])} aria-label="Add another point in the roll">
+            <option value="">+ Another point in the roll…</option>
+            {free.map((t) => (
+              <option key={t.key} value={t.key}>
+                {t.label}
+              </option>
             ))}
-          </ol>
-        ) : (
-          <p className="npc-hint">Nothing left. Accepting removes the automation from this roll.</p>
+          </select>
         )}
-        <button type="button" className="secondary npc-small-button" onClick={() => newBlock(KIND_DEFAULT_TRIGGER[kind] ?? 'done', 'when')}>
-          + Add another part
-        </button>
-        <details className="npc-cheatsheet">
+        {problemList.length > 0 && (
+          <div className="aw-problems">
+            <strong>
+              {problemList.length} thing{problemList.length === 1 ? '' : 's'} to fix before saving
+            </strong>
+            <ul>
+              {problemList.map((p, i) => (
+                <li key={i}>{p.text}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {!hasLines && <p className="npc-hint">No lines yet. Accepting with none removes the automation from this roll.</p>}
+        <details className="npc-cheatsheet" onToggle={(e) => setShowCode(e.currentTarget.open)}>
           <summary>The macro this builds (runs in Foundry)</summary>
           <pre className="npc-code feature-macro">{code}</pre>
         </details>
-      </>
-    )
-  }
-
-  const next = { when: 'if', if: 'then', then: (block?.checks ?? []).length ? 'else' : 'more', else: 'more' }[screen]
-  const back = {
-    if: 'when',
-    then: 'if',
-    else: 'then',
-    more: (block?.checks ?? []).length ? 'else' : 'then',
-    review: flow.blocks.length ? 'more' : null,
-  }[screen]
-  const canNext =
-    screen === 'then' ? (block.steps ?? []).length > 0 : screen === 'else' ? !wantsElse || (block.otherwise ?? []).length > 0 : screen === 'if' ? !pickingCheck || (block.checks ?? []).length > 0 : true
-
-  return (
-    <dialog
-      ref={ref}
-      className="item-dialog aw-dialog"
-      onClose={onClose}
-      onCancel={(e) => {
-        if (!confirm('Close the builder? Changes since the last accept are lost.')) e.preventDefault()
-      }}
-    >
-      <header className="item-dialog-header">
-        <div>
-          <h2>Build automation</h2>
-          <p className="dm-list-meta">{featureName || 'Untitled feature'}{flow.blocks.length > 1 && screen !== 'review' ? ` · part ${bi + 1} of ${flow.blocks.length}` : ''}</p>
-        </div>
-        <button type="button" className="secondary" onClick={() => ref.current?.close()}>
-          Close
-        </button>
-      </header>
-      <ol className="aw-progress">
-        {SCREENS.map((s, i) => (
-          <li key={s.key} className={i === screenIndex ? 'is-current' : i < screenIndex ? 'is-done' : ''}>
-            {s.label}
-          </li>
-        ))}
-      </ol>
-      <div className="item-dialog-body aw-body">{body}</div>
+      </div>
       <div className="item-dialog-actions">
-        {back && (
-          <button type="button" className="secondary" onClick={() => (screen === 'review' ? openBlock(flow.blocks.at(-1).key, 'more') : go(back))}>
-            Back
-          </button>
-        )}
         <span className="npc-item-actions-spacer" />
-        {screen === 'review' ? (
-          <button
-            type="button"
-            disabled={problems.length > 0}
-            title={problems.length ? 'Fix the problems above first' : ''}
-            onClick={() => {
-              onAccept({ ...flow, blocks: sortBlocks(flow.blocks) })
-              ref.current?.close()
-            }}
-          >
-            Accept &amp; save
-          </button>
-        ) : next ? (
-          <button type="button" onClick={() => go(next)} disabled={!canNext}>
-            Next
-          </button>
-        ) : null}
+        <button
+          type="button"
+          disabled={problemList.length > 0}
+          title={problemList.length ? 'Fix the problems above first' : ''}
+          onClick={() => {
+            onAccept(hasLines ? saved : null)
+            ref.current?.close()
+          }}
+        >
+          Accept &amp; save
+        </button>
       </div>
     </dialog>
   )

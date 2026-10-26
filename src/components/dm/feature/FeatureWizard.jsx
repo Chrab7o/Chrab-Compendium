@@ -328,11 +328,7 @@ function RollsStep({ item, inSpell, setItem }) {
               </div>
               <span>{rollSummary(a)}</span>
               {hasFlow(a) && (
-                <ol className="npc-flow-summary">
-                  {flowSummary(a.flow).map((line, n) => (
-                    <li key={n}>{line}</li>
-                  ))}
-                </ol>
+                <pre className="npc-flow-summary">{flowSummary(a.flow).join('\n')}</pre>
               )}
             </div>
           ))}

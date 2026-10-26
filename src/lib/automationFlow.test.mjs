@@ -8,18 +8,20 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { emptyActivity, emptyEffect } from './foundryActorBuilder.js'
 import {
-  blockSummary,
   emptyBlock,
   emptyCheck,
   emptyFlow,
+  emptyLine,
+  emptySection,
   emptyStep,
   flowCode,
   flowPasses,
   flowProblems,
+  flowSummary,
   mathFormula,
+  scriptScopes,
   sortBlocks,
-  stepWords,
-  varsBefore,
+  toScript,
 } from './automationFlow.js'
 import { buildFeatureItem, emptyFeatureSpec, featureItemToSpec } from './foundryFeatures.js'
 
@@ -28,6 +30,11 @@ const AsyncFunction = Object.getPrototypeOf(async () => {}).constructor
 const step = (type, patch = {}) => ({ ...emptyStep(type), ...patch })
 const check = (type, patch = {}) => ({ ...emptyCheck(type), ...patch })
 const block = (trigger, patch = {}) => ({ ...emptyBlock(trigger), ...patch })
+// Version 2: sections of lines, ifs nested.
+const line = (type, patch = {}) => ({ ...emptyLine(type), ...patch })
+const ifLine = (checks, then = [], otherwise = [], patch = {}) => ({ ...emptyLine('if'), checks, then, else: otherwise, ...patch })
+const section = (trigger, lines) => ({ ...emptySection(trigger), lines })
+const script = (...sections) => ({ ...emptyFlow(), sections })
 
 // The example from the brief: on a hit, grab the target's HP, halve it,
 // a flavor line, then that number replaces the rolled damage.
@@ -67,40 +74,58 @@ test('math: variable names get an @, functions, dice and @references pass throug
   assert.match(mathFormula('', []).error, /Write some math/)
 })
 
-test('variables are visible from earlier blocks and earlier steps only', () => {
-  const flow = {
-    blocks: sortBlocks([
-      block('damage', { steps: [step('math', { name: 'later', expr: 'early + 1' })] }),
-      block('preAttack', { steps: [step('value', { name: 'early' }), step('math', { name: 'mid', expr: 'early' })] }),
-    ]),
-  }
-  assert.equal(flow.blocks[0].trigger, 'preAttack', 'blocks sort into the order midi runs them')
-  assert.deepEqual(varsBefore(flow, { block: 0, branch: 'steps', step: 1 }), ['early'])
-  assert.deepEqual(varsBefore(flow, { block: 1, branch: 'checks' }), ['early', 'mid'])
+test('a line sees the variables set above it, in its section and earlier ones', () => {
+  const hp = line('value', { source: 'targetHp', name: 'hp' })
+  const inner = line('math', { name: 'half', expr: 'hp / 2' })
+  const after = line('math', { name: 'later', expr: 'hp + half' })
+  const nested = ifLine([check('compare', { left: 'hp', op: '>', right: '10' })], [inner])
+  const flow = script(section('damage', [after]), section('preAttack', [hp, nested]))
+  const scopes = scriptScopes(flow, 'attack')
+  assert.equal(toScript(flow).sections[0].trigger, 'preAttack', 'sections sort into the order midi runs them')
+  assert.deepEqual(scopes.get(nested.key).vars, ['hp'], 'an if’s checks see the lines above it')
+  assert.deepEqual(scopes.get(inner.key).vars, ['hp'])
+  assert.deepEqual(scopes.get(after.key).vars, ['hp', 'half'])
   assert.deepEqual(flowProblems(flow, 'attack'), [])
 })
 
-test('problems: wrong time, unknown names, empty blocks', () => {
-  const flow = {
-    blocks: [
-      block('preAttack', { checks: [check('hit')], steps: [step('damageRoll', { amount: 'x' })] }),
-      block('done'),
-    ],
-  }
-  const texts = flowProblems(flow, 'attack').map((p) => p.text)
+test('problems: wrong time, unknown names, empty ifs and sections', () => {
+  const texts = flowProblems(
+    script(section('preAttack', [ifLine([check('hit')], [line('damageRoll', { amount: 'x' })]), ifLine([])]), section('done', [])),
+    'attack',
+  ).map((p) => p.text)
   assert.ok(texts.some((t) => /“The attack hit” isn’t known yet at “Before the attack roll”/.test(t)))
   assert.ok(texts.some((t) => /can’t happen at “Before the attack roll”/.test(t)))
   assert.ok(texts.some((t) => /I don’t know “x”/.test(t)))
-  assert.ok(texts.some((t) => /Block 2: nothing happens yet/.test(t)))
-  assert.ok(flowProblems({ blocks: [block('attack', { steps: [step('flavor', { text: 'hi' })] })] }, 'save').some((p) => /doesn’t happen on this kind of roll/.test(p.text)))
+  assert.ok(texts.some((t) => /pick what it checks/.test(t)))
+  assert.ok(texts.some((t) => /nothing happens inside it yet/.test(t)))
+  assert.ok(texts.some((t) => /After it’s all done: nothing happens yet/.test(t)))
+  assert.ok(flowProblems(script(section('attack', [line('flavor', { text: 'hi' })])), 'save').some((p) => /doesn’t happen on this kind of roll/.test(p.text)))
   assert.deepEqual(flowProblems(halfHpFlow(), 'attack'), [])
 })
 
-test('the summary reads like the steps', () => {
-  assert.equal(
-    blockSummary(halfHpFlow().blocks[0]),
-    'When damage is rolled, if the attack hit: grab the target’s current HP as hp, work out dmg = floor(hp / 2), say “The blade drinks half of {target}’s life ({dmg}).”, then replace the rolled damage with dmg (rounded down).',
-  )
+test('the summary reads like the script, indented', () => {
+  assert.deepEqual(flowSummary(halfHpFlow()), [
+    'When damage is rolled:',
+    '  if the attack hit:',
+    '    set hp = the target’s current HP',
+    '    set dmg = floor(hp / 2)',
+    '    say “The blade drinks half of {target}’s life ({dmg}).”',
+    '    replace the rolled damage with dmg (rounded down)',
+  ])
+})
+
+test('a version 1 flow becomes a script: checks wrap the steps, otherwise is the else', () => {
+  const old = halfHpFlow()
+  old.blocks[0].otherwise = [step('flavor', { text: 'Missed.' })]
+  old.blocks.push(block('damage', { steps: [step('flavor', { text: 'Always.' })] }))
+  const { sections } = toScript(old)
+  assert.equal(sections.length, 1, 'blocks at the same point share a section')
+  const [wrapped, always] = sections[0].lines
+  assert.equal(wrapped.type, 'if')
+  assert.equal(wrapped.key, old.blocks[0].key, 'the if keeps the block’s key (once-per-turn tracking)')
+  assert.deepEqual(wrapped.then.map((l) => l.type), ['value', 'math', 'flavor', 'damageRoll'])
+  assert.deepEqual(wrapped.else.map((l) => l.text), ['Missed.'])
+  assert.equal(always.text, 'Always.')
 })
 
 // ---------------------------------------------------------------------------
@@ -384,23 +409,117 @@ test('an attack can be made a critical hit, with a pop-up for the player and the
   const whisper = world.messages.find((m) => m.flags?.['chrab-sync']?.popup)
   assert.deepEqual(whisper.whisper, ['gm1'], 'the GM gets it, flagged for Chrab Sync to pop up')
 
+  // A crit always hits, even a roll that missed the target's AC.
+  const missed = { ...attackWorkflow({ hit: false }), diceRoll: 19, isCritical: false }
+  const loose = { ...emptyFlow(), blocks: [block('attack', { steps: [step('makeCrit')] })] }
+  await run(featureWith(loose), { pass: 'postAttackRoll', workflow: missed })
+  assert.equal(missed.isCritical, true)
+  assert.deepEqual([...missed.hitTargets].map((t) => t.name), ['Goblin'])
+
   const low = { ...attackWorkflow(), diceRoll: 12, isCritical: false }
   await run(featureWith(flow), { pass: 'postAttackRoll', workflow: low, activity: { criticalThreshold: 20 } })
   assert.equal(low.isCritical, false)
 })
 
-test('the new steps say what’s missing, and the crit step only fits after the attack roll', () => {
+test('the new lines say what’s missing, and the crit step only fits after the attack roll', () => {
   const texts = flowProblems(
-    {
-      blocks: [
-        block('damage', { steps: [step('makeCrit'), step('remember', { memory: '', amount: '1' }), step('popup', { text: '' }), step('value', { source: 'remembered', memory: '9x', name: 'n' })] }),
-      ],
-    },
+    script(section('damage', [line('makeCrit'), line('memory', { name: '' }), line('popup', { text: '' }), line('forget', { name: 'nope' }), line('memory', { name: 'n', forget: 'soon' })])),
     'attack',
   ).map((p) => p.text)
   assert.ok(texts.some((t) => /“Make this attack a critical hit” can’t happen at “When damage is rolled”/.test(t)))
-  assert.ok(texts.some((t) => /step 2: name the number/.test(t)))
+  assert.ok(texts.some((t) => /remembered \?, starting at 0”: name the variable/.test(t)))
   assert.ok(texts.some((t) => /the pop-up is empty/.test(t)))
-  assert.ok(texts.some((t) => /step 4: name the remembered number/.test(t)))
-  assert.equal(stepWords(step('remember', { memory: 'critAt', amount: 'critAt - 1', forget: '1' })), 'remember critAt - 1 as critAt (forgotten after 1 minute without a change)')
+  assert.ok(texts.some((t) => /pick which remembered number/.test(t)))
+  assert.ok(texts.some((t) => /“forget after” is a number of minutes/.test(t)))
+})
+
+// ---------------------------------------------------------------------------
+// Scripts: the Ravanous Necrolight, written the way it reads
+
+// remembered CritAt (starts at 20, forgotten after 1 minute)
+// set natural = the natural d20
+// if natural ≥ CritAt: make it a crit, pop up, set CritAt = 20
+// otherwise: if hit and living and HP > 0: set CritAt = CritAt - 1
+function ravenous() {
+  return script(
+    section('attack', [
+      line('memory', { name: 'CritAt', start: '20', forget: '1' }),
+      line('value', { source: 'natural', name: 'natural' }),
+      ifLine(
+        [check('compare', { left: 'natural', op: '>=', right: 'CritAt' })],
+        [line('makeCrit'), line('popup', { text: 'Ravenous: roll critical damage!', gm: true }), line('math', { name: 'CritAt', expr: '20', show: false })],
+        [
+          ifLine(
+            [check('hit'), check('target', { target: { ...check('target').target, id: 'typeIsNot', types: ['undead', 'construct'] } }), check('compare', { left: 'hp', op: '>', right: '0' })],
+            [line('math', { name: 'CritAt', expr: 'CritAt - 1', show: false })],
+          ),
+        ],
+      ),
+    ]),
+  )
+}
+
+test('the Ravanous Necrolight: the crit number drops a step a hit, a crit resets it, and it lapses after a minute', async () => {
+  setup()
+  game.time = { worldTime: 0 }
+  game.user = { isGM: false }
+  game.users = [{ id: 'gm1', isGM: true, active: true }]
+  const notices = []
+  globalThis.ui = { notifications: { warn: (t) => notices.push(t) } }
+  globalThis.ChatMessage.create = async (d) => world.messages.push(d)
+  // The target checks go through midi's evalCondition: a living goblin passes.
+  globalThis.MidiQOL.createConditionData = () => ({})
+  globalThis.MidiQOL.evalCondition = async () => true
+
+  const flow = ravenous()
+  // The HP compare needs hp: grab it first, right after the d20.
+  flow.sections[0].lines.splice(2, 0, line('value', { source: 'targetHp', name: 'hp' }))
+  assert.deepEqual(flowProblems(flow, 'attack'), [])
+  const spec = featureWith(flow)
+  const sword = keptItem()
+  const attack = async (natural, { hit = true, time = 0 } = {}) => {
+    game.time.worldTime = time
+    const wf = { ...attackWorkflow({ hit }), diceRoll: natural, isCritical: natural === 20 }
+    await run(spec, { pass: 'postAttackRoll', workflow: wf, item: sword })
+    return wf
+  }
+  const critAt = () => sword.flags['chrab-sync']?.memory?.CritAt?.value
+
+  await attack(12, { time: 0 })
+  await attack(8, { time: 6 })
+  await attack(15, { time: 12 })
+  assert.equal(critAt(), 17, 'three hits: 20 → 17')
+  await attack(16, { hit: false, time: 18 })
+  assert.equal(critAt(), 17, 'a miss doesn’t stack')
+
+  const crit = await attack(17, { time: 24 })
+  assert.equal(crit.isCritical, true, '17 reaches CritAt 17')
+  assert.deepEqual(notices, ['Ravenous: roll critical damage!'])
+  assert.ok(world.messages.some((m) => m.flags?.['chrab-sync']?.popup), 'the GM gets it too')
+  assert.equal(critAt(), 20, 'the crit resets it')
+
+  await attack(10, { time: 30 })
+  assert.equal(critAt(), 19)
+  await attack(10, { time: 30 + 61 })
+  assert.equal(critAt(), 19, 'more than a minute later it had lapsed to 20, so this hit makes 19 again')
+})
+
+test('ifs nest, and "any of" needs only one check', async () => {
+  setup()
+  const flow = script(
+    section('attack', [
+      ifLine(
+        [check('miss'), check('natural', { value: '18' })],
+        [line('flavor', { text: 'either', style: 'plain' }), ifLine([check('crit')], [line('flavor', { text: 'crit', style: 'plain' })], [line('flavor', { text: 'no crit', style: 'plain' })])],
+        [],
+        { join: 'any' },
+      ),
+    ]),
+  )
+  assert.deepEqual(flowProblems(flow, 'attack'), [])
+  const wf = { ...attackWorkflow(), diceRoll: 18, isCritical: false }
+  await run(featureWith(flow), { pass: 'postAttackRoll', workflow: wf })
+  await run(featureWith(flow), { pass: 'postActiveEffects', workflow: wf })
+  assert.match(world.messages[0].content, /<li>either<\/li><li>no crit<\/li>/)
+  assert.deepEqual(flowSummary(flow), ['After the attack roll:', '  if the attack missed or the natural d20 is 18 or higher:', '    say “either”', '    if it’s a critical hit:', '      say “crit”', '    otherwise:', '      say “no crit”'])
 })

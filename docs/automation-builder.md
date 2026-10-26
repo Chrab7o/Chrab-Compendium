@@ -2,66 +2,88 @@
 
 ## What it is
 
-A step-by-step builder for a roll's midi-qol macro. A recipe script (`ScriptEditor` in `AutomationFields.jsx`) gives you
-one fixed mechanic. The builder instead lets you put one together from questions: **When** does it happen, **If**
-what is true, **Then** what happens, **Otherwise** what happens instead. Repeat that for as many parts as the feature
-needs.
+A builder for a roll's midi-qol macro that reads like a short script. A recipe script (`ScriptEditor` in
+`AutomationFields.jsx`) gives you one fixed mechanic. The builder instead lets you write one, line by line, top to
+bottom: set a variable, keep a remembered number between uses, `if` / `otherwise` (nested as deep as you like), and the
+steps that do things (damage, healing, conditions, chat lines, pop-ups, crits…).
 
-Example: "When damage is rolled, grab the target's current HP as `hp`, do the math `hp / 2`, use that as the damage,
-and add the flavor text 'The blade drinks half of {target}'s life.'"
+Example, the Ravanous Necrolight:
+
+```
+After the attack roll:
+  remembered CritAt, starting at 20, forgotten after 1 minute without a change
+  set natural = the natural d20 of the attack
+  set hp = the target's current HP
+  if natural is at least CritAt:
+    make it a critical hit
+    pop up "Ravenous: roll critical damage!" for the player and the GM
+    set CritAt = 20
+  otherwise:
+    if the attack hit and the target isn't undead or construct and hp is more than 0:
+      set CritAt = CritAt - 1
+```
 
 **Files:**
-- `src/lib/automationFlow.js`: the data model, problem checks, summaries and the code generator.
-- `src/components/dm/feature/AutomationWizard.jsx`: the dialog (When → If → Then → Otherwise → Anything else? →
-  Review).
+- `src/lib/automationFlow.js`: the data model, conversion from version 1, problem checks, words and the code
+  generator.
+- `src/components/dm/feature/AutomationWizard.jsx`: the editor dialog. A folded line shows its words in code style;
+  clicking it opens its boxes. "+ Add a line" at the end of every list (each part, each branch of an if) offers the
+  line kinds that work there.
 - `src/lib/automationFlow.test.mjs`: unit tests, plus simulated runs of the generated macro against a fake midi
-  workflow (it's part of `npm test`).
+  workflow (it's part of `npm test`). Includes the Necrolight above over several attacks.
 - `src/lib/foundryActorBuilder.js`: exports a flow and reads it back.
 - Opened from the **Midi-qol automation** section of every roll (`AutomationSection` in `npc/ActionBuilder.jsx`), so
-  it works in the NPC builder and the Feature Forge.
+  it works in the NPC builder and the Item Forge.
 
 ## The data
 
-`activity.flow` (null when it isn't used):
+`activity.flow` (null when it isn't used), version 2:
 
 ```js
-{ key, name /* chat card title, '' = item name */, color /* card color, '' = default */, blocks: [
-  { key, trigger: 'use' | 'preAttack' | 'attack' | 'save' | 'damage' | 'done',
-    checks: [ /* all must hold; [] = always */ ],
-    steps: [ /* run in order */ ],
-    otherwise: [ /* run when a check fails */ ] },
+{ key, name /* chat card title, '' = item name */, color /* card color, '' = default */, version: 2, sections: [
+  { key, trigger: 'use' | 'preAttack' | 'attack' | 'save' | 'damage' | 'done', lines: [
+    /* a step (FLOW_STEPS: value, math, memory, forget, flavor, popup, makeCrit, damageRoll, …), or */
+    { key, type: 'if', join: 'all' | 'any', checks: [ /* FLOW_CHECKS */ ], then: [ /* lines */ ], else: [ /* lines */ ] },
+  ] },
 ] }
 ```
 
-- **Triggers** (`FLOW_TRIGGERS`) map to midi passes: `preItemRoll`, `preAttackRollConfig`, `postAttackRoll`,
-  `postSave`, `postDamageRoll`, `postActiveEffects`. Only the triggers that fit the roll's kind are offered.
+- **Sections** are the points in the roll (`FLOW_TRIGGERS`), mapped to midi passes: `preItemRoll`,
+  `preAttackRollConfig`, `postAttackRoll`, `postSave`, `postDamageRoll`, `postActiveEffects`. Only the ones that fit
+  the roll's kind are offered, and they're kept in the order midi runs them.
 - **Checks** (`FLOW_CHECKS`), **steps** (`FLOW_STEPS`) and **values** (`FLOW_VALUES`) each say which trigger they need
-  (`needs`) or are limited to (`only`). `flowProblems()` reports the ones used too early, along with unknown variable
-  names and empty blocks. The dialog won't accept a flow that has problems.
-- **Variables** are made by "Grab a value" and "Do some math" steps. They live on `workflow.chrabFlow[flow.key]`, so a
-  value grabbed at one pass can be used at a later one. `varsBefore()` decides which variables a step can see: the
-  ones from earlier blocks and from earlier steps in the same block.
+  (`needs`) or are limited to (`only`). `flowProblems()` reports the ones used too early, unknown variable names,
+  ifs with nothing to check or nothing inside, and empty parts. Each problem names the line (`key`). The dialog won't
+  accept a flow that has problems; parts with no lines are left out when it's saved.
+- **Variables** are set by "Set a variable to a value", "Set a variable to some math" and "A remembered number". A line
+  sees every variable set on the lines written above it, in its part or an earlier one (`scriptScopes()`), the way
+  code reads. They live on `workflow.chrabFlow[flow.key]`, so a value set at one pass can be used at a later one; one
+  set in a branch that didn't run is 0.
 - **Math** is a Foundry roll formula. Variable names get an `@` added (`hp / 2` → `@hp / 2`), so dice,
   `@abilities.con.mod` and `floor()` all work. Dice that are rolled show on the chat card.
-- Blocks are always kept in the order midi runs them (`sortBlocks`).
-- **Remembered numbers** outlast the roll. "Remember a number" saves one on the item, in
-  `flags.chrab-sync.memory.<name>` = `{ value, at, forget }`. `at` is game time (`game.time.worldTime`, seconds).
-  `forget` is how long it may go without a new "remember" before it lapses (0 = never). The value "A number you
-  remembered" reads it back, or its starting value (math) when there's none or it has lapsed. "Forget it" deletes it.
-  A combat round is 6 seconds of game time. Out of combat, game time only moves if the GM moves it.
-- **"Make this attack a critical hit"** (after the attack roll only) sets `workflow.isCritical`. Midi reads that when
-  it rolls damage, so the damage is rolled once, as a crit. "The roll it normally crits on" is the activity's
-  `criticalThreshold` (20, or 19 with a feature like Improved Critical).
+- **Remembered numbers** outlast the roll. "A remembered number" declares one: its variable starts as the saved value,
+  or its starting value (math) when there's none or it has lapsed. Every later "set" of that variable saves it on the
+  item, in `flags.chrab-sync.memory.<name>` = `{ value, at, forget }`. `at` is game time (`game.time.worldTime`,
+  seconds); `forget` is how long it may go without a change before it lapses (0 = never). "Forget a remembered number"
+  deletes it and puts the variable back to its start. A combat round is 6 seconds of game time. Out of combat, game
+  time only moves if the GM moves it.
+- **"Make this attack a critical hit"** (after the attack roll only) sets `workflow.isCritical` and makes every target
+  a hit (a crit always hits). Midi reads that when it rolls damage, so the damage is rolled once, as a crit. "The roll
+  it normally crits on" is the activity's `criticalThreshold` (20, or 19 with a feature like Improved Critical).
 - **"Show a pop-up"** shows a notification to whoever rolled. With "the GM sees it too", it also whispers the GMs a
   message flagged `chrab-sync.popup`. Chrab Sync 0.2.1+ shows that as a pop-up on the GM's screen; without it, the GM
   just gets the whisper.
+- **Version 1 flows** (`blocks` of when / if / then / otherwise, saved before 2026-10-25) are converted on read by
+  `toScript()`, so they keep working and open in the new editor: a block's checks become an if around its steps, its
+  otherwise steps the if's otherwise, and blocks at the same point share a part. Its remembered-number steps become a
+  remembered number and sets of it.
 
 ## Export and read-back
 
 - A flow with steps (`hasFlow`) **replaces** `activity.script`. `flowCode()` compiles it into one activity macro that
   switches on `args[0].macroPass`. That macro is listed in the item's `flags.midi-qol.onUseMacroName` once for each
   pass in `flowPasses()`.
-- The chat card collects lines from every pass and posts once, at `postActiveEffects` (or earlier, if a block cancels
+- The chat card collects lines from every pass and posts once, at `postActiveEffects` (or earlier, if a line cancels
   the use).
 - The flow spec is saved in `flags.chrab-sync.flows[activityId]`, and `foundryItemToNpcItem` restores it from there,
   so an exported item opens back up in the builder. When a flow is present, the macro text itself is ignored on import.
@@ -71,6 +93,9 @@ and add the flavor text 'The blade drinks half of {target}'s life.'"
 Done:
 - The model, problem checks, summaries and code generator, tested in `npm test`.
 - The dialog, and the export/import in `foundryActorBuilder.js`.
+- 2026-10-25: the step-by-step questions (When → If → Then → Otherwise) were replaced by the script editor: lines top
+  to bottom, nested ifs, remembered numbers as variables. Old flows convert on open. A roll's summary shows the script,
+  indented.
 - The dialog opens from each roll's automation section ("Build automation…"). A roll with a flow shows its summary
   there, with Edit and Remove buttons. The flow replaces the recipe script picker while it's in use.
 - 2026-10-25, for the Ravanous Necrolight (Rezire's sword: the crit number drops by 1 per hit on a living creature,

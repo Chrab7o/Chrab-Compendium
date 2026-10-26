@@ -387,14 +387,10 @@ function FlowField({ activity, set, item }) {
       {built ? (
         <>
           <span className="npc-flow-label">Built automation</span>
-          <ol className="npc-flow-summary">
-            {flowSummary(activity.flow).map((line, i) => (
-              <li key={i}>{line}</li>
-            ))}
-          </ol>
+          <pre className="npc-flow-summary">{flowSummary(activity.flow).join('\n')}</pre>
         </>
       ) : (
-        <span className="npc-hint">Build this roll’s macro step by step: when it happens, if what is true, then what happens.</span>
+        <span className="npc-hint">Build this roll’s macro like a short script: set variables, if / otherwise, and what happens.</span>
       )}
       <div className="repeatable-row-controls">
         <button type="button" className="secondary npc-small-button" onClick={() => setOpen(true)}>
@@ -414,7 +410,7 @@ function FlowField({ activity, set, item }) {
         <AutomationWizard
           activity={activity}
           item={item}
-          onAccept={(flow) => set({ flow: flow.blocks.length ? flow : null })}
+          onAccept={(flow) => set({ flow })}
           onClose={() => setOpen(false)}
         />
       )}

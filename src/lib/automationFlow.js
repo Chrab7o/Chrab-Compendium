@@ -2,13 +2,19 @@
 // the Automation Builder (components/dm/feature/AutomationWizard.jsx) instead
 // of picked from a fixed recipe.
 //
-// A flow is a list of blocks. Each block is
-//   when   - a trigger: a point in this roll's midi workflow (FLOW_TRIGGERS)
-//   if     - checks, all of which must hold (FLOW_CHECKS); none = always
-//   then   - steps, run in order (FLOW_STEPS): grab a value into a variable,
-//            do math on variables, add a line to the chat card, use a number
-//            as damage, heal, apply an effect, spend a resource, raw code...
-//   else   - steps run when a check fails (optional)
+// A flow reads like a short script (version 2). It has sections, one per
+// point in this roll's midi workflow (FLOW_TRIGGERS, e.g. "After the attack
+// roll"), and each section is lines run top to bottom:
+//   - steps (FLOW_STEPS): set a variable to a value or to math, add a line to
+//     the chat card, use a number as damage, heal, apply an effect, spend a
+//     resource, raw code...
+//   - remembered numbers: a variable kept on the item between uses; every
+//     "set" to it is saved for next time
+//   - if: checks (FLOW_CHECKS, all or any of them), with lines to run when they
+//     hold and "otherwise" lines when they don't. Ifs nest.
+// A line can use every variable set above it, in its own section or an
+// earlier one. Flows saved before version 2 (blocks of when/if/then/otherwise)
+// are converted on read (toScript).
 //
 // Variables live on the workflow, so a value grabbed before the attack can
 // be used when damage is rolled. Math is a Foundry roll formula: `hp / 2`
@@ -103,13 +109,14 @@ export const FLOW_VALUES = [
   { key: 'damageTotal', group: 'This roll', label: 'The damage rolled', name: 'rolled', needs: 'damage', code: () => 'workflow?.damageTotal' },
   { key: 'damageDealt', group: 'This roll', label: 'The damage that landed (HP lost)', name: 'dealt', needs: 'dealt', code: () => '(workflow?.damageList ?? []).reduce((sum, d) => sum + (Number(d.hpDamage) || 0) + (Number(d.tempDamage) || 0), 0)' },
   { key: 'critAt', group: 'This roll', label: 'The roll it normally crits on', name: 'critAt', kinds: ['attack'], code: () => '(rolled()?.criticalThreshold ?? 20)' },
-  { key: 'remembered', group: 'Remembered', label: 'A number you remembered', name: 'saved', param: 'memory' },
+  // Version 1 only: a remembered number is now a variable of its own (the "memory" line).
+  { key: 'remembered', group: 'Remembered', label: 'A number you remembered', name: 'saved', param: 'memory', legacy: true },
   { key: 'dice', group: 'Roll or ask', label: 'Roll some dice', name: 'roll', param: 'formula' },
   { key: 'ask', group: 'Roll or ask', label: 'Ask the player for a number', name: 'answer', param: 'question' },
 ]
 
 export function valuesFor(ctx) {
-  return FLOW_VALUES.filter((v) => (!v.needs || knows[v.needs](ctx)) && (!v.kinds || v.kinds.includes(ctx.kind)))
+  return FLOW_VALUES.filter((v) => !v.legacy && (!v.needs || knows[v.needs](ctx)) && (!v.kinds || v.kinds.includes(ctx.kind)))
 }
 
 // ---------------------------------------------------------------------------
@@ -165,11 +172,14 @@ export function emptyCheck(type = 'compare') {
 
 // needs: what the trigger must know; only: the triggers it works at.
 export const FLOW_STEPS = [
-  { key: 'value', group: 'Values and math', label: 'Grab a value', help: 'Puts a number in a variable: the target’s HP, your level, a dice roll, an answer from the player…' },
-  { key: 'math', group: 'Values and math', label: 'Do some math', help: 'Works out a new variable from the ones you have, e.g. floor(hp / 2) + prof.' },
+  { key: 'value', group: 'Variables', label: 'Set a variable to a value', help: 'From the game: the target’s HP, your level, the natural d20, a dice roll, an answer from the player…' },
+  { key: 'math', group: 'Variables', label: 'Set a variable to some math', help: 'From the variables above it, e.g. CritAt - 1, or floor(hp / 2) + @prof.' },
+  { key: 'memory', group: 'Variables', label: 'A remembered number', help: 'A variable kept on this item between uses. It starts at its starting value; every “set” to it is saved for next time.' },
+  { key: 'forget', group: 'Variables', label: 'Forget a remembered number', help: 'Back to its starting value, here and next time.' },
   { key: 'flavor', group: 'Chat card', label: 'Flavor text', help: 'A line on the chat card. {name} fills in a variable, {target} the target’s name, {me} yours.' },
   { key: 'popup', group: 'Chat card', label: 'Show a pop-up', help: 'A notice on the screen of whoever made the roll, and the GM’s too if you like. {name} fills in a variable.' },
-  { key: 'remember', group: 'Values and math', label: 'Remember a number', help: 'Saved on this item, so a later use can grab it again with “A number you remembered”. It survives reloads.' },
+  // Version 1 only: converted to setting a remembered number.
+  { key: 'remember', group: 'Variables', label: 'Remember a number', legacy: true },
   { key: 'damageRoll', group: 'Damage and healing', label: 'Use a number as this roll’s damage', help: 'Replaces the rolled damage with your number, or adds it on top.', needs: 'damage', only: ['damage'] },
   { key: 'damageTarget', group: 'Damage and healing', label: 'The target takes damage', help: 'Separate from this roll’s damage. Resistances apply.' },
   { key: 'healTarget', group: 'Damage and healing', label: 'The target regains HP' },
@@ -177,7 +187,7 @@ export const FLOW_STEPS = [
   { key: 'tempMe', group: 'Damage and healing', label: 'You gain temporary HP' },
   { key: 'hurtMe', group: 'Damage and healing', label: 'You take damage', help: 'Exactly this amount: your resistances don’t change it.' },
   { key: 'advantage', group: 'The roll', label: 'Give the attack advantage or disadvantage', only: ['preAttack'] },
-  { key: 'makeCrit', group: 'The roll', label: 'Make this attack a critical hit', help: 'Its damage is then rolled once, as a critical hit.', needs: 'attack', only: ['attack'] },
+  { key: 'makeCrit', group: 'The roll', label: 'Make this attack a critical hit', help: 'It hits (a crit always does), and its damage is rolled once, as a critical hit.', needs: 'attack', only: ['attack'] },
   { key: 'cancel', group: 'The roll', label: 'Cancel the use', help: 'Stops here; nothing rolls.', only: ['use'] },
   { key: 'condition', group: 'Effects', label: 'Apply a condition', help: 'Prone, frightened… on the target or you.' },
   { key: 'effect', group: 'Effects', label: 'Apply one of this item’s effects' },
@@ -187,7 +197,7 @@ export const FLOW_STEPS = [
 ]
 
 export function stepsFor(ctx) {
-  return FLOW_STEPS.filter((s) => (!s.needs || knows[s.needs](ctx)) && (!s.only || s.only.includes(ctx.trigger)))
+  return FLOW_STEPS.filter((s) => !s.legacy && (!s.needs || knows[s.needs](ctx)) && (!s.only || s.only.includes(ctx.trigger)))
 }
 
 export function emptyStep(type = 'value', { suggestName = '' } = {}) {
@@ -197,7 +207,7 @@ export function emptyStep(type = 'value', { suggestName = '' } = {}) {
     type,
     // value
     source: value.key,
-    name: suggestName || (type === 'math' ? 'total' : value.name), // value / math: the variable it sets
+    name: suggestName || (type === 'math' ? 'total' : type === 'memory' || type === 'forget' ? '' : value.name), // value / math / memory: the variable it sets; forget: the remembered number
     ability: 'con',
     path: '',
     pool: '',
@@ -221,10 +231,10 @@ export function emptyStep(type = 'value', { suggestName = '' } = {}) {
     effectKey: '',
     // code
     code: '',
-    // remembered numbers: value "remembered" and the remember step
-    memory: '', // its name on the item
-    start: '0', // value: math for when nothing is remembered (or it was forgotten)
-    forget: '', // remember: minutes of game time without a change before it's forgotten; '' = never
+    // remembered numbers ("memory" lines; name is the variable and its name on the item)
+    memory: '', // version 1 only: the remembered value / remember step's name
+    start: '0', // math for when nothing is remembered (or it was forgotten)
+    forget: '', // minutes of game time without a change before it's forgotten; '' = never
     gm: true, // popup: the GM sees it too
   }
 }
@@ -234,7 +244,17 @@ export function emptyBlock(trigger = 'damage') {
 }
 
 export function emptyFlow() {
-  return { key: newKey(), name: '', color: '', blocks: [] }
+  return { key: newKey(), name: '', color: '', version: 2, sections: [] }
+}
+
+export function emptySection(trigger = 'damage') {
+  return { key: newKey(), trigger, lines: [] }
+}
+
+// A new line of any kind: 'if', or a FLOW_STEPS key.
+export function emptyLine(type, opts) {
+  if (type === 'if') return { key: newKey(), type: 'if', join: 'all', checks: [], then: [], else: [] }
+  return emptyStep(type, opts)
 }
 
 // Blocks run in workflow order, so they're kept in it (stable within a trigger).
@@ -243,7 +263,64 @@ export function sortBlocks(blocks) {
 }
 
 export function hasFlow(activity) {
-  return !!activity?.flow?.blocks?.some((b) => b.steps?.length || b.otherwise?.length)
+  return !!activity?.flow && toScript(activity.flow).sections.some((s) => s.lines.length)
+}
+
+const sortSections = (sections) =>
+  [...sections].map((x, i) => [x, i]).sort((a, b) => (ORDER[a[0].trigger] ?? 0) - (ORDER[b[0].trigger] ?? 0) || a[1] - b[1]).map(([x]) => x)
+
+// A version 1 flow (blocks) as a script. A block's checks become an if around
+// its steps, with its "otherwise" steps as the if's otherwise; blocks at the
+// same point share a section. Remembered numbers become memory lines: the
+// value that read one declares it, and a "remember" step sets it. Version 2
+// flows come back as they are, with their sections in the order midi runs.
+export function toScript(flow) {
+  if (!flow) return emptyFlow()
+  if (flow.sections?.length || !flow.blocks?.length) {
+    const { blocks: _old, ...rest } = flow
+    return { ...rest, version: 2, sections: sortSections(flow.sections ?? []) }
+  }
+  const forgetAfter = {}
+  for (const b of flow.blocks) {
+    for (const st of [...(b.steps ?? []), ...(b.otherwise ?? [])]) if (st.type === 'remember' && st.mode !== 'forget' && st.forget) forgetAfter[st.memory] = st.forget
+  }
+  const declared = new Set()
+  const early = []
+  const memoryLine = (name, start = '0') => ({ ...emptyStep('memory'), name, start: start || '0', forget: forgetAfter[name] ?? '' })
+  const convert = (steps) =>
+    steps.flatMap((st) => {
+      if (st.type === 'value' && st.source === 'remembered') {
+        const out = []
+        if (!declared.has(st.memory)) {
+          declared.add(st.memory)
+          out.push({ ...memoryLine(st.memory, st.start), key: st.key })
+        }
+        if (st.name !== st.memory) out.push({ ...emptyStep('math'), name: st.name, expr: st.memory, show: !!st.show, showLabel: st.showLabel ?? '' })
+        return out
+      }
+      if (st.type === 'remember') {
+        if (!declared.has(st.memory)) {
+          declared.add(st.memory)
+          early.push(memoryLine(st.memory))
+        }
+        if (st.mode === 'forget') return [{ ...emptyStep('forget'), key: st.key, name: st.memory }]
+        return [{ ...emptyStep('math'), key: st.key, name: st.memory, expr: st.amount, show: false }]
+      }
+      return [st]
+    })
+  const sections = []
+  for (const b of sortBlocks(flow.blocks)) {
+    let section = sections.at(-1)
+    if (!section || section.trigger !== b.trigger) sections.push((section = { key: newKey(), trigger: b.trigger, lines: [] }))
+    const steps = convert(b.steps ?? [])
+    const otherwise = convert(b.otherwise ?? [])
+    // The if keeps the block's key: "once per turn" is tracked by it.
+    if (b.checks?.length) section.lines.push({ key: b.key, type: 'if', join: 'all', checks: b.checks, then: steps, else: otherwise })
+    else section.lines.push(...steps)
+  }
+  if (early.length && sections.length) sections[0].lines.unshift(...early)
+  const { blocks: _old, ...rest } = flow
+  return { ...rest, version: 2, sections }
 }
 
 // ---------------------------------------------------------------------------
@@ -256,25 +333,61 @@ export function validVarName(name) {
   return /^[A-Za-z_][A-Za-z0-9_]*$/.test(String(name ?? '')) && !RESERVED.has(name) && !/^d\d+$/.test(name)
 }
 
-function setsVar(step) {
-  return (step.type === 'value' || step.type === 'math') && validVarName(step.name) ? step.name : null
+function setsVar(line) {
+  return ['value', 'math', 'memory'].includes(line.type) && validVarName(line.name) ? line.name : null
 }
 
-// Every variable the flow sets, for initializing them (a block that didn't
-// run leaves its variables at 0 rather than breaking later math).
+// Every line of a list, depth first, in the order they're written.
+function eachLine(lines, fn) {
+  for (const line of lines ?? []) {
+    fn(line)
+    if (line.type === 'if') {
+      eachLine(line.then, fn)
+      eachLine(line.else, fn)
+    }
+  }
+}
+
+// Every variable the flow sets, for initializing them (a line that didn't
+// run leaves its variable at 0 rather than breaking later math).
 export function flowVars(flow) {
-  return [...new Set((flow?.blocks ?? []).flatMap((b) => [...(b.steps ?? []), ...(b.otherwise ?? [])].map(setsVar)).filter(Boolean))]
+  const out = new Set()
+  for (const section of toScript(flow).sections) eachLine(section.lines, (l) => setsVar(l) && out.add(setsVar(l)))
+  return [...out]
 }
 
-// The variables a spot can use: everything set by blocks that run before it,
-// and by earlier steps of its own branch. at: { block, branch, step } where
-// branch is 'checks' | 'steps' | 'otherwise'. Blocks must be in run order.
-export function varsBefore(flow, { block, branch = 'steps', step = Infinity }) {
-  const blocks = flow?.blocks ?? []
-  const out = []
-  blocks.slice(0, block).forEach((b) => [...(b.steps ?? []), ...(b.otherwise ?? [])].forEach((s) => out.push(setsVar(s))))
-  if (branch !== 'checks') (blocks[block]?.[branch] ?? []).slice(0, step).forEach((s) => out.push(setsVar(s)))
-  return [...new Set(out.filter(Boolean))]
+// The remembered numbers: name -> the memory line that declares it (the first).
+export function scriptMemories(flow) {
+  const out = new Map()
+  for (const section of toScript(flow).sections) eachLine(section.lines, (l) => l.type === 'memory' && l.name && !out.has(l.name) && out.set(l.name, l))
+  return out
+}
+
+// What each spot can see: key -> { vars, ctx }. vars are the variables set by
+// the lines written above it (earlier sections included). Keys are line keys,
+// plus "<owner>:end" for the end of a list, where a new line would go: the
+// owner is the section's key, or "<if key>:then" / "<if key>:else".
+export function scriptScopes(flow, kind) {
+  const scopes = new Map()
+  const vars = []
+  for (const section of toScript(flow).sections) {
+    const ctx = { trigger: section.trigger, kind }
+    const walk = (lines, owner) => {
+      for (const line of lines ?? []) {
+        scopes.set(line.key, { vars: [...vars], ctx })
+        if (line.type === 'if') {
+          walk(line.then, `${line.key}:then`)
+          walk(line.else, `${line.key}:else`)
+        } else {
+          const v = setsVar(line)
+          if (v && !vars.includes(v)) vars.push(v)
+        }
+      }
+      scopes.set(`${owner}:end`, { vars: [...vars], ctx })
+    }
+    walk(section.lines, section.key)
+  }
+  return scopes
 }
 
 // Math as the user types it -> a Foundry roll formula. Known variable names
@@ -293,7 +406,7 @@ export function mathFormula(expr, vars = []) {
     unknown.push(m)
     return m
   })
-  if (unknown.length) return { formula, error: `I don’t know ${[...new Set(unknown)].map((u) => `“${u}”`).join(', ')}. Grab it as a value first, or check the spelling.` }
+  if (unknown.length) return { formula, error: `I don’t know ${[...new Set(unknown)].map((u) => `“${u}”`).join(', ')}. Set it on a line above first, or check the spelling.` }
   let depth = 0
   for (const ch of text) {
     depth += ch === '(' ? 1 : ch === ')' ? -1 : 0
@@ -317,76 +430,86 @@ const poolId = (text) =>
 
 // ---------------------------------------------------------------------------
 // Problems: everything that would make the macro wrong, worded for the builder.
+// Each is { key, text }: key is the line (or section) it's about.
+
+const shorten = (text, n = 48) => (text.length > n ? `${text.slice(0, n - 1)}…` : text)
+
+function checkProblems(c, ctx, vars) {
+  const out = []
+  const def = FLOW_CHECKS.find((x) => x.key === c.type)
+  if (!checksFor(ctx).some((x) => x.key === c.type)) out.push(`“${def?.label ?? c.type}” isn’t known yet at “${flowTrigger(ctx.trigger).short}”.`)
+  if (c.type === 'compare') {
+    for (const side of [c.left, c.right]) {
+      const { error } = mathFormula(side, vars)
+      if (error) out.push(error)
+    }
+  }
+  if (c.type === 'code' && !String(c.code ?? '').trim()) out.push('the custom condition is empty.')
+  return out
+}
+
+function lineProblems(s, ctx, vars, memories) {
+  const out = []
+  const def = FLOW_STEPS.find((x) => x.key === s.type)
+  if (!stepsFor(ctx).some((x) => x.key === s.type)) out.push(`“${def?.label ?? s.type}” can’t happen at “${flowTrigger(ctx.trigger).short}”.`)
+  if (['value', 'math', 'memory'].includes(s.type) && !validVarName(s.name)) {
+    out.push(s.name ? `“${s.name}” can’t be a variable name. Use letters, digits and _ (no spaces), not starting with a digit.` : 'name the variable.')
+  }
+  if (s.type === 'value') {
+    const v = FLOW_VALUES.find((x) => x.key === s.source)
+    if (!v || !valuesFor(ctx).includes(v)) out.push(`“${v?.label ?? s.source}” isn’t known yet at “${flowTrigger(ctx.trigger).short}”.`)
+    if (v?.param === 'path' && !cleanPath(s.path)) out.push('pick which stat.')
+    if (v?.param === 'pool' && !poolId(s.pool)) out.push('name the resource (its identifier).')
+    if (v?.param === 'formula') {
+      const { error } = mathFormula(s.formula, vars)
+      if (error) out.push(error)
+    }
+  }
+  if (s.type === 'memory') {
+    if (s.name && !validMemoryName(s.name)) out.push('a remembered number’s name starts with a letter.')
+    if (String(s.start ?? '').trim()) {
+      const { error } = mathFormula(s.start, vars)
+      if (error) out.push(`starting value: ${error}`)
+    }
+    if (String(s.forget ?? '').trim() && !(Number(s.forget) > 0)) out.push('“forget after” is a number of minutes, or blank for never.')
+  }
+  if (s.type === 'forget' && !memories.has(s.name)) out.push('pick which remembered number.')
+  const math = s.type === 'math' ? s.expr : AMOUNT_STEPS.includes(s.type) ? s.amount : null
+  if (math != null) {
+    const { error } = mathFormula(math, vars)
+    if (error) out.push(error)
+  }
+  if (s.type === 'flavor' && !String(s.text ?? '').trim()) out.push('the flavor text is empty.')
+  if (s.type === 'popup' && !String(s.text ?? '').trim()) out.push('the pop-up is empty.')
+  if (s.type === 'resource' && !poolId(s.pool)) out.push('name the resource (its identifier).')
+  if (s.type === 'effect' && !s.effectKey) out.push('pick which effect.')
+  if (s.type === 'code' && !String(s.code ?? '').trim()) out.push('the custom code is empty.')
+  return out
+}
 
 export function flowProblems(flow, kind) {
+  const script = toScript(flow)
+  const scopes = scriptScopes(script, kind)
+  const memories = scriptMemories(script)
   const problems = []
-  const blocks = flow?.blocks ?? []
-  blocks.forEach((b, bi) => {
-    const where = `Block ${bi + 1}`
-    const trig = flowTrigger(b.trigger)
-    if (trig.kinds && !trig.kinds.includes(kind)) problems.push({ block: bi, text: `${where}: “${trig.short}” doesn’t happen on this kind of roll.` })
-    const ctx = { trigger: b.trigger, kind }
-    const okChecks = new Set(checksFor(ctx).map((c) => c.key))
-    for (const c of b.checks ?? []) {
-      const def = FLOW_CHECKS.find((x) => x.key === c.type)
-      if (!okChecks.has(c.type)) problems.push({ block: bi, text: `${where}: “${def?.label ?? c.type}” isn’t known yet at “${trig.short}”.` })
-      if (c.type === 'compare') {
-        const vars = varsBefore(flow, { block: bi, branch: 'checks' })
-        for (const side of [c.left, c.right]) {
-          const { error } = mathFormula(side, vars)
-          if (error) problems.push({ block: bi, text: `${where}, condition: ${error}` })
-        }
-      }
-      if (c.type === 'code' && !String(c.code ?? '').trim()) problems.push({ block: bi, text: `${where}: the custom condition is empty.` })
-    }
-    if (!(b.steps ?? []).length && !(b.otherwise ?? []).length) problems.push({ block: bi, text: `${where}: nothing happens yet. Add a step.` })
-    for (const branch of ['steps', 'otherwise']) {
-      ;(b[branch] ?? []).forEach((s, si) => {
-        const def = FLOW_STEPS.find((x) => x.key === s.type)
-        const label = `${where}${branch === 'otherwise' ? ', otherwise' : ''}, step ${si + 1}`
-        if (!stepsFor(ctx).some((x) => x.key === s.type)) problems.push({ block: bi, text: `${label}: “${def?.label ?? s.type}” can’t happen at “${trig.short}”.` })
-        const vars = varsBefore(flow, { block: bi, branch, step: si })
-        if (s.type === 'value' || s.type === 'math') {
-          if (!validVarName(s.name)) problems.push({ block: bi, text: `${label}: “${s.name}” can’t be a variable name. Use letters, digits and _ (no spaces), not starting with a digit.` })
-        }
-        if (s.type === 'value') {
-          const v = FLOW_VALUES.find((x) => x.key === s.source)
-          if (!v || !valuesFor(ctx).includes(v)) problems.push({ block: bi, text: `${label}: “${v?.label ?? s.source}” isn’t known yet at “${trig.short}”.` })
-          if (v?.param === 'path' && !cleanPath(s.path)) problems.push({ block: bi, text: `${label}: pick which stat.` })
-          if (v?.param === 'pool' && !poolId(s.pool)) problems.push({ block: bi, text: `${label}: name the resource (its identifier).` })
-          if (v?.param === 'formula') {
-            const { error } = mathFormula(s.formula, vars)
-            if (error) problems.push({ block: bi, text: `${label}: ${error}` })
-          }
-          if (v?.param === 'memory') {
-            if (!validMemoryName(s.memory)) problems.push({ block: bi, text: `${label}: name the remembered number (letters, digits and _, starting with a letter).` })
-            if (String(s.start ?? '').trim()) {
-              const { error } = mathFormula(s.start, vars)
-              if (error) problems.push({ block: bi, text: `${label}, starting value: ${error}` })
-            }
-          }
-        }
-        if (s.type === 'remember') {
-          if (!validMemoryName(s.memory)) problems.push({ block: bi, text: `${label}: name the number (letters, digits and _, starting with a letter).` })
-          if (s.mode !== 'forget') {
-            const { error } = mathFormula(s.amount, vars)
-            if (error) problems.push({ block: bi, text: `${label}: ${error}` })
-          }
-          if (String(s.forget ?? '').trim() && !(Number(s.forget) > 0)) problems.push({ block: bi, text: `${label}: “forget after” is a number of minutes, or blank for never.` })
-        }
-        if (s.type === 'popup' && !String(s.text ?? '').trim()) problems.push({ block: bi, text: `${label}: the pop-up is empty.` })
-        const math = s.type === 'math' ? s.expr : AMOUNT_STEPS.includes(s.type) ? s.amount : null
-        if (math != null) {
-          const { error } = mathFormula(math, vars)
-          if (error) problems.push({ block: bi, text: `${label}: ${error}` })
-        }
-        if (s.type === 'flavor' && !String(s.text ?? '').trim()) problems.push({ block: bi, text: `${label}: the flavor text is empty.` })
-        if (s.type === 'resource' && !poolId(s.pool)) problems.push({ block: bi, text: `${label}: name the resource (its identifier).` })
-        if (s.type === 'effect' && !s.effectKey) problems.push({ block: bi, text: `${label}: pick which effect.` })
-        if (s.type === 'code' && !String(s.code ?? '').trim()) problems.push({ block: bi, text: `${label}: the custom code is empty.` })
-      })
-    }
-  })
+  for (const section of script.sections) {
+    const trig = flowTrigger(section.trigger)
+    if (trig.kinds && !trig.kinds.includes(kind)) problems.push({ key: section.key, text: `“${trig.short}” doesn’t happen on this kind of roll.` })
+    if (!section.lines.length) problems.push({ key: section.key, text: `${trig.short}: nothing happens yet. Add a line.` })
+    eachLine(section.lines, (line) => {
+      const { vars, ctx } = scopes.get(line.key)
+      const at = `${trig.short}, “${shorten(lineWords(line))}”`
+      const texts =
+        line.type === 'if'
+          ? [
+              ...(line.checks?.length ? [] : ['pick what it checks.']),
+              ...(line.checks ?? []).flatMap((c) => checkProblems(c, ctx, vars)),
+              ...(line.then?.length || line.else?.length ? [] : ['nothing happens inside it yet.']),
+            ]
+          : lineProblems(line, ctx, vars, memories)
+      for (const text of texts) problems.push({ key: line.key, text: `${at}: ${text}` })
+    })
+  }
   return problems
 }
 
@@ -532,20 +655,59 @@ export function stepWords(s) {
   }
 }
 
-// One sentence per block: "When damage is rolled, if the attack hit: grab …, then …. Otherwise, …."
-export function blockSummary(block) {
-  const trig = flowTrigger(block.trigger)
-  const checks = (block.checks ?? []).map(checkWords)
-  const steps = (block.steps ?? []).map(stepWords)
-  const otherwise = (block.otherwise ?? []).map(stepWords)
-  const join = (list) => (list.length > 1 ? `${list.slice(0, -1).join(', ')}, then ${list.at(-1)}` : list[0] ?? 'nothing happens')
-  let text = `${trig.short}${checks.length ? `, if ${checks.join(' and ')}` : ''}: ${join(steps)}.`
-  if (otherwise.length) text += ` Otherwise: ${join(otherwise)}.`
-  return text
+const minutes = (n) => `${n} minute${n === 1 ? '' : 's'}`
+
+// One line in words, the way the editor shows it folded up:
+// "set total = CritAt - 1", "if natural ≥ CritAt", "remembered CritAt, starting at 20".
+export function lineWords(line) {
+  switch (line.type) {
+    case 'if': {
+      const checks = (line.checks ?? []).map(checkWords)
+      return `if ${checks.join(line.join === 'any' ? ' or ' : ' and ') || '…'}`
+    }
+    case 'value':
+      return `set ${line.name || '?'} = ${valueWords(line)}`
+    case 'math':
+      return `set ${line.name || '?'} = ${String(line.expr ?? '').trim() || '?'}`
+    case 'memory': {
+      const forget = Number(line.forget) > 0 ? `, forgotten after ${minutes(Number(line.forget))} without a change` : ''
+      return `remembered ${line.name || '?'}, starting at ${String(line.start ?? '').trim() || '0'}${forget}`
+    }
+    case 'forget':
+      return `forget ${line.name || '?'} (back to its starting value)`
+    default:
+      return stepWords(line)
+  }
 }
 
+// The script as text lines, indented two spaces a level:
+//   After the attack roll:
+//     if natural ≥ CritAt:
+//       make it a critical hit
+//     otherwise:
+//       …
 export function flowSummary(flow) {
-  return (flow?.blocks ?? []).map(blockSummary)
+  const out = []
+  const write = (lines, depth) => {
+    for (const line of lines ?? []) {
+      const pad = '  '.repeat(depth)
+      if (line.type !== 'if') {
+        out.push(pad + lineWords(line))
+        continue
+      }
+      out.push(`${pad}${lineWords(line)}:`)
+      write(line.then, depth + 1)
+      if (line.else?.length) {
+        out.push(`${pad}otherwise:`)
+        write(line.else, depth + 1)
+      }
+    }
+  }
+  for (const section of toScript(flow).sections) {
+    out.push(`${flowTrigger(section.trigger).short}:`)
+    write(section.lines, 1)
+  }
+  return out
 }
 
 // ---------------------------------------------------------------------------
@@ -554,7 +716,7 @@ export function flowSummary(flow) {
 // The midi passes the macro has to be listed at. postActiveEffects is always
 // there: it posts the chat card the steps built up.
 export function flowPasses(flow) {
-  const used = new Set((flow?.blocks ?? []).map((b) => flowTrigger(b.trigger).pass))
+  const used = new Set(toScript(flow).sections.map((x) => flowTrigger(x.trigger).pass))
   used.add('postActiveEffects')
   return FLOW_TRIGGERS.map((t) => t.pass).filter((p) => used.has(p))
 }
@@ -639,8 +801,11 @@ function stepCode(s, vars, ids) {
     case 'remember':
       return s.mode === 'forget' ? `await forget(${js(s.memory)});` : `await remember(${js(s.memory)}, ${mathCode(s.amount, vars)}, ${Number(s.forget) > 0 ? Number(s.forget) : 0});`
     case 'makeCrit':
+      // A crit always hits: midi has already sorted hits from misses by now,
+      // so every target becomes a hit too.
       return `if (!workflow.isCritical) {
   workflow.isCritical = true;
+  if (workflow.targets?.size) workflow.hitTargets = new Set(workflow.targets);
   ${line('"<strong>Critical hit!</strong>"')}
 }`
     case 'damageRoll':
@@ -712,35 +877,67 @@ ${line(js(`The attack has ${which}`))}`
   }
 }
 
-function branchCode(flow, bi, branch, ids) {
-  const steps = flow.blocks[bi][branch] ?? []
-  return steps.map((s, si) => `// ${stepWords(s)}\n${stepCode(s, varsBefore(flow, { block: bi, branch, step: si }), ids)}`).join('\n')
+// The start of a remembered number: its starting value's math, seen from where it's declared.
+function startCode(decl, scopes) {
+  return String(decl?.start ?? '').trim() ? mathCode(decl.start, scopes.get(decl.key)?.vars ?? []) : '0'
 }
 
-function blockCode(flow, bi, ids) {
-  const b = flow.blocks[bi]
-  const vars = varsBefore(flow, { block: bi, branch: 'checks' })
-  const checks = (b.checks ?? []).map((c) => `ok = ok && (${checkCode(c, vars, b.key)}); // ${checkWords(c)}`)
-  const once = (b.checks ?? []).some((c) => c.type === 'oncePerTurn') ? `await markTurn(${js(b.key)});\n` : ''
-  const then = once + branchCode(flow, bi, 'steps', ids)
-  const otherwise = branchCode(flow, bi, 'otherwise', ids)
-  const body = checks.length
-    ? `let ok = true;\n${checks.join('\n')}\nif (ok) {\n${indent(then)}\n}${otherwise ? ` else {\n${indent(otherwise)}\n}` : ''}`
-    : then
-  return `{ pass: ${js(flowTrigger(b.trigger).pass.toLowerCase())}, run: async () => {\n${indent(`// ${blockSummary(b)}\n${body}`)}\n} }`
+// One line's code. scopes: scriptScopes; memories: scriptMemories; ids: editor effect key -> built id.
+function lineCode(line, scopes, memories, ids) {
+  const vars = scopes.get(line.key)?.vars ?? []
+  switch (line.type) {
+    case 'if': {
+      const any = line.join === 'any'
+      const checks = (line.checks ?? []).map((c) => `ok = ok ${any ? '||' : '&&'} (${checkCode(c, vars, line.key)}); // ${checkWords(c)}`)
+      const once = (line.checks ?? []).some((c) => c.type === 'oncePerTurn') ? `await markTurn(${js(line.key)});\n` : ''
+      const then = once + linesCode(line.then, scopes, memories, ids)
+      const otherwise = linesCode(line.else, scopes, memories, ids)
+      return `{
+  let ok = ${checks.length ? (any ? 'false' : 'true') : 'false'};
+${indent(checks.join('\n'))}
+  if (ok) {
+${indent(then, 4)}
+  }${otherwise ? ` else {\n${indent(otherwise, 4)}\n  }` : ''}
+}`
+    }
+    case 'memory':
+      return `V[${js(line.name)}] = recall(${js(line.name)}, ${startCode(line, scopes)});`
+    case 'forget': {
+      const decl = memories.get(line.name)
+      return `await forget(${js(line.name)});\nV[${js(line.name)}] = ${startCode(decl, scopes)};`
+    }
+    case 'value':
+    case 'math': {
+      const code = stepCode(line, vars, ids)
+      const decl = memories.get(line.name)
+      // A remembered number: every set is saved for next time.
+      return decl ? `${code}\nawait remember(${js(line.name)}, V[${js(line.name)}], ${Number(decl.forget) > 0 ? Number(decl.forget) : 0});` : code
+    }
+    default:
+      return stepCode(line, vars, ids)
+  }
+}
+
+function linesCode(lines, scopes, memories, ids) {
+  return (lines ?? []).map((l) => `// ${lineWords(l).replace(/\n/g, ' ')}\n${lineCode(l, scopes, memories, ids)}`).join('\n')
+}
+
+function sectionCode(section, scopes, memories, ids) {
+  return `{ pass: ${js(flowTrigger(section.trigger).pass.toLowerCase())}, run: async () => {\n${indent(linesCode(section.lines, scopes, memories, ids))}\n} }`
 }
 
 // The activity macro: the body of the async function midi calls with
 // workflow, args, actor, token, item (src/module/workflow.ts executeMacroWithScope).
 // itemName: the card's title when the flow has no name of its own.
 export function flowCode(flow, { ids = {}, itemName = '' } = {}) {
-  const blocks = sortBlocks(flow?.blocks ?? [])
-  const sorted = { ...flow, blocks }
+  const script = toScript(flow)
+  const scopes = scriptScopes(script)
+  const memories = scriptMemories(script)
   const setup = {
-    key: String(flow?.key ?? 'flow'),
-    name: String(flow?.name ?? '').trim() || String(itemName ?? '').trim() || 'Feature',
-    color: cardColor(flow?.color),
-    vars: flowVars(sorted),
+    key: String(script.key ?? 'flow'),
+    name: String(script.name ?? '').trim() || String(itemName ?? '').trim() || 'Feature',
+    color: cardColor(script.color),
+    vars: flowVars(script),
   }
   return `// ${setup.name} - Chrab Corner automation, built step by step in the Automation Builder.
 // One midi-qol activity macro, listed at each pass it needs. Edit it on the site, not here: a re-send replaces it.
@@ -856,7 +1053,7 @@ async function post() {
 }
 
 const BLOCKS = [
-${blocks.map((_, bi) => indent(blockCode(sorted, bi, ids))).join(',\n')}
+${script.sections.map((x) => indent(sectionCode(x, scopes, memories, ids))).join(',\n')}
 ];
 for (const block of BLOCKS) {
   if (block.pass !== pass) continue;
