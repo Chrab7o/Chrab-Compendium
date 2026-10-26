@@ -28,7 +28,7 @@
 // probes/midi-qol-v14-reference.md and vendor/midi-qol); docs/automation-builder.md
 // lists which ones still need a run in Foundry.
 
-import { conditionText, emptyCondition } from './foundryAutomation.js'
+import { PICK_RUNTIME, conditionText, emptyCondition } from './foundryAutomation.js'
 import { CHAT_RUNTIME, cardColor } from './foundryChat.js'
 import { SELF_CONDITIONS, emptySelfCondition, selfConditionText } from './foundryBehaviors.js'
 
@@ -72,6 +72,8 @@ const knows = {
   save: ({ trigger, kind }) => kind === 'save' && at(trigger, 'save'),
   damage: ({ trigger, kind }) => ['attack', 'save', 'damage', 'heal'].includes(kind) && at(trigger, 'damage'),
   dealt: ({ trigger }) => trigger === 'done',
+  // The spell slot is picked after "When it's used" (midi's preItemRoll runs before dnd5e's usage dialog).
+  cast: ({ trigger }) => trigger !== 'use',
 }
 
 // ---------------------------------------------------------------------------
@@ -106,6 +108,7 @@ export const FLOW_VALUES = [
   { key: 'targetSave', group: 'This roll', label: 'The target’s save total', name: 'saveTotal', needs: 'save', code: () => 'workflow?.tokenSaves?.[target()?.document?.uuid]?.total' },
   { key: 'failedCount', group: 'This roll', label: 'How many failed the save', name: 'failed', needs: 'save', code: () => 'workflow?.failedSaves?.size' },
   { key: 'targetCount', group: 'This roll', label: 'How many targets there are', name: 'targets', code: () => 'workflow?.targets?.size' },
+  { key: 'upcast', group: 'This roll', label: 'Slot levels above the spell’s (upcast)', name: 'upcast', needs: 'cast', code: () => '(workflow?.chatCard?.system?.scaling ?? item.flags?.dnd5e?.scaling)' },
   { key: 'damageTotal', group: 'This roll', label: 'The damage rolled', name: 'rolled', needs: 'damage', code: () => 'workflow?.damageTotal' },
   { key: 'damageDealt', group: 'This roll', label: 'The damage that landed (HP lost)', name: 'dealt', needs: 'dealt', code: () => '(workflow?.damageList ?? []).reduce((sum, d) => sum + (Number(d.hpDamage) || 0) + (Number(d.tempDamage) || 0), 0)' },
   { key: 'critAt', group: 'This roll', label: 'The roll it normally crits on', name: 'critAt', kinds: ['attack'], code: () => '(rolled()?.criticalThreshold ?? 20)' },
@@ -180,6 +183,7 @@ export const FLOW_STEPS = [
   { key: 'popup', group: 'Chat card', label: 'Show a pop-up', help: 'A notice on the screen of whoever made the roll, and the GM’s too if you like. {name} fills in a variable.' },
   // Version 1 only: converted to setting a remembered number.
   { key: 'remember', group: 'Variables', label: 'Remember a number', legacy: true },
+  { key: 'pickTargets', group: 'Targets', label: 'Pick targets on the map', help: 'A blue ring shows the range and the player clicks the creatures. When it’s used, they become this roll’s targets. Picks can stack on one creature (missiles); “every picked creature” lines below then run once per creature, with picks = how many times it was picked.', only: ['use', 'done'] },
   { key: 'damageRoll', group: 'Damage and healing', label: 'Use a number as this roll’s damage', help: 'Replaces the rolled damage with your number, or adds it on top.', needs: 'damage', only: ['damage'] },
   { key: 'damageTarget', group: 'Damage and healing', label: 'The target takes damage', help: 'Separate from this roll’s damage. Resistances apply.' },
   { key: 'healTarget', group: 'Damage and healing', label: 'The target regains HP' },
@@ -217,7 +221,11 @@ export function emptyStep(type = 'value', { suggestName = '' } = {}) {
     showLabel: '',
     // math, and the amount of every apply step
     expr: '',
-    amount: '',
+    amount: type === 'pickTargets' ? '1' : '',
+    // pickTargets
+    range: '', // ft; '' = the roll's own range
+    who: 'any', // 'any' | 'enemies' | 'allies'
+    stack: false, // one creature can be picked more than once
     // flavor
     text: '',
     style: 'flavor', // 'flavor' (italic) | 'plain'
@@ -225,7 +233,7 @@ export function emptyStep(type = 'value', { suggestName = '' } = {}) {
     mode: type === 'damageRoll' ? 'replace' : type === 'resource' || type === 'featureUses' ? 'spend' : type === 'remember' ? 'set' : 'advantage',
     damageType: '', // '' = the roll's own (damageRoll) / untyped
     // effects
-    to: 'target', // 'target' | 'self'
+    to: 'target', // 'target' | 'self' | 'each' (every picked creature, else every target)
     status: 'prone',
     rounds: '', // condition: '' = until removed
     effectKey: '',
@@ -476,9 +484,10 @@ function lineProblems(s, ctx, vars, memories) {
   if (s.type === 'forget' && !memories.has(s.name)) out.push('pick which remembered number.')
   const math = s.type === 'math' ? s.expr : AMOUNT_STEPS.includes(s.type) ? s.amount : null
   if (math != null) {
-    const { error } = mathFormula(math, vars)
+    const { error } = mathFormula(math, stepVars(s, vars))
     if (error) out.push(error)
   }
+  if (s.type === 'pickTargets' && String(s.range ?? '').trim() && !(Number(s.range) > 0)) out.push('the range is a number of feet, or blank for the roll’s own.')
   if (s.type === 'flavor' && !String(s.text ?? '').trim()) out.push('the flavor text is empty.')
   if (s.type === 'popup' && !String(s.text ?? '').trim()) out.push('the pop-up is empty.')
   if (s.type === 'resource' && !poolId(s.pool)) out.push('name the resource (its identifier).')
@@ -513,8 +522,14 @@ export function flowProblems(flow, kind) {
   return problems
 }
 
+// Steps that can run once per picked creature (to: 'each'), where picks is
+// how many times that creature was picked.
+const EACH_STEPS = ['damageTarget', 'healTarget', 'condition', 'effect']
+const eachOne = (s) => s.to === 'each' && EACH_STEPS.includes(s.type)
+const stepVars = (s, vars) => (eachOne(s) ? [...vars, 'picks'] : vars)
+
 // Steps whose `amount` is math.
-const AMOUNT_STEPS = ['damageRoll', 'damageTarget', 'healTarget', 'healMe', 'tempMe', 'hurtMe', 'resource', 'featureUses']
+const AMOUNT_STEPS = ['pickTargets', 'damageRoll', 'damageTarget', 'healTarget', 'healMe', 'tempMe', 'hurtMe', 'resource', 'featureUses']
 
 // ---------------------------------------------------------------------------
 // Words: the builder's review and the preview pane.
@@ -626,10 +641,15 @@ export function stepWords(s) {
       return 'make it a critical hit'
     case 'damageRoll':
       return s.mode === 'add' ? `add ${amount}${typeWords(s.damageType)} damage to the roll` : `replace the rolled damage with ${amount}${typeWords(s.damageType || '')} (rounded down)`
+    case 'pickTargets': {
+      const who = { enemies: 'enemies', allies: 'allies' }[s.who] ?? 'creatures'
+      const range = Number(s.range) > 0 ? `within ${Number(s.range)} ft` : 'within its own range'
+      return `pick ${amount} ${who} ${range} on the map${s.stack ? ', picks can stack' : ''}`
+    }
     case 'damageTarget':
-      return `the target takes ${amount}${typeWords(s.damageType)} damage`
+      return `${eachOne(s) ? 'every picked creature takes' : 'the target takes'} ${amount}${typeWords(s.damageType)} damage`
     case 'healTarget':
-      return `the target regains ${amount} HP`
+      return `${eachOne(s) ? 'every picked creature regains' : 'the target regains'} ${amount} HP`
     case 'healMe':
       return `you regain ${amount} HP`
     case 'tempMe':
@@ -641,9 +661,9 @@ export function stepWords(s) {
     case 'cancel':
       return 'cancel the use'
     case 'condition':
-      return `${s.to === 'self' ? 'you become' : 'the target becomes'} ${s.status}${Number(s.rounds) ? ` for ${Number(s.rounds)} round${Number(s.rounds) === 1 ? '' : 's'}` : ''}`
+      return `${s.to === 'self' ? 'you become' : eachOne(s) ? 'every picked creature becomes' : 'the target becomes'} ${s.status}${Number(s.rounds) ? ` for ${Number(s.rounds)} round${Number(s.rounds) === 1 ? '' : 's'}` : ''}`
     case 'effect':
-      return `${s.to === 'self' ? 'you gain' : 'the target gains'} one of this item’s effects`
+      return `${s.to === 'self' ? 'you gain' : eachOne(s) ? 'every picked creature gains' : 'the target gains'} one of this item’s effects`
     case 'resource':
       return `${s.mode === 'gain' ? 'regain' : 'spend'} ${amount} ${poolId(s.pool).replace(/-/g, ' ') || 'resource'}`
     case 'featureUses':
@@ -778,6 +798,11 @@ function amountCode(s, vars) {
 
 // One step's code. vars: the variables it can see; ids: editor effect key -> built id.
 function stepCode(s, vars, ids) {
+  const code = oneStepCode(s, stepVars(s, vars), ids)
+  return eachOne(s) ? `await forEach(async () => {\n${indent(code)}\n});` : code
+}
+
+function oneStepCode(s, vars, ids) {
   const line = (expr) => `say(${expr});`
   switch (s.type) {
     case 'value': {
@@ -860,6 +885,22 @@ ${line(js(`The attack has ${which}`))}`
     }
     case 'cancel':
       return 'return false;'
+    case 'pickTargets': {
+      // Blank: the range of what's being used, whatever it is (the activity's follows its item unless overridden).
+      const range = Number(s.range) > 0 ? `chrabRange({ value: ${Number(s.range)}, units: "ft" })` : 'chrabRange(rolled()?.range ?? item.system?.range)'
+      return `{
+  const picks = await chrabPickTargets(token ?? actor.getActiveTokens?.()[0], { range: ${range}, count: ${amountCode(s, vars)}, who: ${js(s.who || 'any')}, stack: ${s.stack ? 'true' : 'false'}, title: FLOW.name });
+  if (!picks) return false;
+  state.picks = [...picks];
+  // When it's used: they're the roll's targets from here on.
+  state.picksLate = pass !== "preitemroll";
+  if (!state.picksLate) {
+    workflow.setTargets?.(new Set(picks.keys()));
+    canvas.tokens?.setTargets?.([...picks.keys()].map((t) => t.id));
+  }
+  ${line(`"Picks " + state.picks.map(([t, n]) => chrabEsc(t.name) + (n > 1 ? " ×" + n : "")).join(", ")`)}
+}`
+    }
     case 'condition':
       return `await giveStatus(${s.to === 'self' ? 'actor' : 'tA()'}, ${js(s.status || 'prone')}, ${Number(s.rounds) || 0});`
     case 'effect': {
@@ -945,18 +986,37 @@ const FLOW = ${JSON.stringify(setup)};
 const pass = String(args?.[0]?.macroPass ?? "").toLowerCase();
 if (!actor || !item) return;
 ${CHAT_RUNTIME}
+${PICK_RUNTIME}
 // Variables and the chat card last for the whole roll (every pass of this workflow).
 const state = ((workflow.chrabFlow ??= {})[FLOW.key] ??= { vars: {}, posted: false, card: { title: FLOW.name, img: item.img, color: FLOW.color, flavor: "", steps: [], rolls: [] } });
 const V = state.vars;
 for (const n of FLOW.vars) V[n] ??= 0;
 const card = state.card;
 const say = (html) => card.steps.push(html);
-const target = () => workflow?.hitTargets?.first?.() ?? workflow?.failedSaves?.first?.() ?? workflow?.targets?.first?.() ?? null;
+// "The target": the creature an "every picked creature" line is on, one picked after the roll, else the roll's.
+let current = null;
+const target = () => current ?? (state.picksLate ? state.picks?.[0]?.[0] : null) ?? workflow?.hitTargets?.first?.() ?? workflow?.failedSaves?.first?.() ?? workflow?.targets?.first?.() ?? null;
 const tA = () => target()?.actor ?? null;
 const tName = () => target()?.name ?? tA()?.name ?? "the target";
 // {name} in text: a variable, {target} the target's name, {me} the user's.
 const fill = (text) => String(text ?? "").replace(/\\{(\\w+)\\}/g, (m, k) => (k in V ? String(V[k]) : k === "target" ? tName() : k === "me" ? actor.name : m));
 const whole = (n) => Math.max(0, Math.floor(Number(n) || 0));
+// Once per picked creature (picks = how many times), else once per target of the roll.
+async function forEach(fn) {
+  const list = state.picks?.length ? state.picks : [...(workflow?.targets ?? [])].map((t) => [t, 1]);
+  if (!list.length) return say("No targets");
+  const before = [current, V.picks];
+  try {
+    for (const [t, n] of list) {
+      if (!t?.actor) continue;
+      current = t;
+      V.picks = n;
+      await fn();
+    }
+  } finally {
+    [current, V.picks] = before;
+  }
+}
 // Math: a roll formula against the user's roll data plus the variables. Dice show on the card.
 async function calc(formula) {
   const roll = await new Roll(String(formula || "0"), { ...(actor.getRollData?.() ?? {}), ...V }).evaluate();

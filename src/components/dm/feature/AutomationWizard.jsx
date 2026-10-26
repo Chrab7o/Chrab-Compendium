@@ -268,11 +268,30 @@ function StepFields({ step, onChange, vars, ctx, effects, featureName, memories 
   const value = FLOW_VALUES.find((v) => v.key === step.source)
   const values = valuesFor(ctx)
   const groups = [...new Set(values.map((v) => v.group))]
+  // "Every picked creature" lines also know picks: how many times that one was picked.
+  const each = step.to === 'each'
+  const amountVars = each ? [...vars, 'picks'] : vars
   const amount = (label, placeholder = 'e.g. dmg, or 2d6 + @prof') => (
     <label className="npc-wide-field">
       {label}
-      <MathField value={step.amount} onChange={(v) => set({ amount: v })} vars={vars} placeholder={placeholder} label={label} />
+      <MathField value={step.amount} onChange={(v) => set({ amount: v })} vars={amountVars} placeholder={placeholder} label={label} />
     </label>
+  )
+  const onWho = (withSelf) => (
+    <label>
+      On
+      <select value={step.to} onChange={(e) => set({ to: e.target.value })}>
+        <option value="target">The target</option>
+        <option value="each">Every picked creature (else every target)</option>
+        {withSelf && <option value="self">You</option>}
+      </select>
+    </label>
+  )
+  const eachHint = each && (
+    <span className="npc-hint">
+      Runs once for each creature a “Pick targets on the map” line above chose (with no such line, each of the roll’s targets). <code>picks</code> is how many
+      times that creature was picked, e.g. <code>(picks)d6 + picks</code> for 1d6 + 1 a missile.
+    </span>
   )
   const showFields = (
     <div className="dm-form-row">
@@ -373,6 +392,14 @@ function StepFields({ step, onChange, vars, ctx, effects, featureName, memories 
             <MathField value={step.expr} onChange={(expr) => set({ expr })} vars={vars} placeholder="e.g. CritAt - 1, or floor(hp / 2) + @prof" label="Math" />
           </div>
           {memories.has(step.name) && <span className="npc-hint">{step.name} is a remembered number: this is saved for next time.</span>}
+          {!memories.has(step.name) &&
+            [...memories.keys()]
+              .filter((m) => new RegExp(`\\b${m}\\b`).test(step.expr ?? ''))
+              .map((m) => (
+                <span key={m} className="aw-copy-warning">
+                  {step.name || 'This'} is a copy of {m}: changing {step.name || 'it'} later isn’t saved. To keep a change for the next use, set {m} itself (e.g. “set {m} = {m} - 1”).
+                </span>
+              ))}
           <span className="npc-hint">
             + − * / and brackets, dice like 2d6, <code>floor()</code> <code>ceil()</code> <code>round()</code> <code>min(a, b)</code> <code>max(a, b)</code>, and your stats as @references (<code>@prof</code>,{' '}
             <code>@abilities.con.mod</code>).
@@ -482,9 +509,42 @@ function StepFields({ step, onChange, vars, ctx, effects, featureName, memories 
         </>
       )}
 
+      {step.type === 'pickTargets' && (
+        <>
+          <div className="dm-form-row">
+            <label>
+              Range (ft.)
+              <input type="number" min="5" step="5" value={step.range} onChange={(e) => set({ range: e.target.value })} placeholder="its own" />
+            </label>
+            <label>
+              Who can be picked
+              <select value={step.who} onChange={(e) => set({ who: e.target.value })}>
+                <option value="any">Any creature</option>
+                <option value="enemies">Enemies (not your side)</option>
+                <option value="allies">Allies (your side)</option>
+              </select>
+            </label>
+            <label className="tag-checklist-item">
+              <input type="checkbox" checked={!!step.stack} onChange={(e) => set({ stack: e.target.checked })} />
+              One creature can be picked more than once
+            </label>
+          </div>
+          {amount('How many picks', 'e.g. 3, or 3 + upcast')}
+          <span className="npc-hint">
+            {ctx.trigger === 'use'
+              ? 'They become this roll’s targets, so its attack, save and damage go to them. The spell slot isn’t chosen yet here: for more picks when upcast, pick after it’s all done.'
+              : 'The roll is done, so they don’t change its targets: use “every picked creature” lines below (damage, healing, conditions, effects).'}{' '}
+            Esc cancels{ctx.trigger === 'use' ? ' the use' : ''}; Enter finishes with fewer. A blank range is the spell’s or feature’s own when it’s used (touch is 5 ft;
+            self, any or special draw no ring and have no limit), so the same line works on anything.
+          </span>
+        </>
+      )}
+
       {(step.type === 'damageTarget' || step.type === 'hurtMe') && (
         <>
+          {step.type === 'damageTarget' && <div className="dm-form-row">{onWho(false)}</div>}
           {amount('How much')}
+          {eachHint}
           <label className="aw-inline">
             Damage type
             <DamageTypeSelect value={step.damageType} onChange={(damageType) => set({ damageType })} emptyLabel="No type" />
@@ -492,7 +552,15 @@ function StepFields({ step, onChange, vars, ctx, effects, featureName, memories 
         </>
       )}
 
-      {['healTarget', 'healMe', 'tempMe'].includes(step.type) && amount('How much')}
+      {step.type === 'healTarget' && (
+        <>
+          <div className="dm-form-row">{onWho(false)}</div>
+          {amount('How much')}
+          {eachHint}
+        </>
+      )}
+
+      {['healMe', 'tempMe'].includes(step.type) && amount('How much')}
 
       {step.type === 'advantage' && (
         <label className="aw-inline">
@@ -508,13 +576,7 @@ function StepFields({ step, onChange, vars, ctx, effects, featureName, memories 
 
       {(step.type === 'condition' || step.type === 'effect') && (
         <div className="dm-form-row">
-          <label>
-            On
-            <select value={step.to} onChange={(e) => set({ to: e.target.value })}>
-              <option value="target">The target</option>
-              <option value="self">You</option>
-            </select>
-          </label>
+          {onWho(true)}
           {step.type === 'condition' ? (
             <>
               <label>

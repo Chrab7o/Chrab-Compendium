@@ -188,7 +188,7 @@ function setup({ confirm = true } = {}) {
   }
 }
 
-function run(spec, { pass, workflow, item: kept = null, activity = {} }) {
+function run(spec, { pass, workflow, item: kept = null, activity = {}, token }) {
   const built = buildFeatureItem(spec)
   const act = Object.values(built.system.activities)[0]
   const actor = {
@@ -210,7 +210,7 @@ function run(spec, { pass, workflow, item: kept = null, activity = {} }) {
     update: async (d) => world.uses.push(d),
   }
   const fn = new AsyncFunction('workflow', 'args', 'actor', 'token', 'item', 'rolledActivity', act.macroData.command)
-  return fn(workflow, [{ macroPass: pass }], actor, undefined, item, activity)
+  return fn(workflow, [{ macroPass: pass }], actor, token, item, activity)
 }
 
 // An item whose flags keep what the macro writes, across runs.
@@ -522,4 +522,156 @@ test('ifs nest, and "any of" needs only one check', async () => {
   await run(featureWith(flow), { pass: 'postActiveEffects', workflow: wf })
   assert.match(world.messages[0].content, /<li>either<\/li><li>no crit<\/li>/)
   assert.deepEqual(flowSummary(flow), ['After the attack roll:', '  if the attack missed or the natural d20 is 18 or higher:', '    say “either”', '    if it’s a critical hit:', '      say “crit”', '    otherwise:', '      say “no crit”'])
+})
+
+// ---------------------------------------------------------------------------
+// Picking targets on the map
+
+// A stand-in map: squares of 100 px = 5 ft. clicks are fed to the picker one
+// at a time; keys go to its keydown listener.
+function mapWith(tokens, { clicks = [], keys = [] } = {}) {
+  const drawn = []
+  const g = () => ({ lineStyle() { return this }, beginFill() { return this }, endFill() { return this }, moveTo() { return this }, lineTo() { return this }, clear() {}, drawCircle(x, y, r) { this.circle ??= { x, y, r }; return this } })
+  globalThis.PIXI = {
+    Graphics: class { constructor() { Object.assign(this, g()); drawn.push(this) } },
+    Container: class { addChild() {} destroy() { this.destroyed = true } },
+    Text: class { constructor() { this.anchor = { set() {} }; this.position = { set() {} } } destroy() {} },
+  }
+  const map = { drawn, targeted: null }
+  globalThis.canvas = {
+    ready: true,
+    dimensions: { distance: 5, size: 100 },
+    grid: { distance: 5, size: 100, measurePath: ([a, b]) => ({ distance: (Math.hypot(b.x - a.x, b.y - a.y) / 100) * 5 }) },
+    tokens: { placeables: tokens, setTargets: (ids) => (map.targeted = ids) },
+    interface: { addChild: () => {} },
+    stage: {
+      on: (event, fn) => {
+        const next = () => {
+          const c = clicks.shift()
+          if (!c) return
+          fn({ button: 0, shiftKey: false, getLocalPosition: () => c.at.center, ...c })
+          queueMicrotask(next)
+        }
+        queueMicrotask(next)
+      },
+      off: () => {},
+    },
+  }
+  globalThis.document = { addEventListener: (type, fn) => keys.length && queueMicrotask(() => fn({ key: keys.shift(), stopPropagation() {}, preventDefault() {} })), removeEventListener() {} }
+  globalThis.ui = { notifications: { info: () => {}, warn: () => {} } }
+  return map
+}
+
+function onMap(name, x, { side = -1, size = 1 } = {}) {
+  return {
+    id: name.toLowerCase(),
+    name,
+    actor: { name, uuid: `Actor.${name}`, isOwner: false, system: { attributes: { hp: { value: 30, max: 30 } } } },
+    center: { x, y: 500 },
+    x: x - 50 * size,
+    y: 500 - 50 * size,
+    w: 100 * size,
+    h: 100 * size,
+    document: { width: size, height: size, disposition: side, uuid: `Token.${name}` },
+    bounds: { contains: (px, py) => Math.abs(px - x) <= 50 * size && Math.abs(py - 500) <= 50 * size },
+  }
+}
+
+const offMap = () => {
+  for (const k of ['PIXI', 'canvas', 'document', 'ui']) delete globalThis[k]
+}
+
+test('missiles in the builder: pick 3 + upcast enemies in range, stacking, then each takes its picks’ damage', async () => {
+  setup()
+  const flow = script(
+    section('done', [
+      line('value', { source: 'upcast', name: 'upcast' }),
+      line('pickTargets', { amount: '3 + upcast', range: '120', who: 'enemies', stack: true }),
+      line('damageTarget', { to: 'each', amount: 'picks * (1d6 + 1)', damageType: 'radiant' }),
+    ]),
+  )
+  assert.deepEqual(flowProblems(flow, 'utility'), [])
+  assert.deepEqual(flowSummary(flow), [
+    'After it’s all done:',
+    '  set upcast = slot levels above the spell’s (upcast)',
+    '  pick 3 + upcast enemies within 120 ft on the map, picks can stack',
+    '  every picked creature takes picks * (1d6 + 1) radiant damage',
+  ])
+  const me = onMap('Lyra', 500, { side: 1 })
+  const goblin = onMap('Goblin', 1500)
+  const ogre = onMap('Ogre', 2950, { size: 2 })
+  const friend = onMap('Friend', 1000, { side: 1 })
+  // Goblin, the ally (not an enemy: ignored), goblin again, then the rest on the ogre.
+  const map = mapWith([me, goblin, ogre, friend], { clicks: [{ at: goblin }, { at: friend }, { at: goblin }, { at: ogre, shiftKey: true }] })
+  const wf = { targets: setOf(), hitTargets: setOf(), chatCard: { system: { scaling: 1 } } }
+  await run(featureWith(flow, 'utility'), { pass: 'postActiveEffects', workflow: wf, token: me })
+  assert.deepEqual(map.drawn[0].circle, { x: 500, y: 500, r: 2400 }, 'a 120 ft ring around the caster')
+  // 1d6 + 1 is 5 a missile in the stand-in.
+  assert.deepEqual(world.tokenDamage.map((d) => [d.target, d.total, d.detail[0].type]), [['Goblin', 10, 'radiant'], ['Ogre', 10, 'radiant']])
+  assert.equal(map.targeted, null, 'after the roll, the roll’s own targets stay as they were')
+  const html = world.messages[0].content
+  assert.match(html, /Picks Goblin ×2, Ogre ×2/)
+  assert.match(html, /Goblin takes 10 radiant damage/)
+  offMap()
+})
+
+test('picking when it’s used makes them the roll’s targets; Esc cancels the use', async () => {
+  setup()
+  const flow = script(section('use', [line('pickTargets', { amount: '2', range: '30' })]))
+  const me = onMap('Lyra', 500, { side: 1 })
+  const goblin = onMap('Goblin', 800)
+  const wolf = onMap('Wolf', 600)
+  let map = mapWith([me, goblin, wolf], { clicks: [{ at: goblin }, { at: wolf }] })
+  const wf = { targets: setOf(), setTargets(set) { this.targets = set } }
+  assert.notEqual(await run(featureWith(flow, 'save'), { pass: 'preItemRoll', workflow: wf, token: me }), false)
+  assert.deepEqual([...wf.targets].map((t) => t.name), ['Goblin', 'Wolf'])
+  assert.deepEqual(map.targeted, ['goblin', 'wolf'], 'the player’s targets show them too')
+  offMap()
+
+  map = mapWith([me, goblin, wolf], { keys: ['Escape'] })
+  assert.equal(await run(featureWith(flow, 'save'), { pass: 'preItemRoll', workflow: { targets: setOf() }, token: me }), false)
+  assert.equal(map.targeted, null)
+  offMap()
+})
+
+test('a blank range is the spell’s own, whatever it is: in the scene’s units, touch is 5 ft, self has no limit', async () => {
+  const flow = script(section('use', [line('pickTargets', { amount: '1' })]))
+  assert.deepEqual(flowSummary(flow), ['When it’s used:', '  pick 1 creatures within its own range on the map'])
+  const me = onMap('Lyra', 500, { side: 1 })
+  const goblin = onMap('Goblin', 800) // 3 squares
+  const pick = async (range, sceneUnits = 'ft', clicks = [{ at: goblin }]) => {
+    setup()
+    const map = mapWith([me, goblin], { clicks })
+    if (sceneUnits === 'm') {
+      Object.assign(canvas, {
+        dimensions: { distance: 1.5, size: 100 },
+        grid: { distance: 1.5, size: 100, measurePath: ([a, b]) => ({ distance: (Math.hypot(b.x - a.x, b.y - a.y) / 100) * 1.5 }) },
+        scene: { grid: { units: 'm' } },
+      })
+    }
+    const wf = { targets: setOf(), setTargets(set) { this.targets = set } }
+    const out = await run(featureWith(flow, 'save'), { pass: 'preItemRoll', workflow: wf, token: me, activity: { range } })
+    offMap()
+    return { ring: map.drawn[0]?.circle?.r ?? 0, picked: [...wf.targets].map((t) => t.name), out }
+  }
+  // 30 ft is 9 m: 6 squares of 1.5 m.
+  assert.deepEqual(await pick({ value: 30, units: 'ft' }, 'm'), { ring: 600, picked: ['Goblin'], out: undefined })
+  // 1 mile is far more than the map: a big ring.
+  assert.equal((await pick({ value: 1, units: 'mi' })).ring, 105600)
+  // Touch: 5 ft, so the goblin 15 ft away can't be picked and the picker is never opened.
+  const touch = await pick({ value: null, units: 'touch' }, 'ft', [])
+  assert.deepEqual([touch.picked, touch.out], [[], false])
+  // Self: no ring and no limit.
+  assert.deepEqual(await pick({ value: null, units: 'self' }), { ring: 0, picked: ['Goblin'], out: undefined })
+})
+
+test('picking: where it fits, and picks is known only on “every picked creature” lines', () => {
+  const late = script(section('damage', [line('pickTargets')]))
+  assert.match(flowProblems(late, 'attack')[0].text, /can’t happen at “When damage is rolled”/)
+  const early = script(section('use', [line('value', { source: 'upcast', name: 'upcast' })]))
+  assert.match(flowProblems(early, 'save')[0].text, /isn’t known yet at “When it’s used”/)
+  const loose = script(section('done', [line('pickTargets'), line('damageTarget', { amount: 'picks * 2' })]))
+  assert.match(flowProblems(loose, 'utility')[0].text, /I don’t know “picks”/)
+  const badRange = script(section('done', [line('pickTargets', { range: 'far' })]))
+  assert.match(flowProblems(badRange, 'utility')[0].text, /range is a number of feet/)
 })

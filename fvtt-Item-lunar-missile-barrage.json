@@ -1,0 +1,148 @@
+{
+  "_id": "pIazqqvuYyXX1YP1",
+  "name": "Lunar Missile Barrage",
+  "type": "spell",
+  "img": "icons/svg/fire.svg",
+  "system": {
+    "description": {
+      "value": "<p>Shoot out 3 missiles of radiant light at targets; each missile deals 1d6 + 1 radiant damage. Using a spell slot above 1st gives you 1 extra missile per slot level.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Chrab Corner",
+      "rules": "2024"
+    },
+    "identifier": "lunar-missile-barrage",
+    "uses": {
+      "max": "",
+      "spent": 0,
+      "recovery": []
+    },
+    "activities": {
+      "ZYW0bBmtqOjGs9N9": {
+        "_id": "ZYW0bBmtqOjGs9N9",
+        "type": "utility",
+        "name": "",
+        "sort": 0,
+        "activation": {
+          "type": "action",
+          "value": 1,
+          "override": false
+        },
+        "consumption": {
+          "scaling": {
+            "allowed": false,
+            "max": ""
+          },
+          "spellSlot": true,
+          "targets": []
+        },
+        "duration": {
+          "units": "inst",
+          "concentration": false,
+          "override": false
+        },
+        "range": {
+          "override": false
+        },
+        "target": {
+          "prompt": false,
+          "override": false,
+          "template": {
+            "contiguous": false,
+            "stationary": false,
+            "units": "ft",
+            "count": "",
+            "type": "",
+            "size": "",
+            "width": "",
+            "height": ""
+          },
+          "affects": {
+            "count": "",
+            "type": "self",
+            "choice": false,
+            "special": ""
+          }
+        },
+        "uses": {
+          "spent": 0,
+          "recovery": []
+        },
+        "effects": [],
+        "roll": {
+          "prompt": false,
+          "visible": false
+        },
+        "macroData": {
+          "name": "Lunar Missile Barrage",
+          "command": "// 3 missiles (+1 per slot level up), 1d6 + 1 radiant each, in its own range.\n// Chrab Corner script - a midi-qol activity macro, run by whoever uses the item.\n// --- Chrab Corner chat cards and prompts (shared runtime).\nconst chrabEsc = (s) => (foundry.utils?.escapeHTML ? foundry.utils.escapeHTML(String(s ?? \"\")) : String(s ?? \"\"));\nfunction chrabCardHtml(card, extra = \"\") {\n  const color = /^#[0-9a-f]{6}$/i.test(card.color ?? \"\") ? card.color : \"#7a2cff\";\n  const steps = (card.steps ?? []).filter(Boolean);\n  return '<div class=\"chrab-card\" style=\"border:1px solid ' + color + ';border-left:5px solid ' + color + ';border-radius:4px;padding:4px 8px;background:' + color + '1a\">' +\n    '<div style=\"display:flex;align-items:center;gap:6px;font-weight:700;color:' + color + '\">' +\n    (card.img ? '<img src=\"' + chrabEsc(card.img) + '\" width=\"26\" height=\"26\" style=\"border:0;flex:none\">' : \"\") +\n    \"<span>\" + chrabEsc(card.title) + \"</span></div>\" +\n    (card.flavor ? '<p style=\"margin:4px 0;font-style:italic\">' + chrabEsc(card.flavor) + \"</p>\" : \"\") +\n    (steps.length ? '<ul style=\"margin:4px 0;padding-left:18px\">' + steps.map((s) => \"<li>\" + s + \"</li>\").join(\"\") + \"</ul>\" : \"\") +\n    extra + \"</div>\";\n}\nasync function chrabPost(card, who) {\n  const rolls = (card.rolls ?? []).filter(Boolean);\n  let dice = \"\";\n  for (const r of rolls) dice += r.render ? await r.render() : \"\";\n  return ChatMessage.implementation.create({ speaker: ChatMessage.getSpeaker({ actor: who }), content: chrabCardHtml(card, dice), rolls });\n}\nfunction chrabDecider(who) {\n  const users = game.users ? [...game.users] : [];\n  if (!users.length) return null;\n  const owners = users.filter((u) => u.active && !u.isGM && who?.testUserPermission?.(u, \"OWNER\"));\n  return owners.find((u) => u.character?.id === who?.id) ?? owners[0] ?? game.users.activeGM ?? users.find((u) => u.active && u.isGM) ?? null;\n}\nasync function chrabDialog(who, type, config) {\n  const D = foundry.applications?.api?.DialogV2;\n  if (!D) return type === \"confirm\" ? true : null;\n  const full = { rejectClose: false, modal: true, ...config };\n  const user = chrabDecider(who);\n  const self = !user || user.isSelf || user.id === game.user?.id;\n  if (self || !user.query || !game.user?.hasPermission?.(\"QUERY_USER\")) return D[type](full);\n  try {\n    return await user.query(\"dialog\", { type, config: full }, { timeout: 120000 });\n  } catch (err) {\n    console.warn(\"chrab-sync | no answer from \" + user.name + \", so no\", err);\n    return type === \"confirm\" ? false : null;\n  }\n}\nasync function chrabConfirm(who, card, question) {\n  return !!(await chrabDialog(who, \"confirm\", {\n    window: { title: card.title },\n    content: chrabCardHtml(card) + \"<p><strong>\" + question + \"</strong></p>\",\n    yes: { label: \"Use it\" },\n    no: { label: \"Not now\" },\n  }));\n}\nconst card = { title: item.name, img: item.img, color: \"#1aa6e8\", flavor: \"Shards of moonlight streak out and find their marks.\", steps: [], rolls: [] };\n// A dnd5e range ({ value, units }, e.g. a spell's or an activity's) in the scene's grid units.\n// Touch is the reach (5 ft); self, any, special or none is 0: no limit, no ring.\nfunction chrabRange(range) {\n  const units = CONFIG.DND5E?.movementUnits ?? {};\n  const feet = (u) => units[u]?.conversion ?? { ft: 1, mi: 5280, m: 10 / 3, km: 10000 / 3 }[u];\n  let ft = 0;\n  if (range?.units === \"touch\") ft = Number(range.reach) || 5;\n  else if (feet(range?.units)) ft = (Number(range.value) || 0) * feet(range.units);\n  return ft / (feet(canvas?.scene?.grid?.units) || 1);\n}\nasync function chrabPickTargets(self, { range = 0, count = 1, who = \"any\", stack = false, title = \"\", what = \"target\" } = {}) {\n  if (!self || !canvas?.ready) return null;\n  const total = Math.max(1, Math.floor(Number(count) || 1));\n  const from = self.center ?? self.object?.center;\n  const far = (point) => canvas.grid.measurePath([from, point]).distance;\n  const unit = canvas.scene?.grid?.units || \"ft\";\n  // Range counts to a creature's near side, so a big one is reached sooner.\n  const inReach = (t) => !(range > 0) || far(t.center) - ((Math.max(t.document.width, t.document.height) - 1) * canvas.dimensions.distance) / 2 <= range;\n  const side = self.document?.disposition;\n  const fits = (t) => (who === \"allies\" ? t.document?.disposition === side : who === \"enemies\" ? t.document?.disposition !== side : true);\n  const candidates = () => canvas.tokens.placeables.filter((t) => t !== self && t.actor && t.visible !== false && fits(t));\n  const kind = who === \"allies\" ? \"ally\" : who === \"enemies\" ? \"enemy\" : \"creature\";\n  const kinds = who === \"allies\" ? \"allies\" : who === \"enemies\" ? \"enemies\" : \"creatures\";\n  if (!candidates().some(inReach)) {\n    ui.notifications.warn(title + \": no \" + kind + (range > 0 ? \" within \" + Math.round(range) + \" \" + unit + \".\" : \" to pick.\"));\n    return null;\n  }\n  const picks = new Map();\n  const left = () => total - [...picks.values()].reduce((sum, n) => sum + n, 0);\n  const BLUE = 0x2f7bff;\n  let layer = null;\n  let marks = null;\n  let labels = [];\n  const label = (text, x, y) => {\n    const t = new PIXI.Text(text, { fontFamily: \"Signika\", fontSize: 30, fontWeight: \"bold\", fill: 0xffffff, stroke: 0x0b2a80, strokeThickness: 6 });\n    t.anchor.set(0.5, 1);\n    t.position.set(x, y);\n    layer.addChild(t);\n    labels.push(t);\n  };\n  const draw = () => {\n    if (!layer) return;\n    try {\n      marks.clear();\n      for (const t of labels) t.destroy();\n      labels = [];\n      for (const [t, n] of picks) {\n        marks.lineStyle(3, BLUE, 0.7).moveTo(from.x, from.y).lineTo(t.center.x, t.center.y);\n        marks.lineStyle(5, BLUE, 1).drawCircle(t.center.x, t.center.y, Math.max(t.w, t.h) / 2 + 8);\n        if (stack) label(\"×\" + n, t.center.x, t.y - 6);\n      }\n      label(left() + \" left\", from.x, self.y - 6);\n    } catch (err) {\n      console.warn(\"chrab-sync | target marks\", err);\n    }\n  };\n  try {\n    layer = new PIXI.Container();\n    const ring = new PIXI.Graphics();\n    if (range > 0) ring.lineStyle(4, BLUE, 0.9).beginFill(BLUE, 0.12).drawCircle(from.x, from.y, (range / canvas.dimensions.distance) * canvas.dimensions.size).endFill();\n    marks = new PIXI.Graphics();\n    layer.addChild(ring, marks);\n    (canvas.interface ?? canvas.stage).addChild(layer);\n  } catch (err) {\n    console.warn(\"chrab-sync | range ring\", err);\n    layer = null;\n  }\n  draw();\n  ui.notifications.info(title + \": click \" + (stack ? \"a \" + kind + \" for each of \" + total + \" \" + what + \"s\" : \"up to \" + total + \" \" + (total === 1 ? kind : kinds)) + (range > 0 ? \" (up to \" + Math.round(range) + \" \" + unit + \")\" : \"\") + \".\" + (stack ? \" Shift-click sends the rest, right-click takes one back.\" : \" Click again to unpick.\") + \" Enter finishes, Esc cancels.\");\n  const done = await new Promise((resolve) => {\n    const stage = canvas.stage;\n    const finish = (value) => {\n      stage.off(\"pointerdown\", onDown);\n      globalThis.document?.removeEventListener(\"keydown\", onKey, true);\n      resolve(value);\n    };\n    // Ahead of Foundry's own keys (it listens on window).\n    const onKey = (event) => {\n      if (event.key === \"Escape\") finish(false);\n      else if (event.key === \"Enter\" && picks.size) finish(true);\n      else return;\n      event.stopPropagation();\n      event.preventDefault();\n    };\n    const onDown = (event) => {\n      const point = event.getLocalPosition(stage);\n      const t = candidates().filter((c) => c.bounds?.contains(point.x, point.y)).at(-1);\n      if (!t) return;\n      if (event.button === 2 || (!stack && event.button === 0 && picks.has(t))) {\n        const n = (picks.get(t) ?? 0) - 1;\n        if (n > 0) picks.set(t, n);\n        else picks.delete(t);\n        return draw();\n      }\n      if (event.button !== 0) return;\n      if (!inReach(t)) return ui.notifications.warn(t.name + \" is out of range (\" + Math.round(far(t.center)) + \" \" + unit + \").\");\n      picks.set(t, (picks.get(t) ?? 0) + (stack && event.shiftKey ? left() : 1));\n      draw();\n      if (left() <= 0) finish(true);\n    };\n    stage.on(\"pointerdown\", onDown);\n    globalThis.document?.addEventListener(\"keydown\", onKey, true);\n  });\n  layer?.destroy({ children: true });\n  if (!done) {\n    ui.notifications.info(title + \": cancelled.\");\n    return null;\n  }\n  return picks;\n}\nconst self = token ?? actor.getActiveTokens?.()[0];\nif (!self || !canvas?.ready) return;\n// Blank: the range of what was used (the activity follows its item unless overridden).\nconst range = chrabRange(workflow.activity?.range ?? item.system?.range);\nconst formula = \"1d6 + 1\";\nconst type = \"radiant\" || undefined;\n// dnd5e's scaling: how many slot levels above the spell's own it was cast at.\nconst upcast = Math.max(0, Number(workflow.chatCard?.system?.scaling ?? item.flags?.dnd5e?.scaling) || 0);\nconst total = Math.max(1, 3 + 1 * upcast);\nconst picks = await chrabPickTargets(self, { range, count: total, stack: true, title: item.name, what: \"missile\" });\nif (!picks) return;\nconst fired = [...picks.values()].reduce((sum, n) => sum + n, 0);\ncard.steps.push(chrabEsc(actor.name) + \" looses \" + fired + (fired === 1 ? \" missile\" : \" missiles\"));\n// One roll per creature: its missiles' dice and bonuses together (1d6 + 1 x3 = 3d6 + 3).\n// With \"roll once\", a single roll sets every missile's damage.\nconst roll = async (n) => new CONFIG.Dice.DamageRoll(formula, actor.getRollData(), { type }).alter(n, 0, { multiplyNumeric: true }).evaluate();\nconst shared = null;\nif (shared) card.rolls.push(shared);\nfor (const [t, n] of picks) {\n  let dealt = shared ? shared.total * n : 0;\n  if (!shared) {\n    const r = await roll(n);\n    card.rolls.push(r);\n    dealt = r.total;\n  }\n  await MidiQOL.applyTokenDamage([{ value: dealt, type: type || \"none\" }], dealt, new Set([t]), item, new Set(), { existingDamage: [], superSavers: new Set(), semiSuperSavers: new Set(), workflow, forceApply: false });\n  card.steps.push(\"<strong>\" + chrabEsc(t.name) + \"</strong>: \" + n + (n === 1 ? \" missile, \" : \" missiles, \") + dealt + (type ? \" \" + type : \"\") + \" damage\");\n}\nawait chrabPost(card, actor);\n"
+        }
+      }
+    },
+    "properties": [
+      "vocal",
+      "somatic"
+    ],
+    "level": 1,
+    "school": "evo",
+    "materials": {
+      "value": "",
+      "consumed": false,
+      "cost": 0,
+      "supply": 0
+    },
+    "activation": {
+      "type": "action",
+      "value": 1,
+      "condition": ""
+    },
+    "range": {
+      "value": "120",
+      "units": "ft",
+      "special": ""
+    },
+    "target": {
+      "template": {
+        "contiguous": false,
+        "stationary": false,
+        "units": "ft",
+        "count": "",
+        "type": "",
+        "size": "",
+        "width": "",
+        "height": ""
+      },
+      "affects": {
+        "count": "",
+        "type": "creature",
+        "choice": false,
+        "special": ""
+      }
+    },
+    "duration": {
+      "value": "",
+      "units": "inst"
+    },
+    "method": "spell",
+    "prepared": 0
+  },
+  "effects": [],
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "chrab-sync": {
+      "featureDraftId": "9c40f618-5f6f-489d-aa0a-9d6d1762bc4f"
+    },
+    "midi-qol": {
+      "onUseMacroName": "[postActiveEffects]ActivityMacro-ZYW0bBmtqOjGs9N9"
+    }
+  },
+  "_stats": {
+    "coreVersion": "14.368",
+    "systemId": "dnd5e",
+    "systemVersion": "5.3.3"
+  }
+}

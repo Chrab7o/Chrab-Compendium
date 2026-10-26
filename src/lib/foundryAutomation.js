@@ -109,6 +109,125 @@ const CARD_PARAMS = { flavor: '', color: '' }
 const cardStart = (p) =>
   `${CHAT_RUNTIME}const card = { title: item.name, img: item.img, color: ${js(cardColor(p.color))}, flavor: ${js(String(p.flavor ?? '').trim())}, steps: [], rolls: [] };\n`
 
+// Picking creatures on the map, shared by the missiles recipe and the
+// Automation Builder's "Pick targets on the map" line. A blue ring shows the
+// reach on the picker's screen only. Left-click picks a creature (again: one
+// more on it when picks stack, else unpicks it), shift-click puts all the
+// rest on it, right-click takes one back, Enter finishes early, Esc cancels.
+// Resolves to a Map of token -> times picked, or null when cancelled. range
+// is in the scene's units: chrabRange turns a dnd5e range into them.
+export const PICK_RUNTIME = `// A dnd5e range ({ value, units }, e.g. a spell's or an activity's) in the scene's grid units.
+// Touch is the reach (5 ft); self, any, special or none is 0: no limit, no ring.
+function chrabRange(range) {
+  const units = CONFIG.DND5E?.movementUnits ?? {};
+  const feet = (u) => units[u]?.conversion ?? { ft: 1, mi: 5280, m: 10 / 3, km: 10000 / 3 }[u];
+  let ft = 0;
+  if (range?.units === "touch") ft = Number(range.reach) || 5;
+  else if (feet(range?.units)) ft = (Number(range.value) || 0) * feet(range.units);
+  return ft / (feet(canvas?.scene?.grid?.units) || 1);
+}
+async function chrabPickTargets(self, { range = 0, count = 1, who = "any", stack = false, title = "", what = "target" } = {}) {
+  if (!self || !canvas?.ready) return null;
+  const total = Math.max(1, Math.floor(Number(count) || 1));
+  const from = self.center ?? self.object?.center;
+  const far = (point) => canvas.grid.measurePath([from, point]).distance;
+  const unit = canvas.scene?.grid?.units || "ft";
+  // Range counts to a creature's near side, so a big one is reached sooner.
+  const inReach = (t) => !(range > 0) || far(t.center) - ((Math.max(t.document.width, t.document.height) - 1) * canvas.dimensions.distance) / 2 <= range;
+  const side = self.document?.disposition;
+  const fits = (t) => (who === "allies" ? t.document?.disposition === side : who === "enemies" ? t.document?.disposition !== side : true);
+  const candidates = () => canvas.tokens.placeables.filter((t) => t !== self && t.actor && t.visible !== false && fits(t));
+  const kind = who === "allies" ? "ally" : who === "enemies" ? "enemy" : "creature";
+  const kinds = who === "allies" ? "allies" : who === "enemies" ? "enemies" : "creatures";
+  if (!candidates().some(inReach)) {
+    ui.notifications.warn(title + ": no " + kind + (range > 0 ? " within " + Math.round(range) + " " + unit + "." : " to pick."));
+    return null;
+  }
+  const picks = new Map();
+  const left = () => total - [...picks.values()].reduce((sum, n) => sum + n, 0);
+  const BLUE = 0x2f7bff;
+  let layer = null;
+  let marks = null;
+  let labels = [];
+  const label = (text, x, y) => {
+    const t = new PIXI.Text(text, { fontFamily: "Signika", fontSize: 30, fontWeight: "bold", fill: 0xffffff, stroke: 0x0b2a80, strokeThickness: 6 });
+    t.anchor.set(0.5, 1);
+    t.position.set(x, y);
+    layer.addChild(t);
+    labels.push(t);
+  };
+  const draw = () => {
+    if (!layer) return;
+    try {
+      marks.clear();
+      for (const t of labels) t.destroy();
+      labels = [];
+      for (const [t, n] of picks) {
+        marks.lineStyle(3, BLUE, 0.7).moveTo(from.x, from.y).lineTo(t.center.x, t.center.y);
+        marks.lineStyle(5, BLUE, 1).drawCircle(t.center.x, t.center.y, Math.max(t.w, t.h) / 2 + 8);
+        if (stack) label("×" + n, t.center.x, t.y - 6);
+      }
+      label(left() + " left", from.x, self.y - 6);
+    } catch (err) {
+      console.warn("chrab-sync | target marks", err);
+    }
+  };
+  try {
+    layer = new PIXI.Container();
+    const ring = new PIXI.Graphics();
+    if (range > 0) ring.lineStyle(4, BLUE, 0.9).beginFill(BLUE, 0.12).drawCircle(from.x, from.y, (range / canvas.dimensions.distance) * canvas.dimensions.size).endFill();
+    marks = new PIXI.Graphics();
+    layer.addChild(ring, marks);
+    (canvas.interface ?? canvas.stage).addChild(layer);
+  } catch (err) {
+    console.warn("chrab-sync | range ring", err);
+    layer = null;
+  }
+  draw();
+  ui.notifications.info(title + ": click " + (stack ? "a " + kind + " for each of " + total + " " + what + "s" : "up to " + total + " " + (total === 1 ? kind : kinds)) + (range > 0 ? " (up to " + Math.round(range) + " " + unit + ")" : "") + "." + (stack ? " Shift-click sends the rest, right-click takes one back." : " Click again to unpick.") + " Enter finishes, Esc cancels.");
+  const done = await new Promise((resolve) => {
+    const stage = canvas.stage;
+    const finish = (value) => {
+      stage.off("pointerdown", onDown);
+      globalThis.document?.removeEventListener("keydown", onKey, true);
+      resolve(value);
+    };
+    // Ahead of Foundry's own keys (it listens on window).
+    const onKey = (event) => {
+      if (event.key === "Escape") finish(false);
+      else if (event.key === "Enter" && picks.size) finish(true);
+      else return;
+      event.stopPropagation();
+      event.preventDefault();
+    };
+    const onDown = (event) => {
+      const point = event.getLocalPosition(stage);
+      const t = candidates().filter((c) => c.bounds?.contains(point.x, point.y)).at(-1);
+      if (!t) return;
+      if (event.button === 2 || (!stack && event.button === 0 && picks.has(t))) {
+        const n = (picks.get(t) ?? 0) - 1;
+        if (n > 0) picks.set(t, n);
+        else picks.delete(t);
+        return draw();
+      }
+      if (event.button !== 0) return;
+      if (!inReach(t)) return ui.notifications.warn(t.name + " is out of range (" + Math.round(far(t.center)) + " " + unit + ").");
+      picks.set(t, (picks.get(t) ?? 0) + (stack && event.shiftKey ? left() : 1));
+      draw();
+      if (left() <= 0) finish(true);
+    };
+    stage.on("pointerdown", onDown);
+    globalThis.document?.addEventListener("keydown", onKey, true);
+  });
+  layer?.destroy({ children: true });
+  if (!done) {
+    ui.notifications.info(title + ": cancelled.");
+    return null;
+  }
+  return picks;
+}
+`
+
 export const SCRIPT_RECIPES = [
   {
     id: 'targetStatDamage',
@@ -228,6 +347,44 @@ const rotation = self.document?.rotation ?? 0;
 await MidiQOL.moveToken(self, point, { teleport: true, autoRotate: false });
 if ((self.document?.rotation ?? 0) !== rotation && self.document?.isOwner) await self.document.update({ rotation });
 card.steps.push(chrabEsc(actor.name) + " vanishes and reappears " + (onto ? "beside " + chrabEsc(onto.name) : moved + " ft away"));
+await chrabPost(card, actor);
+`,
+  },
+  {
+    id: 'missiles',
+    label: 'Missiles: pick a target for each',
+    help: 'After use, a blue ring shows the range (blank: the spell’s or feature’s own) and you click a creature for each missile; click one again to stack another on it, shift-click to send it all the rest, right-click to take one back, Enter to fire what’s placed, Esc to cancel. Each creature then takes its missiles’ damage. Cast with a higher slot, a spell fires more.',
+    pass: 'postActiveEffects',
+    params: { count: '3', perLevel: '1', formula: '1d4 + 1', damageType: 'force', range: '', sameRoll: false, ...CARD_PARAMS },
+    code: (p) =>
+      `${HEADER(`${num(p.count, 3)} missiles (+${num(p.perLevel)} per slot level up), ${p.formula || '1d4 + 1'} ${p.damageType || ''} each, ${num(p.range) > 0 ? `up to ${num(p.range)} ft` : 'in its own range'}.`)}${cardStart(p)}${PICK_RUNTIME}const self = token ?? actor.getActiveTokens?.()[0];
+if (!self || !canvas?.ready) return;
+// Blank: the range of what was used (the activity follows its item unless overridden).
+const range = ${num(p.range) > 0 ? `chrabRange({ value: ${num(p.range)}, units: "ft" })` : 'chrabRange(workflow.activity?.range ?? item.system?.range)'};
+const formula = ${js(p.formula || '1d4 + 1')};
+const type = ${js(p.damageType || '')} || undefined;
+// dnd5e's scaling: how many slot levels above the spell's own it was cast at.
+const upcast = Math.max(0, Number(workflow.chatCard?.system?.scaling ?? item.flags?.dnd5e?.scaling) || 0);
+const total = Math.max(1, ${num(p.count, 3)} + ${num(p.perLevel)} * upcast);
+const picks = await chrabPickTargets(self, { range, count: total, stack: true, title: item.name, what: "missile" });
+if (!picks) return;
+const fired = [...picks.values()].reduce((sum, n) => sum + n, 0);
+card.steps.push(chrabEsc(actor.name) + " looses " + fired + (fired === 1 ? " missile" : " missiles"));
+// One roll per creature: its missiles' dice and bonuses together (1d6 + 1 x3 = 3d6 + 3).
+// With "roll once", a single roll sets every missile's damage.
+const roll = async (n) => new CONFIG.Dice.DamageRoll(formula, actor.getRollData(), { type }).alter(n, 0, { multiplyNumeric: true }).evaluate();
+const shared = ${p.sameRoll ? 'await roll(1)' : 'null'};
+if (shared) card.rolls.push(shared);
+for (const [t, n] of picks) {
+  let dealt = shared ? shared.total * n : 0;
+  if (!shared) {
+    const r = await roll(n);
+    card.rolls.push(r);
+    dealt = r.total;
+  }
+  await MidiQOL.applyTokenDamage([{ value: dealt, type: type || "none" }], dealt, new Set([t]), item, new Set(), { existingDamage: [], superSavers: new Set(), semiSuperSavers: new Set(), workflow, forceApply: false });
+  card.steps.push("<strong>" + chrabEsc(t.name) + "</strong>: " + n + (n === 1 ? " missile, " : " missiles, ") + dealt + (type ? " " + type : "") + " damage");
+}
 await chrabPost(card, actor);
 `,
   },

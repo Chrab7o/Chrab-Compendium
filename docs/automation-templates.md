@@ -62,6 +62,7 @@ Every template under **Things you use** also has the cost settings:
 | Things you use | **Mark or curse** | Effect name, target (creature / ally), range, save penalty, extra damage taken from every source, attacks against it have advantage, disadvantage on its attacks or saves | Mark of Darkness, Curse (+1d6), Mark of Devastation |
 | Things you use | **Bond: share a creature's damage** | Share %, bond name, ally or any creature, range, lasts | Defend the Weak (50%), Necromancer's Split Damage later |
 | Things you use | **Teleport yourself** | Range | Shadow Warp |
+| Things you use | **Missiles: pick a target for each** | Missiles, more per slot level up, damage per missile and type, range (blank: the spell's own, in any units), roll once for all. After use, a blue range ring; click a creature per missile (again to stack, shift-click for the rest, right-click takes one back, Esc cancels). One roll per creature (`alter(n)`: 1d6 + 1 ×3 = 3d6 + 3). The extra missiles come from dnd5e's `system.scaling` on the use card. Tested against a stand-in canvas only. | Lunar Missile Barrage (3 × 1d6 + 1 radiant, 120 ft), Magic Missile |
 | Things you use | **Hurt yourself, allies gain temp HP** | Damage and type, ally range | Bulwark |
 | Reactions | **Take a creature's damage instead** | Range. Asks the amount after the hit. | Absorb Wounds |
 | Things you use | **Use and spend** | Target, range. No roll: it spends the cost and says so in chat. | Soul Surge, Shadow Warp, Shadow Image, Absorb Wounds |

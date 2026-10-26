@@ -73,6 +73,26 @@ After the attack roll:
 - **"Show a pop-up"** shows a notification to whoever rolled. With "the GM sees it too", it also whispers the GMs a
   message flagged `chrab-sync.popup`. Chrab Sync 0.2.1+ shows that as a pop-up on the GM's screen; without it, the GM
   just gets the whisper.
+- **"Pick targets on the map"** (When it's used, or After it's all done): a blue range ring around the user's token
+  and the player clicks creatures. Its settings: how many (math, e.g. `3 + upcast`), range (blank = the roll's), any
+  creature / enemies / allies (by token disposition), and whether picks stack on one creature. Left-click picks
+  (again: one more if stacking, else unpick), shift-click puts all the rest on one, right-click takes one back, Enter
+  finishes early, Esc cancels (at When it's used, that cancels the use).
+  - At **When it's used** (midi's `preItemRoll`, after midi's own targeting) the picks become the roll's targets:
+    `workflow.setTargets` and `canvas.tokens.setTargets` (midi's own `updateUserTargets`). The slot isn't chosen yet
+    there (dnd5e's usage dialog comes after), so "upcast" isn't offered.
+  - At **After it's all done** they don't change the roll; "every picked creature" lines act on them.
+  - The picker is `PICK_RUNTIME` in `foundryAutomation.js`, shared with the Missiles recipe.
+- **"Every picked creature"**: the target takes damage / regains HP / a condition / an effect can run once per picked
+  creature (else once per target of the roll).
+- **The ring's range** is the spell's or feature's own when the range box is blank, read when it's used: the
+  activity's `range` (dnd5e copies the item's unless the activity overrides it, formulas already worked out).
+  `chrabRange` in `PICK_RUNTIME` turns it into the scene's units with `CONFIG.DND5E.movementUnits` conversions (ft, mi,
+  m, km). Touch is the reach (5 ft); self, any, special or none is no limit and no ring. A number in the box is feet.
+  The Missiles recipe and template work the same way. Inside, `picks` is how many times that creature was picked, so missiles
+  are `picks * (1d6 + 1)` (one roll) or `(picks)d6 + picks` (a die per missile), and "the target" means that creature.
+- **"Slot levels above the spell's (upcast)"**: a value, dnd5e's `system.scaling` on the use card (or the scaled
+  item's `flags.dnd5e.scaling`). Not at When it's used.
 - **Version 1 flows** (`blocks` of when / if / then / otherwise, saved before 2026-10-25) are converted on read by
   `toScript()`, so they keep working and open in the new editor: a block's checks become an if around its steps, its
   otherwise steps the if's otherwise, and blocks at the same point share a part. Its remembered-number steps become a
@@ -132,6 +152,8 @@ Not done yet:
 | Make it a crit | `workflow.isCritical = true` (midi's setter: a "direct" critical override) | postAttackRoll |
 | The crit number | `workflow.activity.criticalThreshold` (dnd5e: the activity's, or the actor's `weaponCriticalThreshold`) | postAttackRoll |
 | Remembered numbers | `item.update({ "flags.chrab-sync.memory.<name>": … })`, `game.time.worldTime` | any |
+| Picked targets become the roll's | `workflow.setTargets(new Set(tokens))`, `canvas.tokens.setTargets(ids)` | preItemRoll |
+| Upcast levels | `workflow.chatCard.system.scaling` (dnd5e `_prepareUsageScaling`), else `item.flags.dnd5e.scaling` | after preItemRoll |
 | Pop-ups | `ui.notifications.warn`; for the GM, a whisper with `flags.chrab-sync.popup` and Chrab Sync's `createChatMessage` hook | any |
 
 Things to watch for in that first run:
@@ -142,3 +164,6 @@ Things to watch for in that first run:
 - Does `setDamageRolls` at `postDamageRoll` change the damage that's applied?
 - Does the card post exactly once?
 - What happens when a player who doesn't own the target applies an effect to it?
+- Picking when it's used: do the attack / save / damage go to the picked creatures, and does the use card list them?
+- Does Esc while picking stay out of Foundry's own Esc menu? Does a GM's click select the token too (harmless)?
+- Is `system.scaling` on the use card by the time "After it's all done" runs, for an upcast spell?

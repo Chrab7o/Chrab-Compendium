@@ -200,6 +200,39 @@ function RecipeFields({ recipe, p, set }) {
           </label>
         </div>
       )
+    case 'missiles':
+      return (
+        <>
+          <div className="dm-form-row">
+            <label>
+              Missiles
+              <input type="number" min="1" value={p.count} onChange={(e) => set({ count: e.target.value })} />
+            </label>
+            <label>
+              More per slot level up
+              <input type="number" min="0" value={p.perLevel} onChange={(e) => set({ perLevel: e.target.value })} />
+            </label>
+            <label>
+              Range (ft.)
+              <input type="number" min="5" step="5" value={p.range} onChange={(e) => set({ range: e.target.value })} placeholder="the spell’s" />
+            </label>
+          </div>
+          <div className="dm-form-row">
+            <label>
+              Damage per missile
+              <FormulaInput value={p.formula} onChange={(formula) => set({ formula })} placeholder="1d4 + 1" ariaLabel="Damage per missile" />
+            </label>
+            <label>
+              Damage type
+              <DamageTypeSelect value={p.damageType} onChange={(damageType) => set({ damageType })} />
+            </label>
+            <label className="tag-checklist-item">
+              <input type="checkbox" checked={!!p.sameRoll} onChange={(e) => set({ sameRoll: e.target.checked })} />
+              Roll once: every missile deals the same
+            </label>
+          </div>
+        </>
+      )
     case 'sacrifice':
       return (
         <div className="dm-form-row">

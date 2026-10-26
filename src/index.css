@@ -6793,6 +6793,16 @@ button.aw-line-text.is-bad {
   margin-left: 0.9rem;
 }
 
+.aw-copy-warning {
+  padding: 0.35rem 0.6rem;
+  border-left: 4px solid var(--accent-purple-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--text);
+}
+
 .aw-problems {
   padding: 0.5rem 0.75rem;
   border: 2px solid var(--danger);

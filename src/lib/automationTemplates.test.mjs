@@ -663,3 +663,81 @@ test('teleport: a range ring while picking, and the token keeps its rotation', a
   assert.equal(doc.rotation, 90, 'turned back to where it faced')
   for (const k of ['PIXI', 'canvas', 'ui', 'MidiQOL', 'foundry', 'ChatMessage', 'CONFIG', 'game']) delete globalThis[k]
 })
+
+// Lunar Missile Barrage: 3 missiles of 1d6 + 1 radiant, one more per slot
+// level up. Cast at level 2 (4 missiles), the player clicks a goblin twice,
+// takes one back, then shift-clicks an ogre for the rest.
+test('missiles: a blue ring, a target per missile, damage per creature', async () => {
+  const roll = fromTemplate('missiles', { count: 3, perLevel: 1, formula: '1d6 + 1', damageType: 'radiant', range: 120 })
+  const [act] = acts(roll.item)
+  assert.match(roll.item.flags['midi-qol'].onUseMacroName, /^\[postActiveEffects\]ActivityMacro-/)
+  assert.equal(act.target.affects.type, 'self', 'midi asks for no targets; the macro picks them')
+  const drawn = []
+  const g = () => ({ lineStyle() { return this }, beginFill() { return this }, endFill() { return this }, moveTo() { return this }, lineTo() { return this }, clear() {}, drawCircle(x, y, r) { this.circle ??= { x, y, r }; return this } })
+  globalThis.PIXI = {
+    Graphics: class { constructor() { Object.assign(this, g()); drawn.push(this) } },
+    Container: class { constructor() { this.children = [] } addChild(...c) { this.children.push(...c) } destroy() { this.destroyed = true } },
+    Text: class { constructor(text) { this.text = text; this.anchor = { set() {} }; this.position = { set() {} } } destroy() {} },
+  }
+  const square = (name, x, size = 1) => ({
+    name, actor: { uuid: `Actor.${name}` }, center: { x, y: 500 }, x: x - 50 * size, y: 500 - 50 * size, w: 100 * size, h: 100 * size,
+    document: { width: size, height: size },
+    bounds: { contains: (px, py) => Math.abs(px - x) <= 50 * size && Math.abs(py - 500) <= 50 * size },
+  })
+  const self = square('Lyra', 500)
+  const goblin = square('Goblin', 1500) // 50 ft
+  const ogre = square('Ogre', 2950, 2) // 122.5 ft to its center, 120 to its near side
+  const far = square('Far', 4000) // 175 ft
+  const at = (t, o = {}) => ({ button: 0, shiftKey: false, getLocalPosition: () => t.center, ...o })
+  const clicks = [at(goblin), at(far), at(goblin), at(goblin, { button: 2 }), at(ogre, { shiftKey: true })]
+  const ring = { layer: null }
+  globalThis.canvas = {
+    ready: true,
+    dimensions: { distance: 5, size: 100 },
+    grid: { distance: 5, size: 100, measurePath: ([a, b]) => ({ distance: (Math.hypot(b.x - a.x, b.y - a.y) / 100) * 5 }) },
+    tokens: { placeables: [self, goblin, ogre, far] },
+    interface: { addChild: (c) => (ring.layer = c) },
+    stage: {
+      on: (event, fn) => {
+        const next = () => {
+          const c = clicks.shift()
+          if (!c) return
+          fn(c)
+          queueMicrotask(next)
+        }
+        queueMicrotask(next)
+      },
+      off: () => {},
+    },
+  }
+  const warned = []
+  globalThis.ui = { notifications: { info: () => {}, warn: (m) => warned.push(m) } }
+  const applied = []
+  globalThis.MidiQOL = { applyTokenDamage: async (detail, total, targets) => applied.push([[...targets][0].name, total, detail[0].type]) }
+  // Every die rolls 4: 1d6 + 1 is 5 a missile.
+  globalThis.CONFIG = {
+    Dice: {
+      DamageRoll: class {
+        constructor(formula, data, options) { this.n = 1; this.options = options }
+        alter(n, add, { multiplyNumeric }) { assert.equal(multiplyNumeric, true); this.n = n; return this }
+        async evaluate() { this.total = 5 * this.n; return this }
+      },
+    },
+  }
+  const posted = []
+  globalThis.foundry = { utils: { escapeHTML: (s) => String(s) }, applications: { api: {} } }
+  globalThis.ChatMessage = { getSpeaker: () => ({}), implementation: { create: async (m) => posted.push(m) } }
+  globalThis.game = { user: { isGM: false } }
+  const AsyncFunction = Object.getPrototypeOf(async () => {}).constructor
+  const run = new AsyncFunction('workflow', 'args', 'actor', 'token', 'item', act.macroData.command)
+  const actor = { name: 'Lyra', uuid: 'Actor.lyra', getActiveTokens: () => [self], getRollData: () => ({}) }
+  await run({ chatCard: { system: { scaling: 1 } } }, [{ macroPass: 'postActiveEffects' }], actor, self, { name: 'Lunar Missile Barrage', img: 'moon.webp', flags: {} })
+  assert.deepEqual(drawn[0].circle, { x: 500, y: 500, r: 2400 }, '120 ft is 24 squares of 100 px')
+  assert.equal(ring.layer.destroyed, true, 'gone once every missile is placed')
+  assert.match(warned[0], /Far is out of range \(175 ft\)/)
+  assert.deepEqual(applied, [['Goblin', 5, 'radiant'], ['Ogre', 15, 'radiant']], 'goblin 1 missile, ogre the other 3')
+  assert.equal(posted.length, 1)
+  assert.match(posted[0].content, /looses 4 missiles/)
+  assert.match(posted[0].content, /Ogre<\/strong>: 3 missiles, 15 radiant damage/)
+  for (const k of ['PIXI', 'canvas', 'ui', 'MidiQOL', 'foundry', 'ChatMessage', 'CONFIG', 'game']) delete globalThis[k]
+})

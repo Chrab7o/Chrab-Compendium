@@ -542,6 +542,34 @@ const teleport = {
   },
 }
 
+const missiles = {
+  key: 'missiles',
+  group: 'Things you use',
+  label: 'Missiles: pick a target for each',
+  help: 'After you use it, a blue ring shows the range and you click a creature for each missile, the same one again to stack them (Magic Missile, Lunar Missile Barrage). Each creature takes its missiles’ damage. Cast with a higher slot, a spell fires more.',
+  params: [
+    ...costParams('action'),
+    { key: 'count', label: 'Missiles', kind: 'number', default: '3' },
+    { key: 'perLevel', label: 'More per slot level up', kind: 'number', default: '1', hint: 'Spells only: missiles added for each level above the spell’s.' },
+    { key: 'formula', label: 'Damage per missile', kind: 'formula', default: '1d4 + 1' },
+    { key: 'damageType', label: 'Damage type', kind: 'select', default: 'force', options: DAMAGE_TYPE_OPTIONS },
+    { key: 'range', label: 'Range (ft)', kind: 'number', default: '', hint: 'Blank: the spell’s or feature’s own range, whatever it is.' },
+    { key: 'sameRoll', label: 'Roll once: every missile deals the same', kind: 'checkbox', default: false },
+    ...flavorParams('Bolts of light streak out and find their marks.'),
+  ],
+  build(values) {
+    if (!text(values.formula)) throw new Error('Set the damage per missile.')
+    return scripted(values, { ...emptyActivity('utility'), targetType: 'self' }, 'missiles', {
+      count: String(num(values.count) || 3),
+      perLevel: String(num(values.perLevel)),
+      formula: text(values.formula),
+      damageType: values.damageType || '',
+      range: num(values.range) > 0 ? String(num(values.range)) : '',
+      sameRoll: !!values.sameRoll,
+    })
+  },
+}
+
 const takeHit = {
   key: 'takeHit',
   group: 'Reactions',
@@ -1047,6 +1075,7 @@ export const AUTOMATION_TEMPLATES = [
   mark,
   bond,
   teleport,
+  missiles,
   sacrifice,
   weaponWave,
   utility,
