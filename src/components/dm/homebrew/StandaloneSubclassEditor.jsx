@@ -118,6 +118,7 @@ export default function StandaloneSubclassEditor() {
           sort_order: i,
           choice_group: f.choice_group ?? '',
           choice_count: f.choice_group ? f.choice_count ?? null : null,
+          choice_swap: f.choice_group ? !!f.choice_swap : false,
           feature_draft_id: f.feature_draft_id || null,
         }))
       )

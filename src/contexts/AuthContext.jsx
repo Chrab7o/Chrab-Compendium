@@ -57,7 +57,7 @@ export function AuthProvider({ children }) {
         if (!cancelled) setLoading(false)
       })
 
-    const { data: listener } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
       const newUserId = newSession?.user?.id ?? null
       // The Supabase client re-validates the session (and fires this
       // listener) whenever the browser tab regains focus, even when
@@ -72,7 +72,14 @@ export function AuthProvider({ children }) {
       if (newUserId === lastUserId) return
       lastUserId = newUserId
       setSession(newSession)
-      await loadRole(newUserId)
+      // supabase-js runs this callback while holding its auth lock, and every
+      // query (like loadRole's) waits on that same lock to read the session.
+      // Awaiting a query in here deadlocks the client, so every Supabase
+      // request on the page hangs until a reload. That hit first loads after
+      // a token refresh. Defer the query until the callback has returned.
+      setTimeout(() => {
+        if (!cancelled) loadRole(newUserId)
+      }, 0)
     })
 
     return () => {

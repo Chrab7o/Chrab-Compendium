@@ -6,7 +6,7 @@
 // mechanics helpers and the 5etools export, which share these fixtures.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { classFormToFiveToolsJson, emptyClassForm, fiveToolsJsonToClassForm } from './homebrew.js'
+import { classFormToFiveToolsJson, emptyClassForm, fiveToolsJsonToClassForm, flattenFeatureRows, nestFeatureRows } from './homebrew.js'
 import {
   FEATURE_TEMPLATES,
   buildFeatureItem,
@@ -157,6 +157,95 @@ test('features are granted level by level, and choice groups are dnd5e choices f
   assert.deepEqual(choices[0].configuration.pool.map((p) => p.uuid), [uuidOf(one(pack, 'Shadow Smite')), uuidOf(one(pack, 'Restore Vitality'))])
   assert.deepEqual(choices[1].configuration.pool.map((p) => p.uuid), [uuidOf(one(pack, 'Curse')), uuidOf(one(pack, 'Shadow Warp'))])
   assert.equal(choices[0].configuration.type, 'feat')
+})
+
+// The Dark Knight's real shape: Dark Arts at 2 (choose 2, swappable), more
+// arts at 6 and 11 that add options but no pick, and the table's Dark Arts
+// Known column saying how many the player knows.
+function swappingDarkKnight({ known = true } = {}) {
+  const art = (level, name, extra = {}) => row(level, name, { choice_group: 'Dark Arts', choice_count: level === 2 ? 2 : null, choice_swap: level === 2, ...extra })
+  const form = darkKnight()
+  form.features = [
+    row(2, 'Dark Arts'),
+    art(2, 'Shadow Smite'),
+    art(2, 'Restore Vitality'),
+    art(2, 'Shadow Veil'),
+    row(6, 'Dark Arts Continued'),
+    art(6, 'Curse'),
+    art(6, 'Shadow Warp'),
+    row(11, 'Dark Arts Expanded'),
+    art(11, 'Bulwark'),
+  ]
+  if (known) form.tableColumns = [{ id: null, name: 'Dark Arts Known', valuesByLevel: { 1: '—', 2: '2', 3: '3', 5: '3', 6: '4', 11: '4', 12: '5', 17: '6' } }]
+  return form
+}
+
+test('a swap group is one choice: options unlock at their level, picks follow the Known column, every level-up can swap', () => {
+  const pack = buildClassPack({ classes: [swappingDarkKnight()], items: items() })
+  const cls = one(pack, 'The Dark Knight', 'class')
+  const [arts, ...others] = adv(cls, 'ItemChoice')
+  assert.equal(others.length, 0)
+  assert.equal(arts.title, 'Dark Arts')
+  assert.deepEqual(
+    arts.configuration.pool.map((p) => p.uuid),
+    ['Shadow Smite', 'Restore Vitality', 'Shadow Veil', 'Curse', 'Shadow Warp', 'Bulwark'].map((n) => uuidOf(one(pack, n))),
+  )
+  const { choices } = arts.configuration
+  assert.deepEqual(Object.keys(choices).map(Number), Array.from({ length: 19 }, (_, i) => i + 2))
+  const picks = Object.fromEntries(Object.entries(choices).filter(([, c]) => c.count).map(([l, c]) => [l, c.count]))
+  assert.deepEqual(picks, { 2: 2, 3: 1, 6: 1, 12: 1, 17: 1 })
+  assert.equal(choices[2].replacement, false)
+  assert.ok(Object.entries(choices).every(([l, c]) => Number(l) === 2 || c.replacement))
+  assert.equal(one(pack, 'Shadow Smite').system.prerequisites.level, 2)
+  assert.equal(one(pack, 'Curse').system.prerequisites.level, 6)
+  assert.equal(one(pack, 'Bulwark').system.prerequisites.level, 11)
+  assert.equal(one(pack, 'Dark Arts Continued').system.prerequisites, undefined, 'the intro features stay plain grants')
+
+  // Same id as the level 2 choice before swapping existed, so characters'
+  // level 2 picks carry over on Sync classes.
+  const before = adv(one(buildClassPack({ classes: [darkKnight()], items: items() }), 'The Dark Knight', 'class'), 'ItemChoice')[0]
+  assert.equal(arts._id, before._id)
+})
+
+test('a swap group without a Known column takes its picks from the rows', () => {
+  const cls = one(buildClassPack({ classes: [swappingDarkKnight({ known: false })], items: items() }), 'The Dark Knight', 'class')
+  const { choices } = adv(cls, 'ItemChoice')[0].configuration
+  assert.deepEqual(Object.fromEntries(Object.entries(choices).filter(([, c]) => c.count).map(([l, c]) => [l, c.count])), { 2: 2 })
+})
+
+test('the editor nests options under the feature at their own level, and later lists add to the group', () => {
+  const rows = swappingDarkKnight().features
+  const nested = nestFeatureRows(rows)
+  assert.deepEqual(nested.map((r) => [r.level, r.name, r.children.map((c) => c.name), r.choice_into, r.choice_swap]), [
+    [2, 'Dark Arts', ['Shadow Smite', 'Restore Vitality', 'Shadow Veil'], '', true],
+    [6, 'Dark Arts Continued', ['Curse', 'Shadow Warp'], 'Dark Arts', false],
+    [11, 'Dark Arts Expanded', ['Bulwark'], 'Dark Arts', false],
+  ])
+  const flat = flattenFeatureRows(nested)
+  assert.deepEqual(
+    flat.map((r) => [r.level, r.name, r.choice_group, r.choice_count, r.choice_swap]),
+    rows.map((r) => [r.level, r.name, r.choice_group, r.choice_count, !!r.choice_swap]),
+    'a save round-trips: levels, groups, counts and the swap flag unchanged',
+  )
+  // A group named a little differently from its feature is still its own choice.
+  const own = nestFeatureRows([row(2, 'Metamagic Options'), row(2, 'Twinned', { choice_group: 'Metamagic', choice_count: 2 })])
+  assert.equal(own[0].choice_into, '')
+  assert.equal(own[0].choice_count, 2)
+
+  // The same feature name at two levels (a gunslinger's Specialty Upgrade at
+  // 6 and 11): each keeps its own options at its own level.
+  const upgrades = [
+    row(6, 'Specialty Upgrade'),
+    row(6, 'Short Range Specialist Upgrade', { choice_group: 'Specialty Upgrade' }),
+    row(11, 'Specialty Upgrade'),
+    row(11, 'Short Range Upgrade', { choice_group: 'Specialty Upgrade' }),
+  ]
+  const twice = nestFeatureRows(upgrades)
+  assert.deepEqual(twice.map((r) => [r.level, r.children.map((c) => c.name), r.choice_into]), [
+    [6, ['Short Range Specialist Upgrade'], ''],
+    [11, ['Short Range Upgrade'], ''],
+  ])
+  assert.deepEqual(flattenFeatureRows(twice).map((r) => [r.level, r.name]), upgrades.map((r) => [r.level, r.name]))
 })
 
 test('a linked feature is the whole Feature Forge item, with the row’s words', () => {

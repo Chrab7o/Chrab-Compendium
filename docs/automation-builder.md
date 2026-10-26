@@ -44,6 +44,17 @@ and add the flavor text 'The blade drinks half of {target}'s life.'"
 - **Math** is a Foundry roll formula. Variable names get an `@` added (`hp / 2` → `@hp / 2`), so dice,
   `@abilities.con.mod` and `floor()` all work. Dice that are rolled show on the chat card.
 - Blocks are always kept in the order midi runs them (`sortBlocks`).
+- **Remembered numbers** outlast the roll. "Remember a number" saves one on the item, in
+  `flags.chrab-sync.memory.<name>` = `{ value, at, forget }`. `at` is game time (`game.time.worldTime`, seconds).
+  `forget` is how long it may go without a new "remember" before it lapses (0 = never). The value "A number you
+  remembered" reads it back, or its starting value (math) when there's none or it has lapsed. "Forget it" deletes it.
+  A combat round is 6 seconds of game time. Out of combat, game time only moves if the GM moves it.
+- **"Make this attack a critical hit"** (after the attack roll only) sets `workflow.isCritical`. Midi reads that when
+  it rolls damage, so the damage is rolled once, as a crit. "The roll it normally crits on" is the activity's
+  `criticalThreshold` (20, or 19 with a feature like Improved Critical).
+- **"Show a pop-up"** shows a notification to whoever rolled. With "the GM sees it too", it also whispers the GMs a
+  message flagged `chrab-sync.popup`. Chrab Sync 0.2.1+ shows that as a pop-up on the GM's screen; without it, the GM
+  just gets the whisper.
 
 ## Export and read-back
 
@@ -58,10 +69,17 @@ and add the flavor text 'The blade drinks half of {target}'s life.'"
 ## Status (2026-10-25)
 
 Done:
-- The model, problem checks, summaries and code generator. The 12 tests pass.
+- The model, problem checks, summaries and code generator, tested in `npm test`.
 - The dialog, and the export/import in `foundryActorBuilder.js`.
 - The dialog opens from each roll's automation section ("Build automation…"). A roll with a flow shows its summary
   there, with Edit and Remove buttons. The flow replaces the recipe script picker while it's in use.
+- 2026-10-25, for the Ravanous Necrolight (Rezire's sword: the crit number drops by 1 per hit on a living creature,
+  resets on a crit or after a minute): remembered numbers, "The roll it normally crits on", "It's not a critical
+  hit", "Make this attack a critical hit" and "Show a pop-up". The tests run each against the stand-in workflow.
+  - Chrab Sync 0.2.1 adds the GM's pop-up.
+  - The Item Forge also now imports a weapon intact: its base damage is the attack's first damage line, plus
+    two-handed damage and mastery. Built weapons had been rolling that first line twice; the line now moves off the
+    attack.
 
 Not done yet:
 - **No run in Foundry yet.** Every midi call below was taken from the midi-qol v14 source (the sandbox's
@@ -86,9 +104,16 @@ Not done yet:
 | Effects on a creature you don't own | `MidiQOL.socket().executeAsGM("createEffects", { actorUuid, effects })` | any |
 | Once per turn | the item flag `flags.chrab-sync.turns.<key>` = `combatId:round:turn` | any |
 | Player prompts | `chrabDialog` (from `foundryChat.js` `CHAT_RUNTIME`) | any |
+| Make it a crit | `workflow.isCritical = true` (midi's setter: a "direct" critical override) | postAttackRoll |
+| The crit number | `workflow.activity.criticalThreshold` (dnd5e: the activity's, or the actor's `weaponCriticalThreshold`) | postAttackRoll |
+| Remembered numbers | `item.update({ "flags.chrab-sync.memory.<name>": … })`, `game.time.worldTime` | any |
+| Pop-ups | `ui.notifications.warn`; for the GM, a whisper with `flags.chrab-sync.popup` and Chrab Sync's `createChatMessage` hook | any |
 
 Things to watch for in that first run:
 - Does `workflow.chrabFlow` survive from `preItemRoll` all the way to `postActiveEffects`?
+- After "Make this attack a critical hit", is there one damage roll, as a crit, with auto-roll damage on and off?
+- Does a remembered number survive a reload, and lapse after 10 combat rounds?
+- Does the GM's pop-up show when a player attacks (Chrab Sync 0.2.1)?
 - Does `setDamageRolls` at `postDamageRoll` change the damage that's applied?
 - Does the card post exactly once?
 - What happens when a player who doesn't own the target applies an effect to it?

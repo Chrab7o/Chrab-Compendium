@@ -366,6 +366,12 @@ function StepEditor({ step, onChange, onRemove, onMove, index, count, vars, ctx,
                 <input value={step.question} onChange={(e) => set({ question: e.target.value })} placeholder="How many points do you spend?" />
               </label>
             )}
+            {value?.param === 'memory' && (
+              <label>
+                Remembered as
+                <input className="npc-code-input" value={step.memory} onChange={(e) => set({ memory: e.target.value.replace(/\s+/g, '_') })} placeholder="e.g. critAt" />
+              </label>
+            )}
             <label>
               Save it as
               <input className="npc-code-input" value={step.name} onChange={(e) => set({ name: e.target.value.replace(/\s+/g, '_') })} aria-label="Variable name" />
@@ -375,6 +381,12 @@ function StepEditor({ step, onChange, onRemove, onMove, index, count, vars, ctx,
             <label>
               Dice
               <MathField value={step.formula} onChange={(formula) => set({ formula })} vars={vars} placeholder="e.g. 1d20, or 2d6 + @prof" label="Dice" />
+            </label>
+          )}
+          {value?.param === 'memory' && (
+            <label>
+              If nothing is remembered (or it was forgotten)
+              <MathField value={step.start} onChange={(start) => set({ start })} vars={vars} placeholder="e.g. 20, or critAt" label="Starting value" />
             </label>
           )}
           {showFields}
@@ -415,6 +427,54 @@ function StepEditor({ step, onChange, onRemove, onMove, index, count, vars, ctx,
           </label>
         </>
       )}
+
+      {step.type === 'popup' && (
+        <>
+          <textarea rows={2} value={step.text} onChange={(e) => set({ text: e.target.value })} placeholder="Ravenous: roll critical damage!" aria-label="Pop-up text" />
+          <div className="aw-chips">
+            {['target', 'me', ...vars].map((v) => (
+              <button key={v} type="button" className="aw-chip" onClick={() => set({ text: `${step.text}{${v}}` })}>
+                {`{${v}}`}
+              </button>
+            ))}
+          </div>
+          <label className="tag-checklist-item">
+            <input type="checkbox" checked={!!step.gm} onChange={(e) => set({ gm: e.target.checked })} />
+            The GM sees it too
+          </label>
+          {step.gm && <span className="npc-hint">The GM’s pop-up needs Chrab Sync 0.2.1 or later. Without it, the GM gets it as a whisper in chat.</span>}
+        </>
+      )}
+
+      {step.type === 'remember' && (
+        <>
+          <div className="dm-form-row">
+            <label>
+              Do
+              <select value={step.mode === 'forget' ? 'forget' : 'set'} onChange={(e) => set({ mode: e.target.value })}>
+                <option value="set">Remember a number</option>
+                <option value="forget">Forget it (back to its starting value)</option>
+              </select>
+            </label>
+            <label>
+              Remember it as
+              <input className="npc-code-input" value={step.memory} onChange={(e) => set({ memory: e.target.value.replace(/\s+/g, '_') })} placeholder="e.g. critAt" />
+            </label>
+            {step.mode !== 'forget' && (
+              <label>
+                Forget after (minutes)
+                <input type="number" min="0" step="0.1" value={step.forget} onChange={(e) => set({ forget: e.target.value })} placeholder="never" />
+              </label>
+            )}
+          </div>
+          {step.mode !== 'forget' && amount('The number', 'e.g. saved - 1')}
+          <span className="npc-hint">
+            Kept on this item. Forgetting counts game time, without a new “remember”: a combat round is 6 seconds, so 1 minute is 10 rounds.
+          </span>
+        </>
+      )}
+
+      {step.type === 'makeCrit' && <span className="npc-hint">Put a check before it, like “The attack hit”. Midi rolls the damage once, as a crit.</span>}
 
       {step.type === 'damageRoll' && (
         <>

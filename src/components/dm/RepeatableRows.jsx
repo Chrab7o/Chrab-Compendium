@@ -33,8 +33,25 @@ export default function RepeatableRows({
   }
 
   function updateRow(index, patch) {
-    commit(nested.map((r, i) => (i === index ? { ...r, ...patch } : r)))
+    // Renaming a group's feature keeps the later features that add to it.
+    const from = nested[index].name.trim()
+    const renamed = patch.name !== undefined && from && patch.name.trim() !== from
+    commit(
+      nested.map((r, i) =>
+        i === index ? { ...r, ...patch } : renamed && r.choice_into === from ? { ...r, choice_into: patch.name.trim() } : r
+      )
+    )
   }
+
+  // The "Players" menu: pick some, get all, or (from a later level) add the
+  // options to an earlier group - Dark Arts Continued's arts are more Dark
+  // Arts, not a new choice.
+  function setChoice(index, value) {
+    if (value.startsWith('into:')) updateRow(index, { choice_into: value.slice(5), choice_count: null, choice_swap: false })
+    else updateRow(index, { choice_into: '', choice_count: Number(value) })
+  }
+  const earlierGroups = (row) =>
+    withLevel ? nested.filter((r) => r !== row && r.children.length && !r.choice_into && r.name.trim() && r.level < row.level) : []
 
   function addRow() {
     commit([
@@ -160,19 +177,46 @@ export default function RepeatableRows({
                   <label className="sub-features-count">
                     Players
                     <select
-                      value={row.choice_count ?? 1}
-                      onChange={(e) => updateRow(i, { choice_count: Number(e.target.value) })}
+                      value={row.choice_into ? `into:${row.choice_into}` : String(row.choice_count ?? 1)}
+                      onChange={(e) => setChoice(i, e.target.value)}
                     >
-                      <option value={0}>get all of them</option>
+                      <option value="0">get all of them</option>
                       {Array.from({ length: row.children.length }, (_, n) => n + 1).map((n) => (
-                        <option key={n} value={n}>
+                        <option key={n} value={String(n)}>
                           choose {n}
+                        </option>
+                      ))}
+                      {earlierGroups(row).map((g) => (
+                        <option key={g.name} value={`into:${g.name.trim()}`}>
+                          add these to {g.name.trim()}
                         </option>
                       ))}
                     </select>
                   </label>
                 )}
+                {withLevel && row.children.length > 0 && !row.choice_into && (row.choice_count ?? 1) > 0 && (
+                  <label className="tag-checklist-item">
+                    <input
+                      type="checkbox"
+                      checked={!!row.choice_swap}
+                      onChange={(e) => updateRow(i, { choice_swap: e.target.checked })}
+                    />
+                    can swap one on each level-up
+                  </label>
+                )}
               </div>
+              {row.choice_swap && !row.choice_into && (
+                <p className="sub-features-hint">
+                  In Foundry these are one choice: options unlock at their own level (add later ones with “add these to{' '}
+                  {row.name.trim() || 'this'}”), and the number known follows the class table’s “{row.name.trim()} Known”
+                  column if there is one.
+                </p>
+              )}
+              {row.choice_into && (
+                <p className="sub-features-hint">
+                  More options for {row.choice_into}, from level {row.level}. Players don’t pick extra here.
+                </p>
+              )}
               {row.children.length === 0 && (
                 <p className="sub-features-hint">
                   For features that are really a menu — the Metamagic options under Metamagic, the arts under Dark

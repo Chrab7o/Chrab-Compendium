@@ -102,6 +102,8 @@ export const FLOW_VALUES = [
   { key: 'targetCount', group: 'This roll', label: 'How many targets there are', name: 'targets', code: () => 'workflow?.targets?.size' },
   { key: 'damageTotal', group: 'This roll', label: 'The damage rolled', name: 'rolled', needs: 'damage', code: () => 'workflow?.damageTotal' },
   { key: 'damageDealt', group: 'This roll', label: 'The damage that landed (HP lost)', name: 'dealt', needs: 'dealt', code: () => '(workflow?.damageList ?? []).reduce((sum, d) => sum + (Number(d.hpDamage) || 0) + (Number(d.tempDamage) || 0), 0)' },
+  { key: 'critAt', group: 'This roll', label: 'The roll it normally crits on', name: 'critAt', kinds: ['attack'], code: () => '(rolled()?.criticalThreshold ?? 20)' },
+  { key: 'remembered', group: 'Remembered', label: 'A number you remembered', name: 'saved', param: 'memory' },
   { key: 'dice', group: 'Roll or ask', label: 'Roll some dice', name: 'roll', param: 'formula' },
   { key: 'ask', group: 'Roll or ask', label: 'Ask the player for a number', name: 'answer', param: 'question' },
 ]
@@ -117,6 +119,7 @@ export const FLOW_CHECKS = [
   { key: 'hit', label: 'The attack hit', needs: 'attack' },
   { key: 'miss', label: 'The attack missed', needs: 'attack' },
   { key: 'crit', label: 'It’s a critical hit', needs: 'attack' },
+  { key: 'notCrit', label: 'It’s not a critical hit', needs: 'attack' },
   { key: 'natural', label: 'The natural d20 is at least…', needs: 'attack' },
   { key: 'failedSave', label: 'A target failed its save', needs: 'save' },
   { key: 'madeSave', label: 'Every target made its save', needs: 'save' },
@@ -165,6 +168,8 @@ export const FLOW_STEPS = [
   { key: 'value', group: 'Values and math', label: 'Grab a value', help: 'Puts a number in a variable: the target’s HP, your level, a dice roll, an answer from the player…' },
   { key: 'math', group: 'Values and math', label: 'Do some math', help: 'Works out a new variable from the ones you have, e.g. floor(hp / 2) + prof.' },
   { key: 'flavor', group: 'Chat card', label: 'Flavor text', help: 'A line on the chat card. {name} fills in a variable, {target} the target’s name, {me} yours.' },
+  { key: 'popup', group: 'Chat card', label: 'Show a pop-up', help: 'A notice on the screen of whoever made the roll, and the GM’s too if you like. {name} fills in a variable.' },
+  { key: 'remember', group: 'Values and math', label: 'Remember a number', help: 'Saved on this item, so a later use can grab it again with “A number you remembered”. It survives reloads.' },
   { key: 'damageRoll', group: 'Damage and healing', label: 'Use a number as this roll’s damage', help: 'Replaces the rolled damage with your number, or adds it on top.', needs: 'damage', only: ['damage'] },
   { key: 'damageTarget', group: 'Damage and healing', label: 'The target takes damage', help: 'Separate from this roll’s damage. Resistances apply.' },
   { key: 'healTarget', group: 'Damage and healing', label: 'The target regains HP' },
@@ -172,6 +177,7 @@ export const FLOW_STEPS = [
   { key: 'tempMe', group: 'Damage and healing', label: 'You gain temporary HP' },
   { key: 'hurtMe', group: 'Damage and healing', label: 'You take damage', help: 'Exactly this amount: your resistances don’t change it.' },
   { key: 'advantage', group: 'The roll', label: 'Give the attack advantage or disadvantage', only: ['preAttack'] },
+  { key: 'makeCrit', group: 'The roll', label: 'Make this attack a critical hit', help: 'Its damage is then rolled once, as a critical hit.', needs: 'attack', only: ['attack'] },
   { key: 'cancel', group: 'The roll', label: 'Cancel the use', help: 'Stops here; nothing rolls.', only: ['use'] },
   { key: 'condition', group: 'Effects', label: 'Apply a condition', help: 'Prone, frightened… on the target or you.' },
   { key: 'effect', group: 'Effects', label: 'Apply one of this item’s effects' },
@@ -206,7 +212,7 @@ export function emptyStep(type = 'value', { suggestName = '' } = {}) {
     text: '',
     style: 'flavor', // 'flavor' (italic) | 'plain'
     // damage
-    mode: type === 'damageRoll' ? 'replace' : type === 'resource' || type === 'featureUses' ? 'spend' : 'advantage',
+    mode: type === 'damageRoll' ? 'replace' : type === 'resource' || type === 'featureUses' ? 'spend' : type === 'remember' ? 'set' : 'advantage',
     damageType: '', // '' = the roll's own (damageRoll) / untyped
     // effects
     to: 'target', // 'target' | 'self'
@@ -215,6 +221,11 @@ export function emptyStep(type = 'value', { suggestName = '' } = {}) {
     effectKey: '',
     // code
     code: '',
+    // remembered numbers: value "remembered" and the remember step
+    memory: '', // its name on the item
+    start: '0', // value: math for when nothing is remembered (or it was forgotten)
+    forget: '', // remember: minutes of game time without a change before it's forgotten; '' = never
+    gm: true, // popup: the GM sees it too
   }
 }
 
@@ -294,6 +305,9 @@ export function mathFormula(expr, vars = []) {
 
 const cleanPath = (p) => String(p ?? '').trim().replace(/^@/, '')
 
+// A remembered number's name on the item (flags.chrab-sync.memory.<name>).
+export const validMemoryName = (name) => /^[A-Za-z][A-Za-z0-9_]*$/.test(String(name ?? ''))
+
 const poolId = (text) =>
   String(text ?? '')
     .toLowerCase()
@@ -344,7 +358,23 @@ export function flowProblems(flow, kind) {
             const { error } = mathFormula(s.formula, vars)
             if (error) problems.push({ block: bi, text: `${label}: ${error}` })
           }
+          if (v?.param === 'memory') {
+            if (!validMemoryName(s.memory)) problems.push({ block: bi, text: `${label}: name the remembered number (letters, digits and _, starting with a letter).` })
+            if (String(s.start ?? '').trim()) {
+              const { error } = mathFormula(s.start, vars)
+              if (error) problems.push({ block: bi, text: `${label}, starting value: ${error}` })
+            }
+          }
         }
+        if (s.type === 'remember') {
+          if (!validMemoryName(s.memory)) problems.push({ block: bi, text: `${label}: name the number (letters, digits and _, starting with a letter).` })
+          if (s.mode !== 'forget') {
+            const { error } = mathFormula(s.amount, vars)
+            if (error) problems.push({ block: bi, text: `${label}: ${error}` })
+          }
+          if (String(s.forget ?? '').trim() && !(Number(s.forget) > 0)) problems.push({ block: bi, text: `${label}: “forget after” is a number of minutes, or blank for never.` })
+        }
+        if (s.type === 'popup' && !String(s.text ?? '').trim()) problems.push({ block: bi, text: `${label}: the pop-up is empty.` })
         const math = s.type === 'math' ? s.expr : AMOUNT_STEPS.includes(s.type) ? s.amount : null
         if (math != null) {
           const { error } = mathFormula(math, vars)
@@ -373,6 +403,7 @@ export function valueWords(s) {
   if (!v) return 'a value'
   if (v.key === 'dice') return `a roll of ${String(s.formula || '').trim() || 'dice'}`
   if (v.key === 'ask') return `a number the player picks${s.question ? ` (“${s.question}”)` : ''}`
+  if (v.key === 'remembered') return `the remembered ${s.memory || '?'} (${String(s.start ?? '').trim() || '0'} if there isn’t one)`
   const ab = ABILITY_NAMES[s.ability] ?? s.ability
   const words = {
     targetMod: `the target’s ${ab} modifier`,
@@ -394,6 +425,8 @@ export function checkWords(c) {
       return 'the attack missed'
     case 'crit':
       return 'it’s a critical hit'
+    case 'notCrit':
+      return 'it’s not a critical hit'
     case 'natural':
       return `the natural d20 is ${Number(c.value) || 20} or higher`
     case 'failedSave':
@@ -459,6 +492,15 @@ export function stepWords(s) {
       return `work out ${s.name || '?'} = ${String(s.expr ?? '').trim() || '?'}`
     case 'flavor':
       return `say “${String(s.text ?? '').trim()}”`
+    case 'popup':
+      return `pop up “${String(s.text ?? '').trim()}”${s.gm ? ' for the player and the GM' : ''}`
+    case 'remember': {
+      if (s.mode === 'forget') return `forget ${s.memory || '?'}`
+      const forget = Number(s.forget) > 0 ? ` (forgotten after ${Number(s.forget)} minute${Number(s.forget) === 1 ? '' : 's'} without a change)` : ''
+      return `remember ${String(s.amount ?? '').trim() || '?'} as ${s.memory || '?'}${forget}`
+    }
+    case 'makeCrit':
+      return 'make it a critical hit'
     case 'damageRoll':
       return s.mode === 'add' ? `add ${amount}${typeWords(s.damageType)} damage to the roll` : `replace the rolled damage with ${amount}${typeWords(s.damageType || '')} (rounded down)`
     case 'damageTarget':
@@ -535,6 +577,8 @@ function checkCode(c, vars, blockKey) {
       return '(workflow?.hitTargets?.size ?? 0) === 0'
     case 'crit':
       return '!!workflow?.isCritical'
+    case 'notCrit':
+      return '!workflow?.isCritical'
     case 'natural':
       return `(Number(workflow?.diceRoll) || 0) >= ${Number(c.value) || 20}`
     case 'failedSave':
@@ -579,6 +623,7 @@ function stepCode(s, vars, ids) {
       let get
       if (v.key === 'dice') get = mathCode(s.formula, vars)
       else if (v.key === 'ask') get = `await askNumber(${js(String(s.question ?? '').trim() || `How much for ${s.name}?`)})`
+      else if (v.key === 'remembered') get = `recall(${js(s.memory)}, ${String(s.start ?? '').trim() ? mathCode(s.start, vars) : '0'})`
       else get = `Number(${v.code(s)}) || 0`
       const show = s.show ? `\n${line(`chrabEsc(${js(String(s.showLabel ?? '').trim() || valueWords(s))}) + ": " + V[${js(s.name)}]`)}` : ''
       return `V[${js(s.name)}] = ${get};${show}`
@@ -589,6 +634,15 @@ function stepCode(s, vars, ids) {
     }
     case 'flavor':
       return s.style === 'plain' ? line(`chrabEsc(fill(${js(String(s.text ?? ''))}))`) : line(`"<em>" + chrabEsc(fill(${js(String(s.text ?? ''))})) + "</em>"`)
+    case 'popup':
+      return `await popup(fill(${js(String(s.text ?? ''))}), ${s.gm ? 'true' : 'false'});`
+    case 'remember':
+      return s.mode === 'forget' ? `await forget(${js(s.memory)});` : `await remember(${js(s.memory)}, ${mathCode(s.amount, vars)}, ${Number(s.forget) > 0 ? Number(s.forget) : 0});`
+    case 'makeCrit':
+      return `if (!workflow.isCritical) {
+  workflow.isCritical = true;
+  ${line('"<strong>Critical hit!</strong>"')}
+}`
     case 'damageRoll':
       return `{
   const n = ${amountCode(s, vars)};
@@ -766,6 +820,31 @@ async function changeUses(it, n, mode, what) {
   const next = mode === "gain" ? Math.max(0, spent - n) : spent + Math.min(n, usesLeft(it));
   if (next !== spent) await it.update({ "system.uses.spent": next });
   say((mode === "gain" ? "Regains " : "Spends ") + Math.abs(next - spent) + " " + chrabEsc(what));
+}
+// The activity being rolled (midi passes it as rolledActivity too).
+const rolled = () => workflow?.activity ?? (typeof rolledActivity === "undefined" ? null : rolledActivity);
+// Numbers remembered between uses, on this item: flags.chrab-sync.memory.<name>
+// = { value, at: game time in seconds, forget: seconds without a change, 0 = never }.
+function recall(name, start) {
+  const m = item.flags?.["chrab-sync"]?.memory?.[name];
+  if (!m) return start;
+  if (m.forget > 0 && (Number(game.time?.worldTime) || 0) - (Number(m.at) || 0) > m.forget) return start;
+  return Number(m.value) || 0;
+}
+async function remember(name, n, minutes) {
+  await item.update({ ["flags.chrab-sync.memory." + name]: { value: Number(n) || 0, at: Number(game.time?.worldTime) || 0, forget: Math.max(0, Number(minutes) || 0) * 60 } });
+}
+async function forget(name) {
+  await item.update({ ["flags.chrab-sync.memory.-=" + name]: null });
+}
+// A pop-up for whoever rolled; the GM's comes from Chrab Sync, which turns a
+// whisper flagged chrab-sync.popup into one (and it's still a whisper without it).
+async function popup(text, gm) {
+  ui.notifications?.warn?.(text);
+  if (!gm || game.user?.isGM) return;
+  const to = (game.users?.filter?.((u) => u.isGM && u.active) ?? []).map((u) => u.id);
+  if (!to.length) return;
+  await ChatMessage.create({ content: "<p><strong>" + chrabEsc(FLOW.name) + ":</strong> " + chrabEsc(text) + "</p>", whisper: to, speaker: ChatMessage.getSpeaker({ actor }), flags: { "chrab-sync": { popup: text } } });
 }
 const turnKey = () => (game.combat?.started ? game.combat.id + ":" + game.combat.round + ":" + game.combat.turn : "");
 const usedThisTurn = (k) => !!turnKey() && item.flags?.["chrab-sync"]?.turns?.[k] === turnKey();

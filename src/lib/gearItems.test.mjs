@@ -83,6 +83,58 @@ test('a built weapon reads back into the same gear spec', () => {
   assert.equal(spec.item.activities[0].kind, 'attack')
 })
 
+test('the attack’s first damage line is the weapon’s base damage, not rolled twice', () => {
+  const attack = { ...emptyActivity('attack'), damage: [{ formula: '1d8 + @mod + 1', types: ['slashing'] }, { formula: '1d6', types: ['fire'] }] }
+  const built = buildFeatureItem(gearSpec('weapon', { properties: ['ver'], versatile: '1d10', mastery: 'sap' }, { activities: [attack] }))
+  assert.deepEqual([built.system.damage.base.number, built.system.damage.base.denomination, built.system.damage.base.bonus], [1, 8, '1'])
+  assert.deepEqual([built.system.damage.versatile.number, built.system.damage.versatile.denomination], [1, 10])
+  assert.deepEqual(built.system.damage.versatile.types, ['slashing'])
+  assert.equal(built.system.mastery, 'sap')
+  const act = Object.values(built.system.activities)[0]
+  assert.equal(act.damage.includeBase, true)
+  assert.deepEqual(act.damage.parts.map((p) => [p.number, p.denomination, p.types]), [[1, 6, ['fire']]], 'only the extra damage stays on the attack')
+})
+
+// Rezire's Ravanous Necrolight, trimmed: a longsword (1d8 slashing, 1d10
+// two-handed, Sap) whose attack adds 1d8 cold and 1d8 necrotic.
+function necrolight() {
+  const part = (denomination, types) => ({ number: 1, denomination, bonus: '', types, custom: { enabled: false, formula: '' }, scaling: { number: 1 } })
+  return {
+    name: 'Ravanous Necrolight',
+    type: 'weapon',
+    img: 'Alva/Alva%20Tokens/enchantedsword.webp',
+    system: {
+      description: { value: '<p>Ravenous.</p>' },
+      type: { value: 'martialM', baseItem: 'longsword' },
+      rarity: 'legendary',
+      attunement: 'required',
+      properties: ['mgc', 'ver'],
+      mastery: 'sap',
+      damage: { base: { ...part(8, ['slashing']), scaling: { mode: '', number: 1 } }, versatile: part(10, ['slashing']) },
+      activities: {
+        gI0X7slZ1taq0NFX: { _id: 'gI0X7slZ1taq0NFX', type: 'attack', activation: { type: 'action' }, attack: { type: { value: 'melee', classification: 'weapon' } }, damage: { includeBase: true, parts: [part(8, ['cold']), part(8, ['necrotic'])] } },
+      },
+    },
+    effects: [],
+  }
+}
+
+test('a Foundry weapon export keeps its base, two-handed and extra damage and its mastery', () => {
+  const spec = featureItemToSpec(necrolight())
+  assert.deepEqual(spec.item.activities[0].damage.map((d) => [d.formula, d.types]), [
+    ['1d8 + @mod', ['slashing']],
+    ['1d8', ['cold']],
+    ['1d8', ['necrotic']],
+  ])
+  assert.equal(spec.gear.versatile, '1d10')
+  assert.equal(spec.gear.mastery, 'sap')
+  const built = buildFeatureItem(spec)
+  assert.deepEqual(built.system.damage.base.types, ['slashing'])
+  assert.equal(built.system.damage.versatile.denomination, 10)
+  assert.equal(built.system.mastery, 'sap')
+  assert.deepEqual(Object.values(built.system.activities)[0].damage.parts.map((p) => p.types[0]), ['cold', 'necrotic'])
+})
+
 test('an Item Maker record becomes a wondrous item with its blocks and where it came from', () => {
   const record = { id: 'item_1699999999999', name: 'Lantern of Echoes', item: { name: 'Lantern of Echoes', blocks: [{ type: 'text', content: 'It hums.' }] } }
   const spec = itemMakerRecordToSpec(record)

@@ -112,6 +112,19 @@ export const WEAPON_PROPERTIES = [
   ['lod', 'Loading'],
 ]
 
+// dnd5e weapon masteries (system.mastery).
+export const WEAPON_MASTERIES = [
+  ['', 'None'],
+  ['cleave', 'Cleave'],
+  ['graze', 'Graze'],
+  ['nick', 'Nick'],
+  ['push', 'Push'],
+  ['sap', 'Sap'],
+  ['slow', 'Slow'],
+  ['topple', 'Topple'],
+  ['vex', 'Vex'],
+]
+
 export function emptyGear(key = 'wondrous') {
   const type = GEAR_TYPES.find((t) => t.key === key) ?? GEAR_TYPES[2]
   return {
@@ -123,6 +136,8 @@ export function emptyGear(key = 'wondrous') {
     weight: '',
     magicalBonus: '', // weapons and armor: +1, +2, +3
     properties: [], // weapons: WEAPON_PROPERTIES keys
+    versatile: '', // weapons with Versatile: the two-handed die, e.g. "1d10"
+    mastery: '', // weapons: a WEAPON_MASTERIES key
     armorValue: '', // armor: base AC (shield: the bonus)
     dexCap: '', // medium armor: 2; blank = no cap (light) - heavy ignores DEX
     strength: '', // heavy armor's Strength requirement
@@ -249,6 +264,16 @@ function featureDescription(item) {
   return text ? `<p>${text.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c])}</p>` : ''
 }
 
+// A weapon damage line that starts with dice ("1d8 + @mod + 1") as dnd5e's
+// base damage fields. dnd5e adds the ability modifier to a weapon's base
+// damage itself, so @mod is dropped; anything else is the bonus.
+function weaponDie(formula) {
+  const m = String(formula ?? '').match(/^\s*(\d+)d(\d+)\s*(.*)$/)
+  if (!m) return null
+  const bonus = m[3].replace(/\+\s*@mod\b/g, '').trim().replace(/^\+\s*/, '')
+  return { number: Number(m[1]), denomination: Number(m[2]), bonus }
+}
+
 // Gear: the feature build (rolls, effects, behaviors) turned into a weapon,
 // equipment or consumable item with its rarity, attunement and stats.
 function buildGearItem(spec) {
@@ -273,17 +298,23 @@ function buildGearItem(spec) {
   }
   if (type.key === 'weapon') {
     for (const p of gear.properties ?? []) props.add(p)
-    // The weapon's own damage, from its first attack's first damage part ("1d8 + @mod").
+    // The weapon's own damage is its first attack's first damage line
+    // ("1d8 + @mod"). The attack includes the base damage, so that line moves
+    // off the attack - left on, Foundry would roll it twice.
     const attack = (item.activities ?? []).find((a) => a.kind === 'attack')
-    const part = attack?.damage?.find((d) => /^\s*\d+d\d+/.test(d.formula ?? ''))
-    const [, number, die] = String(part?.formula ?? '').match(/(\d+)d(\d+)/) ?? []
+    const die = weaponDie(attack?.damage?.[0]?.formula)
+    const builtAttack = Object.values(sys.activities ?? {}).find((a) => a.type === 'attack')
+    if (die && builtAttack?.damage?.parts?.length) builtAttack.damage.parts = builtAttack.damage.parts.slice(1)
     const noDamage = { types: [], custom: { enabled: false }, scaling: { number: 1 } }
+    const types = die ? [...(attack.damage[0].types ?? [])] : []
+    const versatile = (gear.properties ?? []).includes('ver') ? weaponDie(gear.versatile) : null
     Object.assign(sys, {
       magicalBonus: bonus,
       proficient: null,
+      mastery: gear.mastery || '',
       damage: {
-        base: number ? { ...noDamage, number: Number(number), denomination: Number(die), types: part.types ?? [] } : noDamage,
-        versatile: noDamage,
+        base: die ? { ...noDamage, number: die.number, denomination: die.denomination, bonus: die.bonus, types } : noDamage,
+        versatile: versatile ? { ...noDamage, number: versatile.number, denomination: versatile.denomination, bonus: versatile.bonus, types } : noDamage,
       },
       range:
         attack?.attackType === 'ranged'
@@ -404,6 +435,19 @@ function gearItemToSpec(item) {
     stealthDisadvantage: (sys.properties ?? []).includes('stealthDisadvantage'),
     autoDestroy: sys.uses?.autoDestroy !== false,
     blocks: [],
+  }
+  if (key === 'weapon') {
+    // The base damage back as the attack's first damage line, ahead of the
+    // attack's own extra damage (buildGearItem's split, undone).
+    const dice = (d) => (d?.custom?.enabled && d.custom.formula ? d.custom.formula : d?.number && d?.denomination ? `${d.number}d${d.denomination}${d.bonus ? ` + ${d.bonus}` : ''}` : '')
+    const base = dice(sys.damage?.base)
+    const attack = spec.item.activities?.find((a) => a.kind === 'attack')
+    const source = Object.values(sys.activities ?? {}).find((a) => a.type === 'attack')
+    if (base && attack && source?.damage?.includeBase !== false) {
+      attack.damage = [{ formula: `${base} + @mod`, types: [...(sys.damage.base.types ?? [])] }, ...(attack.damage ?? [])]
+    }
+    spec.gear.versatile = dice(sys.damage?.versatile)
+    spec.gear.mastery = WEAPON_MASTERIES.some(([k]) => k && k === sys.mastery) ? sys.mastery : ''
   }
   return spec
 }

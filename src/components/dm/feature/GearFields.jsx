@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { GEAR_TYPES, RARITIES, WEAPON_PROPERTIES, emptyGear } from '../../../lib/foundryFeatures'
+import { GEAR_TYPES, RARITIES, WEAPON_MASTERIES, WEAPON_PROPERTIES, emptyGear } from '../../../lib/foundryFeatures'
 import { descriptionHtml, emptyAbilityBlock, emptyTextBlock } from '../../../lib/itemDescription'
 
 // Item Forge gear (lib/foundryFeatures.js, kind 'gear'): its kind, rarity
@@ -93,6 +93,33 @@ export function GearStatFields({ gear, setGear, showType = true }) {
             </label>
           ))}
         </div>
+      )}
+
+      {type.key === 'weapon' && (
+        <>
+          <div className="dm-form-row">
+            {(gear.properties ?? []).includes('ver') && (
+              <label>
+                Two-handed damage
+                <input value={gear.versatile ?? ''} onChange={(e) => setGear({ versatile: e.target.value.trim() })} placeholder="e.g. 1d10" />
+              </label>
+            )}
+            <label>
+              Mastery
+              <select value={gear.mastery ?? ''} onChange={(e) => setGear({ mastery: e.target.value })}>
+                {WEAPON_MASTERIES.map(([key, label]) => (
+                  <option key={key} value={key}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <p className="npc-hint">
+            The attack’s first damage line is the weapon’s own damage (Foundry adds the ability modifier); any more lines
+            are extra damage on top.
+          </p>
+        </>
       )}
 
       {type.key === 'armor' && (

@@ -18,6 +18,7 @@ import {
   flowProblems,
   mathFormula,
   sortBlocks,
+  stepWords,
   varsBefore,
 } from './automationFlow.js'
 import { buildFeatureItem, emptyFeatureSpec, featureItemToSpec } from './foundryFeatures.js'
@@ -162,7 +163,7 @@ function setup({ confirm = true } = {}) {
   }
 }
 
-function run(spec, { pass, workflow }) {
+function run(spec, { pass, workflow, item: kept = null, activity = {} }) {
   const built = buildFeatureItem(spec)
   const act = Object.values(built.system.activities)[0]
   const actor = {
@@ -174,7 +175,7 @@ function run(spec, { pass, workflow }) {
     applyDamage: async (d, o) => world.damage.push({ d, o }),
     applyTempHP: async () => {},
   }
-  const item = {
+  const item = kept ?? {
     name: built.name,
     uuid: 'Item.reap',
     img: 'reap.svg',
@@ -184,7 +185,29 @@ function run(spec, { pass, workflow }) {
     update: async (d) => world.uses.push(d),
   }
   const fn = new AsyncFunction('workflow', 'args', 'actor', 'token', 'item', 'rolledActivity', act.macroData.command)
-  return fn(workflow, [{ macroPass: pass }], actor, undefined, item, {})
+  return fn(workflow, [{ macroPass: pass }], actor, undefined, item, activity)
+}
+
+// An item whose flags keep what the macro writes, across runs.
+function keptItem() {
+  const item = {
+    name: 'Ravanous Necrolight',
+    uuid: 'Item.sword',
+    img: 'sword.svg',
+    flags: {},
+    system: {},
+    effects: [],
+    async update(changes) {
+      for (const [path, value] of Object.entries(changes)) {
+        const keys = path.split('.')
+        const last = keys.pop()
+        const parent = keys.reduce((o, k) => (o[k] ??= {}), item)
+        if (last.startsWith('-=')) delete parent[last.slice(2)]
+        else parent[last] = value
+      }
+    },
+  }
+  return item
 }
 
 function goblin({ hp = 31 } = {}) {
@@ -292,4 +315,92 @@ test('effects and uses: the item’s own effect lands on the target, uses are sp
 
 test('flowCode is valid JavaScript for an empty flow too', () => {
   assert.doesNotThrow(() => new AsyncFunction('workflow', 'args', 'actor', 'token', 'item', 'rolledActivity', flowCode(emptyFlow(), { itemName: 'X' })))
+})
+
+// ---------------------------------------------------------------------------
+// Remembering between uses, crits and pop-ups
+
+test('a remembered number is still there on the next attack, and forgotten after its time', async () => {
+  setup()
+  game.time = { worldTime: 0 }
+  const flow = {
+    ...emptyFlow(),
+    blocks: [
+      block('attack', {
+        checks: [check('hit')],
+        steps: [
+          step('value', { source: 'remembered', memory: 'stacks', start: '0', name: 'stacks' }),
+          step('math', { name: 'next', expr: 'stacks + 1', show: false }),
+          step('remember', { memory: 'stacks', amount: 'next', forget: '1' }),
+        ],
+      }),
+    ],
+  }
+  assert.deepEqual(flowProblems(flow, 'attack'), [])
+  const sword = keptItem()
+  const spec = featureWith(flow)
+  for (const time of [0, 6, 12]) {
+    game.time.worldTime = time
+    await run(spec, { pass: 'postAttackRoll', workflow: attackWorkflow(), item: sword })
+  }
+  assert.deepEqual(sword.flags['chrab-sync'].memory.stacks, { value: 3, at: 12, forget: 60 })
+  await run(spec, { pass: 'postAttackRoll', workflow: attackWorkflow({ hit: false }), item: sword })
+  assert.equal(sword.flags['chrab-sync'].memory.stacks.value, 3, 'a miss changes nothing')
+
+  game.time.worldTime = 12 + 61 // more than a minute without a new one
+  await run(spec, { pass: 'postAttackRoll', workflow: attackWorkflow(), item: sword })
+  assert.equal(sword.flags['chrab-sync'].memory.stacks.value, 1, 'forgotten, so it starts over')
+
+  const reset = { ...emptyFlow(), blocks: [block('attack', { steps: [step('remember', { mode: 'forget', memory: 'stacks' })] })] }
+  await run(featureWith(reset), { pass: 'postAttackRoll', workflow: attackWorkflow(), item: sword })
+  assert.equal(sword.flags['chrab-sync'].memory.stacks, undefined)
+})
+
+test('an attack can be made a critical hit, with a pop-up for the player and the GM', async () => {
+  setup()
+  const notices = []
+  globalThis.ui = { notifications: { warn: (t) => notices.push(t) } }
+  globalThis.ChatMessage.create = async (d) => world.messages.push(d)
+  game.user = { isGM: false }
+  game.users = [{ id: 'gm1', isGM: true, active: true }, { id: 'p1', isGM: false, active: true }]
+  // A check sees the variables of earlier blocks, so the values come first.
+  const flow = {
+    ...emptyFlow(),
+    name: 'Ravenous',
+    blocks: [
+      block('attack', { steps: [step('value', { source: 'natural', name: 'natural' }), step('value', { source: 'critAt', name: 'critAt' })] }),
+      block('attack', {
+        checks: [check('hit'), check('notCrit'), check('compare', { left: 'natural', op: '>=', right: 'critAt - 2' })],
+        steps: [step('makeCrit'), step('popup', { text: 'Crit on a {natural}!', gm: true })],
+      }),
+    ],
+  }
+  assert.deepEqual(flowProblems(flow, 'attack'), [])
+
+  const wf = { ...attackWorkflow(), diceRoll: 18, isCritical: false }
+  await run(featureWith(flow), { pass: 'postAttackRoll', workflow: wf, activity: { criticalThreshold: 20 } })
+  assert.equal(wf.isCritical, true, '18 is within 20 - 2')
+  assert.deepEqual(notices, ['Crit on a 18!'])
+  const whisper = world.messages.find((m) => m.flags?.['chrab-sync']?.popup)
+  assert.deepEqual(whisper.whisper, ['gm1'], 'the GM gets it, flagged for Chrab Sync to pop up')
+
+  const low = { ...attackWorkflow(), diceRoll: 12, isCritical: false }
+  await run(featureWith(flow), { pass: 'postAttackRoll', workflow: low, activity: { criticalThreshold: 20 } })
+  assert.equal(low.isCritical, false)
+})
+
+test('the new steps say what’s missing, and the crit step only fits after the attack roll', () => {
+  const texts = flowProblems(
+    {
+      blocks: [
+        block('damage', { steps: [step('makeCrit'), step('remember', { memory: '', amount: '1' }), step('popup', { text: '' }), step('value', { source: 'remembered', memory: '9x', name: 'n' })] }),
+      ],
+    },
+    'attack',
+  ).map((p) => p.text)
+  assert.ok(texts.some((t) => /“Make this attack a critical hit” can’t happen at “When damage is rolled”/.test(t)))
+  assert.ok(texts.some((t) => /step 2: name the number/.test(t)))
+  assert.ok(texts.some((t) => /the pop-up is empty/.test(t)))
+  assert.ok(texts.some((t) => /step 4: name the remembered number/.test(t)))
+  assert.equal(stepWords(step('remember', { memory: 'critAt', amount: 'critAt - 1', forget: '1' })), 'remember critAt - 1 as critAt (forgotten after 1 minute without a change)')
 })

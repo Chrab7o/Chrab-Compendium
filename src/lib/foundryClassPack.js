@@ -206,6 +206,41 @@ const choice = (level, count, uuids, title) => ({
   value: { added: {}, replaced: {} },
 })
 
+// New picks per level for a swap group: the rises in the class table's
+// "<group> Known" column when it has one (Dark Arts Known 2/3/4/5/6 -> 2 at
+// 2, 1 at 3, 6, 12 and 17), otherwise the count set on the group's rows,
+// where a later level's blank count adds options but no pick.
+function swapPicks(name, levels, tableColumns) {
+  const column = tableColumns.find((c) => slug(c.name) === `${slug(name)}-known`)
+  const picks = {}
+  if (column) {
+    let known = 0
+    for (let level = 1; level <= 20; level++) {
+      const raw = String(column.valuesByLevel?.[level] ?? '').trim()
+      const n = Number(raw)
+      if (BLANK.has(raw) || !Number.isFinite(n)) continue
+      if (n > known) picks[level] = n - known
+      known = Math.max(known, n)
+    }
+    return picks
+  }
+  levels.forEach(([level, count], i) => {
+    if (count ?? (i === 0 ? 1 : 0)) picks[level] = count ?? 1
+  })
+  return picks
+}
+
+// A swap group (choice_swap) is one ItemChoice across every level its
+// options appear at. Each option only shows from its own level
+// (prerequisites.level, which dnd5e's picker checks), and every level after
+// the first lets the player swap one pick for another option (dnd5e's
+// "replacement"), with or without a new pick.
+function swapChoices(first, picks) {
+  const choices = {}
+  for (let level = first; level <= 20; level++) choices[level] = { count: picks[level] ?? 0, replacement: level > first }
+  return choices
+}
+
 // ---------------------------------------------------------------------------
 // Items
 
@@ -260,13 +295,17 @@ function featureItem(row, { key, requirements, book, folder, sort, items }) {
  * One class's or subclass's feature rows -> feature items plus the ItemGrant /
  * ItemChoice / ASI advancements that hand them out level by level.
  */
-function featuresAndAdvancements(rows, { keyPrefix, requirementsFor, book, folder, nextSort, items, grantTitle }) {
+function featuresAndAdvancements(rows, { keyPrefix, requirementsFor, book, folder, nextSort, items, grantTitle, tableColumns = [] }) {
   const out = { items: [], advancement: [], automated: 0 }
   const named = rows.filter((r) => r.name?.trim())
   const levels = [...new Set(named.map((r) => r.level))].sort((a, b) => a - b)
-  const make = (row) => {
+  const groupKey = (name) => name.trim().toLowerCase()
+  const swapGroups = new Set(named.filter((r) => r.choice_group && r.choice_swap).map((r) => groupKey(r.choice_group)))
+  const swaps = new Map() // group key -> { advancement, levels: [[level, count]] }
+  const make = (row, unlock = false) => {
     const key = `${keyPrefix}|${row.level}|${row.name.trim().toLowerCase()}`
     const { item, automated } = featureItem(row, { key, requirements: requirementsFor(row.level), book, folder, sort: nextSort(), items })
+    if (unlock) item.system.prerequisites = { items: [], repeatable: false, ...item.system.prerequisites, level: row.level }
     out.items.push(item)
     if (automated) out.automated++
     return packUuid(item._id)
@@ -281,6 +320,18 @@ function featuresAndAdvancements(rows, { keyPrefix, requirementsFor, book, folde
     const choices = []
     for (const g of groups) {
       const count = g.features[0]?.choice_count ?? 1
+      if (swapGroups.has(groupKey(g.name))) {
+        const uuids = g.features.map((row) => make(row, true))
+        let swap = swaps.get(groupKey(g.name))
+        if (!swap) {
+          swap = { advancement: choice(level, 0, [], g.name.trim()), first: level, levels: [] }
+          swaps.set(groupKey(g.name), swap)
+          choices.push(swap.advancement)
+        }
+        swap.advancement.configuration.pool.push(...uuids.map((uuid) => ({ uuid })))
+        swap.levels.push([level, g.features[0]?.choice_count ?? null])
+        continue
+      }
       const uuids = g.features.map(make)
       // choice_count 0: everyone gets every option.
       if (count > 0) choices.push(choice(level, count, uuids, g.name))
@@ -288,6 +339,9 @@ function featuresAndAdvancements(rows, { keyPrefix, requirementsFor, book, folde
     }
     if (granted.length) out.advancement.push(grant(level, granted, grantTitle))
     out.advancement.push(...choices)
+  }
+  for (const swap of swaps.values()) {
+    swap.advancement.configuration.choices = swapChoices(swap.first, swapPicks(swap.advancement.title, swap.levels, tableColumns))
   }
   return out
 }
@@ -413,6 +467,7 @@ export function buildClassPack({ classes = [], standaloneSubclasses = [], items 
       nextSort,
       items,
       grantTitle: 'Class Features',
+      tableColumns: form.tableColumns ?? [],
     })
     const casting = form.spellcasting_progression && form.spellcasting_progression !== 'none'
     pack.items.push({

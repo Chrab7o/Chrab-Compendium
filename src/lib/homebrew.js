@@ -244,6 +244,7 @@ export function standaloneSubclassToFormState(subclassRow, features) {
       sort_order: f.sort_order,
       choice_group: f.choice_group ?? '',
       choice_count: f.choice_count ?? null,
+      choice_swap: f.choice_swap ?? false,
       feature_draft_id: f.feature_draft_id ?? null,
     })),
   }
@@ -442,27 +443,38 @@ export function splitChoiceGroups(features) {
 //
 // Matching is by name: exact first, then the same "parent name contains the
 // group name" fallback the 5etools export uses, so a group called "Dark
-// Arts" still finds a feature named "Dark Arts Continued". A group whose
+// Arts" still finds a feature named "Dark Arts Continued". A parent at the
+// option's own level wins over one elsewhere: the level 6 Dark Arts belong
+// under Dark Arts Continued, not the level 2 Dark Arts. A group whose
 // parent is missing entirely (older data, or an import with no intro
 // feature) gets a synthesized stand-in parent so its options never vanish.
+//
+// A parent whose options carry another feature's name (Dark Arts Continued's
+// options tagged "Dark Arts") adds them to that group instead of being a
+// choice of its own: `into` names the group.
 export function nestFeatures(features) {
   const nodes = []
   const byName = new Map()
   for (const f of features) {
     if (f.choice_group) continue
-    const node = { feature: f, children: [], choiceCount: null, synthetic: false }
+    const node = { feature: f, children: [], choiceCount: null, choiceSwap: false, into: '', synthetic: false }
     nodes.push(node)
     byName.set(f.name.trim().toLowerCase(), node)
   }
+  const parentIn = (pool, key) =>
+    pool.find((n) => !n.synthetic && n.feature.name.trim().toLowerCase() === key) ??
+    pool.find((n) => !n.synthetic && n.feature.name.toLowerCase().includes(key))
   for (const f of features) {
     if (!f.choice_group) continue
     const key = f.choice_group.trim().toLowerCase()
-    let node = byName.get(key) ?? nodes.find((n) => !n.synthetic && n.feature.name.toLowerCase().includes(key))
+    let node = parentIn(nodes.filter((n) => n.feature.level === f.level), key) ?? byName.get(key) ?? parentIn(nodes, key)
     if (!node) {
       node = {
         feature: { id: `group:${f.choice_group}`, level: f.level, name: f.choice_group, description: '' },
         children: [],
         choiceCount: null,
+        choiceSwap: false,
+        into: '',
         synthetic: true,
       }
       nodes.push(node)
@@ -476,6 +488,12 @@ export function nestFeatures(features) {
     // — null is the pre-existing "choose 1" default, 0 means everyone gets
     // all of them rather than picking.
     node.choiceCount = node.children[0].choice_count ?? 1
+    node.choiceSwap = node.children.some((c) => c.choice_swap)
+    const group = node.children[0].choice_group.trim().toLowerCase()
+    const owner =
+      group !== node.feature.name.trim().toLowerCase() &&
+      nodes.find((n) => !n.synthetic && n.feature.name.trim().toLowerCase() === group && n.feature.level < node.feature.level)
+    if (owner) node.into = owner.feature.name.trim()
   }
   return nodes
 }
@@ -491,26 +509,31 @@ export function nestFeatureRows(rows) {
     return {
       ...(node.synthetic ? feature : { id, ...feature }),
       choice_group: '',
-      choice_count: node.choiceCount,
+      choice_count: node.into ? null : node.choiceCount,
+      choice_swap: node.choiceSwap,
+      choice_into: node.into,
       children: node.children.map(({ children: _drop, ...child }) => child),
     }
   })
 }
 
 // Nested rows back to the flat shape the tables store: each parent followed
-// by its own options, every option stamped with the parent's name and level
-// so the pairing survives a rename or a level change made in the editor.
+// by its own options, every option stamped with the parent's name (or the
+// group it adds to) and level so the pairing survives a rename or a level
+// change made in the editor. Options added to another group pick nothing
+// themselves: choice_count stays null.
 export function flattenFeatureRows(nested) {
   const flat = []
   for (const parent of nested) {
-    const { children = [], ...row } = parent
-    flat.push({ ...row, choice_group: '', choice_count: null, sort_order: flat.length })
+    const { children = [], choice_into: into = '', ...row } = parent
+    flat.push({ ...row, choice_group: '', choice_count: null, choice_swap: false, sort_order: flat.length })
     for (const child of children) {
       flat.push({
         ...child,
         level: row.level,
-        choice_group: row.name,
-        choice_count: row.choice_count ?? 1,
+        choice_group: into || row.name,
+        choice_count: into ? null : row.choice_count ?? 1,
+        choice_swap: !into && !!row.choice_swap,
         sort_order: flat.length,
       })
     }
@@ -555,6 +578,7 @@ export function classToFormState(classRow, features, tableColumns, tableValues, 
       sort_order: f.sort_order,
       choice_group: f.choice_group ?? '',
       choice_count: f.choice_count ?? null,
+      choice_swap: f.choice_swap ?? false,
       feature_draft_id: f.feature_draft_id ?? null,
     })),
     tableColumns: [...tableColumns]
@@ -573,6 +597,7 @@ export function classToFormState(classRow, features, tableColumns, tableValues, 
         sort_order: f.sort_order,
         choice_group: f.choice_group ?? '',
         choice_count: f.choice_count ?? null,
+        choice_swap: f.choice_swap ?? false,
         feature_draft_id: f.feature_draft_id ?? null,
       })),
     })),

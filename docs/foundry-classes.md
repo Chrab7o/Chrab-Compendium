@@ -43,6 +43,7 @@ create in a compendium as they are.
 | A feature row | A `feat` item (class feature). It's granted by an `ItemGrant` advancement at its level. |
 | A feature row linked to a Feature Forge draft | The draft's whole built item: activities, effects, uses, flags, macros. The row's name and text replace the draft's. |
 | A choice group (`choice_group` + `choice_count`) | An `ItemChoice` advancement at that level: "choose *count* from this pool". The intro feature (Dark Arts) is granted. `choice_count` 0 grants every option instead. |
+| A swap group (`choice_swap`, the editor's **can swap one on each level-up**) | One `ItemChoice` across every level the group has options at. Each option gets `prerequisites.level` = its row's level, so dnd5e's picker shows it from then on. New picks follow the class table's **"<group> Known"** column (Dark Arts Known 2/3/4/5/6 → 2 at 2, then 1 at 3, 6, 12 and 17); without one, the count set on each level's rows (a later level's blank adds options but no pick). Every level after the first has dnd5e's `replacement` on: swap one pick for any unlocked option. Its id is the first level's choice id, so characters' existing first-level picks carry over. |
 | An "Ability Score Improvement" / "Ability score increase" row | An `AbilityScoreImprovement` advancement at that level (2 points, or a feat). No feature item. |
 | The first `subclass_levels` entry | One `Subclass` advancement. Later subclass levels are the subclass's own grants. |
 | Class table columns | `ScaleValue` advancements: `@scale.<class>.<column>`, e.g. `@scale.the-dark-knight.darkness-points`. All-number columns become a number scale, `1d8`/`d8` columns a dice scale, and anything else a string scale. `-` and blanks are skipped. |
@@ -68,6 +69,11 @@ too.
 whatever ids the character's copies get.
 
 ## Using it
+
+**Swap groups (Dark Arts), one-time:** run the `20261104000000_feature_choice_swap.sql` migration
+(`npx supabase db push`; it only adds a column, so it's safe before the site deploys, and the editor can't save until
+it's there). Then in the class editor tick **can swap one on each level-up** on Dark Arts, check that Dark Arts
+Continued and Expanded say **add these to Dark Arts**, and **Save Class**. That republishes; then **Sync classes**.
 
 **One-time setup:**
 1. Merge and let the deploy finish. No migration: the file goes in the existing `foundry-feed` bucket.
@@ -154,9 +160,10 @@ npm run build
 
 ## Known limitations
 
-- **Dark Arts swaps:** the text lets players swap an art on level-up. The choices are set up without dnd5e's
-  "replacement" option for now, so swap by hand (delete one, drag another from the compendium). A per-group
-  "can swap on level-up" setting in the class editor would turn it on.
+- **Swap groups and characters made before them:** after the Dark Arts become a swap group, a character's level 6
+  and 11 arts still point at the old per-level choices. They stay on the sheet under the class, but the swap step
+  doesn't list them. Re-pick them at the next level-up, or rebuild the character (the sandbox's `convert-rezire.py`
+  shows how).
 - **Fighting Style** is a text feature. Its options aren't separate rows yet.
 - **Tools** and non-standard weapon or armor proficiencies stay text.
 - **Row limits:** each table is read in one request (PostgREST's default page is 1000 rows). That's far above
