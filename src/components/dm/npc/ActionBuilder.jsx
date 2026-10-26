@@ -577,6 +577,21 @@ export function ActivityTargetFields({ activity, set, inSpell = false }) {
               </select>
             </label>
           )}
+          {activity.kind === 'summon' && (
+            <>
+              <label className="tag-checklist-item" title="Its attacks, save DCs and proficiency become yours. A familiar keeps its own.">
+                <input type="checkbox" checked={activity.summonMatch !== false} onChange={(e) => set({ summonMatch: e.target.checked })} />
+                Uses my attack and save numbers
+              </label>
+              <label
+                className="tag-checklist-item"
+                title="Using it while the creature is already on the map moves that one (same HP, same facing) instead of adding another. Needs Chrab Sync."
+              >
+                <input type="checkbox" checked={!!activity.summonSingle} onChange={(e) => set({ summonSingle: e.target.checked })} />
+                One at a time: using it again moves it
+              </label>
+            </>
+          )}
         </div>
       )}
 

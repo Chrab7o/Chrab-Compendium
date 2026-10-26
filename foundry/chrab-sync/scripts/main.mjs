@@ -1,8 +1,9 @@
 // Chrab Sync: pulls NPCs built in the Chrab Compendium's NPC Forge, items
 // from its Feature Forge and its homebrew classes (classes.mjs) into this
-// world, and pushes player character sheets back (characters.mjs). Everything
-// here runs for GMs only - players' browsers register the settings (Foundry
-// requires it) and then do nothing; they use the class compendium directly.
+// world, and pushes player character sheets back (characters.mjs). Syncing
+// runs for GMs only - players' browsers register the settings (Foundry
+// requires it) and use the class compendium directly. The one thing players
+// get is summon placement (summons.mjs).
 // See docs/npc-forge-phase2.md in the Chrab Compendium repo.
 
 import { ConfigApp, SyncApp } from './apps.mjs'
@@ -10,6 +11,7 @@ import { syncOnLoad, watchCharacters } from './characters.mjs'
 import { checkClassPack } from './classes.mjs'
 import { DEFAULT_FOLDER, DEFAULT_ITEM_FOLDER, MODULE_ID } from './constants.mjs'
 import { checkQueue, state } from './queue.mjs'
+import { setupSummons } from './summons.mjs'
 
 Hooks.once('init', () => {
   // World-scoped settings are readable by every connected client, so nothing
@@ -68,6 +70,9 @@ Hooks.once('init', () => {
     restricted: true,
   })
 })
+
+// Summon range ring and "one at a time" summons: every user, players included.
+Hooks.once('ready', () => setupSummons())
 
 Hooks.once('ready', () => {
   if (!game.user.isGM) return

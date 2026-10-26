@@ -504,6 +504,19 @@ test('summon and transform: dnd5e activities by uuid or by CR, read back', () =>
   assert.deepEqual([s.profiles[0].uuid, s.profiles[0].count, s.profiles[0].name], ['Compendium.world.dk.Actor.abc', '1 + @scaling.increase', 'Shadow Image'])
   const back = featureItemToSpec(item).item.activities[0]
   assert.deepEqual([back.kind, back.creatureUuid, back.creatureCount], ['summon', 'Compendium.world.dk.Actor.abc', '1 + @scaling.increase'])
+  assert.deepEqual([back.summonMatch, back.summonSingle], [true, false])
+  assert.equal(item.flags['chrab-sync']?.singleSummon, undefined)
+
+  // A familiar: its own numbers, one at a time, placed within 10 ft.
+  const spec = featureItemToSpec(item)
+  Object.assign(spec.item.activities[0], { summonMatch: false, summonSingle: true, range: 10 })
+  const familiar = buildFeatureItem(spec)
+  const f = acts(familiar)[0]
+  assert.deepEqual([f.match.attacks, f.match.saves, f.match.proficiency, f.match.disposition], [false, false, false, true])
+  assert.deepEqual(f.range, { value: '10', units: 'ft', override: true })
+  assert.deepEqual(familiar.flags['chrab-sync'].singleSummon, [f._id])
+  const again = featureItemToSpec(familiar).item.activities[0]
+  assert.deepEqual([again.summonMatch, again.summonSingle, again.range], [false, true, 10])
 
   const t = acts(fromTemplate('transform', { crMax: '2', preset: 'custom' }).item)[0]
   assert.equal(t.type, 'transform')

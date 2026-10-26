@@ -431,6 +431,8 @@ export function emptyActivity(kind = 'attack') {
     creatureUuid: '',
     creatureName: '',
     creatureCount: '1', // summon: a formula, e.g. "2" or "1 + @scaling.increase"
+    summonMatch: true, // summon: it uses the summoner's attack, save and proficiency numbers (a familiar doesn't)
+    summonSingle: false, // summon: only one out at a time - using it again moves the one on the map (Chrab Sync)
     crMax: '',
     creatureTypes: [],
     transformPreset: 'polymorph',
@@ -1047,7 +1049,9 @@ function summonData(activity, id) {
     type: 'summon',
     profiles: [creatureProfile(activity, id, { count: String(activity.creatureCount ?? '').trim() || '1' })],
     summon: { mode: byUuid ? '' : 'cr', prompt: true },
-    match: { attacks: true, saves: true, proficiency: true, disposition: true, ability: '' },
+    match: activity.summonMatch === false
+      ? { attacks: false, saves: false, proficiency: false, disposition: true, ability: '' }
+      : { attacks: true, saves: true, proficiency: true, disposition: true, ability: '' },
     bonuses: { ac: '', hd: '', hp: '', attackDamage: '', saveDamage: '', healing: '' },
     creatureSizes: [],
     creatureTypes: [],
@@ -1580,6 +1584,9 @@ export function buildNpcItem(spec, item, index = 0, { inSpell = false } = {}) {
   )
   // Flows ride along by activity id so an export reads back into the builder.
   const flows = Object.fromEntries(acts.filter(hasFlow).map((a) => [ids[a.key], a.flow]))
+  // Chrab Sync reads these: summons that move the one already out instead of
+  // adding another (foundry/chrab-sync/scripts/summons.mjs).
+  const single = acts.filter((a) => a.kind === 'summon' && a.summonSingle).map((a) => ids[a.key])
 
   // A behavior's hook goes FIRST: midi resolves the bare "ActivityMacro" in
   // the effect's onUseMacroName change to the item's first activity.
@@ -1686,8 +1693,14 @@ export function buildNpcItem(spec, item, index = 0, { inSpell = false } = {}) {
     flags: {
       ...(onUse ? { 'midi-qol': { onUseMacroName: onUse } } : {}),
       // The behavior spec rides along so an export reads back into the editor.
-      ...(behavior || Object.keys(flows).length
-        ? { 'chrab-sync': { ...(behavior ? { behavior } : {}), ...(Object.keys(flows).length ? { flows } : {}) } }
+      ...(behavior || Object.keys(flows).length || single.length
+        ? {
+            'chrab-sync': {
+              ...(behavior ? { behavior } : {}),
+              ...(Object.keys(flows).length ? { flows } : {}),
+              ...(single.length ? { singleSummon: single } : {}),
+            },
+          }
         : {}),
     },
     _stats: { ...STATS },
@@ -2227,7 +2240,11 @@ export function foundryItemToNpcItem(item) {
       a.creatureName = prof.name ?? ''
       a.crMax = prof.cr ?? ''
       a.creatureTypes = [...(prof.types ?? [])]
-      if (act.type === 'summon') a.creatureCount = String(prof.count ?? '') || '1'
+      if (act.type === 'summon') {
+        a.creatureCount = String(prof.count ?? '') || '1'
+        a.summonMatch = act.match?.attacks !== false || act.match?.saves !== false
+        a.summonSingle = (item.flags?.['chrab-sync']?.singleSummon ?? []).includes(act._id)
+      }
       else a.transformPreset = act.transform?.customize ? 'custom' : act.transform?.preset || 'polymorph'
     }
     if (act.type === 'heal') {

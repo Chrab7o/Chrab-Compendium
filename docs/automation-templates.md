@@ -205,8 +205,13 @@ These are in the order I suggest building them. Each one unlocks the Dark Knight
     (`overTimeProperties.rollAs: "source"`), so the formula uses the caster's numbers.
   - **Summon / transform rolls:** dnd5e 5.3 activity types. One profile, by UUID (`mode: ""`) or by CR and creature
     type (`mode: "cr"`, the player picks from the compendium browser). Summons match your attack, save and
-    proficiency and take your side (midi `friendlySummon`). Transform presets are dnd5e's; "keep mind, class,
-    features and HP" is a customized settings block.
+    proficiency unless *Uses my attack and save numbers* is off (a familiar), and take your side (midi
+    `friendlySummon`). Transform presets are dnd5e's; "keep mind, class, features and HP" is a customized settings
+    block.
+  - **Summon placement (Chrab Sync 0.2.2+, `foundry/chrab-sync/scripts/summons.mjs`):** a summon with a range in feet
+    shows a blue ring at that range while placing and refuses a spot outside it. *One at a time: using it again
+    moves it* (`flags.chrab-sync.singleSummon`, the activity ids) teleports the creature the item already has on the
+    scene to the new spot instead of adding another: same token, HP and facing, and back to full HP if it was at 0.
   - **Upcasting beyond dice:** target counts are dnd5e formulas evaluated on the scaled item, so
     `1 + @scaling.increase` is one more target per extra point spent (Save or suffer: "one more target per extra
     point").
