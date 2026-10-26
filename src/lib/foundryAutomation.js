@@ -201,6 +201,15 @@ if (markName) {
 }
 if (!point) {
   ui.notifications.info("Click where to go (up to " + range + " ft). Right-click to cancel.");
+  // The reach, drawn around you while you pick (only on your screen).
+  let ring = null;
+  try {
+    ring = new PIXI.Graphics();
+    ring.lineStyle(4, 0x7a2cff, 0.9).beginFill(0x7a2cff, 0.12).drawCircle(from.x, from.y, (range / canvas.dimensions.distance) * canvas.dimensions.size).endFill();
+    (canvas.interface ?? canvas.stage).addChild(ring);
+  } catch (err) {
+    console.warn("chrab-sync | range ring", err);
+  }
   point = await new Promise((resolve) => {
     const stage = canvas.stage;
     const onDown = (event) => {
@@ -209,11 +218,15 @@ if (!point) {
     };
     stage.on("pointerdown", onDown);
   });
+  ring?.destroy();
   if (!point) return;
   if (far(point) > range) return ui.notifications.warn("Too far: " + Math.round(far(point)) + " ft (up to " + range + ").");
 }
 const moved = Math.round(far(point));
-await MidiQOL.moveToken(self, point, { teleport: true });
+// Facing stays as it was: no turning toward where you went.
+const rotation = self.document?.rotation ?? 0;
+await MidiQOL.moveToken(self, point, { teleport: true, autoRotate: false });
+if ((self.document?.rotation ?? 0) !== rotation && self.document?.isOwner) await self.document.update({ rotation });
 card.steps.push(chrabEsc(actor.name) + " vanishes and reappears " + (onto ? "beside " + chrabEsc(onto.name) : moved + " ft away"));
 await chrabPost(card, actor);
 `,

@@ -337,7 +337,7 @@ test('Defend the Weak: a bond effect that hooks the bonded creature, and no carr
 
 test('scripted templates: teleport, take a hit, sacrifice', () => {
   const warp = acts(fromTemplate('teleport', { ...DARK, poolCost: 2, range: 30 }).item)[0]
-  assert.match(warp.macroData.command, /MidiQOL\.moveToken\(self, point, \{ teleport: true \}\)/)
+  assert.match(warp.macroData.command, /MidiQOL\.moveToken\(self, point, \{ teleport: true, autoRotate: false \}\)/)
   assert.match(warp.macroData.command, /const range = 30;/)
   const absorb = fromTemplate('takeHit', { ...DARK, poolCost: 3 }).item
   assert.equal(acts(absorb)[0].activation.type, 'reaction')
@@ -585,4 +585,81 @@ test('Inevitable: a reminder card at the start of your turn, only while somethin
   await run({}, [{ macroPass: 'postActiveEffects' }], actor, undefined, feature, { id: tick._id }, feature)
   assert.equal(posted.length, 1, 'not held: no card')
   for (const k of ['foundry', 'ChatMessage', 'CONFIG', 'game']) delete globalThis[k]
+})
+
+// Shadow Warp's teleport, run against a stand-in canvas: the reach is drawn
+// while the player picks, and the token keeps facing the way it was.
+test('teleport: a range ring while picking, and the token keeps its rotation', async () => {
+  const warp = acts(fromTemplate('teleport', { ...DARK, poolCost: 2, range: 30 }).item)[0]
+  const drawn = []
+  const listeners = {}
+  const doc = {
+    rotation: 90,
+    isOwner: true,
+    async update(d) {
+      Object.assign(doc, d)
+    },
+  }
+  const self = { center: { x: 500, y: 500 }, document: doc }
+  let moveOptions = null
+  globalThis.PIXI = {
+    Graphics: class {
+      constructor() {
+        drawn.push(this)
+        this.destroyed = false
+      }
+      lineStyle() {
+        return this
+      }
+      beginFill() {
+        return this
+      }
+      drawCircle(x, y, r) {
+        this.circle = { x, y, r }
+        return this
+      }
+      endFill() {
+        return this
+      }
+      destroy() {
+        this.destroyed = true
+      }
+    },
+  }
+  globalThis.canvas = {
+    ready: true,
+    dimensions: { distance: 5, size: 100 },
+    grid: { distance: 5, size: 100, measurePath: ([a, b]) => ({ distance: (Math.hypot(b.x - a.x, b.y - a.y) / 100) * 5 }) },
+    tokens: { placeables: [] },
+    interface: { addChild: () => {} },
+    stage: {
+      on: (event, fn) => {
+        listeners[event] = fn
+        // The player clicks 20 ft to the right.
+        queueMicrotask(() => fn({ button: 0, getLocalPosition: () => ({ x: 900, y: 500 }) }))
+      },
+      off: () => {},
+    },
+  }
+  globalThis.ui = { notifications: { info: () => {}, warn: () => {} } }
+  globalThis.MidiQOL = {
+    moveToken: async (token, point, options) => {
+      moveOptions = options
+      doc.rotation = 270 // as if something turned it anyway
+    },
+  }
+  globalThis.foundry = { utils: { escapeHTML: (s) => String(s) }, applications: { api: { DialogV2: { confirm: async () => true } } } }
+  globalThis.ChatMessage = { getSpeaker: () => ({}), implementation: { create: async () => {} } }
+  globalThis.CONFIG = {}
+  globalThis.game = { user: { isGM: false } }
+  const AsyncFunction = Object.getPrototypeOf(async () => {}).constructor
+  const run = new AsyncFunction('workflow', 'args', 'actor', 'token', 'item', warp.macroData.command)
+  const actor = { name: 'Rezire', uuid: 'Actor.rez', getActiveTokens: () => [self] }
+  await run({}, [{ macroPass: 'postActiveEffects' }], actor, self, { name: 'Shadow Warp', img: 'warp.webp', flags: {} })
+  assert.equal(drawn.length, 1)
+  assert.deepEqual(drawn[0].circle, { x: 500, y: 500, r: 600 }, '30 ft is 6 squares of 100 px')
+  assert.equal(drawn[0].destroyed, true, 'gone once a spot is picked')
+  assert.deepEqual(moveOptions, { teleport: true, autoRotate: false })
+  assert.equal(doc.rotation, 90, 'turned back to where it faced')
+  for (const k of ['PIXI', 'canvas', 'ui', 'MidiQOL', 'foundry', 'ChatMessage', 'CONFIG', 'game']) delete globalThis[k]
 })
