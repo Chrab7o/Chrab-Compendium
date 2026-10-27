@@ -7,10 +7,14 @@ import { useCampaignContext } from '../../contexts/CampaignContext'
 import { downloadFeatureItem } from '../../components/dm/feature/downloadItem'
 import { SyncBadge } from './DMNpcForgePage'
 
+// Monster features get their own section: the NPC Forge saves every
+// statblock ability it builds here, and they'd bury the player features.
+const isMonster = (d) => d.kind === 'feat' && d.spec?.featType === 'monster'
 const LIBRARY_SECTIONS = [
-  ['feat', 'Features'],
-  ['gear', 'Magic items & gear'],
-  ['spell', 'Spells'],
+  ['feat', 'Features', (d) => d.kind === 'feat' && !isMonster(d)],
+  ['monster', 'Monster features', isMonster],
+  ['gear', 'Magic items & gear', (d) => d.kind === 'gear'],
+  ['spell', 'Spells', (d) => d.kind === 'spell'],
 ]
 
 // Which collapsible sections are open is remembered per browser, so they
@@ -37,6 +41,7 @@ export default function DMFeatureForgePage() {
   const [error, setError] = useState(null)
   const [notice, setNotice] = useState(null)
   const [open, setOpen] = useState(readOpen)
+  const [query, setQuery] = useState('')
 
   const toggle = (id) => (e) => {
     const isOpen = e.currentTarget.open
@@ -162,6 +167,42 @@ export default function DMFeatureForgePage() {
     return FEAT_TYPES.find((t) => t.key === draft.spec?.featType)?.label ?? 'Feature'
   }
 
+  // A search replaces the sections with one flat list across every kind.
+  // It matches the name, the kind label ("Rare Wondrous") and the NPCs using it.
+  const q = query.trim().toLowerCase()
+  const matches = q
+    ? drafts.filter((d) => [d.name, kindLabel(d), ...(npcUses.get(d.id) ?? [])].some((s) => s?.toLowerCase().includes(q)))
+    : null
+
+  const renderRow = (draft) => (
+    <li key={draft.id}>
+      <span>{draft.name}</span>
+      <span className="dm-list-meta">{kindLabel(draft)}</span>
+      {npcUses.get(draft.id)?.length > 0 && (
+        <span className="badge" title={npcUses.get(draft.id).join(', ')}>
+          On {npcUses.get(draft.id).length} NPC{npcUses.get(draft.id).length === 1 ? '' : 's'}
+        </span>
+      )}
+      {draft.campaign_id && <span className="badge badge-campaign">{campaignName(draft.campaign_id) ?? 'Campaign'}</span>}
+      <SyncBadge draft={draft} worldTitle={worldTitle(draft.foundry_world_id)} />
+      <div className="dm-list-actions">
+        <Link to={`/dm/item-forge/${draft.id}/edit`}>Edit</Link>
+        <button type="button" className="secondary" onClick={() => handleSend(draft)}>
+          {draft.sync_status === 'draft' ? 'Send to Foundry' : 'Re-send'}
+        </button>
+        <button type="button" className="secondary" onClick={() => downloadFeatureItem(draft.spec, draft.id)}>
+          Download
+        </button>
+        <button type="button" className="secondary" onClick={() => handleDuplicate(draft)}>
+          Duplicate
+        </button>
+        <button type="button" className="danger" onClick={() => handleDelete(draft)}>
+          Delete
+        </button>
+      </div>
+    </li>
+  )
+
   return (
     <section className="page-wide">
       <div className="view-header">
@@ -231,48 +272,39 @@ export default function DMFeatureForgePage() {
         </div>
         {error && <p className="status-message error">{error}</p>}
         {notice && <p className="status-message">{notice}</p>}
+        <input
+          type="search"
+          className="forge-search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search the library: Bite, Fireball, Cloak of Elvenkind…"
+          aria-label="Search the library"
+        />
         {loading ? (
           <p className="status-message">Loading...</p>
+        ) : matches ? (
+          <>
+            <p className="dm-list-meta">
+              {matches.length} match{matches.length === 1 ? '' : 'es'}
+            </p>
+            <ul className="dm-list">
+              {matches.map(renderRow)}
+              {matches.length === 0 && <li className="status-message">Nothing matches.</li>}
+            </ul>
+          </>
         ) : (
           <div className="forge-groups">
-            {LIBRARY_SECTIONS.map(([kind, label]) => {
-              const items = drafts.filter((d) => d.kind === kind)
-              const id = `library:${kind}`
+            {LIBRARY_SECTIONS.map(([key, label, inSection]) => {
+              const items = drafts.filter(inSection)
+              const id = `library:${key}`
               return (
-                <details key={kind} className="forge-group" open={open.has(id)} onToggle={toggle(id)}>
+                <details key={key} className="forge-group" open={open.has(id)} onToggle={toggle(id)}>
                   <summary>
                     <span className="forge-group-name">{label}</span>
                     <span className="forge-count">{items.length}</span>
                   </summary>
                   <ul className="dm-list">
-                    {items.map((draft) => (
-                      <li key={draft.id}>
-                        <span>{draft.name}</span>
-                        <span className="dm-list-meta">{kindLabel(draft)}</span>
-                        {npcUses.get(draft.id)?.length > 0 && (
-                          <span className="badge" title={npcUses.get(draft.id).join(', ')}>
-                            On {npcUses.get(draft.id).length} NPC{npcUses.get(draft.id).length === 1 ? '' : 's'}
-                          </span>
-                        )}
-                        {draft.campaign_id && <span className="badge badge-campaign">{campaignName(draft.campaign_id) ?? 'Campaign'}</span>}
-                        <SyncBadge draft={draft} worldTitle={worldTitle(draft.foundry_world_id)} />
-                        <div className="dm-list-actions">
-                          <Link to={`/dm/item-forge/${draft.id}/edit`}>Edit</Link>
-                          <button type="button" className="secondary" onClick={() => handleSend(draft)}>
-                            {draft.sync_status === 'draft' ? 'Send to Foundry' : 'Re-send'}
-                          </button>
-                          <button type="button" className="secondary" onClick={() => downloadFeatureItem(draft.spec, draft.id)}>
-                            Download
-                          </button>
-                          <button type="button" className="secondary" onClick={() => handleDuplicate(draft)}>
-                            Duplicate
-                          </button>
-                          <button type="button" className="danger" onClick={() => handleDelete(draft)}>
-                            Delete
-                          </button>
-                        </div>
-                      </li>
-                    ))}
+                    {items.map(renderRow)}
                     {items.length === 0 && <li className="status-message">None yet.</li>}
                   </ul>
                 </details>

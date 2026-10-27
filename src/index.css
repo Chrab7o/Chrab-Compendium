@@ -5387,6 +5387,11 @@ select.sg-link-role {
   text-align: center;
 }
 
+.forge-search {
+  width: 100%;
+  margin-bottom: 0.75rem;
+}
+
 .forge-groups {
   display: flex;
   flex-direction: column;
