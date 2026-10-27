@@ -2,10 +2,27 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabaseClient'
 import { FEAT_TYPES, buildFeatureItem, featureItemToSpec, featureName, gearType, itemMakerRecordToSpec, rarityLabel } from '../../lib/foundryFeatures'
-import { AUTOMATION_TEMPLATES } from '../../lib/automationTemplates'
+import { AUTOMATION_TEMPLATES, TEMPLATE_GROUPS } from '../../lib/automationTemplates'
 import { useCampaignContext } from '../../contexts/CampaignContext'
 import { downloadFeatureItem } from '../../components/dm/feature/downloadItem'
 import { SyncBadge } from './DMNpcForgePage'
+
+const LIBRARY_SECTIONS = [
+  ['feat', 'Features'],
+  ['gear', 'Magic items & gear'],
+  ['spell', 'Spells'],
+]
+
+// Which collapsible sections are open is remembered per browser, so they
+// start collapsed once and then stay how the DM left them.
+const OPEN_KEY = 'itemForge.openSections'
+function readOpen() {
+  try {
+    return new Set(JSON.parse(localStorage.getItem(OPEN_KEY)) ?? [])
+  } catch {
+    return new Set()
+  }
+}
 
 // Item Forge list (the Feature Forge until it became the item library): single features and spells, built on the site and sent
 // to the world's Items directory through Chrab Sync (its Items tab), ready to
@@ -19,7 +36,23 @@ export default function DMFeatureForgePage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [notice, setNotice] = useState(null)
-  const [show, setShow] = useState('') // '' | 'feat' | 'spell' | 'gear'
+  const [open, setOpen] = useState(readOpen)
+
+  const toggle = (id) => (e) => {
+    const isOpen = e.currentTarget.open
+    setOpen((prev) => {
+      if (prev.has(id) === isOpen) return prev
+      const next = new Set(prev)
+      if (isOpen) next.add(id)
+      else next.delete(id)
+      try {
+        localStorage.setItem(OPEN_KEY, JSON.stringify([...next]))
+      } catch {
+        // Private window or blocked storage: it just won't be remembered.
+      }
+      return next
+    })
+  }
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -128,7 +161,6 @@ export default function DMFeatureForgePage() {
     }
     return FEAT_TYPES.find((t) => t.key === draft.spec?.featType)?.label ?? 'Feature'
   }
-  const shown = show ? drafts.filter((d) => d.kind === show) : drafts
 
   return (
     <section className="page-wide">
@@ -142,23 +174,38 @@ export default function DMFeatureForgePage() {
         character.
       </p>
 
-      <div className="dm-panel">
-        <div className="dm-panel-header">
+      <details className="dm-panel forge-panel" open={open.has('templates')} onToggle={toggle('templates')}>
+        <summary>
           <h2>Start from a template</h2>
+          <span className="forge-count">{AUTOMATION_TEMPLATES.length}</span>
+        </summary>
+        <div className="forge-groups">
+          {TEMPLATE_GROUPS.map((group) => {
+            const templates = AUTOMATION_TEMPLATES.filter((t) => t.group === group)
+            if (!templates.length) return null
+            const id = `templates:${group}`
+            return (
+              <details key={group} className="forge-group" open={open.has(id)} onToggle={toggle(id)}>
+                <summary>
+                  <span className="forge-group-name">{group}</span>
+                  <span className="forge-count">{templates.length}</span>
+                </summary>
+                <ul className="dm-list">
+                  {templates.map((t) => (
+                    <li key={t.key}>
+                      <span>{t.label}</span>
+                      <span className="dm-list-meta">{t.help}</span>
+                      <div className="dm-list-actions">
+                        <Link to={`/dm/item-forge/new?template=${t.key}`}>Use</Link>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            )
+          })}
         </div>
-        <ul className="dm-list">
-          {AUTOMATION_TEMPLATES.map((t) => (
-            <li key={t.key}>
-              <span>{t.label}</span>
-              {t.kind === 'example' && <span className="badge">Example</span>}
-              <span className="dm-list-meta">{t.help}</span>
-              <div className="dm-list-actions">
-                <Link to={`/dm/item-forge/new?template=${t.key}`}>Use</Link>
-              </div>
-            </li>
-          ))}
-        </ul>
-      </div>
+      </details>
 
       <div className="dm-panel">
         <div className="dm-panel-header">
@@ -182,54 +229,56 @@ export default function DMFeatureForgePage() {
             </Link>
           </div>
         </div>
-        <div className="fw-mode fw-filter" role="group" aria-label="Show">
-          {[
-            ['', 'Everything'],
-            ['feat', 'Features'],
-            ['gear', 'Magic items & gear'],
-            ['spell', 'Spells'],
-          ].map(([key, label]) => (
-            <button key={key} type="button" className={show === key ? 'is-on' : ''} aria-pressed={show === key} onClick={() => setShow(key)}>
-              {label}
-            </button>
-          ))}
-        </div>
         {error && <p className="status-message error">{error}</p>}
         {notice && <p className="status-message">{notice}</p>}
         {loading ? (
           <p className="status-message">Loading...</p>
         ) : (
-          <ul className="dm-list">
-            {shown.map((draft) => (
-              <li key={draft.id}>
-                <span>{draft.name}</span>
-                <span className="dm-list-meta">{kindLabel(draft)}</span>
-                {npcUses.get(draft.id)?.length > 0 && (
-                  <span className="badge" title={npcUses.get(draft.id).join(', ')}>
-                    On {npcUses.get(draft.id).length} NPC{npcUses.get(draft.id).length === 1 ? '' : 's'}
-                  </span>
-                )}
-                {draft.campaign_id && <span className="badge badge-campaign">{campaignName(draft.campaign_id) ?? 'Campaign'}</span>}
-                <SyncBadge draft={draft} worldTitle={worldTitle(draft.foundry_world_id)} />
-                <div className="dm-list-actions">
-                  <Link to={`/dm/item-forge/${draft.id}/edit`}>Edit</Link>
-                  <button type="button" className="secondary" onClick={() => handleSend(draft)}>
-                    {draft.sync_status === 'draft' ? 'Send to Foundry' : 'Re-send'}
-                  </button>
-                  <button type="button" className="secondary" onClick={() => downloadFeatureItem(draft.spec, draft.id)}>
-                    Download
-                  </button>
-                  <button type="button" className="secondary" onClick={() => handleDuplicate(draft)}>
-                    Duplicate
-                  </button>
-                  <button type="button" className="danger" onClick={() => handleDelete(draft)}>
-                    Delete
-                  </button>
-                </div>
-              </li>
-            ))}
-            {shown.length === 0 && <li className="status-message">No items yet.</li>}
-          </ul>
+          <div className="forge-groups">
+            {LIBRARY_SECTIONS.map(([kind, label]) => {
+              const items = drafts.filter((d) => d.kind === kind)
+              const id = `library:${kind}`
+              return (
+                <details key={kind} className="forge-group" open={open.has(id)} onToggle={toggle(id)}>
+                  <summary>
+                    <span className="forge-group-name">{label}</span>
+                    <span className="forge-count">{items.length}</span>
+                  </summary>
+                  <ul className="dm-list">
+                    {items.map((draft) => (
+                      <li key={draft.id}>
+                        <span>{draft.name}</span>
+                        <span className="dm-list-meta">{kindLabel(draft)}</span>
+                        {npcUses.get(draft.id)?.length > 0 && (
+                          <span className="badge" title={npcUses.get(draft.id).join(', ')}>
+                            On {npcUses.get(draft.id).length} NPC{npcUses.get(draft.id).length === 1 ? '' : 's'}
+                          </span>
+                        )}
+                        {draft.campaign_id && <span className="badge badge-campaign">{campaignName(draft.campaign_id) ?? 'Campaign'}</span>}
+                        <SyncBadge draft={draft} worldTitle={worldTitle(draft.foundry_world_id)} />
+                        <div className="dm-list-actions">
+                          <Link to={`/dm/item-forge/${draft.id}/edit`}>Edit</Link>
+                          <button type="button" className="secondary" onClick={() => handleSend(draft)}>
+                            {draft.sync_status === 'draft' ? 'Send to Foundry' : 'Re-send'}
+                          </button>
+                          <button type="button" className="secondary" onClick={() => downloadFeatureItem(draft.spec, draft.id)}>
+                            Download
+                          </button>
+                          <button type="button" className="secondary" onClick={() => handleDuplicate(draft)}>
+                            Duplicate
+                          </button>
+                          <button type="button" className="danger" onClick={() => handleDelete(draft)}>
+                            Delete
+                          </button>
+                        </div>
+                      </li>
+                    ))}
+                    {items.length === 0 && <li className="status-message">None yet.</li>}
+                  </ul>
+                </details>
+              )
+            })}
+          </div>
         )}
       </div>
     </section>

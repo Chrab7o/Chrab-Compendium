@@ -5340,6 +5340,83 @@ select.sg-link-role {
   background: var(--surface-2);
 }
 
+/* Item Forge: collapsible template panel and library sections. */
+.forge-panel > summary,
+.forge-group > summary {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+.forge-panel > summary::-webkit-details-marker,
+.forge-group > summary::-webkit-details-marker {
+  display: none;
+}
+
+.forge-panel > summary::before,
+.forge-group > summary::before {
+  content: '▸';
+  color: var(--accent-strong);
+  font-weight: 700;
+  transition: transform var(--transition);
+}
+
+.forge-panel[open] > summary::before,
+.forge-group[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+.forge-panel > summary h2 {
+  margin: 0;
+}
+
+.forge-panel[open] > summary {
+  margin-bottom: 1rem;
+}
+
+.forge-count {
+  min-width: 1.6rem;
+  padding: 0.05rem 0.45rem;
+  border-radius: var(--radius-sm);
+  background: var(--accent-strong);
+  color: var(--on-accent);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  text-align: center;
+}
+
+.forge-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.forge-group {
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent-strong);
+  border-radius: var(--radius-sm);
+}
+
+.forge-group > summary {
+  padding: 0.5rem 0.8rem;
+}
+
+.forge-group[open] > summary {
+  border-bottom: 1px solid var(--border);
+}
+
+.forge-group-name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--accent-strong);
+}
+
+.forge-group > .dm-list {
+  padding: 0.6rem;
+}
+
 .sg-prompt-group {
   border: 1px solid var(--border);
   border-left: 4px solid var(--accent-2);
