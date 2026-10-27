@@ -54,6 +54,7 @@ export const ATTRIBUTE_CATALOG = [
   a('attributes.hp.temp', 'Temporary hit points', 'Defense', 'fes'),
   a('attributes.hp.tempmax', 'Max HP modifier', 'Defense', 'fe'),
   a('attributes.hp.bonuses.overall', 'Max HP bonus', 'Bonuses', 'e'),
+  a('attributes.hp.dt', 'Damage threshold', 'Defense', 'fe'),
   a('traits.dr.value', 'Damage resistances', 'Defense', 'e'),
   a('traits.di.value', 'Damage immunities', 'Defense', 'e'),
   a('traits.dv.value', 'Damage vulnerabilities', 'Defense', 'e'),

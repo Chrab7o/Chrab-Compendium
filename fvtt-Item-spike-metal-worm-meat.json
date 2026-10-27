@@ -1,0 +1,353 @@
+{
+  "_id": "Yt2WiQPTEOIOUF4l",
+  "name": "Spike Metal Worm Meat",
+  "type": "consumable",
+  "img": "icons/svg/combat.svg",
+  "system": {
+    "description": {
+      "value": "<p><strong>Spike Scale Worm Meat</strong><br> Once cooked this hard meet softens, when consumed turns the consumer to metal for one minute. While you are metal, You cannot float, and you cant be physically pushed against your will (You can be teleported and you are still affected by gravity). Your speed is set to 0. You have resistance to all damage and a minimum damage threshold of 15 (any damage below 15 does not hurt you after being halved). Your speed is set to 0,  but your momentum is tripled. Meaning You deal 3 times as much fall damage, This effect can be dispelled by dispel magic DC 16, but cannot be dismissed early by the user.</p>",
+      "chat": ""
+    },
+    "source": {
+      "custom": "Chrab Corner",
+      "rules": "2024"
+    },
+    "identifier": "spike-metal-worm-meat",
+    "uses": {
+      "max": "1",
+      "spent": 0,
+      "recovery": [],
+      "autoDestroy": true
+    },
+    "activities": {
+      "n8ePH3VgrkDzMEGd": {
+        "_id": "n8ePH3VgrkDzMEGd",
+        "type": "utility",
+        "name": "Metal Skin",
+        "sort": 0,
+        "activation": {
+          "type": "action",
+          "value": 1,
+          "override": false
+        },
+        "consumption": {
+          "scaling": {
+            "allowed": false,
+            "max": ""
+          },
+          "spellSlot": false,
+          "targets": [
+            {
+              "type": "itemUses",
+              "target": "",
+              "value": "1",
+              "scaling": {
+                "mode": "",
+                "formula": ""
+              }
+            }
+          ]
+        },
+        "duration": {
+          "value": "1",
+          "units": "minute",
+          "concentration": false,
+          "override": true
+        },
+        "range": {
+          "units": "self",
+          "override": false
+        },
+        "target": {
+          "prompt": false,
+          "override": true,
+          "template": {
+            "contiguous": false,
+            "stationary": false,
+            "units": "ft",
+            "count": "",
+            "type": "",
+            "size": "",
+            "width": "",
+            "height": ""
+          },
+          "affects": {
+            "count": "",
+            "type": "self",
+            "choice": false,
+            "special": ""
+          }
+        },
+        "uses": {
+          "spent": 0,
+          "recovery": []
+        },
+        "effects": [
+          {
+            "_id": "HfhgwenbdGm3q01t",
+            "level": {}
+          }
+        ],
+        "roll": {
+          "prompt": false,
+          "visible": false
+        }
+      }
+    },
+    "properties": [],
+    "type": {
+      "value": "food",
+      "subtype": ""
+    },
+    "rarity": "uncommon",
+    "attunement": "",
+    "attuned": false,
+    "equipped": false,
+    "identified": true,
+    "quantity": 1,
+    "weight": {
+      "value": 2,
+      "units": "lb"
+    },
+    "price": {
+      "value": 0,
+      "denomination": "gp"
+    }
+  },
+  "effects": [
+    {
+      "_id": "HfhgwenbdGm3q01t",
+      "name": "Stone Skin",
+      "img": "icons/svg/aura.svg",
+      "description": "",
+      "type": "base",
+      "system": {
+        "changes": [
+          {
+            "key": "system.traits.dr.value",
+            "value": "bludgeoning",
+            "type": "add",
+            "phase": "initial"
+          },
+          {
+            "key": "system.traits.dr.value",
+            "value": "acid",
+            "type": "add",
+            "phase": "initial"
+          },
+          {
+            "key": "system.traits.dr.value",
+            "value": "cold",
+            "type": "add",
+            "phase": "initial"
+          },
+          {
+            "key": "system.traits.dr.value",
+            "value": "fire",
+            "type": "add",
+            "phase": "initial"
+          },
+          {
+            "key": "system.traits.dr.value",
+            "value": "force",
+            "type": "add",
+            "phase": "initial"
+          },
+          {
+            "key": "system.traits.dr.value",
+            "value": "lightning",
+            "type": "add",
+            "phase": "initial"
+          },
+          {
+            "key": "system.traits.dr.value",
+            "value": "necrotic",
+            "type": "add",
+            "phase": "initial"
+          },
+          {
+            "key": "system.traits.dr.value",
+            "value": "piercing",
+            "type": "add",
+            "phase": "initial"
+          },
+          {
+            "key": "system.traits.dr.value",
+            "value": "poison",
+            "type": "add",
+            "phase": "initial"
+          },
+          {
+            "key": "system.traits.dr.value",
+            "value": "psychic",
+            "type": "add",
+            "phase": "initial"
+          },
+          {
+            "key": "system.traits.dr.value",
+            "value": "radiant",
+            "type": "add",
+            "phase": "initial"
+          },
+          {
+            "key": "system.traits.dr.value",
+            "value": "slashing",
+            "type": "add",
+            "phase": "initial"
+          },
+          {
+            "key": "system.traits.dr.value",
+            "value": "thunder",
+            "type": "add",
+            "phase": "initial"
+          },
+          {
+            "key": "system.attributes.hp.dt",
+            "value": "15",
+            "type": "upgrade",
+            "phase": "initial"
+          },
+          {
+            "key": "system.traits.ci.value",
+            "value": "blinded",
+            "type": "add",
+            "phase": "initial"
+          },
+          {
+            "key": "system.traits.ci.value",
+            "value": "charmed",
+            "type": "add",
+            "phase": "initial"
+          },
+          {
+            "key": "system.traits.ci.value",
+            "value": "deafened",
+            "type": "add",
+            "phase": "initial"
+          },
+          {
+            "key": "system.traits.ci.value",
+            "value": "diseased",
+            "type": "add",
+            "phase": "initial"
+          },
+          {
+            "key": "system.traits.ci.value",
+            "value": "grappled",
+            "type": "add",
+            "phase": "initial"
+          },
+          {
+            "key": "system.traits.ci.value",
+            "value": "frightened",
+            "type": "add",
+            "phase": "initial"
+          },
+          {
+            "key": "system.traits.ci.value",
+            "value": "incapacitated",
+            "type": "add",
+            "phase": "initial"
+          },
+          {
+            "key": "system.traits.ci.value",
+            "value": "invisible",
+            "type": "add",
+            "phase": "initial"
+          },
+          {
+            "key": "system.traits.ci.value",
+            "value": "paralyzed",
+            "type": "add",
+            "phase": "initial"
+          },
+          {
+            "key": "system.traits.ci.value",
+            "value": "petrified",
+            "type": "add",
+            "phase": "initial"
+          },
+          {
+            "key": "system.traits.ci.value",
+            "value": "poisoned",
+            "type": "add",
+            "phase": "initial"
+          },
+          {
+            "key": "system.traits.ci.value",
+            "value": "prone",
+            "type": "add",
+            "phase": "initial"
+          },
+          {
+            "key": "system.traits.ci.value",
+            "value": "restrained",
+            "type": "add",
+            "phase": "initial"
+          },
+          {
+            "key": "system.traits.ci.value",
+            "value": "stunned",
+            "type": "add",
+            "phase": "initial"
+          },
+          {
+            "key": "system.traits.ci.value",
+            "value": "unconscious",
+            "type": "add",
+            "phase": "initial"
+          },
+          {
+            "key": "system.attributes.movement.walk",
+            "value": "0",
+            "type": "override",
+            "phase": "initial"
+          },
+          {
+            "key": "system.attributes.movement.fly",
+            "value": "0",
+            "type": "override",
+            "phase": "initial"
+          },
+          {
+            "key": "system.attributes.movement.swim",
+            "value": "0",
+            "type": "override",
+            "phase": "initial"
+          }
+        ]
+      },
+      "statuses": [],
+      "disabled": false,
+      "transfer": false,
+      "duration": {
+        "units": "seconds",
+        "value": 60,
+        "expiry": null,
+        "expired": false
+      },
+      "tint": "#ffffff",
+      "showIcon": 1,
+      "flags": {},
+      "_stats": {
+        "coreVersion": "14.368",
+        "systemId": "dnd5e",
+        "systemVersion": "5.3.3"
+      }
+    }
+  ],
+  "sort": 0,
+  "ownership": {
+    "default": 0
+  },
+  "flags": {
+    "chrab-sync": {
+      "featureDraftId": "8c5ad9b1-f736-4c56-87d1-d5eed0c9acff"
+    }
+  },
+  "_stats": {
+    "coreVersion": "14.368",
+    "systemId": "dnd5e",
+    "systemVersion": "5.3.3"
+  }
+}

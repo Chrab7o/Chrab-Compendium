@@ -200,6 +200,8 @@ export const EFFECT_CHANGES = [
   { id: 'saveAll', group: 'Defense', label: 'Bonus to all saving throws', path: 'system.bonuses.abilities.save', types: ['add'], value: 'formula', placeholder: '+1' },
   { id: 'saveOne', group: 'Defense', label: 'Bonus to one saving throw', path: 'system.abilities.{param}.bonuses.save', param: 'ability', types: ['add'], value: 'formula', placeholder: '+2' },
   { id: 'hpMax', group: 'Defense', label: 'Max HP bonus', path: 'system.attributes.hp.bonuses.overall', types: ['add'], value: 'formula', placeholder: '10' },
+  // dnd5e zeroes any damage total below hp.dt (actor.calculateDamage); upgrade keeps a higher one it already has.
+  { id: 'damageThreshold', group: 'Defense', label: 'Damage threshold', path: 'system.attributes.hp.dt', types: ['upgrade', 'override'], value: 'number', placeholder: '15' },
 
   { id: 'attackBonus', group: 'Offense', label: 'Attack roll bonus', path: 'system.bonuses.{param}.attack', param: 'attackKind', types: ['add'], value: 'formula', placeholder: '+1' },
   { id: 'damageBonus', group: 'Offense', label: 'Damage bonus', path: 'system.bonuses.{param}.damage', param: 'attackKind', types: ['add'], value: 'formula', placeholder: '1d4' },

@@ -151,3 +151,17 @@ test('feature drafts saved before gear existed still load', () => {
   assert.equal(old.gear.type, 'wondrous')
   assert.equal(buildFeatureItem(old).type, 'feat')
 })
+
+test('a food consumable that gives the eater a damage threshold', () => {
+  const eat = { ...emptyActivity('utility'), targetType: 'self' }
+  const threshold = { ...emptyChange('damageThreshold'), value: '15' }
+  const built = buildFeatureItem(gearSpec('consumable', { subtype: 'food' }, { name: 'Spike Metal Worm Meat', activities: [eat], effects: [{ ...emptyEffect(), name: 'Metal Hide', changes: [threshold] }] }))
+  assert.equal(built.type, 'consumable')
+  assert.equal(built.system.type.value, 'food')
+  assert.equal(built.effects.length, 1)
+  assert.equal(built.effects[0].transfer, false, 'applied when eaten, not while carried')
+  assert.deepEqual(built.effects[0].system.changes, [{ key: 'system.attributes.hp.dt', value: '15', type: 'upgrade', phase: 'initial' }])
+  const activity = Object.values(built.system.activities)[0]
+  assert.equal(activity.target.affects.type, 'self')
+  assert.deepEqual(activity.effects.map((e) => e._id), [built.effects[0]._id])
+})
