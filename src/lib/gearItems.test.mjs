@@ -5,7 +5,9 @@
 // and importing the old Item Maker's records.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { emptyActivity, emptyEffect, emptyChange } from './foundryActorBuilder.js'
+import { emptyActivity, emptyEffect, emptyChange, emptyOverTimeRoll, overTimeIdentifier } from './foundryActorBuilder.js'
+import { emptyFlow, emptySection, emptyLine } from './automationFlow.js'
+import { emptyBehavior } from './foundryBehaviors.js'
 import { buildFeatureItem, emptyFeatureSpec, emptyGear, featureItemToSpec, featureSpecFromRow, itemMakerRecordToSpec } from './foundryFeatures.js'
 import { descriptionHtml, descriptionMarkdown, emptyAbilityBlock } from './itemDescription.js'
 
@@ -164,4 +166,42 @@ test('a food consumable that gives the eater a damage threshold', () => {
   const activity = Object.values(built.system.activities)[0]
   assert.equal(activity.target.affects.type, 'self')
   assert.deepEqual(activity.effects.map((e) => e._id), [built.effects[0]._id])
+})
+
+// "Something every turn" (FeatureWizard): a utility roll midi repeats on the
+// owner's turns while an effect on them lasts; its built automation runs each time.
+function everyTurn(carrier) {
+  const flow = { ...emptyFlow(), sections: [{ ...emptySection('use'), lines: [{ ...emptyLine('popup'), text: 'The ring hums.' }] }] }
+  return { ...emptyActivity('utility'), name: 'Each turn', targetType: 'self', overTime: { ...emptyOverTimeRoll(), turn: 'start', effectKey: carrier.key }, flow }
+}
+
+function assertTicks(built, carrierName) {
+  const tick = Object.values(built.system.activities).find((a) => a.name === 'Each turn')
+  assert.ok(tick, 'the tick roll is built')
+  assert.equal(tick.isOverTimeFlag, true)
+  assert.equal(tick.overTimeProperties.turnChoice, 'start')
+  assert.match(tick.macroData.command, /The ring hums/)
+  const carrier = built.effects.find((e) => e.name === carrierName)
+  assert.ok(carrier.system.changes.some((c) => c.key === 'flags.midi-qol.ActivityOverTime' && c.value === overTimeIdentifier(tick._id)))
+  assert.ok(built.flags['midi-qol'].onUseMacroName.includes(`ActivityMacro-${tick._id}`))
+  return tick
+}
+
+test('an always-on wondrous item runs its automation at the start of each of your turns', () => {
+  const carrier = { ...emptyEffect(), name: 'Hollow Ring', passive: true }
+  const spec = gearSpec('wondrous', {}, { name: 'Hollow Ring', section: 'trait', effects: [carrier], activities: [everyTurn(carrier)] })
+  const built = buildFeatureItem(spec)
+  assert.equal(built.effects.find((e) => e.name === 'Hollow Ring').transfer, true, 'on the owner while equipped')
+  assertTicks(built, 'Hollow Ring')
+  const back = featureItemToSpec(built)
+  const tick = back.item.activities.find((a) => a.name === 'Each turn')
+  assert.equal(tick.overTime.effectKey, back.item.effects.find((e) => e.name === 'Hollow Ring').key)
+  assert.equal(tick.flow.sections[0].lines[0].text, 'The ring hums.')
+})
+
+test('a stance runs its every-turn automation from the stance effect', () => {
+  const carrier = { ...emptyEffect(), name: 'Ember Guard', stance: true }
+  const spec = emptyFeatureSpec('feat')
+  spec.item = { ...spec.item, name: 'Ember Guard', section: 'bonus', behavior: emptyBehavior('toggle'), effects: [carrier], activities: [everyTurn(carrier)] }
+  assertTicks(buildFeatureItem(spec), 'Ember Guard')
 })

@@ -259,14 +259,8 @@ export default function DMFeatureForgePage() {
             <button type="button" className="secondary" onClick={handleItemMakerImport}>
               Import from the Item Maker
             </button>
-            <Link to="/dm/item-forge/new?kind=gear" className="button-link">
-              + New magic item
-            </Link>
-            <Link to="/dm/item-forge/new?kind=spell" className="button-link">
-              + New spell
-            </Link>
             <Link to="/dm/item-forge/new" className="button-link">
-              + New item
+              + New
             </Link>
           </div>
         </div>

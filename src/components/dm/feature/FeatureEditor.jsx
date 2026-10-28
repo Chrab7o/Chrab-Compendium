@@ -7,7 +7,6 @@ import {
   buildFeatureItem,
   gearType,
   rarityLabel,
-  emptyFeatureSpec,
   featureItemToSpec,
   featureName,
   featureSpecFromRow,
@@ -24,6 +23,7 @@ import TemplatePicker from './TemplatePicker'
 import FeatureWizard from './FeatureWizard'
 import { DescriptionBlocks, GearStatFields } from './GearFields'
 import { buildFromTemplate, findTemplate } from '../../../lib/automationTemplates'
+import { newForgeSpec } from '../../../lib/forgeKinds'
 
 // Guided (FeatureWizard) or All fields (the item card form), remembered per browser.
 const MODE_KEY = 'featureForge.mode'
@@ -120,7 +120,8 @@ export default function FeatureEditor() {
   // ?template=: a template with settings asks for them first (TemplatePicker).
   const startTemplate = isNew ? findTemplate(search.get('template')) : null
   const [spec, setSpec] = useState(
-    () => (startTemplate && !startTemplate.params.length ? buildFromTemplate(startTemplate).spec : null) ?? emptyFeatureSpec(['spell', 'gear'].includes(search.get('kind')) ? search.get('kind') : 'feat'),
+    // ?kind=spell | weapon | armor | wondrous | consumable (gear = wondrous) starts that kind.
+    () => (startTemplate && !startTemplate.params.length ? buildFromTemplate(startTemplate).spec : null) ?? newForgeSpec(search.get('kind') || 'feat'),
   )
   const [pickingTemplate, setPickingTemplate] = useState(!!startTemplate?.params.length)
   const [campaignId, setCampaignId] = useState(currentCampaignId || '')
@@ -348,7 +349,7 @@ export default function FeatureEditor() {
                 set={set}
                 replace={setSpec}
                 onImport={handleImport}
-                showStart={isNew && !draftId && !startTemplate}
+                showStart={isNew && !draftId && !startTemplate && !search.get('kind')}
                 linkedText={usedBy.length > 0}
               />
             </NpcSpecContext.Provider>

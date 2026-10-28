@@ -1,6 +1,19 @@
 import { useRef, useState } from 'react'
-import { ACTIVITY_KINDS, emptyActivity, emptyChange, emptyEffect, identifierFor } from '../../../lib/foundryActorBuilder'
-import { FEAT_TYPES, GEAR_TYPES, emptyFeatureSpec, gearType, rarityLabel } from '../../../lib/foundryFeatures'
+import { ACTIVITY_KINDS, emptyActivity, emptyChange, emptyEffect, emptyOverTimeRoll, identifierFor } from '../../../lib/foundryActorBuilder'
+import { FEAT_TYPES, GEAR_TYPES, gearType, rarityLabel } from '../../../lib/foundryFeatures'
+import {
+  FORGE_KINDS,
+  allowedEffects,
+  allowedLimits,
+  canTickEachTurn,
+  fitToKind,
+  forgeKind,
+  landingRolls,
+  limitOf,
+  newForgeSpec,
+  ruleEventFor,
+  usageOf,
+} from '../../../lib/forgeKinds'
 import { descriptionMarkdown, hasDescription } from '../../../lib/itemDescription'
 import { behaviorSummary, emptyBehavior, emptyBehaviorRule } from '../../../lib/foundryBehaviors'
 import { flowProblems, flowSummary, hasFlow } from '../../../lib/automationFlow'
@@ -38,7 +51,7 @@ const STEPS = [
   { key: 'use', label: 'How it’s used' },
   { key: 'rolls', label: 'Rolls' },
   { key: 'effects', label: 'Effects' },
-  { key: 'reactions', label: 'Reactions', feat: true },
+  { key: 'reactions', label: 'Reactions', rules: true },
   { key: 'review', label: 'Review' },
 ]
 
@@ -91,12 +104,25 @@ const ROLL_STEPS = [
   { key: 'automation', label: 'Automation' },
 ]
 
+// Which ones a kind offers: forgeKinds.js allowedEffects().
 const EFFECT_STARTS = [
   { key: 'condition', label: 'A condition on the target', help: 'Prone, frightened, grappled… when a roll lands.', make: () => emptyEffect() },
   { key: 'debuff', label: 'A change to the target', help: 'Lower AC, a vulnerability, a penalty… when a roll lands.', make: () => ({ ...emptyEffect(), changes: [emptyChange()] }) },
-  { key: 'self', label: 'A bonus on them, always on', help: 'AC, a resistance, speed… for as long as they have it.', make: () => ({ ...emptyEffect(), passive: true, changes: [emptyChange()] }) },
-  { key: 'stance', label: 'A bonus while the stance is on', help: 'Only while the stance is toggled on.', stance: true, make: () => ({ ...emptyEffect(), stance: true, changes: [emptyChange('advAttack')] }) },
+  { key: 'onUser', label: 'A bonus on whoever it’s used on', help: 'Lands when a roll targets them: the caster of Shield, whoever drinks the potion.', make: () => ({ ...emptyEffect(), changes: [emptyChange()] }) },
+  { key: 'self', label: 'A bonus on them, always on', help: 'AC, a resistance, speed… for as long as they have it.', gearLabel: 'A bonus while it’s equipped', gearHelp: 'AC, a resistance, speed… while it’s equipped (and attuned, if it needs it).', make: () => ({ ...emptyEffect(), passive: true, changes: [emptyChange()] }) },
+  { key: 'stance', label: 'A bonus while the stance is on', help: 'Only while the stance is toggled on.', make: () => ({ ...emptyEffect(), stance: true, changes: [emptyChange('advAttack')] }) },
 ]
+
+// Each kind's allowed choices in its own order (armor: always on first), plus
+// the current one if a saved item already has it (marked, last, so nothing is
+// lost by opening an old item).
+function fitting(options, allowed, current, article) {
+  const rank = (o) => (allowed.includes(o.key) ? allowed.indexOf(o.key) : allowed.length)
+  return options
+    .filter((o) => allowed.includes(o.key) || o.key === current)
+    .sort((a, b) => rank(a) - rank(b))
+    .map((o) => (allowed.includes(o.key) ? o : { ...o, help: `Doesn’t usually fit ${article}.` }))
+}
 
 const RULE_STARTS = [
   { key: 'healSelf', label: 'Heal or protect them', help: 'When they hit or roll a natural 19-20, they regain hit points.' },
@@ -107,13 +133,8 @@ const RULE_STARTS = [
 
 const sectionFor = (activation) => (activation === 'special' ? 'trait' : activation || 'bonus')
 
-function usageOf(item) {
-  if (item.behavior?.mode === 'toggle') return 'stance'
-  if (item.section === 'trait') return 'passive'
-  return USES.some((u) => u.key === item.section) ? item.section : 'action'
-}
-
-const limitOf = (item) => (!item.usesRecovery ? '' : item.usesRecovery === 'recharge' ? 'recharge' : 'uses')
+// Effects a repeat-each-turn roll rides on: they need no changes of their own.
+const tickCarriers = (item) => new Set(item.activities.map((a) => a.overTime?.effectKey).filter(Boolean))
 
 function limitText(item) {
   if (item.usesRecovery === 'recharge') return `Recharge ${item.rechargeOn === 6 ? '6' : `${item.rechargeOn}-6`}`
@@ -143,10 +164,17 @@ function rollSummary(a) {
   return parts.filter(Boolean).join(' · ')
 }
 
-function effectSummary(e, itemName) {
+function effectSummary(e, item) {
   const where = e.stance ? 'while the stance is on' : e.passive ? 'always on' : e.byRule ? 'placed by a reaction rule' : e.aura ? 'in the aura' : e.bond ? 'on a bonded target' : 'on the target'
-  const what = [(e.statuses ?? []).map(cap).join(', '), e.changes?.length ? plural(e.changes.length, 'change') : ''].filter(Boolean).join(' and ')
-  return `${e.name || itemName || 'Effect'}: ${where}${what ? `, ${what}` : ', nothing yet'}`
+  const ticks = item.activities.filter((a) => a.overTime?.effectKey === e.key)
+  const what = [
+    (e.statuses ?? []).map(cap).join(', '),
+    e.changes?.length ? plural(e.changes.length, 'change') : '',
+    ...ticks.map((a) => `runs ${a.name || 'a roll'} at the ${a.overTime.turn === 'start' ? 'start' : 'end'} of each turn`),
+  ]
+    .filter(Boolean)
+    .join(' and ')
+  return `${e.name || item.name || 'Effect'}: ${where}${what ? `, ${what}` : ', nothing yet'}`
 }
 
 function rollProblems(a, i) {
@@ -184,8 +212,8 @@ function Question({ title, children }) {
 // ---------------------------------------------------------------------------
 // Rolls: a list of cards, and one roll walked through its own steps.
 
-function RollSteps({ activity, item, inSpell, onChange, onDone }) {
-  const [step, setStep] = useState('kind')
+function RollSteps({ activity, item, inSpell, kinds, initialStep = 'kind', onChange, onDone }) {
+  const [step, setStep] = useState(initialStep)
   const set = (patch) => onChange({ ...activity, ...patch })
   const steps = ROLL_STEPS.filter((s) => !s.kinds || s.kinds.includes(activity.kind)).map((s) =>
     s.key === 'lands' && activity.kind === 'heal' ? { ...s, label: 'Healing' } : s,
@@ -199,7 +227,7 @@ function RollSteps({ activity, item, inSpell, onChange, onDone }) {
     body = (
       <>
         <Question title="What kind of roll is it?" />
-        <Choices options={ACTIVITY_KINDS.map((k) => ({ ...k, help: ROLL_KIND_HELP[k.key] }))} value={activity.kind} onPick={(kind) => set({ kind })} compact />
+        <Choices options={kinds(activity.kind)} value={activity.kind} onPick={(kind) => set({ kind })} compact />
         <ActivityBasics activity={activity} set={set} item={item} inSpell={inSpell} showKind={false} />
       </>
     )
@@ -280,10 +308,25 @@ function RollSteps({ activity, item, inSpell, onChange, onDone }) {
   )
 }
 
-function RollsStep({ item, inSpell, setItem }) {
+function RollsStep({ spec, item, inSpell, setItem }) {
+  const kind = forgeKind(spec)
+  const usage = usageOf(item)
+  const passive = usage === 'passive' && !inSpell
+  // Worn and always-on things often roll nothing: don't push them to add one.
   const [editing, setEditing] = useState(null)
-  const [adding, setAdding] = useState(!item.activities.length)
+  const [openAt, setOpenAt] = useState('kind')
+  const [adding, setAdding] = useState(!item.activities.length && !passive && kind.key !== 'armor')
   const open = item.activities.find((a) => a.key === editing)
+  const kinds = (current) => fitting(ACTIVITY_KINDS.map((k) => ({ ...k, help: ROLL_KIND_HELP[k.key] })), kind.rolls, current, kind.article)
+  const tick = canTickEachTurn(spec, item)
+  const choices = [
+    tick && {
+      key: 'everyTurn',
+      label: 'Something every turn',
+      help: `At the start (or end) of each of their turns ${usage === 'stance' ? 'while the stance is on' : 'while they have it'}: run an automation, deal damage, heal…`,
+    },
+    ...kinds(''),
+  ].filter(Boolean)
 
   if (open) {
     return (
@@ -292,23 +335,46 @@ function RollsStep({ item, inSpell, setItem }) {
         activity={open}
         item={item}
         inSpell={inSpell}
+        kinds={kinds}
+        initialStep={openAt}
         onChange={(next) => setItem({ activities: item.activities.map((a) => (a.key === next.key ? next : a)) })}
         onDone={() => setEditing(null)}
       />
     )
   }
 
-  function add(kind) {
-    const a = inSpell && kind === 'save' ? { ...emptyActivity('save'), dcAbility: 'spellcasting' } : emptyActivity(kind)
+  // "Something every turn": a roll midi repeats on the owner's turns while
+  // the always-on (or stance) effect is on them; its automation runs each time.
+  function addTick() {
+    const stance = usage === 'stance'
+    let effects = item.effects
+    let carrier = effects.find((e) => (stance ? e.stance : e.passive))
+    if (!carrier) {
+      carrier = { ...emptyEffect(), name: item.name || (stance ? 'Stance' : 'Always on'), ...(stance ? { stance: true } : { passive: true }) }
+      effects = [...effects, carrier]
+    }
+    const a = { ...emptyActivity('utility'), name: 'Each turn', targetType: 'self', overTime: { ...emptyOverTimeRoll(), turn: 'start', effectKey: carrier.key } }
+    setItem({ activities: [...item.activities, a], effects })
+    setAdding(false)
+    setOpenAt('automation')
+    setEditing(a.key)
+  }
+
+  function add(key) {
+    if (key === 'everyTurn') return addTick()
+    const a = inSpell && key === 'save' ? { ...emptyActivity('save'), dcAbility: 'spellcasting' } : emptyActivity(key)
     setItem({ activities: [...item.activities, a] })
     setAdding(false)
+    setOpenAt('kind')
     setEditing(a.key)
   }
 
   return (
     <>
       <Question title="Does it roll anything?">
-        Each roll is a button on the sheet: an attack, a save, healing… Passive traits often have none.
+        {passive
+          ? ['Rolls are buttons they click.', tick && 'For something that happens by itself, pick “Something every turn”.', kind.gear ? 'Most worn things have none.' : 'Many always-on traits have none.'].filter(Boolean).join(' ')
+          : 'Each roll is a button on the sheet: an attack, a save, healing… Passive traits often have none.'}
       </Question>
       {item.activities.length > 0 && (
         <div className="aw-pieces">
@@ -337,7 +403,7 @@ function RollsStep({ item, inSpell, setItem }) {
       {adding ? (
         <>
           <p className="aw-question-small">{item.activities.length ? 'What kind of roll?' : 'Add one:'}</p>
-          <Choices options={ACTIVITY_KINDS.map((k) => ({ ...k, help: ROLL_KIND_HELP[k.key] }))} onPick={add} compact />
+          <Choices options={choices} onPick={add} compact />
           {item.activities.length > 0 && (
             <button type="button" className="secondary npc-small-button fw-self-start" onClick={() => setAdding(false)}>
               Cancel
@@ -356,11 +422,13 @@ function RollsStep({ item, inSpell, setItem }) {
 // ---------------------------------------------------------------------------
 // Effects
 
-function EffectsStep({ item, setItem }) {
+function EffectsStep({ spec, item, setItem }) {
   const [open, setOpen] = useState(null)
   const [adding, setAdding] = useState(false)
-  const stance = item.behavior?.mode === 'toggle'
-  const starts = EFFECT_STARTS.filter((s) => !s.stance || stance)
+  const kind = forgeKind(spec)
+  const allowed = allowedEffects(spec, item)
+  const starts = EFFECT_STARTS.filter((s) => allowed.includes(s.key)).map((s) => (kind.gear && s.gearLabel ? { ...s, label: s.gearLabel, help: s.gearHelp } : s))
+  const needsRoll = kind.effects.some((k) => ['condition', 'debuff', 'onUser'].includes(k)) && !landingRolls(item).length
 
   function add(key) {
     const effect = starts.find((s) => s.key === key).make()
@@ -373,7 +441,7 @@ function EffectsStep({ item, setItem }) {
     <>
       <Question title="Does it leave anything lasting?">
         Conditions and stat changes. Ones on the target land when one of its rolls does
-        {item.activities.length ? '' : ', so add a roll first for those'}.
+        {needsRoll ? ', so add a roll first for those' : ''}.
       </Question>
       {item.effects.length > 0 && (
         <div className="aw-pieces">
@@ -393,7 +461,7 @@ function EffectsStep({ item, setItem }) {
             ) : (
               <div key={e.key} className="aw-piece">
                 <div className="aw-piece-head">
-                  <strong>{effectSummary(e, item.name)}</strong>
+                  <strong>{effectSummary(e, item)}</strong>
                   <span className="aw-piece-tools">
                     <button type="button" className="secondary npc-small-button" onClick={() => setOpen(e.key)}>
                       Edit
@@ -408,7 +476,9 @@ function EffectsStep({ item, setItem }) {
           )}
         </div>
       )}
-      {adding || !item.effects.length ? (
+      {!starts.length ? (
+        !item.effects.length && <p className="npc-hint">Nothing to add yet: add a roll first, and its effects land when it does.</p>
+      ) : adding || !item.effects.length ? (
         <>
           <p className="aw-question-small">{item.effects.length ? 'What kind of effect?' : 'Add one:'}</p>
           <Choices options={starts} onPick={add} />
@@ -430,12 +500,18 @@ function EffectsStep({ item, setItem }) {
 // ---------------------------------------------------------------------------
 // Reactions (behavior rules)
 
-function ReactionsStep({ item, setItem }) {
+function ReactionsStep({ spec, item, setItem }) {
   const behavior = item.behavior
   const rules = behavior?.rules ?? []
+  const events = forgeKind(spec).events
   const setBehavior = (patch) => setItem({ behavior: { ...behavior, ...patch } })
-  const addRule = (outcome) =>
-    setItem({ behavior: behavior ? { ...behavior, rules: [...rules, emptyBehaviorRule(outcome)] } : { ...emptyBehavior('passive'), rules: [emptyBehaviorRule(outcome)] } })
+  // A start whose outcome has no event this kind allows isn't offered (armor gets no "when I hit").
+  const starts = RULE_STARTS.filter((s) => ruleEventFor(s.key, emptyBehaviorRule(s.key).event, events))
+  function addRule(outcome) {
+    const fresh = emptyBehaviorRule(outcome)
+    const rule = { ...fresh, event: ruleEventFor(outcome, fresh.event, events) }
+    setItem({ behavior: behavior ? { ...behavior, rules: [...rules, rule] } : { ...emptyBehavior('passive'), rules: [rule] } })
+  }
 
   return (
     <>
@@ -450,6 +526,7 @@ function ReactionsStep({ item, setItem }) {
               key={rule.key}
               rule={rule}
               toggle={behavior.mode === 'toggle'}
+              events={events}
               effects={item.effects.filter((e) => e.byRule)}
               onChange={(value) => setBehavior({ rules: rules.map((r, idx) => (idx === i ? value : r)) })}
               onRemove={() => {
@@ -462,7 +539,7 @@ function ReactionsStep({ item, setItem }) {
         </div>
       )}
       <p className="aw-question-small">{rules.length ? 'Another reaction?' : 'Start one:'}</p>
-      <Choices options={RULE_STARTS} onPick={addRule} compact />
+      <Choices options={starts} onPick={addRule} compact />
       {behavior && behavior.mode !== 'toggle' && (
         <FlavorFields
           flavor={{ ...emptyBehavior().flavor, ...behavior.flavor }}
@@ -507,7 +584,10 @@ export default function FeatureWizard({ spec, set, replace, onImport, showStart 
   const setItem = (patch) => set(isSpell ? { spell: { ...spec.spell, ...patch } } : { item: { ...spec.item, ...patch } })
   const name = item.name
 
-  const steps = STEPS.filter((s) => (s.key !== 'start' || !started) && (!s.feat || !isSpell) && (!s.gear || isGear))
+  const kind = forgeKind(spec)
+  const fit = fitToKind(spec)
+  // Reactions: kinds with rule events, or an old item that already has rules.
+  const steps = STEPS.filter((s) => (s.key !== 'start' || !started) && (!s.rules || kind.events.length || item.behavior?.rules?.length) && (!s.gear || isGear))
   const at = Math.max(0, steps.findIndex((s) => s.key === step))
   const current = steps[at]
   const go = (key) => {
@@ -547,30 +627,38 @@ export default function FeatureWizard({ spec, set, replace, onImport, showStart 
     setItem({ usesRecovery: RECOVERY.some((r) => r.key === item.usesRecovery) ? item.usesRecovery : isGear ? 'dawn' : 'lr', usesMax: item.usesMax || '1' })
   }
 
+  // A different kind of gear: whatever the new kind doesn't allow is changed
+  // or dropped (fitToKind), after saying what.
+  function pickGearType(key) {
+    const next = fitToKind({ ...spec, gear: { ...spec.gear, ...gearTypePatch(key) } })
+    if (next.changes.length && !confirm(`Changing it to ${forgeKind(next.spec).article}:\n\n${next.changes.map((c) => `• ${c.text}`).join('\n')}\n\nContinue?`)) return
+    set({ gear: next.spec.gear, item: next.spec.item })
+  }
+
+  const carriers = tickCarriers(item)
   const problems = [
     !linkedText && !String(name ?? '').trim() && { step: 'basics', text: 'It has no name yet.' },
     limitOf(item) === 'uses' && !String(item.usesMax ?? '').trim() && { step: 'use', text: 'It’s limited but has no number of uses.' },
     ...item.activities.flatMap((a, i) => rollProblems(a, i).map((text) => ({ step: 'rolls', text }))),
     ...item.effects
-      .filter((e) => !e.statuses?.length && !e.changes?.length)
+      .filter((e) => !e.statuses?.length && !e.changes?.length && !carriers.has(e.key))
       .map((e) => ({ step: 'effects', text: `${e.name || 'An effect'} doesn’t do anything yet.` })),
     isGear && spec.gear.type === 'weapon' && !item.activities.some((a) => a.kind === 'attack') && { step: 'rolls', text: 'A weapon needs an attack roll to be swung in Foundry.' },
+    ...fit.changes,
   ].filter(Boolean)
 
   let body
   if (current.key === 'start') {
     body = (
       <>
-        <Question title="How do you want to start?" />
+        <Question title="What are you making?">From here on, it only asks what fits that kind of thing.</Question>
         <Choices
           options={[
-            { key: 'feat', label: 'A blank feature', help: 'A class feature, feat, species trait or monster ability.' },
-            allowSpell && { key: 'spell', label: 'A blank spell', help: 'Cast with spell slots, or at will for a cantrip.' },
-            allowGear && { key: 'gear', label: 'A magic item or gear', help: 'A weapon, armor, a wondrous item or a potion.' },
+            ...FORGE_KINDS.filter((k) => (k.key !== 'spell' || allowSpell) && (!k.gear || allowGear)),
             { key: 'template', label: 'From a template', help: 'A ready-made mechanic with a few settings: a stance, a resource pool, an aura…' },
-          ].filter(Boolean)}
+          ]}
           value={templating ? 'template' : ''}
-          onPick={(key) => (key === 'template' ? setTemplating(true) : begin({ ...emptyFeatureSpec(key), ...(key === 'feat' ? { featType: spec.featType } : {}) }))}
+          onPick={(key) => (key === 'template' ? setTemplating(true) : begin(newForgeSpec(key, { featType: spec.featType })))}
         />
         {onImport && (
           <label className="button-link secondary fw-self-start">
@@ -605,7 +693,7 @@ export default function FeatureWizard({ spec, set, replace, onImport, showStart 
           <input value={item.name} onChange={(e) => setItem({ name: e.target.value })} placeholder="e.g. Cloak of the Hollow Moon" />
         </label>
         <p className="aw-question-small">What kind of item?</p>
-        <Choices options={GEAR_TYPES} value={type.key} onPick={(key) => setGear(gearTypePatch(key))} compact />
+        <Choices options={GEAR_TYPES} value={type.key} onPick={pickGearType} compact />
         <GearStatFields gear={spec.gear} setGear={setGear} showType={false} />
         <div className="dm-form-row">
           <label className="npc-wide-field">
@@ -688,12 +776,15 @@ export default function FeatureWizard({ spec, set, replace, onImport, showStart 
       const usage = usageOf(item)
       const limit = limitOf(item)
       const behavior = item.behavior
+      const uses = USES.map((u) => (isGear && u.key === 'passive' ? { ...u, label: 'Always on while equipped', help: 'Nothing to click: its bonuses apply while it’s equipped (and attuned, if it needs it).' } : u))
+      // Always on with nothing to use: there's nothing to count uses of.
+      const showLimits = usage !== 'passive' || landingRolls(item).length > 0 || limit !== ''
       body = (
         <>
           <Question title={isGear ? 'How is it used?' : 'How do they use it?'}>
-            {isGear ? 'Worn or carried items with nothing to click are “Always on”: their effects apply while equipped (or attuned).' : null}
+            {kind.key === 'weapon' ? 'Its attack is the action. Pick a bonus action or a stance if using its power works that way (Flame Tongue’s ignite is a stance).' : null}
           </Question>
-          <Choices options={USES} value={usage} onPick={pickUse} />
+          <Choices options={fitting(uses, kind.uses, usage, kind.article)} value={usage} onPick={pickUse} />
           {usage === 'stance' && (
             <div className="aw-piece">
               <strong>The stance</strong>
@@ -715,8 +806,14 @@ export default function FeatureWizard({ spec, set, replace, onImport, showStart 
             </div>
           )}
 
-          <p className="aw-question-small">{isGear ? 'Does it have charges?' : 'How often can they use it?'}</p>
-          <Choices options={LIMITS} value={limit} onPick={pickLimit} compact />
+          {showLimits ? (
+            <>
+              <p className="aw-question-small">{isGear ? 'Does it have charges?' : 'How often can they use it?'}</p>
+              <Choices options={fitting(LIMITS, allowedLimits(spec), limit, kind.article)} value={limit} onPick={pickLimit} compact />
+            </>
+          ) : (
+            <p className="npc-hint">Always on, with nothing to use: no {isGear ? 'charges' : 'uses'} to track. Add a roll if it has a power that spends them.</p>
+          )}
           {limit === 'uses' && (
             <div className="dm-form-row">
               <label>
@@ -766,11 +863,11 @@ export default function FeatureWizard({ spec, set, replace, onImport, showStart 
       )
     }
   } else if (current.key === 'rolls') {
-    body = <RollsStep item={item} inSpell={isSpell} setItem={setItem} />
+    body = <RollsStep spec={spec} item={item} inSpell={isSpell} setItem={setItem} />
   } else if (current.key === 'effects') {
-    body = <EffectsStep item={item} setItem={setItem} />
+    body = <EffectsStep spec={spec} item={item} setItem={setItem} />
   } else if (current.key === 'reactions') {
-    body = <ReactionsStep item={item} setItem={setItem} />
+    body = <ReactionsStep spec={spec} item={item} setItem={setItem} />
   } else {
     const section = (key, title, content) => (
       <li className="fw-review-part">
@@ -800,6 +897,11 @@ export default function FeatureWizard({ spec, set, replace, onImport, showStart 
                 </button>
               </p>
             ))}
+            {fit.changes.length > 0 && (
+              <button type="button" className="secondary npc-small-button fw-self-start" onClick={() => set({ item: fit.spec.item })}>
+                Make it fit {kind.article}
+              </button>
+            )}
           </div>
         )}
         <ul className="fw-review">
@@ -833,14 +935,14 @@ export default function FeatureWizard({ spec, set, replace, onImport, showStart 
             item.effects.length ? (
               <ul>
                 {item.effects.map((e) => (
-                  <li key={e.key}>{effectSummary(e, name)}</li>
+                  <li key={e.key}>{effectSummary(e, item)}</li>
                 ))}
               </ul>
             ) : (
               none
             ),
           )}
-          {!isSpell && section('reactions', 'Reactions', item.behavior ? <span>{behaviorSummary(item.behavior, name)}</span> : none)}
+          {steps.some((s) => s.key === 'reactions') && section('reactions', 'Reactions', item.behavior ? <span>{behaviorSummary(item.behavior, name)}</span> : none)}
         </ul>
       </>
     )

@@ -98,6 +98,23 @@ After the attack roll:
   otherwise steps the if's otherwise, and blocks at the same point share a part. Its remembered-number steps become a
   remembered number and sets of it.
 
+## Every turn
+
+A flow can run at the start or end of each turn by putting it on a roll that repeats each turn: the roll's
+Automation step, "Repeats each turn on whoever has this item's effect" (`activity.overTime`). The exporter puts midi's
+`flags.midi-qol.ActivityOverTime` on that effect, and midi uses the roll on whoever has it, at the start or end of
+*their* turn. The flow is in the roll's macro, so it runs each time.
+
+- **On a target** (a curse that burns each turn): pick an effect that lands on the target. It runs on the target's
+  turns.
+- **On the owner** (a ring that does something at the start of each of your turns): pick an always-on effect (on the
+  owner while the item is equipped) or a stance effect (only while the stance is on). The picker lists them under
+  "On you". The Item Forge's **Something every turn** sets this up in one click (`docs/feature-forge-guided.md`, Phase
+  5).
+- The tick is rolled as the item's owner (`rollAs: 'source'`), never spends uses, and doesn't show as a choice when
+  the item is used. Tested in `gearItems.test.mjs` (built item and read-back). Not run in Foundry yet; see the watch
+  list below.
+
 ## Export and read-back
 
 - A flow with steps (`hasFlow`) **replaces** `activity.script`. `flowCode()` compiles it into one activity macro that
@@ -167,3 +184,7 @@ Things to watch for in that first run:
 - Picking when it's used: do the attack / save / damage go to the picked creatures, and does the use card list them?
 - Does Esc while picking stay out of Foundry's own Esc menu? Does a GM's click select the token too (harmless)?
 - Is `system.scaling` on the use card by the time "After it's all done" runs, for an upcast spell?
+- Every turn on the owner: does an `ActivityOverTime` on an always-on (transfer) effect tick at the start of the
+  owner's turn, once, and stop when the item is unequipped? Midi runs over-time rolls on the GM's client: does a
+  "show the player a pop-up" line still reach the player, or only the GM? Which "When" parts of the flow run on a
+  tick ("When it's used", "After it's all done")?

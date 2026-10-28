@@ -219,8 +219,12 @@ function DamageTypeSelect({ value, onChange, allowNone = true }) {
   )
 }
 
-export function RuleEditor({ rule, toggle, onChange, onRemove, effects = [] }) {
+// events: the event keys to offer (the Item Forge narrows them by what's being
+// made: armor never "hits"); the rule's own event always stays listed.
+export function RuleEditor({ rule, toggle, onChange, onRemove, effects = [], events = null }) {
   const set = (patch) => onChange({ ...rule, ...patch })
+  const eventOptions = events ? BEHAVIOR_EVENTS.filter((ev) => events.includes(ev.key) || ev.key === rule.event) : BEHAVIOR_EVENTS
+  const outcomeOptions = events ? BEHAVIOR_OUTCOMES.filter((o) => !o.events || o.events.some((k) => events.includes(k)) || o.key === rule.outcome) : BEHAVIOR_OUTCOMES
   const event = BEHAVIOR_EVENTS.find((e) => e.key === rule.event) ?? BEHAVIOR_EVENTS[0]
   const attackish = event.attack || rule.event === 'damage' || rule.event === 'dealt'
   // Target-pass events (would drop to 0, a bonded creature is hurt): no attack
@@ -249,7 +253,7 @@ export function RuleEditor({ rule, toggle, onChange, onRemove, effects = [] }) {
         <label>
           When
           <select value={rule.event} onChange={(e) => setEvent(e.target.value)}>
-            {BEHAVIOR_EVENTS.map((ev) => (
+            {eventOptions.map((ev) => (
               <option key={ev.key} value={ev.key}>
                 {ev.label}
               </option>
@@ -259,7 +263,7 @@ export function RuleEditor({ rule, toggle, onChange, onRemove, effects = [] }) {
         <label>
           Then
           <select value={rule.outcome} onChange={(e) => setOutcome(e.target.value)}>
-            {BEHAVIOR_OUTCOMES.map((o) => (
+            {outcomeOptions.map((o) => (
               <option key={o.key} value={o.key}>
                 {o.label}
               </option>

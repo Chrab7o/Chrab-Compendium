@@ -99,9 +99,14 @@ export function ConditionRows({ rows, onChange, slot, label }) {
 
 // Midi activity over time: this roll repeats on each turn of whoever carries
 // one of the item's effects, until a save ends it (or after one tick).
+// The effect it rides on can be one that lands on a target (a curse that
+// burns each turn) or one on the owner: always on, or while the stance is on
+// (a ring that does something at the start of each of your turns).
 export function OverTimeRollFields({ activity, set, item }) {
-  const targetEffects = item.effects.filter((e) => !e.passive)
+  const targetEffects = item.effects.filter((e) => !e.passive && !e.stance)
+  const selfEffects = item.effects.filter((e) => e.passive || e.stance)
   const ot = activity.overTime
+  const onSelf = !!ot && selfEffects.some((e) => e.key === ot.effectKey)
   return (
     <div className="npc-damage-rows">
       <label className="tag-checklist-item">
@@ -121,12 +126,23 @@ export function OverTimeRollFields({ activity, set, item }) {
             <label>
               While they have
               <select value={ot.effectKey} onChange={(e) => set({ overTime: { ...ot, effectKey: e.target.value } })}>
-                <option value="">{targetEffects[0]?.name ? `${targetEffects[0].name} (first effect)` : 'The first target effect'}</option>
-                {targetEffects.slice(1).map((e) => (
-                  <option key={e.key} value={e.key}>
-                    {e.name || 'Unnamed effect'}
-                  </option>
-                ))}
+                <optgroup label="On the target">
+                  <option value="">{targetEffects[0]?.name ? `${targetEffects[0].name} (first effect)` : 'The first target effect'}</option>
+                  {targetEffects.slice(1).map((e) => (
+                    <option key={e.key} value={e.key}>
+                      {e.name || 'Unnamed effect'}
+                    </option>
+                  ))}
+                </optgroup>
+                {selfEffects.length > 0 && (
+                  <optgroup label="On you">
+                    {selfEffects.map((e) => (
+                      <option key={e.key} value={e.key}>
+                        {e.name || 'Unnamed effect'} ({e.stance ? 'while the stance is on' : 'always on'})
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
               </select>
             </label>
             {activity.kind === 'save' && (
@@ -140,9 +156,11 @@ export function OverTimeRollFields({ activity, set, item }) {
               Only once, then the effect ends
             </label>
           </div>
-          {!targetEffects.length && <span className="npc-hint">Add an effect that lands on the target - this roll repeats while it lasts.</span>}
+          {!onSelf && !targetEffects.length && <span className="npc-hint">Add an effect that lands on the target - this roll repeats while it lasts.</span>}
           <span className="npc-hint">
-            Rolled by this creature each turn (its DC and bonuses), never spends uses, and doesn&apos;t show as a choice when the item is used.
+            {onSelf
+              ? 'Runs at the start or end of each of your own turns in combat while you have the effect (equipped, carried, or the stance on). Its automation runs each time.'
+              : 'Rolled by this creature each turn (its DC and bonuses), never spends uses, and doesn’t show as a choice when the item is used.'}
           </span>
         </div>
       )}

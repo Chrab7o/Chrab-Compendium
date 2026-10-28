@@ -114,7 +114,7 @@ to `foundryFeatures.js`, `foundryActorBuilder.js` (charges), `FeatureWizard.jsx`
 
 ### Phase 4 checklist
 
-- [ ] **+ New magic item**: Basics asks for the kind; Weapon shows properties and a magic bonus, Armor shows AC fields,
+- [ ] **+ New** → a weapon, armor or consumable (was "+ New magic item"): Basics can change the kind; Weapon shows properties and a magic bonus, Armor shows AC fields,
       Consumable shows "used up".
 - [ ] Description: add a named ability and text; the preview matches what the Item Maker produced; Copy HTML works.
 - [ ] A wand with 7 charges, 1d6 + 1 back at dawn: send it, and in Foundry its uses show 7 with that recovery.
@@ -123,6 +123,54 @@ to `foundryFeatures.js`, `foundryActorBuilder.js` (charges), `FeatureWizard.jsx`
 - [ ] Shops → add stock → "…or from the Item Forge" lists gear; adding one copies name, description and rarity, and
       the price is set on the row.
 - [ ] `/dm/item-maker` lands on the Item Forge; the nav has no Item Maker.
+
+## Phase 5: only what fits the kind of thing (built 2026-10-28)
+
+The guided steps used to offer everything everywhere: armor that's a stance, a potion that's always on, a target
+condition on an item with nothing to roll. Now you pick what you're making first, and every step offers only the
+choices that fit it.
+
+- **One "+ New"** on the library opens Start: "What are you making?". The choices are a feature, a spell, a weapon,
+  armor or a shield, a wondrous item, a consumable, or a template. The four gear choices are the gear builder with
+  the kind already set. A new weapon starts with an attack roll and as an action. A new consumable starts with one
+  charge that's used up. `?kind=spell|weapon|armor|wondrous|consumable` (old `?kind=gear` = wondrous) skips Start. The
+  NPC dialog still offers only a feature or a template.
+- **The table** is `src/lib/forgeKinds.js` (`FORGE_KINDS`, tested in `forgeKinds.test.mjs`):
+
+  | Kind | How it's used | Uses | Rolls | Effects | Reactions |
+  |---|---|---|---|---|---|
+  | Feature | all | uses; d6 recharge only for a monster feature | all | all | all events |
+  | Spell | (casting) | - | all | on the target, on whoever it's used on | none |
+  | Weapon | action, bonus, stance | charges | attack, save, damage, heal, utility | target, while equipped, stance | attack / hit / damage / dealt / failed save / used / turn |
+  | Armor or shield | always on, action, bonus, reaction | charges | save, heal, utility | target, while equipped | I take damage / I'd drop to 0 / used / turn |
+  | Wondrous | all but a d6 recharge | charges | all | all | all events |
+  | Consumable | action, bonus | charges (required) | attack, save, damage, heal, utility | target, on whoever it's used on | none |
+
+  Further narrowed by what the item already is:
+  - Target effects only once there's a roll that lands them (a repeat-each-turn tick doesn't count).
+  - Stance bonuses only on a stance.
+  - No uses question for something always on with nothing to roll.
+  - Reaction starts and the rule editor's When / Then lists only show events the kind allows (`RuleEditor` takes
+    `events`).
+- **Old items keep their choices.** A choice the kind no longer allows still shows, selected, marked "Doesn't usually
+  fit ___". Review lists each one (`fitToKind()`), with a **Make it fit** button. Changing a gear item's kind says what
+  will change first. "All fields" isn't filtered.
+- **Something every turn**: on an always-on item or a stance, the Rolls step's first choice. It adds a utility roll
+  "Each turn" that repeats at the start of each of the owner's turns while an always-on (or stance) effect is on them.
+  The effect is created, named after the item, if there's none. The roll opens at its Automation step, so whatever you
+  build there runs each turn. See "Every turn" in `docs/automation-builder.md`.
+
+### Phase 5 checklist
+
+- [ ] **+ New** → Start lists the seven choices; the library has no other New buttons.
+- [ ] Armor: How it's used has always on first, no stance, no d6 recharge; Rolls has no attack; Reactions has no
+      "extra damage when they hit".
+- [ ] Consumable: no always on and no Reactions step; Effects says to add a roll first.
+- [ ] Wondrous ring, always on → Rolls → Something every turn → build a pop-up → send it. In Foundry, equip it on a PC
+      and start combat: the pop-up shows at the start of that PC's turn, once. Unequip it: it stops.
+- [ ] The same on a stance feature: only while the stance is on.
+- [ ] Open an old weapon saved as "Always on": it's marked, Review offers Make it fit, and afterwards the attack is an
+      action in Foundry.
 
 ## Status (2026-10-25)
 
