@@ -6,6 +6,7 @@ import RepeatableRows from '../RepeatableRows'
 import VisibilitySelect from './VisibilitySelect'
 import { useAutomationOptions } from './useAutomationOptions'
 import FeatureMechanics from './FeatureMechanics'
+import ForgeFeaturePicker from './ForgeFeaturePicker'
 import { attachMechanics, loadDraftSpecs, saveRowMechanics } from './mechanics'
 import { republishQuietly } from '../../../lib/foundryClassPackPublish'
 
@@ -182,7 +183,16 @@ export default function StandaloneSubclassEditor() {
           withLevel
           withSubFeatures
           addLabel="+ Add Feature"
-          renderRowExtra={(row, patch) => <FeatureMechanics row={row} onChange={patch} linkable={automationOptions} />}
+          renderRowExtra={(row, patch) => (
+            <FeatureMechanics row={row} onChange={patch} linkable={automationOptions.options} onRefreshLinks={automationOptions.reload} />
+          )}
+          renderAddExtra={(add, parent) => (
+            <ForgeFeaturePicker
+              label={parent ? '+ Add from the Item Forge…' : '+ Add Feature from the Item Forge…'}
+              onPick={add}
+              linkedHere={form.features.map((f) => f.feature_draft_id).filter(Boolean)}
+            />
+          )}
         />
 
         {error && <p className="status-message error">{error}</p>}

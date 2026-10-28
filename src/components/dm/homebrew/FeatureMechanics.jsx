@@ -6,13 +6,14 @@ import { ItemCard } from '../npc/ActionBuilder'
 import { NpcSpecContext } from '../npc/FormulaInput'
 import { OWNER_CONTEXT } from '../feature/ownerContext'
 import { loadDraftSpecs } from './mechanics'
+import { linkTextPatch } from '../../../lib/forgeClassRows'
 
 // A class or subclass feature's Foundry mechanics, edited right in its row:
 // uses, rolls, effects, a stance and its rules - the Feature Forge's item
 // editor, minus the name and text, which the row already has. Saving the
 // class saves them as the row's Feature Forge draft (mechanics.js), which the
 // Foundry class pack then hands to characters.
-export default function FeatureMechanics({ row, onChange, linkable = [] }) {
+export default function FeatureMechanics({ row, onChange, linkable = [], onRefreshLinks = null }) {
   const [open, setOpen] = useState(false)
   const [error, setError] = useState(null)
   const spec = row.mechanics
@@ -29,7 +30,18 @@ export default function FeatureMechanics({ row, onChange, linkable = [] }) {
     try {
       const specs = await loadDraftSpecs([id])
       if (!specs.has(id)) throw new Error('that feature no longer exists')
-      onChange({ feature_draft_id: id, mechanics: specs.get(id), mechanicsDirty: false, mechanicsMissing: false })
+      const spec = specs.get(id)
+      // Saving the class writes this row's name and text onto the draft, so
+      // a blank one takes the draft's, and a different one is a choice.
+      const { patch, conflicts, forge } = linkTextPatch(row, spec)
+      const keepForge =
+        conflicts.length > 0 &&
+        confirm(
+          `“${spec.item.name}” has a different ${conflicts.join(' and ')} in the Item Forge.\n\n` +
+            `OK: use the Item Forge's ${conflicts.join(' and ')} here.\n` +
+            `Cancel: keep this row's. Saving the class replaces the Item Forge's with it.`
+        )
+      onChange({ ...patch, ...(keepForge ? forge : {}), feature_draft_id: id, mechanics: spec, mechanicsDirty: false, mechanicsMissing: false })
       setOpen(true)
     } catch (err) {
       setError(`Couldn't load it: ${err.message}`)
@@ -61,7 +73,7 @@ export default function FeatureMechanics({ row, onChange, linkable = [] }) {
                 </button>
                 <label>
                   Use an Item Forge item
-                  <select value="" onChange={(e) => link(e.target.value)}>
+                  <select value="" onFocus={() => onRefreshLinks?.()} onChange={(e) => link(e.target.value)}>
                     <option value="">Choose…</option>
                     {linkable.map((o) => (
                       <option key={o.id} value={o.id}>

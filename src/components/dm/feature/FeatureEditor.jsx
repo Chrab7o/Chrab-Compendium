@@ -22,6 +22,7 @@ import { OWNER_CONTEXT } from './ownerContext'
 import TemplatePicker from './TemplatePicker'
 import FeatureWizard from './FeatureWizard'
 import ChainBuilder from './ChainBuilder'
+import AddToClass from './AddToClass'
 import { DescriptionBlocks, GearStatFields } from './GearFields'
 import { buildFromTemplate, findTemplate } from '../../../lib/automationTemplates'
 import { newForgeSpec } from '../../../lib/forgeKinds'
@@ -136,6 +137,8 @@ export default function FeatureEditor({ layout = null }) {
   const [savedAt, setSavedAt] = useState(null)
   const [syncStatus, setSyncStatus] = useState('draft')
   const [usedBy, setUsedBy] = useState([]) // class / subclass features this automates
+  const [linksVersion, setLinksVersion] = useState(0) // bumped to reload usedBy
+  const [addingToClass, setAddingToClass] = useState(false)
   const [onNpcs, setOnNpcs] = useState([]) // NPC Forge drafts that link it
   const [mode, setMode] = useState(storedMode)
 
@@ -160,7 +163,7 @@ export default function FeatureEditor({ layout = null }) {
     return () => {
       cancelled = true
     }
-  }, [draftId])
+  }, [draftId, linksVersion])
 
   useEffect(() => {
     if (isNew) return
@@ -277,6 +280,11 @@ export default function FeatureEditor({ layout = null }) {
               </button>
             </div>
           )}
+          {draftId && spec.kind === 'feat' && (
+            <button type="button" className="secondary" onClick={() => setAddingToClass(true)} disabled={addingToClass}>
+              Add to a class…
+            </button>
+          )}
           <label className="fw-campaign">
             Campaign
             <select value={campaignId} onChange={(e) => setCampaignId(e.target.value)}>
@@ -315,6 +323,19 @@ export default function FeatureEditor({ layout = null }) {
             Skip, start blank
           </button>
         </div>
+      )}
+
+      {addingToClass && (
+        <AddToClass
+          draftId={draftId}
+          spec={spec}
+          onAdded={({ spec: next, notice }) => {
+            setSpec(next)
+            setLinksVersion((v) => v + 1)
+            if (notice) setError(notice)
+          }}
+          onClose={() => setAddingToClass(false)}
+        />
       )}
 
       {usedBy.length > 0 && (

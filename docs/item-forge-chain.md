@@ -79,6 +79,67 @@ A roll that every branch would reach some other way (a trigger loop) still shows
 - **Problems** show at the bottom with no "jump to" yet.
 - If it sticks: make it the default layout and retire the guided Rolls / Effects steps.
 
+## Rollout plan: the chain builder everywhere (decided 2026-10-28)
+
+The user wants the chain builder to be the way features are built from now on. The guided editor stays reachable
+until the last phase, so nothing is lost if a phase goes wrong.
+
+### Phase 1: the class builder imports Forge features (the blocker) (done 2026-10-28)
+
+Built as planned:
+- `ForgeFeaturePicker.jsx`, through `RepeatableRows`' `renderAddExtra`, in both `ClassWizard` and
+  `StandaloneSubclassEditor`.
+- `FeatureMechanics` link fix and `useAutomationOptions().reload`.
+- `AddToClass.jsx` on the Forge editor page (both layouts, features only, once saved).
+- Pure row logic is in `lib/forgeClassRows.js` (tested). The Supabase half is in `lib/classFeatureLinks.js`.
+- "Add to a class" saves the editor's current spec onto the draft, with the class's requirements.
+- **Checked:** `npm test` and the build, plus a headless click-through with a fake Supabase.
+- **Not yet checked:** a real browser, or a real class save afterwards.
+
+Original plan:
+
+Today a class feature reaches a Forge draft only through "Foundry mechanics → Use an Item Forge item", and only
+after you have added and named a row by hand. A feature built in the Forge (Mark of Healing, for Illustrate) has no
+direct way in.
+
+- **"+ Add from the Item Forge…"** next to "+ Add Feature", and next to "+ Add sub-feature" under every feature
+  (`RepeatableRows`, through a new `renderAddExtra` hook so Feat/Race/Background editors are unchanged). It's a
+  searchable picker of feature drafts that shows where each one is already used (`featureDraftLinks`). Picking one
+  makes the row with the draft's **name and description copied in** and `feature_draft_id` set. A sub-feature takes
+  its parent's level and choice settings, like "+ Add sub-feature".
+- **Fix the text overwrite.** A row's name and text replace the draft's when the class saves (`classFeatureSpec`).
+  Linking through the existing select now fills a blank name or description from the draft. If both have text and
+  it differs, it asks which to keep.
+- **The picker list goes stale.** `useAutomationOptions` loads once per page. It reloads when the picker opens, so
+  a feature made in another tab shows up.
+- The Forge's chain page gets **"Add to a class…"** (class, level, under which feature). That covers the other
+  direction: build in the Forge, then attach.
+
+### Phase 2: the chain builder as a piece, not just a page
+
+- `ChainDialog` (like `LibraryItemDialog`): the chain over a spec in a modal, with `onChange` / `onSave`.
+- **Class builder:** "Foundry mechanics" shows a one-line chain summary and **"Open in the chain builder"**, which
+  opens the dialog and edits the row's mechanics. They are saved with the class, as now. The inline All-fields card
+  moves behind an "All fields" toggle.
+- **NPC Forge:** `LibraryItemDialog` uses the chain instead of the guided steps.
+- **Item Forge:** the chain becomes the default for new and existing items. The guided editor stays one link away
+  ("Guided steps").
+
+### Phase 3: a class feature's options in its chain
+
+When a Forge feature is a class feature with sub-features (Illustrate → Bleeding Scar, Mark of Healing), its chain
+shows a **"Players pick N of"** node listing them, with "open" on each and "+ Add an option" (a new draft, attached as
+a sub-feature). Sub-features that spend the parent's pool say so ("Costs 1 Ink from Illustrate"). This needs the
+class link (`featureDraftLinks`) and a write path to `homebrew_class_features` / `homebrew_subclass_features`, then
+`republishQuietly`.
+
+### Phase 4: retire the old steps
+
+- Drop the guided Rolls / Effects / Automation steps. `FeatureWizard` keeps Start, Basics, Use and Reactions,
+  which the chain's Setup and Reactions nodes already use.
+- Spells and gear finish moving in: spell slots, range and area, and gear fields as Setup sub-nodes.
+- **All fields** (`ItemCard`) stays as the escape hatch.
+
 ## Checked so far (2026-10-28)
 
 - `npm test` (`forgeChain.test.mjs`: choices, nesting, trigger loops, what lands, loose effects) and `npm run build`.

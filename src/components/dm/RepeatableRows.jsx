@@ -17,6 +17,10 @@ import { nestFeatureRows, flattenFeatureRows } from '../../lib/homebrew'
 // `renderRowExtra(row, patch)` renders extra editing under every row and
 // sub-feature - the class editors' Foundry mechanics. `patch(fields)` merges
 // into that row.
+//
+// `renderAddExtra(add, parent)` renders another way to add, next to the add
+// buttons - the class editors' "+ Add from the Item Forge". `add(fields)`
+// adds a row (parent null) or a sub-feature of `parent` with those fields.
 export default function RepeatableRows({
   rows,
   onChange,
@@ -25,6 +29,7 @@ export default function RepeatableRows({
   withSubFeatures = false,
   addLabel = '+ Add',
   renderRowExtra = null,
+  renderAddExtra = null,
 }) {
   const nested = withSubFeatures ? nestFeatureRows(rows) : rows.map((r) => ({ ...r, children: [] }))
 
@@ -53,7 +58,7 @@ export default function RepeatableRows({
   const earlierGroups = (row) =>
     withLevel ? nested.filter((r) => r !== row && r.children.length && !r.choice_into && r.name.trim() && r.level < row.level) : []
 
-  function addRow() {
+  function addRow(fields = {}) {
     commit([
       ...nested,
       {
@@ -63,6 +68,7 @@ export default function RepeatableRows({
         sort_order: nested.length,
         choice_group: '',
         choice_count: null,
+        ...fields,
         children: [],
       },
     ])
@@ -84,11 +90,11 @@ export default function RepeatableRows({
     updateRow(index, { children })
   }
 
-  function addChild(index) {
+  function addChild(index, fields = {}) {
     const row = nested[index]
     updateChildren(index, [
       ...row.children,
-      { level: row.level, name: '', description: '', choice_group: row.name, choice_count: row.choice_count ?? 1 },
+      { name: '', description: '', ...fields, level: row.level, choice_group: row.name, choice_count: row.choice_count ?? 1 },
     ])
   }
 
@@ -256,9 +262,12 @@ export default function RepeatableRows({
                   {renderRowExtra?.(child, (patch) => updateChild(i, ci, patch))}
                 </div>
               ))}
-              <button type="button" className="secondary" onClick={() => addChild(i)} disabled={!row.name.trim()}>
-                + Add sub-feature
-              </button>
+              <div className="repeatable-add">
+                <button type="button" className="secondary" onClick={() => addChild(i)} disabled={!row.name.trim()}>
+                  + Add sub-feature
+                </button>
+                {row.name.trim() && renderAddExtra?.((fields) => addChild(i, fields), row)}
+              </div>
               {!row.name.trim() && row.children.length === 0 && (
                 <span className="sub-features-hint">Name the feature first — sub-features hang off its name.</span>
               )}
@@ -266,9 +275,12 @@ export default function RepeatableRows({
           )}
         </div>
       ))}
-      <button type="button" onClick={addRow}>
-        {addLabel}
-      </button>
+      <div className="repeatable-add">
+        <button type="button" onClick={() => addRow()}>
+          {addLabel}
+        </button>
+        {renderAddExtra?.((fields) => addRow(fields), null)}
+      </div>
     </div>
   )
 }

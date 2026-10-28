@@ -1,24 +1,22 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabaseClient'
 
 // Feature Forge features a class or subclass feature can be linked to, for
-// RepeatableRows' "Foundry automation" picker. Spells are left out: a class
-// feature's automation is a feature item.
+// FeatureMechanics' "Use an Item Forge item" picker. Spells are left out: a
+// class feature's automation is a feature item. `reload` refetches (the
+// picker calls it when focused, so a feature made in another tab shows up).
 export function useAutomationOptions() {
   const [options, setOptions] = useState([])
-  useEffect(() => {
-    let cancelled = false
+  const reload = useCallback(() => {
     supabase
       .from('feature_drafts')
       .select('id, name')
       .eq('kind', 'feat')
       .order('name')
-      .then(({ data }) => {
-        if (!cancelled) setOptions(data ?? [])
-      })
-    return () => {
-      cancelled = true
-    }
+      .then(({ data }) => setOptions(data ?? []))
   }, [])
-  return options
+  useEffect(() => {
+    reload()
+  }, [reload])
+  return { options, reload }
 }

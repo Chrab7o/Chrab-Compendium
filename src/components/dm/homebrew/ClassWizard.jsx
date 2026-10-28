@@ -25,6 +25,7 @@ import RepeatableRows from '../RepeatableRows'
 import VisibilitySelect from './VisibilitySelect'
 import { useAutomationOptions } from './useAutomationOptions'
 import FeatureMechanics from './FeatureMechanics'
+import ForgeFeaturePicker from './ForgeFeaturePicker'
 import { attachMechanics, loadDraftSpecs, saveRowMechanics } from './mechanics'
 import { attachMechanicsFile } from '../../../lib/classMechanicsFile'
 import { republishQuietly } from '../../../lib/foundryClassPackPublish'
@@ -82,7 +83,13 @@ export default function ClassWizard() {
   const [notice, setNotice] = useState(null)
   const [newSubclassLevel, setNewSubclassLevel] = useState('')
   const automationOptions = useAutomationOptions()
-  const renderMechanics = (row, patch) => <FeatureMechanics row={row} onChange={patch} linkable={automationOptions} />
+  const renderMechanics = (row, patch) => (
+    <FeatureMechanics row={row} onChange={patch} linkable={automationOptions.options} onRefreshLinks={automationOptions.reload} />
+  )
+  const linkedHere = [...form.features, ...form.subclasses.flatMap((s) => s.features)].map((f) => f.feature_draft_id).filter(Boolean)
+  const renderForgePicker = (add, parent) => (
+    <ForgeFeaturePicker label={parent ? '+ Add from the Item Forge…' : '+ Add Feature from the Item Forge…'} onPick={add} linkedHere={linkedHere} />
+  )
 
   // Autosaves to localStorage as the DM works through the wizard, so
   // closing the tab, a crash, or navigating away mid-edit doesn't lose
@@ -772,6 +779,7 @@ export default function ClassWizard() {
               withSubFeatures
               addLabel="+ Add Feature"
               renderRowExtra={renderMechanics}
+              renderAddExtra={renderForgePicker}
             />
           </div>
         )}
@@ -847,6 +855,7 @@ export default function ClassWizard() {
                   withSubFeatures
                   addLabel="+ Add Feature"
                   renderRowExtra={renderMechanics}
+                  renderAddExtra={renderForgePicker}
                 />
               </div>
             ))}
