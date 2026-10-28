@@ -155,6 +155,11 @@ choices that fit it.
 - **Old items keep their choices.** A choice the kind no longer allows still shows, selected, marked "Doesn't usually
   fit ___". Review lists each one (`fitToKind()`), with a **Make it fit** button. Changing a gear item's kind says what
   will change first. "All fields" isn't filtered.
+- **A resource pool** (features only) is its own "How it's used" choice. It's an always-on feature whose uses are the
+  points (Darkness, Ink). Picking it asks for Points (`@prof`, or a class column `@scale.<class>.<column>`), when they
+  refill, and the identifier spenders name. It defaults from the name, and the hint shows where to type it on a
+  spender's Cost step. Nothing new in the data: it's shown whenever an item is always on, has uses and has no rolls of
+  its own.
 - **Something every turn**: on an always-on item or a stance, the Rolls step's first choice. It adds a utility roll
   "Each turn" that repeats at the start of each of the owner's turns while an always-on (or stance) effect is on them.
   The effect is created, named after the item, if there's none. The roll opens at its Automation step, so whatever you

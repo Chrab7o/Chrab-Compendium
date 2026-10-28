@@ -68,6 +68,8 @@ const USES = [
   { key: 'bonus', label: 'A bonus action', help: 'They spend their bonus action.' },
   { key: 'reaction', label: 'A reaction', help: 'Midi offers it when its trigger happens.' },
   { key: 'passive', label: 'Always on', help: 'Nothing to click: a trait, or rules that react on their own.' },
+  // Not its own usage in the data: always on, with uses and nothing to roll (poolShown).
+  { key: 'pool', label: 'A resource pool', help: 'Holds points other features spend, like Darkness or Ink. Nothing to click.' },
   { key: 'stance', label: 'A stance they toggle', help: 'Using it turns it on, using it again turns it off. Bonuses and rules can apply only while it’s on.' },
 ]
 
@@ -132,6 +134,11 @@ const RULE_STARTS = [
 ]
 
 const sectionFor = (activation) => (activation === 'special' ? 'trait' : activation || 'bonus')
+
+// A resource pool (Darkness, Ink) is an always-on feature with uses and no
+// rolls of its own: its uses are the points, and spenders name its identifier.
+const poolShown = (item) => usageOf(item) === 'passive' && limitOf(item) === 'uses' && !landingRolls(item).length
+const shownUsage = (item, kind) => (kind.uses.includes('pool') && poolShown(item) ? 'pool' : usageOf(item))
 
 // Effects a repeat-each-turn roll rides on: they need no changes of their own.
 const tickCarriers = (item) => new Set(item.activities.map((a) => a.overTime?.effectKey).filter(Boolean))
@@ -609,7 +616,17 @@ export default function FeatureWizard({ spec, set, replace, onImport, showStart 
       const behavior = b ? { ...b, mode: 'toggle', toggle: { ...emptyBehavior().toggle, ...b.toggle } } : emptyBehavior('toggle')
       return setItem({ behavior, section: sectionFor(behavior.toggle.activation) })
     }
-    const patch = { section: key === 'passive' ? 'trait' : key }
+    const patch = { section: key === 'passive' || key === 'pool' ? 'trait' : key }
+    if (key === 'pool') {
+      // Points refill on a long rest unless they already come back some other way.
+      Object.assign(patch, {
+        usesRecovery: item.usesRecovery && item.usesRecovery !== 'recharge' ? item.usesRecovery : 'lr',
+        usesMax: item.usesMax || '',
+        identifier: item.identifier || identifierFor(item.name),
+      })
+    } else if (key === 'passive' && shownUsage(item, kind) === 'pool') {
+      patch.usesRecovery = ''
+    }
     if (b?.mode === 'toggle') {
       // Rules outlive the stance as always-on rules; stance bonuses become always on.
       patch.behavior = b.rules?.length ? { ...b, mode: 'passive' } : null
@@ -638,7 +655,7 @@ export default function FeatureWizard({ spec, set, replace, onImport, showStart 
   const carriers = tickCarriers(item)
   const problems = [
     !linkedText && !String(name ?? '').trim() && { step: 'basics', text: 'It has no name yet.' },
-    limitOf(item) === 'uses' && !String(item.usesMax ?? '').trim() && { step: 'use', text: 'It’s limited but has no number of uses.' },
+    limitOf(item) === 'uses' && !String(item.usesMax ?? '').trim() && { step: 'use', text: shownUsage(item, kind) === 'pool' ? 'The resource pool has no number of points yet.' : 'It’s limited but has no number of uses.' },
     ...item.activities.flatMap((a, i) => rollProblems(a, i).map((text) => ({ step: 'rolls', text }))),
     ...item.effects
       .filter((e) => !e.statuses?.length && !e.changes?.length && !carriers.has(e.key))
@@ -774,17 +791,26 @@ export default function FeatureWizard({ spec, set, replace, onImport, showStart 
       )
     } else {
       const usage = usageOf(item)
+      const shown = shownUsage(item, kind)
+      const pool = shown === 'pool'
       const limit = limitOf(item)
       const behavior = item.behavior
       const uses = USES.map((u) => (isGear && u.key === 'passive' ? { ...u, label: 'Always on while equipped', help: 'Nothing to click: its bonuses apply while it’s equipped (and attuned, if it needs it).' } : u))
       // Always on with nothing to use: there's nothing to count uses of.
-      const showLimits = usage !== 'passive' || landingRolls(item).length > 0 || limit !== ''
+      const showLimits = !pool && (usage !== 'passive' || landingRolls(item).length > 0 || limit !== '')
+      const poolId = identifierFor(item.identifier || item.name) || 'ink'
       body = (
         <>
           <Question title={isGear ? 'How is it used?' : 'How do they use it?'}>
             {kind.key === 'weapon' ? 'Its attack is the action. Pick a bonus action or a stance if using its power works that way (Flame Tongue’s ignite is a stance).' : null}
           </Question>
-          <Choices options={fitting(uses, kind.uses, usage, kind.article)} value={usage} onPick={pickUse} />
+          <Choices options={fitting(uses, kind.uses, shown, kind.article)} value={shown} onPick={pickUse} />
+          {pool && (
+            <p className="npc-hint">
+              Other features spend these points: on their roll’s <strong>Cost</strong> step, <em>Also spends</em> → <em>A class resource (by identifier)</em> →{' '}
+              <code>{poolId}</code>. The points show on the character sheet as this feature’s uses.
+            </p>
+          )}
           {usage === 'stance' && (
             <div className="aw-piece">
               <strong>The stance</strong>
@@ -812,16 +838,26 @@ export default function FeatureWizard({ spec, set, replace, onImport, showStart 
               <Choices options={fitting(LIMITS, allowedLimits(spec), limit, kind.article)} value={limit} onPick={pickLimit} compact />
             </>
           ) : (
-            <p className="npc-hint">Always on, with nothing to use: no {isGear ? 'charges' : 'uses'} to track. Add a roll if it has a power that spends them.</p>
+            !pool && (
+              <p className="npc-hint">
+                Always on, with nothing to use: no {isGear ? 'charges' : 'uses'} to track. Add a roll if it has a power that spends them
+                {kind.uses.includes('pool') ? ', or pick “A resource pool” if it holds points other features spend' : ''}.
+              </p>
+            )
           )}
           {limit === 'uses' && (
             <div className="dm-form-row">
               <label>
-                {isGear ? 'Charges' : 'Uses'}
-                <FormulaInput value={String(item.usesMax ?? '')} onChange={(usesMax) => setItem({ usesMax })} placeholder={isGear ? 'e.g. 7' : '3 or @prof'} ariaLabel="Uses" />
+                {pool ? 'Points' : isGear ? 'Charges' : 'Uses'}
+                <FormulaInput
+                  value={String(item.usesMax ?? '')}
+                  onChange={(usesMax) => setItem({ usesMax })}
+                  placeholder={pool ? '@prof, or a class column: @scale.<class>.<column>' : isGear ? 'e.g. 7' : '3 or @prof'}
+                  ariaLabel="Uses"
+                />
               </label>
               <label>
-                Comes back
+                {pool ? 'Refills' : 'Comes back'}
                 <select value={item.usesRecovery} onChange={(e) => setItem({ usesRecovery: e.target.value })}>
                   {RECOVERY.map((r) => (
                     <option key={r.key} value={r.key}>
@@ -837,7 +873,7 @@ export default function FeatureWizard({ spec, set, replace, onImport, showStart 
                 </label>
               )}
               <label className="npc-wide-field">
-                Resource identifier (other features spend these uses by it)
+                {pool ? 'Identifier (what spenders name)' : 'Resource identifier (other features spend these uses by it)'}
                 <input
                   className="npc-code-input"
                   value={item.identifier ?? ''}
@@ -912,7 +948,7 @@ export default function FeatureWizard({ spec, set, replace, onImport, showStart 
               'Description',
               hasDescription(spec.gear.blocks) ? <span>{descriptionText.length > 220 ? `${descriptionText.slice(0, 220)}…` : descriptionText}</span> : none,
             )}
-          {!isSpell && section('use', 'How it’s used', <span>{[USES.find((u) => u.key === usageOf(item))?.label, limitText(item)].join(' · ')}</span>)}
+          {!isSpell && section('use', 'How it’s used', <span>{[USES.find((u) => u.key === shownUsage(item, kind))?.label, limitText(item)].join(' · ')}</span>)}
           {section(
             'rolls',
             'Rolls',

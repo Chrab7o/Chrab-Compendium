@@ -18,7 +18,8 @@ export const FORGE_KINDS = [
     label: 'A feature',
     help: 'A class feature, feat, species trait or monster ability.',
     article: 'a feature',
-    uses: ['action', 'bonus', 'reaction', 'passive', 'stance'],
+    // pool: shown for always on + uses + no rolls (FeatureWizard); usageOf() never returns it.
+    uses: ['action', 'bonus', 'reaction', 'passive', 'pool', 'stance'],
     limits: ['', 'uses', 'recharge'],
     rolls: ALL_ROLLS,
     effects: ['condition', 'debuff', 'self', 'stance'],
