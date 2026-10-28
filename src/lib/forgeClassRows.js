@@ -6,7 +6,7 @@
 // Saving a class writes each row's name and text onto its linked draft
 // (classFeatureSpec), so a row made from a draft starts with the draft's own
 // name and text, or the first class save would wipe them.
-import { nestFeatures } from './homebrew.js'
+import { flattenFeatureRows, nestFeatureRows, nestFeatures } from './homebrew.js'
 
 const clean = (s) => String(s ?? '').trim()
 const same = (a, b) => clean(a).toLowerCase() === clean(b).toLowerCase()
@@ -19,6 +19,38 @@ export function draftText(spec) {
 // settings, which depend on where it goes).
 export function rowFromDraft(draftId, spec) {
   return { ...draftText(spec), feature_draft_id: draftId, mechanics: spec, mechanicsDirty: false, mechanicsMissing: false }
+}
+
+// A save from the chain builder tab (lib/forgeHandoff.js) onto the class
+// editor's form: the row with that forge_key, in the class's features or any
+// subclass's, takes the draft's link, mechanics, name and text. Returns the
+// new form, or null if no row has that key.
+// Options hang off their feature's name, so this goes through the editor's
+// nested view: a renamed feature keeps its options, and later features that
+// add to it follow the new name.
+export function applyForgeSave(form, key, { draftId, spec }) {
+  let found = false
+  const text = draftText(spec)
+  const patch = (r) => {
+    found = true
+    return { ...r, name: text.name || r.name, description: text.description, feature_draft_id: draftId, mechanics: spec, mechanicsDirty: false, mechanicsMissing: false }
+  }
+  const apply = (rows) => {
+    if (!(rows ?? []).some((r) => r.forge_key === key)) return rows
+    let renamed = null
+    const nested = nestFeatureRows(rows).map((p) => {
+      if (p.forge_key === key) {
+        const next = patch(p)
+        if (!same(next.name, p.name)) renamed = { from: clean(p.name), to: next.name }
+        return next
+      }
+      return { ...p, children: p.children.map((c) => (c.forge_key === key ? patch(c) : c)) }
+    })
+    return flattenFeatureRows(renamed ? nested.map((p) => (p.choice_into === renamed.from ? { ...p, choice_into: renamed.to } : p)) : nested)
+  }
+  const next = { ...form, features: apply(form.features) }
+  if (form.subclasses) next.subclasses = form.subclasses.map((s) => ({ ...s, features: apply(s.features) }))
+  return found ? next : null
 }
 
 // Linking an existing row to a draft: a blank name or text is filled from the

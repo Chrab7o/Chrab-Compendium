@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { nestFeatureRows } from './homebrew.js'
-import { linkTextPatch, placedRow, placementsFor, rowFromDraft } from './forgeClassRows.js'
+import { applyForgeSave, linkTextPatch, placedRow, placementsFor, rowFromDraft } from './forgeClassRows.js'
 
 const spec = (name, description) => ({ kind: 'feat', item: { name, description, activities: [], effects: [] } })
 const row = (level, name, extra = {}) => ({ level, name, description: `${name} text.`, sort_order: 0, choice_group: '', choice_count: null, choice_swap: false, feature_draft_id: null, ...extra })
@@ -52,6 +52,38 @@ test('placed under a feature with no options yet: they pick 1; on its own: the l
   const own = placedRow(picto, { name: 'X', draftId: 'd', level: '5' })
   assert.deepEqual([own.level, own.choice_group, own.choice_count], [5, '', null])
   assert.throws(() => placedRow(picto, { name: 'X', draftId: 'd', under: 'Nope' }), /No feature named/)
+})
+
+test('a save from the chain tab fills in the row with that key, in the class or a subclass', () => {
+  const form = {
+    features: [...picto.slice(0, 2), { level: 1, name: '', description: '', sort_order: 3, choice_group: 'Illustrate', choice_count: 0, forge_key: 'k1' }, picto[2]],
+    subclasses: [{ name: 'Sub', features: [row(3, 'Sub thing', { forge_key: 'k2' })] }],
+  }
+  const saved = applyForgeSave(form, 'k1', { draftId: 'mark', spec: spec('Mark of Healing', 'Heals.') })
+  const illustrate = nestFeatureRows(saved.features).find((n) => n.name === 'Illustrate')
+  assert.deepEqual(illustrate.children.map((c) => [c.name, c.feature_draft_id]), [['Bleeding Scar', null], ['Mark of Healing', 'mark']])
+  assert.equal(saved.subclasses, saved.subclasses, 'subclasses kept')
+  const sub = applyForgeSave(form, 'k2', { draftId: 'd2', spec: spec('Sub thing', 'New text.') })
+  assert.deepEqual([sub.subclasses[0].features[0].description, sub.subclasses[0].features[0].mechanicsDirty], ['New text.', false])
+  assert.equal(applyForgeSave(form, 'nope', { draftId: 'x', spec: spec('X', '') }), null)
+})
+
+test('renaming a feature from the chain tab keeps its options and the groups that add to it', () => {
+  const form = {
+    features: [
+      row(2, 'Dark Arts', { forge_key: 'k' }),
+      row(2, 'Shadow Smite', { choice_group: 'Dark Arts', choice_count: 2 }),
+      row(6, 'Dark Arts Continued'),
+      row(6, 'Night Veil', { choice_group: 'Dark Arts' }),
+    ],
+  }
+  const saved = applyForgeSave(form, 'k', { draftId: 'd', spec: spec('Shadow Arts', 'x') })
+  // Same as renaming in the class editor: every option now names Shadow Arts,
+  // and none is left under a stand-in "Dark Arts".
+  assert.deepEqual(saved.features.filter((r) => r.choice_group).map((r) => r.choice_group), ['Shadow Arts', 'Shadow Arts'])
+  const nested = nestFeatureRows(saved.features)
+  assert.ok(!nested.some((n) => n.name === 'Dark Arts'), 'no orphaned group')
+  assert.ok(nested.find((n) => n.name === 'Shadow Arts').children.some((c) => c.name === 'Shadow Smite'))
 })
 
 test('under a feature that adds to an earlier group: joins that group', () => {

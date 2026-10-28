@@ -115,6 +115,31 @@ direct way in.
 - The Forge's chain page gets **"Add to a class…"** (class, level, under which feature). That covers the other
   direction: build in the Forge, then attach.
 
+### Phase 2a: the class builder works through the chain builder (done 2026-10-28)
+
+The user asked for a new tab rather than a pop-up. Built that way:
+- **The feature list folds.** Each feature and sub-feature is one line: level, name, and the start of its text.
+  Clicking the line opens its level, name, text, and the chain read-only (`ChainBuilder readOnly`). Options and the
+  "Players choose" setting stay visible while folded. This is `RepeatableRows collapsible`. Feat, Race and
+  Background are unchanged.
+- **"+ Add Feature" and "+ Add sub-feature"** add a placeholder row with a `forge_key` and open
+  `/dm/item-forge/chain/new?for=<key>` in a new tab (`RepeatableRows onCreate`, `useForgeSaves`). A placeholder that
+  is never saved has no name, so saving the class drops it.
+- **"Edit in the chain builder ↗"** on an open feature opens its draft in a tab named for the row, so a second
+  click goes back to the same tab. A text-only feature gets "Build it in the chain builder ↗", which starts a
+  draft from its name and text.
+- **Each save in the chain tab** goes back over a `BroadcastChannel` (`lib/forgeHandoff.js`). The class page fills in
+  the row: draft link, mechanics, name and text (`applyForgeSave`, which keeps a renamed feature's options). It
+  then answers, and the chain tab's banner says it landed, or that the class page was closed and to use "+ Add from
+  the Item Forge" instead. The row is saved to the database when the class is saved, as before.
+- **Removed:** the old inline "All fields" mechanics card and "Start blank / template" in the class editors.
+  "Use an Item Forge item" and "+ Add from the Item Forge" stay.
+- **Checked:** unit tests for `applyForgeSave` and a headless click-through of the folded list, the read-only chain
+  on the real Bleeding Scar, the tab handoff with a real `BroadcastChannel`, and a placeholder becoming a feature
+  or an option.
+- **Not yet checked:** a real browser. Pop-up blockers should allow it, since the tab opens straight from the click.
+  The chain tab's own banner path (`FeatureEditor ?for=`) is covered only by the build.
+
 ### Phase 2: the chain builder as a piece, not just a page
 
 - `ChainDialog` (like `LibraryItemDialog`): the chain over a spec in a modal, with `onChange` / `onSave`.

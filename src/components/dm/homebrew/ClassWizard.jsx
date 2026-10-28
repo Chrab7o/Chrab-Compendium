@@ -26,6 +26,7 @@ import VisibilitySelect from './VisibilitySelect'
 import { useAutomationOptions } from './useAutomationOptions'
 import FeatureMechanics from './FeatureMechanics'
 import ForgeFeaturePicker from './ForgeFeaturePicker'
+import { useForgeSaves } from './useForgeSaves'
 import { attachMechanics, loadDraftSpecs, saveRowMechanics } from './mechanics'
 import { attachMechanicsFile } from '../../../lib/classMechanicsFile'
 import { republishQuietly } from '../../../lib/foundryClassPackPublish'
@@ -83,8 +84,16 @@ export default function ClassWizard() {
   const [notice, setNotice] = useState(null)
   const [newSubclassLevel, setNewSubclassLevel] = useState('')
   const automationOptions = useAutomationOptions()
+  // Features are built in the chain builder, in another tab; its saves land here.
+  const createInChain = useForgeSaves(form, setForm, form.name)
   const renderMechanics = (row, patch) => (
-    <FeatureMechanics row={row} onChange={patch} linkable={automationOptions.options} onRefreshLinks={automationOptions.reload} />
+    <FeatureMechanics
+      row={row}
+      onChange={patch}
+      linkable={automationOptions.options}
+      onRefreshLinks={automationOptions.reload}
+      classLabel={form.name}
+    />
   )
   const linkedHere = [...form.features, ...form.subclasses.flatMap((s) => s.features)].map((f) => f.feature_draft_id).filter(Boolean)
   const renderForgePicker = (add, parent) => (
@@ -770,7 +779,8 @@ export default function ClassWizard() {
             <p className="status-message">
               Add a row for each level that grants a feature. Not every level needs one. A feature that is really a
               menu — Metamagic, Dark Arts, Fighting Styles — keeps its options as sub-features inside it, and you set
-              whether the player picks some of them or gets them all.
+              whether the player picks some of them or gets them all. “+ Add Feature” opens the chain builder in a new
+              tab; save there and the feature shows up here. Click a feature to see its text and chain.
             </p>
             <RepeatableRows
               rows={form.features}
@@ -780,6 +790,9 @@ export default function ClassWizard() {
               addLabel="+ Add Feature"
               renderRowExtra={renderMechanics}
               renderAddExtra={renderForgePicker}
+              collapsible
+              onCreate={createInChain}
+              untitled="New feature: name it in the chain builder tab"
             />
           </div>
         )}
@@ -856,6 +869,9 @@ export default function ClassWizard() {
                   addLabel="+ Add Feature"
                   renderRowExtra={renderMechanics}
                   renderAddExtra={renderForgePicker}
+                  collapsible
+                  onCreate={createInChain}
+                  untitled="New feature: name it in the chain builder tab"
                 />
               </div>
             ))}

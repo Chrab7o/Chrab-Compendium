@@ -1,27 +1,29 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
-import { emptyFeatureSpec, mechanicsSummary } from '../../../lib/foundryFeatures'
-import TemplatePicker from '../feature/TemplatePicker'
-import { ItemCard } from '../npc/ActionBuilder'
+import ChainBuilder from '../feature/ChainBuilder'
 import { NpcSpecContext } from '../npc/FormulaInput'
 import { OWNER_CONTEXT } from '../feature/ownerContext'
 import { loadDraftSpecs } from './mechanics'
 import { linkTextPatch } from '../../../lib/forgeClassRows'
+import { newHandoffKey, openInChain } from '../../../lib/forgeHandoff'
 
-// A class or subclass feature's Foundry mechanics, edited right in its row:
-// uses, rolls, effects, a stance and its rules - the Feature Forge's item
-// editor, minus the name and text, which the row already has. Saving the
-// class saves them as the row's Feature Forge draft (mechanics.js), which the
-// Foundry class pack then hands to characters.
-export default function FeatureMechanics({ row, onChange, linkable = [], onRefreshLinks = null }) {
-  const [open, setOpen] = useState(false)
+// A class or subclass feature's Foundry mechanics, under its text when the
+// row is open: the chain read-only, and "Edit in the chain builder", which
+// opens it in another tab. Saving there sends it back here
+// (lib/forgeHandoff.js, the editors' useForgeSaves); saving the class saves
+// the row's link, and its name and text onto the draft (mechanics.js). The
+// draft is what the Foundry class pack hands to characters.
+// classLabel: the class's name, shown in the chain tab.
+export default function FeatureMechanics({ row, onChange, linkable = [], onRefreshLinks = null, classLabel = '' }) {
   const [error, setError] = useState(null)
   const spec = row.mechanics
-  const summary = spec ? mechanicsSummary(spec) || 'no rolls yet' : row.mechanicsMissing ? 'linked feature not found' : 'none, text only'
+  // Mechanics started in the old inline editor and never saved have no draft
+  // to open yet.
+  const unsavedInline = spec && !row.feature_draft_id
 
-  function start(next) {
-    onChange({ mechanics: next, mechanicsDirty: true, mechanicsMissing: false })
-    setOpen(true)
+  function openChain() {
+    const key = row.forge_key ?? newHandoffKey()
+    if (!row.forge_key) onChange({ forge_key: key })
+    openInChain({ key, draftId: row.feature_draft_id, start: { name: row.name, description: row.description, label: classLabel } })
   }
 
   async function link(id) {
@@ -42,7 +44,6 @@ export default function FeatureMechanics({ row, onChange, linkable = [], onRefre
             `Cancel: keep this row's. Saving the class replaces the Item Forge's with it.`
         )
       onChange({ ...patch, ...(keepForge ? forge : {}), feature_draft_id: id, mechanics: spec, mechanicsDirty: false, mechanicsMissing: false })
-      setOpen(true)
     } catch (err) {
       setError(`Couldn't load it: ${err.message}`)
     }
@@ -54,83 +55,42 @@ export default function FeatureMechanics({ row, onChange, linkable = [], onRefre
   }
 
   return (
-    <details className="npc-automation feature-mechanics" open={open} onToggle={(e) => setOpen(e.currentTarget.open)}>
-      <summary>
-        Foundry mechanics <span className="npc-badge">{summary}</span>
-        {row.mechanicsDirty && <span className="feature-mechanics-unsaved">unsaved</span>}
-      </summary>
-      {open && (
-        <div className="npc-automation-body">
-          {!spec && (
-            <>
-              <p className="npc-hint">
-                Uses, attack or save rolls, effects, or a stance with “when I hit…” rules. Characters who gain this
-                feature in Foundry get them from the class compendium.
-              </p>
-              <div className="dm-form-row">
-                <button type="button" className="secondary npc-small-button" onClick={() => start(emptyFeatureSpec('feat'))}>
-                  + Start blank
-                </button>
-                <label>
-                  Use an Item Forge item
-                  <select value="" onFocus={() => onRefreshLinks?.()} onChange={(e) => link(e.target.value)}>
-                    <option value="">Choose…</option>
-                    {linkable.map((o) => (
-                      <option key={o.id} value={o.id}>
-                        {o.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-              <TemplatePicker onCreate={start} createLabel="Use this template" />
-            </>
-          )}
-          {row.mechanicsMissing && !spec && (
-            <p className="npc-hint npc-behavior-warn">
-              This feature is linked to an Item Forge item that couldn&apos;t be loaded.{' '}
-              <button type="button" className="secondary npc-small-button" onClick={unlink}>
-                Unlink
-              </button>
-            </p>
-          )}
-          {spec && (
-            <>
-              <label>
-                Icon
-                <input
-                  value={spec.item.img ?? ''}
-                  onChange={(e) => onChange({ mechanics: { ...spec, item: { ...spec.item, img: e.target.value } }, mechanicsDirty: true })}
-                  placeholder="Foundry path, e.g. icons/svg/skull.svg"
-                />
-              </label>
-              <NpcSpecContext.Provider value={OWNER_CONTEXT}>
-                <div className="repeatable-rows">
-                  <ItemCard
-                    item={{ ...spec.item, name: row.name }}
-                    onChange={(item) => onChange({ mechanics: { ...spec, item }, mechanicsDirty: true })}
-                    standalone
-                    hideText
-                  />
-                </div>
-              </NpcSpecContext.Provider>
-              <div className="dm-form-actions">
-                {row.feature_draft_id ? (
-                  <Link to={`/dm/item-forge/${row.feature_draft_id}/edit`} target="_blank" rel="noreferrer" className="button-link secondary">
-                    Open in the Item Forge (macro preview, send to Foundry)
-                  </Link>
-                ) : (
-                  <span className="npc-hint">Saved to the Item Forge when you save the class.</span>
-                )}
-                <button type="button" className="danger npc-small-button" onClick={unlink}>
-                  Remove mechanics
-                </button>
-              </div>
-            </>
-          )}
-          {error && <p className="status-message error">{error}</p>}
-        </div>
+    <div className="feature-flow">
+      {spec ? (
+        <NpcSpecContext.Provider value={OWNER_CONTEXT}>
+          <ChainBuilder spec={{ ...spec, item: { ...spec.item, name: row.name || spec.item.name } }} readOnly />
+        </NpcSpecContext.Provider>
+      ) : row.mechanicsMissing ? (
+        <p className="npc-hint npc-behavior-warn">This feature is linked to an Item Forge item that couldn&apos;t be loaded.</p>
+      ) : (
+        <p className="npc-hint">Text only: nothing to roll or apply in Foundry yet.</p>
       )}
-    </details>
+      <div className="dm-form-actions">
+        <button type="button" className="secondary" onClick={openChain} disabled={unsavedInline}>
+          {spec ? 'Edit in the chain builder ↗' : 'Build it in the chain builder ↗'}
+        </button>
+        {!spec && (
+          <label className="feature-flow-link">
+            or use an Item Forge item
+            <select value="" onFocus={() => onRefreshLinks?.()} onChange={(e) => link(e.target.value)}>
+              <option value="">Choose…</option>
+              {linkable.map((o) => (
+                <option key={o.id} value={o.id}>
+                  {o.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        {(spec || row.mechanicsMissing) && (
+          <button type="button" className="danger npc-small-button" onClick={unlink}>
+            {spec ? 'Remove mechanics' : 'Unlink'}
+          </button>
+        )}
+      </div>
+      {unsavedInline && <p className="npc-hint">Save the class first, then it opens in the chain builder.</p>}
+      {row.mechanicsDirty && !unsavedInline && <p className="feature-mechanics-unsaved">Changed here: save the class to keep it.</p>}
+      {error && <p className="status-message error">{error}</p>}
+    </div>
   )
 }

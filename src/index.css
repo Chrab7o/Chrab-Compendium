@@ -7696,3 +7696,142 @@ input.ch-branch-name {
     gap: 0.2rem 0.6rem;
   }
 }
+
+/* The chain read-only (ChainBuilder readOnly): the class editors' expanded
+   feature. Each part is its one line; script lines are a plain list. */
+span.ch-node-head {
+  flex: 1;
+  display: flex;
+  align-items: baseline;
+  gap: 0.7rem;
+  padding: 0.4rem 0.6rem;
+}
+
+.ch.is-read {
+  gap: 0.4rem;
+}
+
+.ch-branch-title {
+  color: var(--accent-strong);
+}
+
+.ch-read-lines {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.ch-read-else {
+  font-size: var(--text-xs);
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--accent-purple);
+}
+
+/* Class editor feature list (RepeatableRows collapsible): one line per
+   feature, opened in place. The line is a plain row, not a pushable button. */
+.feature-line {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+button.feature-line-head {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.7rem;
+  padding: 0.35rem 0.5rem;
+  text-align: left;
+  font-weight: 400;
+  color: var(--text);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius-sm);
+  box-shadow: none;
+  filter: none;
+  transform: none;
+}
+
+button.feature-line-head:hover,
+button.feature-line-head[aria-expanded='true'] {
+  background: var(--surface);
+  box-shadow: none;
+  filter: none;
+  transform: none;
+}
+
+.feature-line-caret {
+  color: var(--accent-2-strong);
+}
+
+.feature-line-level {
+  flex: none;
+  padding: 0.05rem 0.45rem;
+  border-radius: var(--radius-sm);
+  background: var(--accent-2);
+  color: var(--on-accent-2);
+  font-size: var(--text-xs);
+  font-weight: 800;
+}
+
+.feature-line-name {
+  font-weight: 700;
+}
+
+.feature-line-name.is-untitled {
+  font-style: italic;
+  color: var(--accent-red);
+}
+
+.feature-line-text {
+  flex-basis: 100%;
+  font-size: var(--text-sm);
+  opacity: 0.85;
+}
+
+.repeatable-rows.is-collapsible {
+  gap: 0.5rem;
+}
+
+.repeatable-rows.is-collapsible .repeatable-row,
+.repeatable-rows.is-collapsible .sub-feature-row {
+  padding: 0.45rem 0.6rem;
+  border-left: 4px solid var(--accent-2);
+}
+
+.repeatable-rows.is-collapsible .repeatable-row.is-open,
+.repeatable-rows.is-collapsible .sub-feature-row.is-open {
+  padding: 0.7rem 0.9rem;
+  border-color: var(--accent-2);
+}
+
+/* Under an open feature: its chain and the chain builder buttons. */
+.feature-flow {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.6rem;
+  border: 1px dashed var(--accent-2);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.dm-form .feature-flow-link {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* The chain tab, when a class editor opened it. */
+.feature-for-class {
+  border-width: 2px;
+}
+
+.feature-for-class.is-lost {
+  border-color: var(--accent-red);
+}

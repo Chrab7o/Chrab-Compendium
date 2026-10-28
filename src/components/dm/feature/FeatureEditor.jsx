@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { supabase } from '../../../lib/supabaseClient'
 import {
   FEATURE_KINDS,
@@ -23,6 +23,7 @@ import TemplatePicker from './TemplatePicker'
 import FeatureWizard from './FeatureWizard'
 import ChainBuilder from './ChainBuilder'
 import AddToClass from './AddToClass'
+import { announceSave, readHandoff } from '../../../lib/forgeHandoff'
 import { DescriptionBlocks, GearStatFields } from './GearFields'
 import { buildFromTemplate, findTemplate } from '../../../lib/automationTemplates'
 import { newForgeSpec } from '../../../lib/forgeKinds'
@@ -119,15 +120,27 @@ export default function FeatureEditor({ layout = null }) {
   const { id } = useParams()
   const [search] = useSearchParams()
   const navigate = useNavigate()
+  const location = useLocation()
   const isNew = !id
+  // ?for=: opened from a class editor for one of its features
+  // (lib/forgeHandoff.js). Saves are sent back to it; classSync is whether
+  // it answered (its label), false if it didn't, null before a save.
+  const forKey = search.get('for')
+  const [handoff] = useState(() => (forKey ? readHandoff(forKey) : null))
+  const [classSync, setClassSync] = useState(location.state?.classSync ?? null)
   const { campaigns, campaignId: currentCampaignId } = useCampaignContext()
 
   // ?template=: a template with settings asks for them first (TemplatePicker).
   const startTemplate = isNew ? findTemplate(search.get('template')) : null
-  const [spec, setSpec] = useState(
+  const [spec, setSpec] = useState(() => {
+    // A class feature: its row's name and text so far.
+    if (forKey) {
+      const base = newForgeSpec('feat')
+      return { ...base, featType: 'class', item: { ...base.item, name: handoff?.name ?? '', description: handoff?.description ?? '' } }
+    }
     // ?kind=spell | weapon | armor | wondrous | consumable (gear = wondrous) starts that kind.
-    () => (startTemplate && !startTemplate.params.length ? buildFromTemplate(startTemplate).spec : null) ?? newForgeSpec(search.get('kind') || 'feat'),
-  )
+    return (startTemplate && !startTemplate.params.length ? buildFromTemplate(startTemplate).spec : null) ?? newForgeSpec(search.get('kind') || 'feat')
+  })
   const [pickingTemplate, setPickingTemplate] = useState(!!startTemplate?.params.length)
   const [campaignId, setCampaignId] = useState(currentCampaignId || '')
   const [draftId, setDraftId] = useState(id ?? null)
@@ -220,7 +233,13 @@ export default function FeatureEditor({ layout = null }) {
       const notice = await republishQuietly()
       if (notice) setError(notice)
     }
-    if (!draftId) navigate(`/dm/item-forge/${result.data.id}/${chain ? 'chain' : 'edit'}`, { replace: true })
+    // Opened from a class editor: it gets the feature too.
+    const synced = forKey ? (await announceSave({ key: forKey, draftId: result.data.id, spec })) ?? false : null
+    if (forKey) setClassSync(synced)
+    if (!draftId) {
+      const keep = forKey ? `?for=${encodeURIComponent(forKey)}` : ''
+      navigate(`/dm/item-forge/${result.data.id}/${chain ? 'chain' : 'edit'}${keep}`, { replace: true, state: { classSync: synced } })
+    }
     return result.data.id
   }
 
@@ -280,7 +299,7 @@ export default function FeatureEditor({ layout = null }) {
               </button>
             </div>
           )}
-          {draftId && spec.kind === 'feat' && (
+          {draftId && spec.kind === 'feat' && !forKey && (
             <button type="button" className="secondary" onClick={() => setAddingToClass(true)} disabled={addingToClass}>
               Add to a class…
             </button>
@@ -322,6 +341,18 @@ export default function FeatureEditor({ layout = null }) {
           <button type="button" className="secondary" onClick={() => setPickingTemplate(false)}>
             Skip, start blank
           </button>
+        </div>
+      )}
+
+      {forKey && (
+        <div className={`draft-banner feature-for-class${classSync === false ? ' is-lost' : ''}`}>
+          <span>
+            {classSync === false
+              ? `Saved in the Item Forge, but the ${handoff?.label || 'class'} page that opened this didn’t answer: it was closed or reloaded. Add it there with “+ Add from the Item Forge”.`
+              : classSync
+                ? `Saved, and it’s on ${classSync}’s feature list. Save the class there to keep it.`
+                : `A feature for ${handoff?.label || 'a class'}. Save here and it shows up on the class page.`}
+          </span>
         </div>
       )}
 
@@ -384,7 +415,7 @@ export default function FeatureEditor({ layout = null }) {
                 set={set}
                 replace={setSpec}
                 onImport={handleImport}
-                showStart={isNew && !draftId && !startTemplate && !search.get('kind')}
+                showStart={isNew && !draftId && !startTemplate && !search.get('kind') && !forKey}
                 linkedText={usedBy.length > 0}
               />
             </NpcSpecContext.Provider>
@@ -395,7 +426,7 @@ export default function FeatureEditor({ layout = null }) {
                 set={set}
                 replace={setSpec}
                 onImport={handleImport}
-                showStart={isNew && !draftId && !startTemplate && !search.get('kind')}
+                showStart={isNew && !draftId && !startTemplate && !search.get('kind') && !forKey}
                 linkedText={usedBy.length > 0}
               />
             </NpcSpecContext.Provider>

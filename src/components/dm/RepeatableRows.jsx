@@ -1,4 +1,14 @@
+import { useState } from 'react'
 import { nestFeatureRows, flattenFeatureRows } from '../../lib/homebrew'
+
+// The start of a row's text for its folded line.
+function preview(text, max = 140) {
+  const plain = String(text ?? '')
+    .replace(/[#*_>`[\]]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+  return plain.length > max ? `${plain.slice(0, max).trimEnd()}…` : plain
+}
 
 // Generic { level?, name, description }[] editor - class features, subclass
 // features, and (later) race traits/feat benefits all share this shape.
@@ -21,6 +31,12 @@ import { nestFeatureRows, flattenFeatureRows } from '../../lib/homebrew'
 // `renderAddExtra(add, parent)` renders another way to add, next to the add
 // buttons - the class editors' "+ Add from the Item Forge". `add(fields)`
 // adds a row (parent null) or a sub-feature of `parent` with those fields.
+//
+// `collapsible`: each row and sub-feature is one line (level, name, the start
+// of its text) that opens to its fields - the class editors' feature list.
+// `onCreate(add, parent)` replaces what the add buttons do (the class editors
+// open the chain builder in another tab); a row added with a `forge_key`
+// starts open. `untitled` labels a row with no name yet.
 export default function RepeatableRows({
   rows,
   onChange,
@@ -30,8 +46,22 @@ export default function RepeatableRows({
   addLabel = '+ Add',
   renderRowExtra = null,
   renderAddExtra = null,
+  collapsible = false,
+  onCreate = null,
+  untitled = 'Unnamed',
 }) {
   const nested = withSubFeatures ? nestFeatureRows(rows) : rows.map((r) => ({ ...r, children: [] }))
+  const [openKeys, setOpenKeys] = useState(() => new Set())
+  const keyOf = (r, fallback) => r.id ?? r.forge_key ?? fallback
+  const isOpen = (key) => !collapsible || openKeys.has(key)
+  const toggle = (key) =>
+    setOpenKeys((keys) => {
+      const next = new Set(keys)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  const openNew = (fields) => fields.forge_key && setOpenKeys((keys) => new Set(keys).add(fields.forge_key))
 
   function commit(next) {
     onChange(withSubFeatures ? flattenFeatureRows(next) : next.map(({ children, ...r }, i) => ({ ...r, sort_order: i })))
@@ -59,6 +89,7 @@ export default function RepeatableRows({
     withLevel ? nested.filter((r) => r !== row && r.children.length && !r.choice_into && r.name.trim() && r.level < row.level) : []
 
   function addRow(fields = {}) {
+    openNew(fields)
     commit([
       ...nested,
       {
@@ -91,6 +122,7 @@ export default function RepeatableRows({
   }
 
   function addChild(index, fields = {}) {
+    openNew(fields)
     const row = nested[index]
     updateChildren(index, [
       ...row.children,
@@ -121,162 +153,199 @@ export default function RepeatableRows({
     updateChildren(index, children)
   }
 
+  // Up, down, remove.
+  function controls(onMove, first, last, onRemove) {
+    return (
+      <div className="repeatable-row-controls">
+        <button type="button" className="secondary" onClick={() => onMove(-1)} disabled={first}>
+          ↑
+        </button>
+        <button type="button" className="secondary" onClick={() => onMove(1)} disabled={last}>
+          ↓
+        </button>
+        <button type="button" className="danger" onClick={onRemove}>
+          Remove
+        </button>
+      </div>
+    )
+  }
+
+  // The folded line: click to open. Collapsible only.
+  function line(r, key, tools) {
+    const open = openKeys.has(key)
+    const name = String(r.name ?? '').trim()
+    const text = preview(r.description)
+    return (
+      <div className="feature-line">
+        <button type="button" className="feature-line-head" onClick={() => toggle(key)} aria-expanded={open}>
+          <span className="feature-line-caret" aria-hidden="true">
+            {open ? '▾' : '▸'}
+          </span>
+          {withLevel && <span className="feature-line-level">Lv {r.level}</span>}
+          <span className={`feature-line-name${name ? '' : ' is-untitled'}`}>{name || untitled}</span>
+          {!open && text && <span className="feature-line-text">{text}</span>}
+        </button>
+        {tools}
+      </div>
+    )
+  }
+
+  const add = (parentIndex) => {
+    if (parentIndex == null) return onCreate ? onCreate((fields) => addRow(fields), null) : addRow()
+    return onCreate ? onCreate((fields) => addChild(parentIndex, fields), nested[parentIndex]) : addChild(parentIndex)
+  }
+
   return (
-    <div className="repeatable-rows">
-      {nested.map((row, i) => (
-        <div key={i} className="repeatable-row">
-          <div className="repeatable-row-controls">
-            <button type="button" className="secondary" onClick={() => moveRow(i, -1)} disabled={i === 0}>
-              ↑
-            </button>
-            <button
-              type="button"
-              className="secondary"
-              onClick={() => moveRow(i, 1)}
-              disabled={i === nested.length - 1}
-            >
-              ↓
-            </button>
-            <button type="button" className="danger" onClick={() => removeRow(i)}>
-              Remove
-            </button>
-          </div>
-          {withLevel && (
-            <label>
-              Level
-              {allowedLevels ? (
-                <select value={row.level} onChange={(e) => updateRow(i, { level: Number(e.target.value) })}>
-                  {allowedLevels.map((lvl) => (
-                    <option key={lvl} value={lvl}>
-                      {lvl}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <input
-                  type="number"
-                  min="1"
-                  max="20"
-                  value={row.level}
-                  onChange={(e) => updateRow(i, { level: Number(e.target.value) || 1 })}
-                />
-              )}
-            </label>
-          )}
-          <label>
-            Name
-            <input value={row.name} onChange={(e) => updateRow(i, { name: e.target.value })} />
-          </label>
-          <label>
-            Description
-            <textarea rows={4} value={row.description} onChange={(e) => updateRow(i, { description: e.target.value })} />
-          </label>
-          {renderRowExtra?.(row, (patch) => updateRow(i, patch))}
-          {withSubFeatures && (
-            <div className="sub-features">
-              <div className="sub-features-header">
-                <span className="sub-features-title">
-                  Sub-features{row.name ? ` of ${row.name}` : ''}
-                  {row.children.length > 0 ? ` (${row.children.length})` : ''}
-                </span>
-                {row.children.length > 0 && (
-                  <label className="sub-features-count">
-                    Players
-                    <select
-                      value={row.choice_into ? `into:${row.choice_into}` : String(row.choice_count ?? 1)}
-                      onChange={(e) => setChoice(i, e.target.value)}
-                    >
-                      <option value="0">get all of them</option>
-                      {Array.from({ length: row.children.length }, (_, n) => n + 1).map((n) => (
-                        <option key={n} value={String(n)}>
-                          choose {n}
-                        </option>
-                      ))}
-                      {earlierGroups(row).map((g) => (
-                        <option key={g.name} value={`into:${g.name.trim()}`}>
-                          add these to {g.name.trim()}
-                        </option>
-                      ))}
-                    </select>
+    <div className={`repeatable-rows${collapsible ? ' is-collapsible' : ''}`}>
+      {nested.map((row, i) => {
+        const key = keyOf(row, `row:${i}`)
+        const open = isOpen(key)
+        const rowControls = controls((d) => moveRow(i, d), i === 0, i === nested.length - 1, () => removeRow(i))
+        return (
+          <div key={key} className={`repeatable-row${open && collapsible ? ' is-open' : ''}`}>
+            {collapsible ? line(row, key, rowControls) : rowControls}
+            {open && (
+              <>
+                {withLevel && (
+                  <label>
+                    Level
+                    {allowedLevels ? (
+                      <select value={row.level} onChange={(e) => updateRow(i, { level: Number(e.target.value) })}>
+                        {allowedLevels.map((lvl) => (
+                          <option key={lvl} value={lvl}>
+                            {lvl}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <input
+                        type="number"
+                        min="1"
+                        max="20"
+                        value={row.level}
+                        onChange={(e) => updateRow(i, { level: Number(e.target.value) || 1 })}
+                      />
+                    )}
                   </label>
                 )}
-                {withLevel && row.children.length > 0 && !row.choice_into && (row.choice_count ?? 1) > 0 && (
-                  <label className="tag-checklist-item">
-                    <input
-                      type="checkbox"
-                      checked={!!row.choice_swap}
-                      onChange={(e) => updateRow(i, { choice_swap: e.target.checked })}
-                    />
-                    can swap one on each level-up
-                  </label>
-                )}
-              </div>
-              {row.choice_swap && !row.choice_into && (
-                <p className="sub-features-hint">
-                  In Foundry these are one choice: options unlock at their own level (add later ones with “add these to{' '}
-                  {row.name.trim() || 'this'}”), and the number known follows the class table’s “{row.name.trim()} Known”
-                  column if there is one.
-                </p>
-              )}
-              {row.choice_into && (
-                <p className="sub-features-hint">
-                  More options for {row.choice_into}, from level {row.level}. Players don’t pick extra here.
-                </p>
-              )}
-              {row.children.length === 0 && (
-                <p className="sub-features-hint">
-                  For features that are really a menu — the Metamagic options under Metamagic, the arts under Dark
-                  Arts. Leave empty for an ordinary feature.
-                </p>
-              )}
-              {row.children.map((child, ci) => (
-                <div key={ci} className="sub-feature-row">
-                  <div className="repeatable-row-controls">
-                    <button type="button" className="secondary" onClick={() => moveChild(i, ci, -1)} disabled={ci === 0}>
-                      ↑
-                    </button>
-                    <button
-                      type="button"
-                      className="secondary"
-                      onClick={() => moveChild(i, ci, 1)}
-                      disabled={ci === row.children.length - 1}
-                    >
-                      ↓
-                    </button>
-                    <button type="button" className="danger" onClick={() => removeChild(i, ci)}>
-                      Remove
-                    </button>
-                  </div>
-                  <label>
-                    Name
-                    <input value={child.name} onChange={(e) => updateChild(i, ci, { name: e.target.value })} />
-                  </label>
-                  <label>
-                    Description
-                    <textarea
-                      rows={3}
-                      value={child.description}
-                      onChange={(e) => updateChild(i, ci, { description: e.target.value })}
-                    />
-                  </label>
-                  {renderRowExtra?.(child, (patch) => updateChild(i, ci, patch))}
+                <label>
+                  Name
+                  <input value={row.name} onChange={(e) => updateRow(i, { name: e.target.value })} />
+                </label>
+                <label>
+                  Description
+                  <textarea rows={4} value={row.description} onChange={(e) => updateRow(i, { description: e.target.value })} />
+                </label>
+                {renderRowExtra?.(row, (patch) => updateRow(i, patch))}
+              </>
+            )}
+            {withSubFeatures && (open || row.children.length > 0) && (
+              <div className="sub-features">
+                <div className="sub-features-header">
+                  <span className="sub-features-title">
+                    Sub-features{row.name ? ` of ${row.name}` : ''}
+                    {row.children.length > 0 ? ` (${row.children.length})` : ''}
+                  </span>
+                  {row.children.length > 0 && (
+                    <label className="sub-features-count">
+                      Players
+                      <select
+                        value={row.choice_into ? `into:${row.choice_into}` : String(row.choice_count ?? 1)}
+                        onChange={(e) => setChoice(i, e.target.value)}
+                      >
+                        <option value="0">get all of them</option>
+                        {Array.from({ length: row.children.length }, (_, n) => n + 1).map((n) => (
+                          <option key={n} value={String(n)}>
+                            choose {n}
+                          </option>
+                        ))}
+                        {earlierGroups(row).map((g) => (
+                          <option key={g.name} value={`into:${g.name.trim()}`}>
+                            add these to {g.name.trim()}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
+                  {withLevel && row.children.length > 0 && !row.choice_into && (row.choice_count ?? 1) > 0 && (
+                    <label className="tag-checklist-item">
+                      <input
+                        type="checkbox"
+                        checked={!!row.choice_swap}
+                        onChange={(e) => updateRow(i, { choice_swap: e.target.checked })}
+                      />
+                      can swap one on each level-up
+                    </label>
+                  )}
                 </div>
-              ))}
-              <div className="repeatable-add">
-                <button type="button" className="secondary" onClick={() => addChild(i)} disabled={!row.name.trim()}>
-                  + Add sub-feature
-                </button>
-                {row.name.trim() && renderAddExtra?.((fields) => addChild(i, fields), row)}
+                {open && row.choice_swap && !row.choice_into && (
+                  <p className="sub-features-hint">
+                    In Foundry these are one choice: options unlock at their own level (add later ones with “add these to{' '}
+                    {row.name.trim() || 'this'}”), and the number known follows the class table’s “{row.name.trim()} Known”
+                    column if there is one.
+                  </p>
+                )}
+                {row.choice_into && (
+                  <p className="sub-features-hint">
+                    More options for {row.choice_into}, from level {row.level}. Players don’t pick extra here.
+                  </p>
+                )}
+                {open && row.children.length === 0 && (
+                  <p className="sub-features-hint">
+                    For features that are really a menu — the Metamagic options under Metamagic, the arts under Dark
+                    Arts. Leave empty for an ordinary feature.
+                  </p>
+                )}
+                {row.children.map((child, ci) => {
+                  const childKey = keyOf(child, `child:${i}:${ci}`)
+                  const childOpen = isOpen(childKey)
+                  const childControls = controls(
+                    (d) => moveChild(i, ci, d),
+                    ci === 0,
+                    ci === row.children.length - 1,
+                    () => removeChild(i, ci)
+                  )
+                  return (
+                    <div key={childKey} className={`sub-feature-row${childOpen && collapsible ? ' is-open' : ''}`}>
+                      {collapsible ? line(child, childKey, childControls) : childControls}
+                      {childOpen && (
+                        <>
+                          <label>
+                            Name
+                            <input value={child.name} onChange={(e) => updateChild(i, ci, { name: e.target.value })} />
+                          </label>
+                          <label>
+                            Description
+                            <textarea
+                              rows={3}
+                              value={child.description}
+                              onChange={(e) => updateChild(i, ci, { description: e.target.value })}
+                            />
+                          </label>
+                          {renderRowExtra?.(child, (patch) => updateChild(i, ci, patch))}
+                        </>
+                      )}
+                    </div>
+                  )
+                })}
+                {open && (
+                  <div className="repeatable-add">
+                    <button type="button" className="secondary" onClick={() => add(i)} disabled={!row.name.trim()}>
+                      + Add sub-feature
+                    </button>
+                    {row.name.trim() && renderAddExtra?.((fields) => addChild(i, fields), row)}
+                  </div>
+                )}
+                {open && !row.name.trim() && row.children.length === 0 && (
+                  <span className="sub-features-hint">Name the feature first — sub-features hang off its name.</span>
+                )}
               </div>
-              {!row.name.trim() && row.children.length === 0 && (
-                <span className="sub-features-hint">Name the feature first — sub-features hang off its name.</span>
-              )}
-            </div>
-          )}
-        </div>
-      ))}
+            )}
+          </div>
+        )
+      })}
       <div className="repeatable-add">
-        <button type="button" onClick={() => addRow()}>
+        <button type="button" onClick={() => add(null)}>
           {addLabel}
         </button>
         {renderAddExtra?.((fields) => addRow(fields), null)}

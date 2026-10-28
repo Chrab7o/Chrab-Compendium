@@ -3,7 +3,7 @@ import { ACTIVITY_KINDS, SPEND_SOURCES, emptyActivity, emptyChange, emptyEffect,
 import { FEAT_TYPES, gearType } from '../../../lib/foundryFeatures'
 import { allowedEffects, canTickEachTurn, fitToKind, forgeKind, limitOf, usageOf } from '../../../lib/forgeKinds'
 import { chainOf, freeEffectName, landsFrom, looseEffects } from '../../../lib/forgeChain'
-import { triggersFor } from '../../../lib/automationFlow'
+import { flowTrigger, lineWords, triggersFor } from '../../../lib/automationFlow'
 import { behaviorSummary } from '../../../lib/foundryBehaviors'
 import {
   ActivityBasics,
@@ -66,9 +66,21 @@ function spendText(rows) {
 const landsWord = (a) => ({ attack: 'On a hit', save: 'On a failed save' })[a.kind] ?? 'On the target'
 const thenWord = (a) => (a.triggerOnlyIf === 'hit' ? ' on a hit' : a.triggerOnlyIf === 'failedSave' ? ' if the save fails' : '')
 
-// One part of the chain: folded to a line, opened in place.
+// One part of the chain: folded to a line, opened in place. Read-only: just the line.
 function Node({ id, tone, tag, title, tools = null, children }) {
   const c = useContext(ChainContext)
+  if (c.readOnly) {
+    return (
+      <div className={`ch-node is-${tone} is-static`}>
+        <div className="ch-node-row">
+          <span className="ch-node-head">
+            <span className="ch-tag">{tag}</span>
+            <span className="ch-node-title">{title}</span>
+          </span>
+        </div>
+      </div>
+    )
+  }
   const open = c.isOpen(id)
   return (
     <div className={`ch-node is-${tone}${open ? ' is-open' : ''}`}>
@@ -120,6 +132,50 @@ function EffectNode({ effect, tag }) {
   )
 }
 
+// Read-only lines at one point of a roll, in words, with the effects they
+// apply named.
+function lineText(line, item) {
+  const words = lineWords(line)
+  if (line.type !== 'effect' && line.type !== 'removeEffect') return words
+  const name = item.effects.find((e) => e.key === line.effectKey)?.name
+  return name ? words.replace(/(one of )?this item’s effects?/, name) : words
+}
+
+function ReadLines({ lines, item }) {
+  return (
+    <ul className="ch-read-lines">
+      {lines.map((line, i) => (
+        <li key={line.key ?? i}>
+          {lineText(line, item)}
+          {line.type === 'if' && (
+            <>
+              <ReadLines lines={line.then ?? []} item={item} />
+              {line.else?.length > 0 && (
+                <>
+                  <span className="ch-read-else">otherwise</span>
+                  <ReadLines lines={line.else} item={item} />
+                </>
+              )}
+            </>
+          )}
+        </li>
+      ))}
+    </ul>
+  )
+}
+
+function ReadPoint({ roll, trigger }) {
+  const { item } = useContext(ChainContext)
+  const lines = (roll.flow?.sections ?? []).filter((s) => s.trigger === trigger).flatMap((s) => s.lines ?? [])
+  if (!lines.length) return null
+  return (
+    <div className="ch-point is-static">
+      <span className="ch-point-label">{flowTrigger(trigger).short.toLowerCase()}</span>
+      <ReadLines lines={lines} item={item} />
+    </div>
+  )
+}
+
 // The kinds of roll this item can add, the guided steps' way (forgeKinds.js).
 function useRollKinds() {
   const { spec } = useContext(ChainContext)
@@ -157,7 +213,7 @@ function RollChain({ roll, seen = [] }) {
   const damaging = ['attack', 'save', 'damage', 'heal'].includes(roll.kind)
   const canLand = !roll.overTime && allowedEffects(spec, item).some((k) => ['condition', 'debuff', 'onUser'].includes(k))
   const sectionWith = (t) => (roll.flow?.sections ?? []).some((s) => s.trigger === t && s.lines?.length)
-  const point = (t) => triggers.includes(t) && <FlowPoint trigger={t} adding={points.has(t)} />
+  const point = (t) => triggers.includes(t) && (c.readOnly ? <ReadPoint roll={roll} trigger={t} /> : <FlowPoint trigger={t} adding={points.has(t)} />)
   const extras = [
     roll.useConditions?.length && 'only on some targets',
     roll.effectConditions?.length && 'effects only on some targets',
@@ -277,7 +333,7 @@ function RollChain({ roll, seen = [] }) {
               <AutomationSection activity={roll} set={set} item={item} bare noFlow />
             </Node>
           )}
-          {picking ? (
+          {c.readOnly ? null : picking ? (
             <div className="ch-picking">
               <p className="aw-question-small">{picking === 'then' ? 'Then roll what?' : 'What kind of extra damage?'}</p>
               <Choices options={picking === 'extra' ? kinds.filter((k) => k.key === 'damage') : kinds} onPick={(key) => link(picking, key)} compact />
@@ -355,7 +411,11 @@ function Rolls() {
     <>
       {chain.choices.length === 0 && (
         <p className="npc-hint">
-          {usage === 'passive' ? 'Nothing to click: it’s always on. Add a roll if it has a power to use.' : 'Nothing happens yet when it’s used. Add what it rolls.'}
+          {c.readOnly
+            ? 'No rolls.'
+            : usage === 'passive'
+              ? 'Nothing to click: it’s always on. Add a roll if it has a power to use.'
+              : 'Nothing happens yet when it’s used. Add what it rolls.'}
         </p>
       )}
       {chain.choices.length === 1 && <RollChain roll={chain.choices[0]} />}
@@ -369,20 +429,24 @@ function Rolls() {
             const i = item.activities.findIndex((a) => a.key === roll.key)
             return (
               <div key={roll.key} className="ch-branch">
-                <input
-                  className="ch-branch-name"
-                  value={roll.name ?? ''}
-                  onChange={(e) => update((it) => ({ ...it, activities: it.activities.map((a) => (a.key === roll.key ? { ...a, name: e.target.value } : a)) }))}
-                  placeholder={activityLabel(roll, i)}
-                  aria-label="Choice name"
-                />
+                {c.readOnly ? (
+                  <strong className="ch-branch-title">{roll.name || activityLabel(roll, i)}</strong>
+                ) : (
+                  <input
+                    className="ch-branch-name"
+                    value={roll.name ?? ''}
+                    onChange={(e) => update((it) => ({ ...it, activities: it.activities.map((a) => (a.key === roll.key ? { ...a, name: e.target.value } : a)) }))}
+                    placeholder={activityLabel(roll, i)}
+                    aria-label="Choice name"
+                  />
+                )}
                 <RollChain roll={roll} />
               </div>
             )
           })}
         </div>
       )}
-      {adding ? (
+      {c.readOnly ? null : adding ? (
         <div className="ch-picking">
           <p className="aw-question-small">{chain.choices.length ? 'Another choice for the player: what does it roll?' : 'What does it roll?'}</p>
           <Choices options={options} onPick={addRoll} compact />
@@ -419,7 +483,7 @@ function Ticks() {
 }
 
 function LooseEffects() {
-  const { item, update, spec } = useContext(ChainContext)
+  const { item, update, spec, readOnly } = useContext(ChainContext)
   const kind = forgeKind(spec)
   const groups = looseEffects(item)
   const allowed = spec.kind === 'spell' ? [] : allowedEffects(spec, item)
@@ -432,7 +496,7 @@ function LooseEffects() {
   }
   const add = (patch) => update((it) => ({ ...it, effects: [...it.effects, { ...emptyEffect(), name: freeEffectName(it), changes: [emptyChange()], ...patch }] }))
   const any = Object.values(groups).some((g) => g.length)
-  if (!any && !allowed.includes('self') && !allowed.includes('stance')) return null
+  if (!any && (readOnly || (!allowed.includes('self') && !allowed.includes('stance')))) return null
   return (
     <section className="ch-section">
       <h3 className="ch-section-head">Not tied to a roll</h3>
@@ -447,7 +511,7 @@ function LooseEffects() {
             </div>
           ),
       )}
-      <div className="dm-form-row">
+      <div className="dm-form-row" style={readOnly ? { display: 'none' } : undefined}>
         {allowed.includes('self') && (
           <button type="button" className="secondary npc-small-button" onClick={() => add({ passive: true })}>
             + {kind.gear ? 'A bonus while it’s equipped' : 'An always-on bonus'}
@@ -463,7 +527,9 @@ function LooseEffects() {
   )
 }
 
-export default function ChainBuilder({ spec, set, replace, onImport, showStart = false, linkedText = false }) {
+// readOnly: every part as its one line, nothing to click (the class editors'
+// expanded feature); set and replace can be left out.
+export default function ChainBuilder({ spec, set = () => {}, replace = () => {}, onImport, showStart = false, linkedText = false, readOnly = false }) {
   const isSpell = spec.kind === 'spell'
   const item = isSpell ? spec.spell : spec.item
   // Whole-spec updates, so two in one click (a new effect and the line that
@@ -476,6 +542,7 @@ export default function ChainBuilder({ spec, set, replace, onImport, showStart =
     item,
     update,
     inSpell: isSpell,
+    readOnly,
     isOpen: (key) => openKeys.has(key),
     open: (key) => setOpenKeys((keys) => new Set(keys).add(key)),
     toggle: (key) =>
@@ -511,11 +578,13 @@ export default function ChainBuilder({ spec, set, replace, onImport, showStart =
 
   return (
     <ChainContext.Provider value={context}>
-      <div className="ch">
-        <p className="npc-hint">
-          Experimental: the whole feature as one chain, in the order things happen. Click any part to edit it. It’s the
-          same item the regular editor opens.
-        </p>
+      <div className={`ch${readOnly ? ' is-read' : ''}`}>
+        {!readOnly && (
+          <p className="npc-hint">
+            Experimental: the whole feature as one chain, in the order things happen. Click any part to edit it. It’s the
+            same item the regular editor opens.
+          </p>
+        )}
         <Node id="setup" tone="setup" tag="Setup" title={setupTitle}>
           <FeatureWizard spec={spec} set={set} replace={replace} onImport={onImport} showStart={showStart} linkedText={linkedText} only={['start', 'basics', 'description', 'use']} />
         </Node>
@@ -523,13 +592,13 @@ export default function ChainBuilder({ spec, set, replace, onImport, showStart =
           <Rolls />
           <Ticks />
           <LooseEffects />
-          {rules && (
+          {rules && (!readOnly || item.behavior?.rules?.length > 0) && (
             <Node id="reactions" tone="rule" tag="Reactions" title={item.behavior?.rules?.length ? behaviorSummary(item.behavior, item.name) : 'None: rules that run on their own (when they’re hit, at the start of their turn…)'}>
               <FeatureWizard spec={spec} set={set} replace={replace} only={['reactions']} />
             </Node>
           )}
         </div>
-        {problems.length > 0 && (
+        {!readOnly && problems.length > 0 && (
           <div className="fw-problems">
             {problems.map((p) => (
               <p key={p} className="status-message error">

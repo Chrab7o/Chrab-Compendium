@@ -7,6 +7,7 @@ import VisibilitySelect from './VisibilitySelect'
 import { useAutomationOptions } from './useAutomationOptions'
 import FeatureMechanics from './FeatureMechanics'
 import ForgeFeaturePicker from './ForgeFeaturePicker'
+import { useForgeSaves } from './useForgeSaves'
 import { attachMechanics, loadDraftSpecs, saveRowMechanics } from './mechanics'
 import { republishQuietly } from '../../../lib/foundryClassPackPublish'
 
@@ -33,6 +34,8 @@ export default function StandaloneSubclassEditor() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
   const automationOptions = useAutomationOptions()
+  // Features are built in the chain builder, in another tab; its saves land here.
+  const createInChain = useForgeSaves(form, setForm, form.name)
 
   useEffect(() => {
     if (isNew) return
@@ -184,8 +187,17 @@ export default function StandaloneSubclassEditor() {
           withSubFeatures
           addLabel="+ Add Feature"
           renderRowExtra={(row, patch) => (
-            <FeatureMechanics row={row} onChange={patch} linkable={automationOptions.options} onRefreshLinks={automationOptions.reload} />
+            <FeatureMechanics
+              row={row}
+              onChange={patch}
+              linkable={automationOptions.options}
+              onRefreshLinks={automationOptions.reload}
+              classLabel={form.name}
+            />
           )}
+          collapsible
+          onCreate={createInChain}
+          untitled="New feature: name it in the chain builder tab"
           renderAddExtra={(add, parent) => (
             <ForgeFeaturePicker
               label={parent ? '+ Add from the Item Forge…' : '+ Add Feature from the Item Forge…'}
