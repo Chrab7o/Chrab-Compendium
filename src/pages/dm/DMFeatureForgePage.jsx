@@ -259,6 +259,9 @@ export default function DMFeatureForgePage() {
             <button type="button" className="secondary" onClick={handleItemMakerImport}>
               Import from the Item Maker
             </button>
+            <Link to="/dm/item-forge/chain/new" className="button-link secondary" title="Experimental: build the whole feature as one chain">
+              + New (chain, experimental)
+            </Link>
             <Link to="/dm/item-forge/new" className="button-link">
               + New
             </Link>

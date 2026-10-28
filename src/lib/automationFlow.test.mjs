@@ -21,6 +21,7 @@ import {
   mathFormula,
   scriptScopes,
   sortBlocks,
+  stepWords,
   toScript,
 } from './automationFlow.js'
 import { buildFeatureItem, emptyFeatureSpec, featureItemToSpec } from './foundryFeatures.js'
@@ -338,6 +339,86 @@ test('effects and uses: the item’s own effect lands on the target, uses are sp
   assert.equal(world.effects[0].effects[0].origin, 'Item.reap')
   assert.deepEqual(world.uses, [{ 'system.uses.spent': 1 }])
   assert.match(world.messages[0].content, /Goblin gains <strong>Reaped[\s\S]*Spends 1 uses of Soul Reap[\s\S]*custom undefined/)
+})
+
+test('remove one of this item’s effects: only the copies this item put there', async () => {
+  setup()
+  const effect = { ...emptyEffect(), name: 'Lingering Scar' }
+  const other = { ...emptyEffect(), name: 'Other' }
+  const wf = attackWorkflow()
+  const gob = [...wf.targets][0]
+  gob.actor.effects = [
+    { id: 'a', name: 'Lingering Scar', origin: 'Item.reap.ActiveEffect.x' }, // dnd5e: the source effect
+    { id: 'b', name: 'Lingering Scar', origin: 'Item.someoneElse' }, // another Pictomancer's
+    { id: 'c', name: 'Other', origin: 'Item.reap' }, // midi: the item
+    { id: 'd', name: 'Concentrating', origin: 'Item.reap', statuses: new Set(['concentrating']) },
+  ]
+  const one = { ...emptyFlow(), blocks: [block('done', { steps: [step('removeEffect', { effectKey: effect.key })] })] }
+  await run(featureWith(one, 'utility', [effect, other]), { pass: 'postActiveEffects', workflow: wf })
+  assert.deepEqual(world.effects, [{ what: 'removeEffects', actorUuid: 'Actor.gob', effects: ['a'] }])
+  assert.match(world.messages[0].content, /Goblin loses <strong>Lingering Scar/)
+
+  setup()
+  const any = { ...emptyFlow(), blocks: [block('done', { steps: [step('removeEffect'), step('value', { source: 'removedCount', name: 'n' }), step('flavor', { text: 'gone {n}' })] })] }
+  await run(featureWith(any, 'utility', [effect, other]), { pass: 'postActiveEffects', workflow: wf })
+  assert.deepEqual(world.effects[0].effects, ['a', 'c'])
+  assert.match(world.messages[0].content, /gone 2/)
+})
+
+test('remove from every creature on the map, quietly skipping the ones without it', async () => {
+  setup()
+  const effect = { ...emptyEffect(), name: 'Lingering Scar' }
+  const deleted = []
+  const mine = { name: 'Wolf', uuid: 'Actor.wolf', isOwner: true, effects: [{ id: 'w', name: 'Lingering Scar', origin: 'Item.reap' }], deleteEmbeddedDocuments: async (type, ids) => deleted.push(type, ids) }
+  const clean = { name: 'Rat', uuid: 'Actor.rat', isOwner: false, effects: [] }
+  globalThis.canvas = { tokens: { placeables: [{ actor: mine }, { actor: mine }, { actor: clean }, { actor: null }] } }
+  try {
+    const flow = { ...emptyFlow(), blocks: [block('done', { steps: [step('removeEffect', { to: 'scene', effectKey: effect.key })] })] }
+    await run(featureWith(flow, 'utility', [effect]), { pass: 'postActiveEffects', workflow: { targets: setOf() } })
+  } finally {
+    delete globalThis.canvas
+  }
+  assert.deepEqual(deleted, ['ActiveEffect', ['w']])
+  assert.deepEqual(world.effects, [])
+  assert.doesNotMatch(world.messages[0].content, /Rat/)
+  assert.equal(stepWords({ ...emptyStep('removeEffect'), to: 'scene' }), 'this item’s effects come off every creature on the map')
+})
+
+test('the player picks a damage type: the roll becomes it, and the matching scar lands', async () => {
+  setup()
+  const asked = []
+  foundry.applications.api.DialogV2.wait = async (cfg) => (asked.push(cfg.buttons.map((b) => b.label)), '2')
+  const scars = ['Fire', 'Cold', 'Lightning'].map((t) => ({ ...emptyEffect(), name: `Lingering Scar (${t})`, byRule: true }))
+  const flow = script(
+    section('use', [line('value', { source: 'choose', name: 'element', choices: 'Fire, Cold, Lightning', show: true })]),
+    section('damage', [line('retype', { pick: 'element' })]),
+    section('done', ['Fire', 'Cold', 'Lightning'].map((t, i) => ifLine([check('picked', { pick: 'element', value: t })], [line('effect', { effectKey: scars[i].key })]))),
+  )
+  assert.deepEqual(flowProblems(flow, 'attack'), [])
+  const spec = featureWith(flow, 'attack', scars)
+  const wf = attackWorkflow()
+  wf.damageRolls = [{ options: { type: 'fire' }, terms: [{ options: { flavor: 'fire' } }, { options: {} }] }]
+  await run(spec, { pass: 'preItemRoll', workflow: wf })
+  await run(spec, { pass: 'postDamageRoll', workflow: wf })
+  await run(spec, { pass: 'postActiveEffects', workflow: wf })
+  assert.deepEqual(asked, [['Fire', 'Cold', 'Lightning']])
+  assert.equal(wf.damageRolls[0].options.type, 'cold')
+  assert.equal(wf.damageRolls[0].terms[0].options.flavor, 'cold')
+  assert.deepEqual(world.effects.map((e) => e.effects[0].name), ['Lingering Scar (Cold)'])
+  assert.match(world.messages[0].content, /element: Cold[\s\S]*The damage is <strong>cold[\s\S]*Goblin gains <strong>Lingering Scar \(Cold\)/)
+  // Placed only by the flow: the hit itself doesn't apply them, and the flag survives export.
+  const built = buildFeatureItem(spec)
+  assert.ok(built.effects.every((e) => e.flags['chrab-sync']?.byRule))
+  assert.deepEqual(Object.values(built.system.activities)[0].effects ?? [], [])
+  assert.ok(featureItemToSpec(built).item.effects.every((e) => e.byRule))
+})
+
+test('pick one: needs two choices; retype and picked need a pick set above them', () => {
+  const lonely = script(section('use', [line('value', { source: 'choose', name: 'element', choices: 'Fire' })]))
+  assert.match(flowProblems(lonely, 'attack')[0].text, /at least two choices/)
+  const orphan = script(section('damage', [line('retype', { pick: 'element' }), ifLine([check('picked', { pick: 'element', value: 'Fire' })], [line('flavor', { text: 'x' })])]))
+  assert.equal(flowProblems(orphan, 'attack').filter((p) => /no line above sets element/.test(p.text)).length, 2)
+  assert.equal(stepWords({ ...emptyStep('retype'), pick: 'element' }), 'the damage becomes the type in element')
 })
 
 test('flowCode is valid JavaScript for an empty flow too', () => {

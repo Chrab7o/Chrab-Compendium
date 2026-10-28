@@ -35,7 +35,7 @@ import FormulaInput, { AttributePathInput, NpcSpecContext } from './FormulaInput
 import { ConditionRows, OverTimeRollFields, ScriptEditor } from './AutomationFields'
 import BehaviorFields from './BehaviorFields'
 import AutomationWizard from '../feature/AutomationWizard'
-import { flowSummary, hasFlow } from '../../../lib/automationFlow'
+import { flowAppliesEffects, flowSummary, hasFlow } from '../../../lib/automationFlow'
 import { isLinked } from '../../../lib/itemLibrary'
 import { mechanicsSummary } from '../../../lib/foundryFeatures'
 
@@ -420,7 +420,8 @@ function FlowField({ activity, set, item }) {
 
 // Midi-qol automation for one roll, collapsed until used.
 // bare: just the fields, no collapsible wrapper (the guided roll steps).
-export function AutomationSection({ activity, set, item, bare = false }) {
+// noFlow: no "Build automation" (the chain builder edits the flow in place).
+export function AutomationSection({ activity, set, item, bare = false, noFlow = false }) {
   const active = [
     activity.triggerKey && 'trigger',
     activity.otherKey && 'extra damage',
@@ -433,7 +434,7 @@ export function AutomationSection({ activity, set, item, bare = false }) {
   const hasEffects = item.effects.some((e) => !e.passive)
   const fields = (
     <>
-      <FlowField activity={activity} set={set} item={item} />
+      {!noFlow && <FlowField activity={activity} set={set} item={item} />}
       <TriggerFields activity={activity} set={set} siblings={item.activities} />
       <ConditionRows rows={activity.useConditions ?? []} onChange={(useConditions) => set({ useConditions })} slot="use" label="Can only be used if the target" />
       {activity.useConditions?.length > 0 && (
@@ -931,8 +932,8 @@ export function EffectEditor({ effect, onChange, onRemove, item }) {
   // "A bonded creature": a target effect that also runs the item's bonded-creature rules.
   const canBond = (item.behavior?.rules ?? []).some((r) => r.event === 'bondedHurt' || r.event === 'bondedDowned')
   const bond = canBond && !!effect.bond && !effect.passive && !stance
-  // "Applied by a behavior rule": only a rule's "apply an effect" action places it.
-  const canRule = (item.behavior?.rules ?? []).length > 0
+  // "Only by automation": a rule's "apply an effect" action or a flow's apply step places it.
+  const canRule = (item.behavior?.rules ?? []).length > 0 || item.activities.some((a) => flowAppliesEffects(a.flow))
   const byRule = canRule && !!effect.byRule && !effect.passive && !stance
   // "While inside an aura": only an aura's apply / remove rules place it.
   const canAura = item.activities.some((a) => a.aura)
@@ -953,7 +954,7 @@ export function EffectEditor({ effect, onChange, onRemove, item }) {
           >
             <option value="target">The target, when the roll lands</option>
             {canAura && <option value="aura">Creatures in the aura (its apply / remove rules)</option>}
-            {canRule && <option value="rule">Applied by a behavior rule (its “Apply an effect” action)</option>}
+            {canRule && <option value="rule">Only by automation (a rule’s or a flow’s “Apply” step)</option>}
             {canBond && <option value="bond">The target, linked (runs this item’s bonded / marked rules)</option>}
             <option value="self">This creature, always on</option>
             {canStance && <option value="stance">This creature, while toggled on</option>}

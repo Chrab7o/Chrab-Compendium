@@ -502,7 +502,7 @@ export function emptyEffect() {
   // appliedBy: activity keys that apply this effect; empty = every roll on the item
   // stance: on the owner while the item's toggle behavior is on (foundryBehaviors.js)
   // bond: applied to a target, which then runs the item's "bonded creature" rules (Defend the Weak)
-  // byRule: only a behavior rule's "apply an effect" action puts it on anyone
+  // byRule: only automation puts it on anyone (a behavior rule's "apply an effect", a flow's apply step)
   // aura: only an aura's rules apply / remove it
   // extraDamage: a formula the carrier takes on top of each attack that hits it
   //   (a Curse's 1d6); the item's behavior hook adds it (foundryBehaviors.js)
@@ -1533,8 +1533,9 @@ export function buildNpcItem(spec, item, index = 0, { inSpell = false } = {}) {
   // always shows on the token (showIcon 2) so the table can see it's on.
   const isStance = (e) => toggle && !!e.stance && !e.passive
   kept.forEach((e, i) => {
-    // Rule effects: placed only by a behavior rule's "apply an effect" action.
-    if (e.byRule && !e.passive && behavior) effects[i].flags = { ...effects[i].flags, 'chrab-sync': { byRule: true } }
+    // Rule effects: placed only by a behavior rule's "apply an effect" action,
+    // or a flow's "Apply one of this item's effects".
+    if (e.byRule && !e.passive) effects[i].flags = { ...effects[i].flags, 'chrab-sync': { byRule: true } }
     // Aura effects: placed only by an aura's rules (midi's sample marks them dontApply).
     if (e.aura && !e.passive) effects[i].flags = { ...effects[i].flags, dae: { ...effects[i].flags?.dae, dontApply: true }, 'chrab-sync': { ...effects[i].flags?.['chrab-sync'], aura: true } }
     if (!isStance(e)) return

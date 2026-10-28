@@ -5,6 +5,7 @@ import { SELF_CONDITIONS, emptySelfCondition } from '../../../lib/foundryBehavio
 import { CARD_COLOR_OPTIONS } from '../../../lib/foundryChat'
 import {
   COMPARE_OPS,
+  FLOW_TRIGGERS,
   FLOW_CHECKS,
   FLOW_STEPS,
   FLOW_VALUES,
@@ -17,6 +18,7 @@ import {
   flowTrigger,
   lineWords,
   mathFormula,
+  scriptChoices,
   scriptMemories,
   scriptScopes,
   stepsFor,
@@ -210,6 +212,9 @@ function SelfCheckFields({ row, onChange }) {
 function CheckEditor({ check, onChange, onRemove, vars, featureName }) {
   const def = FLOW_CHECKS.find((c) => c.key === check.type)
   const set = (patch) => onChange({ ...check, ...patch })
+  const sc = useContext(ScriptContext)
+  const pickVars = (vars ?? []).filter((v) => sc?.choices?.has(v))
+  const answers = sc?.choices?.get(check.pick) ?? []
   return (
     <div className="aw-piece">
       <div className="aw-piece-head">
@@ -246,6 +251,35 @@ function CheckEditor({ check, onChange, onRemove, vars, featureName }) {
           <span className="npc-hint">Asked on the screen of the player who owns the creature. {'{name}'} fills in a variable.</span>
         </label>
       )}
+      {check.type === 'picked' &&
+        (pickVars.length ? (
+          <div className="dm-form-row">
+            <label>
+              Their pick
+              <select value={check.pick} onChange={(e) => set({ pick: e.target.value, value: '' })}>
+                <option value="">Pick one…</option>
+                {pickVars.map((name) => (
+                  <option key={name} value={name}>
+                    {name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Is
+              <select value={check.value} onChange={(e) => set({ value: e.target.value })} disabled={!answers.length}>
+                <option value="">Pick one…</option>
+                {answers.map((a) => (
+                  <option key={a} value={a}>
+                    {a}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+        ) : (
+          <span className="npc-hint">Add “Set a variable to a value: Ask the player to pick one” above this line first.</span>
+        ))}
       {check.type === 'code' && (
         <label>
           JavaScript expression
@@ -267,6 +301,9 @@ function StepFields({ step, onChange, vars, ctx, effects, featureName, memories 
   const set = (patch) => onChange({ ...step, ...patch })
   const value = FLOW_VALUES.find((v) => v.key === step.source)
   const values = valuesFor(ctx)
+  const sc = useContext(ScriptContext)
+  // "Pick one" variables set above this line.
+  const pickVars = (vars ?? []).filter((v) => sc?.choices?.has(v))
   const groups = [...new Set(values.map((v) => v.group))]
   // "Every picked creature" lines also know picks: how many times that one was picked.
   const each = step.to === 'each'
@@ -372,7 +409,25 @@ function StepFields({ step, onChange, vars, ctx, effects, featureName, memories 
                 <input value={step.question} onChange={(e) => set({ question: e.target.value })} placeholder="How many points do you spend?" />
               </label>
             )}
+            {value?.param === 'choices' && (
+              <>
+                <label className="npc-wide-field">
+                  The choices
+                  <input value={step.choices} onChange={(e) => set({ choices: e.target.value })} placeholder="Fire, Cold, Lightning" />
+                </label>
+                <label className="npc-wide-field">
+                  The question
+                  <input value={step.question} onChange={(e) => set({ question: e.target.value })} placeholder="Pick one" />
+                </label>
+              </>
+            )}
           </div>
+          {value?.param === 'choices' && (
+            <span className="npc-hint">
+              A button for each, on the player’s screen. {step.name || 'The variable'} becomes 1 for the first, 2 for the second… Check it with “The player
+              picked…”, or use damage types as the choices and “Change this roll’s damage type” to the pick.
+            </span>
+          )}
           {value?.param === 'formula' && (
             <label>
               Dice
@@ -594,11 +649,70 @@ function StepFields({ step, onChange, vars, ctx, effects, featureName, memories 
                 <input type="number" min="0" value={step.rounds} onChange={(e) => set({ rounds: e.target.value })} placeholder="until removed" />
               </label>
             </>
-          ) : effects.length ? (
+          ) : effects.length || sc?.newEffect ? (
+            <label>
+              Effect
+              <select value={step.effectKey} onChange={(e) => set({ effectKey: e.target.value === NEW_EFFECT ? sc.newEffect() : e.target.value })}>
+                <option value="">Pick one…</option>
+                {effects.map((e) => (
+                  <option key={e.key} value={e.key}>
+                    {e.name || 'Unnamed effect'}
+                  </option>
+                ))}
+                {sc?.newEffect && <option value={NEW_EFFECT}>+ New effect…</option>}
+              </select>
+            </label>
+          ) : (
+            <span className="npc-hint">This item has no effects yet. Add one in the item’s Effects section, then pick it here.</span>
+          )}
+        </div>
+      )}
+
+      {step.type === 'retype' && (
+        <label className="aw-inline">
+          To
+          <select
+            value={step.pick ? `pick:${step.pick}` : step.damageType}
+            onChange={(e) => (e.target.value.startsWith('pick:') ? set({ pick: e.target.value.slice(5), damageType: '' }) : set({ pick: '', damageType: e.target.value }))}
+            aria-label="Damage type"
+          >
+            <option value="">Pick one…</option>
+            {pickVars.length > 0 && (
+              <optgroup label="What the player picked">
+                {pickVars.map((name) => (
+                  <option key={name} value={`pick:${name}`}>
+                    {name} ({sc.choices.get(name).join(', ')})
+                  </option>
+                ))}
+              </optgroup>
+            )}
+            <optgroup label="Damage type">
+              {DAMAGE_TYPES.map((t) => (
+                <option key={t} value={t}>
+                  {cap(t)}
+                </option>
+              ))}
+            </optgroup>
+          </select>
+        </label>
+      )}
+
+      {step.type === 'removeEffect' && (
+        <>
+          <div className="dm-form-row">
+            <label>
+              From
+              <select value={step.to} onChange={(e) => set({ to: e.target.value })}>
+                <option value="target">The target</option>
+                <option value="each">Every picked creature (else every target)</option>
+                <option value="self">You</option>
+                <option value="scene">Every creature on the map</option>
+              </select>
+            </label>
             <label>
               Effect
               <select value={step.effectKey} onChange={(e) => set({ effectKey: e.target.value })}>
-                <option value="">Pick one…</option>
+                <option value="">Any of this item’s effects</option>
                 {effects.map((e) => (
                   <option key={e.key} value={e.key}>
                     {e.name || 'Unnamed effect'}
@@ -606,10 +720,12 @@ function StepFields({ step, onChange, vars, ctx, effects, featureName, memories 
                 ))}
               </select>
             </label>
-          ) : (
-            <span className="npc-hint">This item has no effects yet. Add one in the item’s Effects section, then pick it here.</span>
-          )}
-        </div>
+          </div>
+          <span className="npc-hint">
+            Only what this item put there comes off, never the same effect from someone else’s copy. To refund per effect, set a variable to “How many effects it
+            removed” after this line.
+          </span>
+        </>
       )}
 
       {(step.type === 'resource' || step.type === 'featureUses') && (
@@ -656,6 +772,7 @@ function StepFields({ step, onChange, vars, ctx, effects, featureName, memories 
 // see (scopes), the remembered numbers, problems by line, which lines are
 // unfolded, and the item's effects.
 const ScriptContext = createContext(null)
+const NEW_EFFECT = '__new'
 
 const stripWhere = (text) => (text.includes('”: ') ? text.slice(text.indexOf('”: ') + 3) : text)
 
@@ -689,9 +806,11 @@ function AddLine({ ctx, onAdd }) {
 
 // A list of lines: a section's, or one branch of an if. owner: the key its
 // end is known by in the scopes ("<section key>", "<if key>:then"...).
-function LineList({ lines, owner, onChange }) {
+// at: what the end sees when the list isn't in the scopes yet (a point of the
+// roll with no lines, in the chain builder).
+function LineList({ lines, owner, onChange, at = null }) {
   const sc = useContext(ScriptContext)
-  const end = sc.scopes.get(`${owner}:end`) ?? { vars: [], ctx: sc.defaultCtx }
+  const end = sc.scopes.get(`${owner}:end`) ?? at ?? { vars: [], ctx: sc.defaultCtx }
   const add = (type) => {
     let line
     if (type === 'value') {
@@ -818,6 +937,7 @@ function LineItem({ line, onChange, onRemove, onMove, first, last }) {
           </button>
         </div>
       )}
+      {!isIf && sc.afterLine?.(line)}
       {isIf && (
         <>
           <div className="aw-branch">
@@ -868,6 +988,79 @@ function SectionEditor({ section, kind, onChange, onRemove, canRemove }) {
 }
 
 // ---------------------------------------------------------------------------
+// Inline: the chain builder (ChainBuilder.jsx) edits a roll's script in place,
+// one point of the roll at a time, between the roll's own parts. FlowScope
+// holds the whole script (variables carry from one point to the next);
+// FlowPoint draws one point's lines.
+
+// onChange(flow) gets the script with empty points left out, or null when no
+// line is left. newEffect() adds an effect and returns its key (the apply
+// picker's "+ New effect…"); afterLine(line) draws something under a line.
+export function FlowScope({ activity, item, onChange, newEffect = null, afterLine = null, children }) {
+  const kind = activity.kind
+  const flow = useMemo(() => toScript(activity.flow ?? null), [activity.flow])
+  const [openKeys, setOpenKeys] = useState(() => new Set())
+  const scopes = useMemo(() => scriptScopes(flow, kind), [flow, kind])
+  const memories = useMemo(() => scriptMemories(flow), [flow])
+  const choices = useMemo(() => scriptChoices(flow), [flow])
+  const problems = useMemo(() => {
+    const byKey = new Map()
+    for (const p of flowProblems(flow, kind)) byKey.set(p.key, [...(byKey.get(p.key) ?? []), p.text])
+    return byKey
+  }, [flow, kind])
+  const setLines = (trigger, lines) => {
+    const old = flow.sections.find((s) => s.trigger === trigger)
+    const others = flow.sections.filter((s) => s !== old && s.lines.length)
+    const sections = lines.length ? [...others, { ...(old ?? emptySection(trigger)), lines }] : others
+    onChange(sections.length ? toScript({ ...flow, sections }) : null)
+  }
+  const toggle = (key) =>
+    setOpenKeys((keys) => {
+      const next = new Set(keys)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  const context = {
+    scopes,
+    memories,
+    choices,
+    problems,
+    effects: item?.effects ?? [],
+    featureName: item?.name ?? '',
+    hasLines: flow.sections.length > 0,
+    defaultCtx: { trigger: flow.sections[0]?.trigger, kind },
+    isOpen: (key) => openKeys.has(key),
+    open: (key) => setOpenKeys((keys) => new Set(keys).add(key)),
+    toggle,
+    newEffect,
+    afterLine,
+    flow,
+    kind,
+    setLines,
+  }
+  return <ScriptContext.Provider value={context}>{children}</ScriptContext.Provider>
+}
+
+// One point of the roll ("after the attack roll"): its lines, or with none
+// just the add menu when `adding` (else nothing). The variables it sees are
+// the ones set at the points before it.
+export function FlowPoint({ trigger, adding = false, label = null }) {
+  const sc = useContext(ScriptContext)
+  const section = sc.flow.sections.find((s) => s.trigger === trigger)
+  if (!section?.lines.length && !adding) return null
+  const order = FLOW_TRIGGERS.findIndex((t) => t.key === trigger)
+  const before = sc.flow.sections.filter((s) => FLOW_TRIGGERS.findIndex((t) => t.key === s.trigger) < order).at(-1)
+  const at = { vars: before ? sc.scopes.get(`${before.key}:end`)?.vars ?? [] : [], ctx: { trigger, kind: sc.kind } }
+  return (
+    <div className="ch-point">
+      <span className="ch-point-label">{label ?? flowTrigger(trigger).short.toLowerCase()}</span>
+      <LineList lines={section?.lines ?? []} owner={section?.key ?? `new:${trigger}`} at={at} onChange={(lines) => sc.setLines(trigger, lines)} />
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // The builder
 
 // activity: the roll being automated; item: its item (for effects).
@@ -895,6 +1088,7 @@ export default function AutomationWizard({ activity, item, onAccept, onClose }) 
   const hasLines = saved.sections.length > 0
   const scopes = useMemo(() => scriptScopes(flow, kind), [flow, kind])
   const memories = useMemo(() => scriptMemories(flow), [flow])
+  const choices = useMemo(() => scriptChoices(flow), [flow])
   const problemList = useMemo(() => flowProblems(saved, kind), [saved, kind])
   const problems = useMemo(() => {
     const byKey = new Map()
@@ -914,6 +1108,7 @@ export default function AutomationWizard({ activity, item, onAccept, onClose }) 
   const context = {
     scopes,
     memories,
+    choices,
     problems,
     effects,
     featureName,

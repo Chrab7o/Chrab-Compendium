@@ -108,6 +108,7 @@ export const FLOW_VALUES = [
   { key: 'targetSave', group: 'This roll', label: 'The target’s save total', name: 'saveTotal', needs: 'save', code: () => 'workflow?.tokenSaves?.[target()?.document?.uuid]?.total' },
   { key: 'failedCount', group: 'This roll', label: 'How many failed the save', name: 'failed', needs: 'save', code: () => 'workflow?.failedSaves?.size' },
   { key: 'targetCount', group: 'This roll', label: 'How many targets there are', name: 'targets', code: () => 'workflow?.targets?.size' },
+  { key: 'removedCount', group: 'This roll', label: 'How many effects it removed (so far)', name: 'removed', code: () => '(state.removed ?? 0)' },
   { key: 'upcast', group: 'This roll', label: 'Slot levels above the spell’s (upcast)', name: 'upcast', needs: 'cast', code: () => '(workflow?.chatCard?.system?.scaling ?? item.flags?.dnd5e?.scaling)' },
   { key: 'damageTotal', group: 'This roll', label: 'The damage rolled', name: 'rolled', needs: 'damage', code: () => 'workflow?.damageTotal' },
   { key: 'damageDealt', group: 'This roll', label: 'The damage that landed (HP lost)', name: 'dealt', needs: 'dealt', code: () => '(workflow?.damageList ?? []).reduce((sum, d) => sum + (Number(d.hpDamage) || 0) + (Number(d.tempDamage) || 0), 0)' },
@@ -116,6 +117,8 @@ export const FLOW_VALUES = [
   { key: 'remembered', group: 'Remembered', label: 'A number you remembered', name: 'saved', param: 'memory', legacy: true },
   { key: 'dice', group: 'Roll or ask', label: 'Roll some dice', name: 'roll', param: 'formula' },
   { key: 'ask', group: 'Roll or ask', label: 'Ask the player for a number', name: 'answer', param: 'question' },
+  // 1 for the first choice, 2 for the second…; the words are kept for "The player picked…" and damage types.
+  { key: 'choose', group: 'Roll or ask', label: 'Ask the player to pick one', name: 'pick', param: 'choices' },
 ]
 
 export function valuesFor(ctx) {
@@ -138,6 +141,7 @@ export const FLOW_CHECKS = [
   { key: 'self', label: 'You… (HP, a condition, a resource)' },
   { key: 'level', label: 'You’re at least level…' },
   { key: 'ask', label: 'The player says yes' },
+  { key: 'picked', label: 'The player picked…' },
   { key: 'oncePerTurn', label: 'It hasn’t happened yet this turn' },
   { key: 'code', label: 'Custom JavaScript (advanced)' },
 ]
@@ -159,13 +163,14 @@ export function emptyCheck(type = 'compare') {
   return {
     key: newKey(),
     type,
-    value: type === 'level' ? '5' : '19', // natural / level
+    value: type === 'level' ? '5' : type === 'picked' ? '' : '19', // natural / level / picked: the choice
     left: '', // compare: math
     op: '>=',
     right: '',
     target: emptyCondition('hpAtMost'), // target: a foundryAutomation condition row
     self: emptySelfCondition('hpBelowHalf'), // self: a foundryBehaviors self row
     question: '', // ask: blank = "Use <name>?"
+    pick: '', // picked: the variable an "Ask the player to pick one" set; value is the choice
     code: '', // code: a JS expression
   }
 }
@@ -185,6 +190,7 @@ export const FLOW_STEPS = [
   { key: 'remember', group: 'Variables', label: 'Remember a number', legacy: true },
   { key: 'pickTargets', group: 'Targets', label: 'Pick targets on the map', help: 'A blue ring shows the range and the player clicks the creatures. When it’s used, they become this roll’s targets. Picks can stack on one creature (missiles); “every picked creature” lines below then run once per creature, with picks = how many times it was picked.', only: ['use', 'done'] },
   { key: 'damageRoll', group: 'Damage and healing', label: 'Use a number as this roll’s damage', help: 'Replaces the rolled damage with your number, or adds it on top.', needs: 'damage', only: ['damage'] },
+  { key: 'retype', group: 'Damage and healing', label: 'Change this roll’s damage type', help: 'To a type, or to what the player picked (“Ask the player to pick one” with damage types as the choices).', needs: 'damage', only: ['damage'] },
   { key: 'damageTarget', group: 'Damage and healing', label: 'The target takes damage', help: 'Separate from this roll’s damage. Resistances apply.' },
   { key: 'healTarget', group: 'Damage and healing', label: 'The target regains HP' },
   { key: 'healMe', group: 'Damage and healing', label: 'You regain HP' },
@@ -195,6 +201,7 @@ export const FLOW_STEPS = [
   { key: 'cancel', group: 'The roll', label: 'Cancel the use', help: 'Stops here; nothing rolls.', only: ['use'] },
   { key: 'condition', group: 'Effects', label: 'Apply a condition', help: 'Prone, frightened… on the target or you.' },
   { key: 'effect', group: 'Effects', label: 'Apply one of this item’s effects' },
+  { key: 'removeEffect', group: 'Effects', label: 'Remove one of this item’s effects', help: 'Takes it off the target, every picked creature, you, or every creature on the map. Only what this item put there; “How many it removed” counts them.' },
   { key: 'resource', group: 'Resources', label: 'Spend or regain a resource' },
   { key: 'featureUses', group: 'Resources', label: 'Spend or regain this feature’s uses' },
   { key: 'code', group: 'Advanced', label: 'Custom code', help: 'JavaScript run right here. V.name is a variable; say(html) adds a card line; await calc("2d6 + @hp") rolls math.' },
@@ -216,7 +223,9 @@ export function emptyStep(type = 'value', { suggestName = '' } = {}) {
     path: '',
     pool: '',
     formula: '1d6', // value "dice"
-    question: '', // value "ask"
+    question: '', // value "ask" / "choose"
+    choices: '', // value "choose": "Fire, Cold, Lightning"
+    pick: '', // retype: the "choose" variable whose answer is the type ('' = damageType)
     show: type === 'math', // value / math: a card line "name: 12"
     showLabel: '',
     // math, and the amount of every apply step
@@ -371,6 +380,23 @@ export function scriptMemories(flow) {
   return out
 }
 
+// A "pick one" line's choices: "Fire, Cold, Lightning" (or one per line).
+export const choiceList = (s) => [...new Set(String(s?.choices ?? '').split(/[,\n]/).map((c) => c.trim()).filter(Boolean))]
+
+// The "pick one" variables: name -> its choices (the last line that sets it wins).
+export function scriptChoices(flow) {
+  const out = new Map()
+  for (const section of toScript(flow).sections) eachLine(section.lines, (l) => l.type === 'value' && l.source === 'choose' && validVarName(l.name) && out.set(l.name, choiceList(l)))
+  return out
+}
+
+// Does any roll's flow put one of the item's effects on someone?
+export function flowAppliesEffects(flow) {
+  let found = false
+  if (flow) for (const section of toScript(flow).sections) eachLine(section.lines, (l) => l.type === 'effect' && (found = true))
+  return found
+}
+
 // What each spot can see: key -> { vars, ctx }. vars are the variables set by
 // the lines written above it (earlier sections included). Keys are line keys,
 // plus "<owner>:end" for the end of a list, where a new line would go: the
@@ -453,6 +479,8 @@ function checkProblems(c, ctx, vars) {
     }
   }
   if (c.type === 'code' && !String(c.code ?? '').trim()) out.push('the custom condition is empty.')
+  if (c.type === 'picked' && (!c.pick || !String(c.value ?? '').trim())) out.push('pick which answer.')
+  else if (c.type === 'picked' && !vars.includes(c.pick)) out.push(`no line above sets ${c.pick}.`)
   return out
 }
 
@@ -468,6 +496,7 @@ function lineProblems(s, ctx, vars, memories) {
     if (!v || !valuesFor(ctx).includes(v)) out.push(`“${v?.label ?? s.source}” isn’t known yet at “${flowTrigger(ctx.trigger).short}”.`)
     if (v?.param === 'path' && !cleanPath(s.path)) out.push('pick which stat.')
     if (v?.param === 'pool' && !poolId(s.pool)) out.push('name the resource (its identifier).')
+    if (v?.param === 'choices' && choiceList(s).length < 2) out.push('give the player at least two choices, separated by commas.')
     if (v?.param === 'formula') {
       const { error } = mathFormula(s.formula, vars)
       if (error) out.push(error)
@@ -492,6 +521,8 @@ function lineProblems(s, ctx, vars, memories) {
   if (s.type === 'popup' && !String(s.text ?? '').trim()) out.push('the pop-up is empty.')
   if (s.type === 'resource' && !poolId(s.pool)) out.push('name the resource (its identifier).')
   if (s.type === 'effect' && !s.effectKey) out.push('pick which effect.')
+  if (s.type === 'retype' && !s.pick && !s.damageType) out.push('pick the damage type.')
+  if (s.type === 'retype' && s.pick && !vars.includes(s.pick)) out.push(`no line above sets ${s.pick}.`)
   if (s.type === 'code' && !String(s.code ?? '').trim()) out.push('the custom code is empty.')
   return out
 }
@@ -524,7 +555,7 @@ export function flowProblems(flow, kind) {
 
 // Steps that can run once per picked creature (to: 'each'), where picks is
 // how many times that creature was picked.
-const EACH_STEPS = ['damageTarget', 'healTarget', 'condition', 'effect']
+const EACH_STEPS = ['damageTarget', 'healTarget', 'condition', 'effect', 'removeEffect']
 const eachOne = (s) => s.to === 'each' && EACH_STEPS.includes(s.type)
 const stepVars = (s, vars) => (eachOne(s) ? [...vars, 'picks'] : vars)
 
@@ -541,6 +572,7 @@ export function valueWords(s) {
   if (!v) return 'a value'
   if (v.key === 'dice') return `a roll of ${String(s.formula || '').trim() || 'dice'}`
   if (v.key === 'ask') return `a number the player picks${s.question ? ` (“${s.question}”)` : ''}`
+  if (v.key === 'choose') return `the player’s pick of ${orList(choiceList(s)) || '…'}`
   if (v.key === 'remembered') return `the remembered ${s.memory || '?'} (${String(s.start ?? '').trim() || '0'} if there isn’t one)`
   const ab = ABILITY_NAMES[s.ability] ?? s.ability
   const words = {
@@ -610,6 +642,8 @@ export function checkWords(c) {
       return `you’re level ${Number(c.value) || 1} or higher`
     case 'ask':
       return `the player says yes${c.question ? ` to “${c.question}”` : ''}`
+    case 'picked':
+      return `${c.pick || '?'} is ${String(c.value ?? '').trim() || '?'}`
     case 'oncePerTurn':
       return 'it hasn’t happened yet this turn'
     case 'code':
@@ -620,6 +654,7 @@ export function checkWords(c) {
 }
 
 const typeWords = (t) => (t ? ` ${t}` : '')
+const orList = (list) => (list.length > 1 ? `${list.slice(0, -1).join(', ')} or ${list.at(-1)}` : list.join(''))
 
 export function stepWords(s) {
   const amount = String(s.amount ?? '').trim() || '?'
@@ -664,6 +699,10 @@ export function stepWords(s) {
       return `${s.to === 'self' ? 'you become' : eachOne(s) ? 'every picked creature becomes' : 'the target becomes'} ${s.status}${Number(s.rounds) ? ` for ${Number(s.rounds)} round${Number(s.rounds) === 1 ? '' : 's'}` : ''}`
     case 'effect':
       return `${s.to === 'self' ? 'you gain' : eachOne(s) ? 'every picked creature gains' : 'the target gains'} one of this item’s effects`
+    case 'retype':
+      return `the damage becomes ${s.pick ? `the type in ${s.pick}` : s.damageType || '?'}`
+    case 'removeEffect':
+      return `${s.effectKey ? 'one of this item’s effects' : 'this item’s effects'} come off ${{ self: 'you', each: 'every picked creature', scene: 'every creature on the map' }[s.to] ?? 'the target'}`
     case 'resource':
       return `${s.mode === 'gain' ? 'regain' : 'spend'} ${amount} ${poolId(s.pool).replace(/-/g, ' ') || 'resource'}`
     case 'featureUses':
@@ -781,6 +820,8 @@ function checkCode(c, vars, blockKey) {
     }
     case 'level':
       return `(Number(actor.system?.details?.level ?? actor.system?.details?.cr) || 0) >= ${Number(c.value) || 1}`
+    case 'picked':
+      return `(state.chosen?.[${js(c.pick)}] === ${js(String(c.value ?? '').trim())})`
     case 'ask':
       return `await chrabConfirm(actor, card, chrabEsc(${String(c.question ?? '').trim() ? `fill(${js(String(c.question).trim())})` : '"Use " + FLOW.name + "?"'}))`
     case 'oncePerTurn':
@@ -810,9 +851,11 @@ function oneStepCode(s, vars, ids) {
       let get
       if (v.key === 'dice') get = mathCode(s.formula, vars)
       else if (v.key === 'ask') get = `await askNumber(${js(String(s.question ?? '').trim() || `How much for ${s.name}?`)})`
+      else if (v.key === 'choose') get = `await askChoice(${js(String(s.question ?? '').trim())}, ${js(choiceList(s))}, ${js(s.name)})`
       else if (v.key === 'remembered') get = `recall(${js(s.memory)}, ${String(s.start ?? '').trim() ? mathCode(s.start, vars) : '0'})`
       else get = `Number(${v.code(s)}) || 0`
-      const show = s.show ? `\n${line(`chrabEsc(${js(String(s.showLabel ?? '').trim() || valueWords(s))}) + ": " + V[${js(s.name)}]`)}` : ''
+      const shown = v.key === 'choose' ? `chrabEsc(state.chosen?.[${js(s.name)}] ?? "")` : `V[${js(s.name)}]`
+      const show = s.show ? `\n${line(`chrabEsc(${js(String(s.showLabel ?? '').trim() || (v.key === 'choose' ? s.name : valueWords(s)))}) + ": " + ${shown}`)}` : ''
       return `V[${js(s.name)}] = ${get};${show}`
     }
     case 'math': {
@@ -841,6 +884,21 @@ function oneStepCode(s, vars, ids) {
   const roll = await new CONFIG.Dice.DamageRoll(String(n), {}, { type: type || undefined, properties: Array.from(base?.options?.properties ?? []) }).evaluate();
   await workflow.setDamageRolls(${s.mode === 'add' ? '[...(workflow.damageRolls ?? []), roll]' : '[roll]'});
   ${line(s.mode === 'add' ? `"<strong>+" + n + (type ? " " + chrabEsc(type) : "") + " damage</strong>"` : `"<strong>The damage becomes " + n + (type ? " " + chrabEsc(type) : "") + "</strong>"`)}
+}`
+    case 'retype':
+      return `{
+  const type = damageTypeOf(${s.pick ? `state.chosen?.[${js(s.pick)}]` : js(s.damageType || '')});
+  if (!type) say("No damage type to change to");
+  else {
+    // midi applies each roll as its options.type; a typed die (1d8[fire]) shows its own.
+    for (const r of workflow.damageRolls ?? []) {
+      if (["healing", "temphp"].includes(r.options?.type)) continue;
+      r.options.type = type;
+      for (const t of r.terms ?? []) if (t.options?.flavor) t.options.flavor = type;
+    }
+    await workflow.setDamageRolls(workflow.damageRolls ?? []);
+    ${line(`"The damage is <strong>" + chrabEsc(damageLabel(type)) + "</strong>"`)}
+  }
 }`
     case 'damageTarget':
     case 'healTarget': {
@@ -906,6 +964,11 @@ ${line(js(`The attack has ${which}`))}`
     case 'effect': {
       const id = ids[s.effectKey] ?? s.effectKey
       return `await giveEffect(${s.to === 'self' ? 'actor' : 'tA()'}, ${js(id)});`
+    }
+    case 'removeEffect': {
+      const id = s.effectKey ? (ids[s.effectKey] ?? s.effectKey) : ''
+      if (s.to === 'scene') return `for (const who of new Set((globalThis.canvas?.tokens?.placeables ?? []).map((t) => t.actor).filter(Boolean))) await takeEffect(who, ${js(id)}, true);`
+      return `await takeEffect(${s.to === 'self' ? 'actor' : 'tA()'}, ${js(id)});`
     }
     case 'resource':
       return `await changeUses(poolItem(${js(poolId(s.pool))}), ${amountCode(s, vars)}, ${js(s.mode === 'gain' ? 'gain' : 'spend')}, ${js(poolId(s.pool).replace(/-/g, ' '))});`
@@ -1031,6 +1094,29 @@ async function askNumber(question) {
   });
   return Number(answer?.n) || 0;
 }
+// One button per choice. 1 for the first…; closing the window picks the first.
+async function askChoice(question, choices, name) {
+  const answer = await chrabDialog(actor, "wait", {
+    window: { title: FLOW.name },
+    content: chrabCardHtml(card) + "<p><strong>" + chrabEsc(fill(question) || "Pick one") + "</strong></p>",
+    buttons: choices.map((c, i) => ({ action: String(i + 1), label: c, default: i === 0 })),
+  });
+  const n = Math.min(choices.length, Math.max(1, Math.floor(Number(answer)) || 1));
+  (state.chosen ??= {})[name] = choices[n - 1];
+  return n;
+}
+// "Fire", "fire" or dnd5e's own label -> its damage type key ("" if it isn't one).
+function damageTypeOf(text) {
+  const want = String(text ?? "").trim().toLowerCase();
+  const types = CONFIG.DND5E?.damageTypes;
+  if (!want || !types) return want;
+  const label = (v) => String(game.i18n?.localize?.(v?.label ?? "") ?? v?.label ?? "").toLowerCase();
+  return Object.entries(types).find(([k, v]) => k === want || label(v) === want)?.[0] ?? "";
+}
+function damageLabel(type) {
+  const label = CONFIG.DND5E?.damageTypes?.[type]?.label;
+  return label ? game.i18n?.localize?.(label) ?? label : type;
+}
 async function targetPasses(expression) {
   const t = target();
   if (!t || !globalThis.MidiQOL?.evalCondition) return false;
@@ -1063,6 +1149,22 @@ async function giveEffect(who, id) {
   Object.assign(data, { origin: item.uuid, transfer: false, disabled: false });
   await addEffect(who, data);
   say(chrabEsc(who.name) + " gains <strong>" + chrabEsc(data.name) + "</strong>");
+}
+// Takes off what this item put on a creature: copies of one of its effects (by
+// name), or with no id anything it applied except concentration. dnd5e and midi
+// set the origin to the item or to its effect/activity, both under item.uuid.
+async function takeEffect(who, id, quiet = false) {
+  if (!who) return say("No target to remove it from");
+  const src = id ? item.effects?.find?.((e) => (e.id ?? e._id) === id) : null;
+  if (id && !src) return;
+  const mine = (o) => typeof o === "string" && (o === item.uuid || o.startsWith(item.uuid + "."));
+  const gone = (who.effects ?? []).filter((e) => mine(e.origin) && (src ? e.name === src.name : ![...(e.statuses ?? [])].includes("concentrating")));
+  if (!gone.length) return quiet ? undefined : say(chrabEsc(who.name) + " has nothing of it to remove");
+  const ids = gone.map((e) => e.id);
+  if (who.isOwner === false) await MidiQOL.socket().executeAsGM("removeEffects", { actorUuid: who.uuid, effects: ids });
+  else await who.deleteEmbeddedDocuments("ActiveEffect", ids);
+  state.removed = (state.removed ?? 0) + ids.length;
+  say(chrabEsc(who.name) + " loses <strong>" + [...new Set(gone.map((e) => chrabEsc(e.name)))].join(", ") + "</strong>");
 }
 const poolItem = (id) => actor.items?.find?.((i) => i.system?.identifier === id) ?? null;
 function usesLeft(it) {

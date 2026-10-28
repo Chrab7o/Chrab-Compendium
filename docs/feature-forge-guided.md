@@ -177,6 +177,12 @@ choices that fit it.
 - [ ] Open an old weapon saved as "Always on": it's marked, Review offers Make it fit, and afterwards the attack is an
       action in Foundry.
 
+## Experimental: the chain builder (2026-10-28)
+
+A third layout on its own page (`/dm/item-forge/:id/chain`, "+ New (chain, experimental)" in the library): the
+whole feature as one tree in the order things happen. It edits the same spec, so an item opens in either editor.
+The plan, the mapping and its status are in `docs/item-forge-chain.md`.
+
 ## Status (2026-10-25)
 
 - Phase 1 built. A headless jsdom click-through (scratch script, not committed) walked a blank spell and Death Stance

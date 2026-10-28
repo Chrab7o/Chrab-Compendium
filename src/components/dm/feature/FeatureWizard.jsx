@@ -63,7 +63,7 @@ const FEAT_TYPE_HELP = {
   monster: 'A creature’s trait, attack or ability.',
 }
 
-const USES = [
+export const USES = [
   { key: 'action', label: 'An action', help: 'They spend their action on their turn.' },
   { key: 'bonus', label: 'A bonus action', help: 'They spend their bonus action.' },
   { key: 'reaction', label: 'A reaction', help: 'Midi offers it when its trigger happens.' },
@@ -88,7 +88,7 @@ const RECOVERY = [
   { key: 'none', label: 'Never (used up)' },
 ]
 
-const ROLL_KIND_HELP = {
+export const ROLL_KIND_HELP = {
   attack: 'Rolls to hit against AC, then damage.',
   save: 'Targets roll a saving throw against a DC.',
   damage: 'Damage with no roll to hit or save, e.g. extra damage another roll sets off.',
@@ -118,7 +118,7 @@ const EFFECT_STARTS = [
 // Each kind's allowed choices in its own order (armor: always on first), plus
 // the current one if a saved item already has it (marked, last, so nothing is
 // lost by opening an old item).
-function fitting(options, allowed, current, article) {
+export function fitting(options, allowed, current, article) {
   const rank = (o) => (allowed.includes(o.key) ? allowed.indexOf(o.key) : allowed.length)
   return options
     .filter((o) => allowed.includes(o.key) || o.key === current)
@@ -138,12 +138,12 @@ const sectionFor = (activation) => (activation === 'special' ? 'trait' : activat
 // A resource pool (Darkness, Ink) is an always-on feature with uses and no
 // rolls of its own: its uses are the points, and spenders name its identifier.
 const poolShown = (item) => usageOf(item) === 'passive' && limitOf(item) === 'uses' && !landingRolls(item).length
-const shownUsage = (item, kind) => (kind.uses.includes('pool') && poolShown(item) ? 'pool' : usageOf(item))
+export const shownUsage = (item, kind) => (kind.uses.includes('pool') && poolShown(item) ? 'pool' : usageOf(item))
 
 // Effects a repeat-each-turn roll rides on: they need no changes of their own.
-const tickCarriers = (item) => new Set(item.activities.map((a) => a.overTime?.effectKey).filter(Boolean))
+export const tickCarriers = (item) => new Set(item.activities.map((a) => a.overTime?.effectKey).filter(Boolean))
 
-function limitText(item) {
+export function limitText(item) {
   if (item.usesRecovery === 'recharge') return `Recharge ${item.rechargeOn === 6 ? '6' : `${item.rechargeOn}-6`}`
   const recovery = RECOVERY.find((r) => r.key === item.usesRecovery)
   if (!recovery) return 'Unlimited'
@@ -153,7 +153,7 @@ function limitText(item) {
 }
 
 // "Melee weapon attack · 1d8 + @mod slashing · 5 ft. reach"
-function rollSummary(a) {
+export function rollSummary(a) {
   const damage = (a.damage ?? [])
     .filter((d) => String(d.formula ?? '').trim())
     .map((d) => [d.formula, d.types?.[0]].filter(Boolean).join(' '))
@@ -171,8 +171,8 @@ function rollSummary(a) {
   return parts.filter(Boolean).join(' · ')
 }
 
-function effectSummary(e, item) {
-  const where = e.stance ? 'while the stance is on' : e.passive ? 'always on' : e.byRule ? 'placed by a reaction rule' : e.aura ? 'in the aura' : e.bond ? 'on a bonded target' : 'on the target'
+export function effectSummary(e, item) {
+  const where = e.stance ? 'while the stance is on' : e.passive ? 'always on' : e.byRule ? 'placed only by automation' : e.aura ? 'in the aura' : e.bond ? 'on a bonded target' : 'on the target'
   const ticks = item.activities.filter((a) => a.overTime?.effectKey === e.key)
   const what = [
     (e.statuses ?? []).map(cap).join(', '),
@@ -184,7 +184,7 @@ function effectSummary(e, item) {
   return `${e.name || item.name || 'Effect'}: ${where}${what ? `, ${what}` : ', nothing yet'}`
 }
 
-function rollProblems(a, i) {
+export function rollProblems(a, i) {
   const name = activityLabel(a, i)
   const out = []
   if (['attack', 'save', 'damage'].includes(a.kind) && !(a.damage ?? []).some((d) => String(d.formula ?? '').trim())) out.push(`${name} deals no damage yet.`)
@@ -194,7 +194,7 @@ function rollProblems(a, i) {
 }
 
 // Big answer buttons, the Automation Builder's .aw-choice.
-function Choices({ options, value, onPick, compact = false }) {
+export function Choices({ options, value, onPick, compact = false }) {
   return (
     <div className={`aw-choices${compact ? ' aw-choices-compact' : ''}`}>
       {options.map((o) => (
@@ -579,9 +579,11 @@ function ReactionsStep({ spec, item, setItem }) {
 // showStart: a new, untouched feature, so offer the Start step.
 // linkedText: the name and description belong to a homebrew class row.
 // allowSpell / allowGear: false where only features fit (an NPC's library items).
-export default function FeatureWizard({ spec, set, replace, onImport, showStart = false, linkedText = false, allowSpell = true, allowGear = true }) {
+// only: a few of the steps (the chain builder's Setup and Reactions); with one,
+// there's no step bar.
+export default function FeatureWizard({ spec, set, replace, onImport, showStart = false, linkedText = false, allowSpell = true, allowGear = true, only = null }) {
   const ref = useRef(null)
-  const [step, setStep] = useState(showStart ? 'start' : 'basics')
+  const [step, setStep] = useState(showStart ? 'start' : only?.find((k) => k !== 'start') ?? 'basics')
   const [started, setStarted] = useState(!showStart)
   const [templating, setTemplating] = useState(false)
   const isSpell = spec.kind === 'spell'
@@ -594,7 +596,8 @@ export default function FeatureWizard({ spec, set, replace, onImport, showStart 
   const kind = forgeKind(spec)
   const fit = fitToKind(spec)
   // Reactions: kinds with rule events, or an old item that already has rules.
-  const steps = STEPS.filter((s) => (s.key !== 'start' || !started) && (!s.rules || kind.events.length || item.behavior?.rules?.length) && (!s.gear || isGear))
+  const steps = STEPS.filter((s) => (s.key !== 'start' || !started) && (!s.rules || kind.events.length || item.behavior?.rules?.length) && (!s.gear || isGear) && (!only || only.includes(s.key)))
+  const single = steps.length === 1
   const at = Math.max(0, steps.findIndex((s) => s.key === step))
   const current = steps[at]
   const go = (key) => {
@@ -986,17 +989,19 @@ export default function FeatureWizard({ spec, set, replace, onImport, showStart 
 
   return (
     <div className="fw" ref={ref}>
-      <ol className="aw-progress fw-steps">
-        {steps.map((s, i) => (
-          <li key={s.key} className={i === at ? 'is-current' : i < at ? 'is-done' : ''}>
-            <button type="button" onClick={() => go(s.key)} disabled={!started && s.key !== 'start'}>
-              {s.label}
-            </button>
-          </li>
-        ))}
-      </ol>
+      {!single && (
+        <ol className="aw-progress fw-steps">
+          {steps.map((s, i) => (
+            <li key={s.key} className={i === at ? 'is-current' : i < at ? 'is-done' : ''}>
+              <button type="button" onClick={() => go(s.key)} disabled={!started && s.key !== 'start'}>
+                {s.label}
+              </button>
+            </li>
+          ))}
+        </ol>
+      )}
       <div className="fw-panel aw-body">{body}</div>
-      {started && (
+      {started && !single && (
         <div className="fw-nav">
           {at > 0 && (
             <button type="button" className="secondary" onClick={() => go(steps[at - 1].key)}>

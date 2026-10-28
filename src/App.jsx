@@ -140,6 +140,8 @@ export default function App() {
               <Route path="item-forge" element={<DMFeatureForgePage />} />
               <Route path="item-forge/new" element={<FeatureEditor />} />
               <Route path="item-forge/:id/edit" element={<FeatureEditor />} />
+              <Route path="item-forge/chain/new" element={<FeatureEditor layout="chain" />} />
+              <Route path="item-forge/:id/chain" element={<FeatureEditor layout="chain" />} />
               <Route path="feature-forge/*" element={<FeatureForgeRedirect />} />
               <Route path="shops" element={<DMShopsPage />} />
               <Route path="name-generator" element={<DMNameGeneratorPage />} />

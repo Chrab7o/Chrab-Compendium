@@ -21,6 +21,7 @@ import { downloadFeatureItem } from './downloadItem'
 import { OWNER_CONTEXT } from './ownerContext'
 import TemplatePicker from './TemplatePicker'
 import FeatureWizard from './FeatureWizard'
+import ChainBuilder from './ChainBuilder'
 import { DescriptionBlocks, GearStatFields } from './GearFields'
 import { buildFromTemplate, findTemplate } from '../../../lib/automationTemplates'
 import { newForgeSpec } from '../../../lib/forgeKinds'
@@ -110,7 +111,10 @@ function FeaturePreview({ spec }) {
 // Feature Forge editor: one class feature, feat or spell, saved as a
 // feature_drafts row and sent to the world's Items directory by Chrab Sync.
 // The form state is the stored spec (lib/foundryFeatures.js).
-export default function FeatureEditor() {
+// layout="chain": the experimental chain builder (docs/item-forge-chain.md),
+// its own page; the same item, so it links back and forth with this one.
+export default function FeatureEditor({ layout = null }) {
+  const chain = layout === 'chain'
   const { id } = useParams()
   const [search] = useSearchParams()
   const navigate = useNavigate()
@@ -213,7 +217,7 @@ export default function FeatureEditor() {
       const notice = await republishQuietly()
       if (notice) setError(notice)
     }
-    if (!draftId) navigate(`/dm/item-forge/${result.data.id}/edit`, { replace: true })
+    if (!draftId) navigate(`/dm/item-forge/${result.data.id}/${chain ? 'chain' : 'edit'}`, { replace: true })
     return result.data.id
   }
 
@@ -253,16 +257,26 @@ export default function FeatureEditor() {
   return (
     <section className="page-wide">
       <div className="view-header">
-        <h1>{isNew && !draftId ? 'New item' : `Edit ${name || 'item'}`}</h1>
+        <h1>
+          {isNew && !draftId ? 'New item' : `Edit ${name || 'item'}`}
+          {chain && <span className="ch-badge">Chain builder · experimental</span>}
+        </h1>
         <div className="dm-form-actions">
-          <div className="fw-mode" role="group" aria-label="Editor layout">
-            <button type="button" className={mode === 'guided' ? 'is-on' : ''} aria-pressed={mode === 'guided'} onClick={() => switchMode('guided')}>
-              Guided
-            </button>
-            <button type="button" className={mode === 'all' ? 'is-on' : ''} aria-pressed={mode === 'all'} onClick={() => switchMode('all')}>
-              All fields
-            </button>
-          </div>
+          {draftId && (
+            <Link className="button-link secondary" to={`/dm/item-forge/${draftId}/${chain ? 'edit' : 'chain'}`}>
+              {chain ? 'Open in the regular editor' : 'Chain builder (experimental)'}
+            </Link>
+          )}
+          {!chain && (
+            <div className="fw-mode" role="group" aria-label="Editor layout">
+              <button type="button" className={mode === 'guided' ? 'is-on' : ''} aria-pressed={mode === 'guided'} onClick={() => switchMode('guided')}>
+                Guided
+              </button>
+              <button type="button" className={mode === 'all' ? 'is-on' : ''} aria-pressed={mode === 'all'} onClick={() => switchMode('all')}>
+                All fields
+              </button>
+            </div>
+          )}
           <label className="fw-campaign">
             Campaign
             <select value={campaignId} onChange={(e) => setCampaignId(e.target.value)}>
@@ -342,7 +356,18 @@ export default function FeatureEditor() {
             save()
           }}
         >
-          {mode === 'guided' ? (
+          {chain ? (
+            <NpcSpecContext.Provider value={OWNER_CONTEXT}>
+              <ChainBuilder
+                spec={spec}
+                set={set}
+                replace={setSpec}
+                onImport={handleImport}
+                showStart={isNew && !draftId && !startTemplate && !search.get('kind')}
+                linkedText={usedBy.length > 0}
+              />
+            </NpcSpecContext.Provider>
+          ) : mode === 'guided' ? (
             <NpcSpecContext.Provider value={OWNER_CONTEXT}>
               <FeatureWizard
                 spec={spec}

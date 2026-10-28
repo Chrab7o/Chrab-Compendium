@@ -115,6 +115,43 @@ Automation step, "Repeats each turn on whoever has this item's effect" (`activit
   the item is used. Tested in `gearItems.test.mjs` (built item and read-back). Not run in Foundry yet; see the watch
   list below.
 
+## Removing effects (dismissing)
+
+"Remove one of this item's effects" (step `removeEffect`, added 2026-10-28 for the Pictomancer's illustrations: a
+Dismiss roll that takes the lingering effect off and refunds Ink).
+
+- **From:** the target, every picked creature, you, or every creature on the map (`to: 'scene'`, every token's actor,
+  no message for the ones without it).
+- **Effect:** one of the item's effects (matched by name), or blank = anything this item applied except
+  concentration.
+- **Only this item's:** the effect's `origin` must be the item's uuid or start with it. midi sets `item.uuid`, and
+  dnd5e's apply button sets the source effect's uuid (`Item.x.ActiveEffect.y`), so another character's copy of the
+  same feature is never touched.
+- **Not the owner:** removal goes through `MidiQOL.socket().executeAsGM("removeEffects", …)`.
+- "How many effects it removed" (`removedCount`) adds up over the roll, for a refund per effect.
+
+## The player picks one (and damage types)
+
+Added 2026-10-28 for Bleeding Scar: one attack, where the player picks fire, cold or lightning, and the scar of that
+type lands.
+
+- **Ask the player to pick one** (a value, `source: 'choose'`, `choices: "Fire, Cold, Lightning"`). It shows one button
+  per choice on the player's screen (`chrabDialog(actor, "wait", …)`). The variable becomes 1, 2, 3…, and the words
+  go in `state.chosen[name]`, which lasts the whole roll. Closing the window picks the first choice.
+- **The player picked…** (check `picked`: `pick` = the variable, `value` = the choice).
+- **Change this roll's damage type** (step `retype`, damage pass only), either to a fixed type or to a pick
+  (`pick`). It sets `options.type` on every damage roll that isn't healing, plus the flavor of typed dice, then calls
+  `setDamageRolls`. A pick is matched to dnd5e's type keys or labels, so "Fire" works.
+- **Effects only automation places:** an effect's "Applies to" now offers "Only by automation" (`byRule`) when a roll's
+  flow has an "Apply one of this item's effects" step, not only when there are behavior rules. The hit itself
+  doesn't apply it, and the `chrab-sync.byRule` flag is now written without behavior rules too, so it round-trips.
+
+The Bleeding Scar pattern:
+1. When it's used: `element` = pick of Fire, Cold, Lightning.
+2. When damage is rolled: change the damage type to `element`.
+3. After it's all done: if `element` is Fire, apply Lingering Scar (Fire), and the same for Cold and Lightning. Each
+   scar is "Only by automation".
+
 ## Export and read-back
 
 - A flow with steps (`hasFlow`) **replaces** `activity.script`. `flowCode()` compiles it into one activity macro that
@@ -164,6 +201,7 @@ Not done yet:
 | Target checks | `MidiQOL.createConditionData(...)` + `MidiQOL.evalCondition(expr, data, { async: true })` | any |
 | Damage / healing to a creature | `MidiQOL.applyTokenDamage([{ value, type }], n, new Set([token]), item, new Set(), {...})` | any |
 | Effects on a creature you don't own | `MidiQOL.socket().executeAsGM("createEffects", { actorUuid, effects })` | any |
+| Remove them | `executeAsGM("removeEffects", { actorUuid, effects: ids })`, matched by `effect.origin` under `item.uuid` | any |
 | Once per turn | the item flag `flags.chrab-sync.turns.<key>` = `combatId:round:turn` | any |
 | Player prompts | `chrabDialog` (from `foundryChat.js` `CHAT_RUNTIME`) | any |
 | Make it a crit | `workflow.isCritical = true` (midi's setter: a "direct" critical override) | postAttackRoll |
@@ -184,6 +222,10 @@ Things to watch for in that first run:
 - Picking when it's used: do the attack / save / damage go to the picked creatures, and does the use card list them?
 - Does Esc while picking stay out of Foundry's own Esc menu? Does a GM's click select the token too (harmless)?
 - Is `system.scaling` on the use card by the time "After it's all done" runs, for an upcast spell?
+- Pick one: does `user.query("dialog", { type: "wait", … })` show the buttons on the player's screen and return the
+  button's action? Does changing `options.type` at `postDamageRoll` change the type that's applied, and the chat card?
+- Remove an effect: does an effect midi applied on a hit have `origin` = the item (or its effect or activity), so the
+  remove step finds it? Does a player's removal from a monster go through the GM?
 - Every turn on the owner: does an `ActivityOverTime` on an always-on (transfer) effect tick at the start of the
   owner's turn, once, and stop when the item is unequipped? Midi runs over-time rolls on the GM's client: does a
   "show the player a pop-up" line still reach the player, or only the GM? Which "When" parts of the flow run on a

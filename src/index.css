@@ -7376,3 +7376,235 @@ button.aw-line-text.is-bad {
 }
 
 }
+
+/* ---------------------------------------------------------------------------
+   Item Forge chain builder (experimental, ChainBuilder.jsx): the feature as
+   one tree. A rail on the left, each part a card whose left edge and tag
+   take its kind's color; branches and nested rolls indent on their own rail. */
+
+.ch {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.ch-badge {
+  display: inline-block;
+  margin-left: 0.7rem;
+  padding: 0.1rem 0.5rem;
+  border: 2px solid var(--accent-purple-strong);
+  border-radius: var(--radius-sm);
+  color: var(--accent-purple);
+  font-size: var(--text-xs);
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+
+.ch-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin-left: 0.7rem;
+  padding-left: 1rem;
+  border-left: 3px solid var(--accent);
+}
+
+.ch-roll,
+.ch-section,
+.ch-group,
+.ch-choice {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.ch-node {
+  --node: var(--accent);
+  border: 1px solid var(--border);
+  border-left: 6px solid var(--node);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.ch-node.is-setup { --node: var(--accent); }
+.ch-node.is-roll { --node: var(--accent-strong); }
+.ch-node.is-damage { --node: var(--accent-red-strong); }
+.ch-node.is-cost { --node: var(--accent-purple-strong); }
+.ch-node.is-effect { --node: var(--accent-2-strong); }
+.ch-node.is-more { --node: var(--accent-purple); }
+.ch-node.is-rule { --node: var(--accent-2); }
+
+.ch-node.is-open {
+  border-color: var(--node);
+}
+
+.ch-node-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding-right: 0.35rem;
+}
+
+/* A plain row, so no button gradient / lift / glow. */
+button.ch-node-head {
+  flex: 1;
+  display: flex;
+  align-items: baseline;
+  gap: 0.7rem;
+  padding: 0.45rem 0.6rem;
+  text-align: left;
+  font-weight: 400;
+  color: var(--text);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  filter: none;
+  transform: none;
+}
+
+button.ch-node-head:hover,
+button.ch-node-head[aria-expanded='true'] {
+  background: var(--surface-2);
+  box-shadow: none;
+  filter: none;
+  transform: none;
+}
+
+.ch-tag {
+  flex: none;
+  min-width: 5.5rem;
+  color: var(--node);
+  font-size: var(--text-xs);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.ch-node-title {
+  flex: 1;
+}
+
+.ch-node-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.7rem 0.8rem;
+  border-top: 1px dashed var(--node);
+  background: var(--surface-2);
+}
+
+/* A point of the roll's script ("after the attack roll") between its parts. */
+.ch-point {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.2rem 0 0.2rem 0.6rem;
+  border-left: 3px dotted var(--accent-strong);
+}
+
+.ch-point-label,
+.ch-nested-label {
+  font-size: var(--text-xs);
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.ch-point-label {
+  color: var(--accent-strong);
+}
+
+.ch-nested-label {
+  color: var(--accent-purple);
+}
+
+.ch-choice-head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.ch-choice-head strong {
+  color: var(--accent);
+  font-size: var(--text-lg);
+}
+
+.ch-branch,
+.ch-nested {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-left: 0.4rem;
+  padding-left: 0.9rem;
+}
+
+.ch-branch {
+  border-left: 3px solid var(--accent-2);
+}
+
+.ch-nested {
+  border-left: 3px solid var(--accent-purple-strong);
+}
+
+/* The choice's name, typed as its heading. */
+input.ch-branch-name {
+  align-self: flex-start;
+  width: auto;
+  min-width: 14rem;
+  padding: 0.15rem 0.1rem;
+  color: var(--accent-2);
+  font-size: var(--text-md);
+  font-weight: 800;
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid var(--accent-2);
+  border-radius: 0;
+}
+
+.ch-under {
+  margin-left: 1.2rem;
+}
+
+.ch-add {
+  align-self: flex-start;
+  width: auto;
+  color: var(--accent-2);
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
+.ch-picking {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.6rem;
+  border: 2px dashed var(--accent-2);
+  border-radius: var(--radius-sm);
+}
+
+.ch-section-head {
+  margin: 0.4rem 0 0;
+  color: var(--accent);
+  font-size: var(--text-base);
+}
+
+@media (max-width: 640px) {
+  .ch-rail,
+  .ch-branch,
+  .ch-nested {
+    margin-left: 0.2rem;
+    padding-left: 0.6rem;
+  }
+
+  .ch-tag {
+    min-width: 0;
+  }
+
+  button.ch-node-head {
+    flex-wrap: wrap;
+    gap: 0.2rem 0.6rem;
+  }
+}
