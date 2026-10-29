@@ -6,6 +6,7 @@
 // get is summon placement (summons.mjs).
 // See docs/npc-forge-phase2.md in the Chrab Compendium repo.
 
+import { relinkWorldActivityMacros } from './activityMacros.mjs'
 import { ConfigApp, SyncApp } from './apps.mjs'
 import { syncOnLoad, watchCharacters } from './characters.mjs'
 import { checkClassPack } from './classes.mjs'
@@ -76,6 +77,9 @@ Hooks.once('ready', () => setupSummons())
 
 Hooks.once('ready', () => {
   if (!game.user.isGM) return
+  relinkWorldActivityMacros()
+    .then((fixed) => fixed && ui.notifications.info(`Chrab Sync: reconnected the scripts on ${fixed} item${fixed === 1 ? '' : 's'}.`))
+    .catch((err) => console.warn(`${MODULE_ID} | relink failed`, err))
   watchCharacters()
   syncOnLoad().catch((err) => {
     console.warn(`${MODULE_ID} |`, err)
