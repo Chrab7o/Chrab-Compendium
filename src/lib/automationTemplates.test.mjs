@@ -760,3 +760,62 @@ test('missiles: a blue ring, a target per missile, damage per creature', async (
   assert.match(posted[0].content, /Ogre<\/strong>: 3 missiles, 15 radiant damage/)
   for (const k of ['PIXI', 'canvas', 'ui', 'MidiQOL', 'foundry', 'ChatMessage', 'CONFIG', 'game']) delete globalThis[k]
 })
+
+// Acrobat's Launch: speed 45, aimed at a goblin 30 ft to the right. The monk
+// stops against it (25 ft flown, 2d4), then flies the other way into a wall.
+test('launch: flies along the aim, stops at the first creature or wall, 1d4 per 10 ft', async () => {
+  const spec = fromTemplate('launch', { pool: 'monks-focus', poolCost: 1 })
+  const [act] = acts(spec.item)
+  assert.equal(act.activation.type, 'bonus')
+  assert.equal(act.consumption.targets[0].target, 'monks-focus')
+  const doc = { rotation: 0, isOwner: true, async update(d) { Object.assign(doc, d) } }
+  const self = { center: { x: 500, y: 500 }, w: 100, h: 100, document: doc }
+  const goblin = { name: 'Goblin', actor: {}, center: { x: 1100, y: 500 }, w: 100, h: 100 }
+  const ally = { name: 'Off the line', actor: {}, center: { x: 800, y: 800 }, w: 100, h: 100 }
+  let click = { x: 1100, y: 500 }
+  let wall = null
+  globalThis.PIXI = { Graphics: class { lineStyle() { return this } beginFill() { return this } drawCircle(x, y, r) { this.r = r; return this } endFill() { return this } destroy() {} } }
+  globalThis.canvas = {
+    ready: true,
+    dimensions: { distance: 5, size: 100 },
+    grid: { distance: 5, size: 100, measurePath: ([a, b]) => ({ distance: (Math.hypot(b.x - a.x, b.y - a.y) / 100) * 5 }) },
+    tokens: { placeables: [self, goblin, ally] },
+    interface: { addChild: () => {} },
+    stage: { on: (event, fn) => queueMicrotask(() => fn({ button: 0, getLocalPosition: () => click })), off: () => {} },
+  }
+  globalThis.ui = { notifications: { info: () => {}, warn: () => {} } }
+  const moves = []
+  const applied = []
+  globalThis.MidiQOL = {
+    moveToken: async (token, point, options) => moves.push([point, options]),
+    applyTokenDamage: async (detail, total, targets) => applied.push([[...targets][0].name, total, detail[0].type]),
+  }
+  const formulas = []
+  globalThis.CONFIG = {
+    Canvas: { polygonBackends: { move: { testCollision: () => wall } } },
+    Dice: { DamageRoll: class { constructor(formula) { formulas.push(formula); this.total = 6 } async evaluate() { return this } } },
+  }
+  const posted = []
+  globalThis.foundry = { utils: { escapeHTML: (s) => String(s) }, applications: { api: {} } }
+  globalThis.ChatMessage = { getSpeaker: () => ({}), implementation: { create: async (m) => posted.push(m) } }
+  globalThis.game = { user: { isGM: false } }
+  const AsyncFunction = Object.getPrototypeOf(async () => {}).constructor
+  const run = new AsyncFunction('workflow', 'args', 'actor', 'token', 'item', act.macroData.command)
+  const actor = { name: 'Bhern', uuid: 'Actor.bhern', system: { attributes: { movement: { walk: 45 } } }, getActiveTokens: () => [self], getRollData: () => ({}) }
+  const item = { name: 'Launch', img: 'launch.webp', flags: {} }
+  await run({}, [{ macroPass: 'postActiveEffects' }], actor, self, item)
+  assert.deepEqual(moves[0], [{ x: 1000, y: 500 }, { ignoreTokens: true, autoRotate: false }], 'stops beside the goblin')
+  assert.deepEqual(formulas, ['2d4'])
+  assert.deepEqual(applied, [['Goblin', 6, 'bludgeoning']])
+  assert.match(posted[0].content, /launches 25 ft into <strong>Goblin/)
+
+  // Aimed left, the full 45 ft, but a wall 20 ft away: stops short of it.
+  click = { x: 400, y: 500 }
+  wall = { x: 100, y: 500 }
+  await run({}, [{ macroPass: 'postActiveEffects' }], actor, self, item)
+  assert.deepEqual(moves[1][0], { x: 150, y: 500 })
+  assert.deepEqual(formulas, ['2d4', '1d4'], '17.5 ft rounds to 18: one die')
+  assert.equal(applied.length, 1, 'nobody to damage')
+  assert.match(posted[1].content, /launches 18 ft into a wall/)
+  for (const k of ['PIXI', 'canvas', 'ui', 'MidiQOL', 'foundry', 'ChatMessage', 'CONFIG', 'game']) delete globalThis[k]
+})

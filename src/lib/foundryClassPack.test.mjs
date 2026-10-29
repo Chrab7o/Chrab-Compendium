@@ -16,7 +16,7 @@ import {
   mechanicsSummary,
 } from './foundryFeatures.js'
 import { buildClassPack, classPackSummary, markdownToHtml, stableId, tableColumnScaleValue } from './foundryClassPack.js'
-import { attachMechanicsFile, mechanicsFile } from './classMechanicsFile.js'
+import { attachMechanicsFile, attachStandaloneMechanicsFile, mechanicsFile } from './classMechanicsFile.js'
 
 const row = (level, name, extra = {}) => ({ id: null, level, name, description: `${name} text.`, sort_order: 0, choice_group: '', choice_count: null, feature_draft_id: null, ...extra })
 
@@ -400,4 +400,21 @@ test('a mechanics file fills the matching rows, unsaved, and reports the rest', 
   assert.equal(form.features.find((f) => f.name === 'Tainted Soul').mechanics, undefined)
   assert.throws(() => attachMechanicsFile(darkKnight(), { mechanics: [] }), /class mechanics file/)
   assert.equal(attachMechanicsFile(darkKnight(), mechanicsFile('Oracle', [])).classMismatch, 'Oracle')
+})
+
+test('a mechanics file fills a standalone subclass’s rows', () => {
+  const pool = emptyFeatureSpec('feat')
+  const acrobat = { name: 'Way of the Acrobat', parent_class_name: 'Monk', features: [row(3, 'Launch'), row(6, 'Rotating Spin')] }
+  const file = mechanicsFile('Monk', [
+    { subclass: 'Way of the Acrobat', name: 'Launch', level: 3, spec: pool },
+    { subclass: '', name: 'Martial Arts', level: 1, spec: pool },
+  ])
+  const { form, attached, unmatched, classMismatch } = attachStandaloneMechanicsFile(acrobat, file)
+  assert.deepEqual(attached, ['Way of the Acrobat › level 3 › Launch'])
+  assert.deepEqual(unmatched, ['level 1 › Martial Arts'])
+  assert.equal(classMismatch, null)
+  assert.equal(form.parent_class_name, 'Monk')
+  assert.equal(form.features[0].mechanicsDirty, true)
+  assert.equal(form.features[1].mechanics, undefined)
+  assert.equal(attachStandaloneMechanicsFile(acrobat, mechanicsFile('Fighter', [])).classMismatch, 'Fighter')
 })

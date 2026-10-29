@@ -355,6 +355,101 @@ await chrabPost(card, actor);
 `,
   },
   {
+    id: 'launch',
+    label: 'Launch yourself in a line, damage by distance',
+    help: 'After use, click a creature or a spot to aim. Your token flies that way (the full distance, or only to the spot), stops against the first creature or wall in its path, and that creature takes damage per distance flown (Launch: 1d4 per 10 ft).',
+    pass: 'postActiveEffects',
+    params: { range: '', fullDistance: true, perFeet: '10', die: 'd4', damageType: 'bludgeoning', ...CARD_PARAMS },
+    code: (p) =>
+      `${HEADER(`Launch ${num(p.range) > 0 ? `${num(p.range)} ft.` : 'your speed'} in a line; 1${p.die || 'd4'} per ${num(p.perFeet, 10)} ft. to what it hits`)}${cardStart(p)}const self = token ?? actor.getActiveTokens?.()[0];
+if (!self || !canvas?.ready) return;
+const unit = canvas.scene?.grid?.units || "ft";
+// Blank range: the walking speed (Unarmored Movement and the like included).
+const range = ${num(p.range) > 0 ? num(p.range) : 'Number(actor.system?.attributes?.movement?.walk) || 0'};
+if (!(range > 0)) return ui.notifications.warn(item.name + ": no speed to launch with.");
+const perFeet = ${num(p.perFeet, 10)};
+const fullDistance = ${p.fullDistance === false ? 'false' : 'true'};
+const center = (t) => t.center ?? t.object?.center;
+const from = center(self);
+const far = (point) => canvas.grid.measurePath([from, point]).distance;
+const pxPerUnit = canvas.dimensions.size / canvas.dimensions.distance;
+const radius = (t) => Math.max(t.w ?? 0, t.h ?? 0) / 2;
+ui.notifications.info(item.name + ": click a creature or a spot to launch toward (" + range + " " + unit + (fullDistance ? ", the full distance" : "") + "). Right-click cancels.");
+let ring = null;
+try {
+  ring = new PIXI.Graphics();
+  ring.lineStyle(4, 0x2f7bff, 0.9).beginFill(0x2f7bff, 0.12).drawCircle(from.x, from.y, range * pxPerUnit).endFill();
+  (canvas.interface ?? canvas.stage).addChild(ring);
+} catch (err) {
+  console.warn("chrab-sync | range ring", err);
+}
+const aim = await new Promise((resolve) => {
+  const stage = canvas.stage;
+  const onDown = (event) => {
+    stage.off("pointerdown", onDown);
+    resolve(event.button === 2 ? null : event.getLocalPosition(stage));
+  };
+  stage.on("pointerdown", onDown);
+});
+ring?.destroy();
+if (!aim) return;
+const length = Math.hypot(aim.x - from.x, aim.y - from.y);
+if (length < 1) return;
+const ux = (aim.x - from.x) / length;
+const uy = (aim.y - from.y) / length;
+const at = (d) => ({ x: from.x + ux * d, y: from.y + uy * d });
+// How far it flies (in pixels), then where it stops: against a wall, or
+// against the first creature whose space the line passes through.
+let stop = fullDistance ? range * pxPerUnit : Math.min(range * pxPerUnit, length);
+let hitWall = false;
+try {
+  const wall = CONFIG.Canvas.polygonBackends.move.testCollision(from, at(stop), { type: "move", mode: "closest", source: self.document });
+  if (wall) {
+    stop = Math.max(0, Math.hypot(wall.x - from.x, wall.y - from.y) - radius(self));
+    hitWall = true;
+  }
+} catch (err) {
+  console.warn("chrab-sync | launch wall check", err);
+}
+let struck = null;
+for (const t of canvas.tokens.placeables) {
+  if (t === self || !t.actor || t.visible === false) continue;
+  const c = center(t);
+  const along = (c.x - from.x) * ux + (c.y - from.y) * uy;
+  const aside = Math.abs((c.x - from.x) * uy - (c.y - from.y) * ux);
+  const gap = radius(t) + radius(self);
+  if (along <= 0 || aside >= gap * 0.9) continue;
+  const short = Math.max(0, along - gap);
+  if (short < stop) {
+    stop = short;
+    struck = t;
+    hitWall = false;
+  }
+}
+const point = at(stop);
+const moved = Math.round(far(point));
+const rotation = self.document?.rotation ?? 0;
+await MidiQOL.moveToken(self, point, { ignoreTokens: true, autoRotate: false });
+if ((self.document?.rotation ?? 0) !== rotation && self.document?.isOwner) await self.document.update({ rotation });
+const dice = Math.floor(moved / perFeet);
+card.steps.push(chrabEsc(actor.name) + " launches " + moved + " " + unit + (struck ? " into <strong>" + chrabEsc(struck.name) + "</strong>" : hitWall ? " into a wall" : ""));
+const type = ${js(p.damageType || '')} || undefined;
+if ((struck || hitWall) && dice > 0) {
+  const roll = await new CONFIG.Dice.DamageRoll(dice + ${js(p.die || 'd4')}, actor.getRollData(), { type }).evaluate();
+  card.rolls.push(roll);
+  if (struck) {
+    await MidiQOL.applyTokenDamage([{ value: roll.total, type: type || "none" }], roll.total, new Set([struck]), item, new Set(), { existingDamage: [], superSavers: new Set(), semiSuperSavers: new Set(), workflow, forceApply: false });
+    card.steps.push("<strong>" + chrabEsc(struck.name) + "</strong> takes " + roll.total + (type ? " " + type : "") + " damage (" + dice + ${js(p.die || 'd4')} + ")");
+  } else {
+    card.steps.push("The impact deals " + roll.total + (type ? " " + type : "") + " damage (" + dice + ${js(p.die || 'd4')} + ") to the wall or object");
+  }
+} else if (struck || hitWall) {
+  card.steps.push("Not far enough to deal damage (under " + perFeet + " " + unit + ")");
+}
+await chrabPost(card, actor);
+`,
+  },
+  {
     id: 'missiles',
     label: 'Missiles: pick a target for each',
     help: 'After use, a blue ring shows the range (blank: the spell’s or feature’s own) and you click a creature for each missile; click one again to stack another on it, shift-click to send it all the rest, right-click to take one back, Enter to fire what’s placed, Esc to cancel. Each creature then takes its missiles’ damage. Cast with a higher slot, a spell fires more.',

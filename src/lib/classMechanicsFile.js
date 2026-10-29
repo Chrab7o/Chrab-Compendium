@@ -44,3 +44,11 @@ export function attachMechanicsFile(form, data) {
     classMismatch: data.className && norm(data.className) !== norm(form.name) ? data.className : null,
   }
 }
+
+// The same for a standalone subclass (StandaloneSubclassEditor): the file's
+// className is the parent class ("Monk") and its entries name the subclass.
+export function attachStandaloneMechanicsFile(form, data) {
+  const asClass = { name: form.parent_class_name, features: [], subclasses: [{ name: form.name, features: form.features }] }
+  const result = attachMechanicsFile(asClass, data)
+  return { ...result, form: { ...form, features: result.form.subclasses[0].features } }
+}

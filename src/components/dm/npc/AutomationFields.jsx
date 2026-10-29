@@ -218,6 +218,31 @@ function RecipeFields({ recipe, p, set }) {
           </label>
         </div>
       )
+    case 'launch':
+      return (
+        <div className="dm-form-row">
+          <label>
+            Up to (ft.)
+            <input type="number" min="5" step="5" value={p.range} onChange={(e) => set({ range: e.target.value })} placeholder="your speed" />
+          </label>
+          <label>
+            One die per (ft.)
+            <input type="number" min="5" step="5" value={p.perFeet} onChange={(e) => set({ perFeet: e.target.value })} />
+          </label>
+          <label>
+            Die
+            <input value={p.die} onChange={(e) => set({ die: e.target.value })} placeholder="d4" />
+          </label>
+          <label>
+            Damage type
+            <input value={p.damageType} onChange={(e) => set({ damageType: e.target.value })} placeholder="bludgeoning" />
+          </label>
+          <label className="tag-checklist-item">
+            <input type="checkbox" checked={p.fullDistance !== false} onChange={(e) => set({ fullDistance: e.target.checked })} />
+            Always the full distance (the click only aims)
+          </label>
+        </div>
+      )
     case 'missiles':
       return (
         <>

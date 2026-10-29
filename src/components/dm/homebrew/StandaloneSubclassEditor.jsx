@@ -10,6 +10,7 @@ import ForgeFeaturePicker from './ForgeFeaturePicker'
 import { useForgeSaves } from './useForgeSaves'
 import { attachMechanics, loadDraftSpecs, saveRowMechanics } from './mechanics'
 import { republishQuietly } from '../../../lib/foundryClassPackPublish'
+import { attachStandaloneMechanicsFile } from '../../../lib/classMechanicsFile'
 
 function slugify(name) {
   return name
@@ -33,6 +34,7 @@ export default function StandaloneSubclassEditor() {
   const [loading, setLoading] = useState(!isNew)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
+  const [notice, setNotice] = useState(null)
   const automationOptions = useAutomationOptions()
   // Features are built in the chain builder, in another tab; its saves land here.
   const createInChain = useForgeSaves(form, setForm, form.name)
@@ -138,13 +140,44 @@ export default function StandaloneSubclassEditor() {
     navigate('/dm/homebrew?tab=subclasses', notice ? { state: { notice } } : undefined)
   }
 
+  // A class mechanics file (lib/classMechanicsFile.js) for this subclass's
+  // parent class: fills each matching feature's Foundry mechanics, unsaved,
+  // for review before saving (see ClassWizard).
+  async function handleLoadMechanics(e) {
+    const file = e.target.files[0]
+    e.target.value = ''
+    if (!file) return
+    setError(null)
+    setNotice(null)
+    try {
+      const result = attachStandaloneMechanicsFile(form, JSON.parse(await file.text()))
+      if (result.classMismatch && !confirm(`This file is for "${result.classMismatch}", not "${form.parent_class_name}". Load it anyway?`)) return
+      setForm(result.form)
+      setNotice(
+        `Loaded mechanics for ${result.attached.length} feature${result.attached.length === 1 ? '' : 's'} (marked unsaved - review them, then Save changes).` +
+          (result.unmatched.length ? ` No matching feature for: ${result.unmatched.join('; ')}.` : ''),
+      )
+    } catch (err) {
+      setError(`Loading mechanics failed: ${err.message}`)
+    }
+  }
+
   if (loading) return <p className="status-message">Loading...</p>
 
   return (
     <section className="page-wide">
       <div className="view-header">
         <h1>{isNew ? 'New Subclass' : `Edit ${form.name}`}</h1>
+        {!isNew && (
+          <div className="dm-form-actions">
+            <label className="button-link">
+              Load mechanics
+              <input type="file" accept="application/json" onChange={handleLoadMechanics} style={{ display: 'none' }} />
+            </label>
+          </div>
+        )}
       </div>
+      {notice && <p className="status-message">{notice}</p>}
 
       <form onSubmit={handleSubmit} className="dm-form">
         <div className="dm-form-row">

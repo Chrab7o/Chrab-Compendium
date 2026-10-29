@@ -86,6 +86,12 @@ Continued and Expanded say **add these to Dark Arts**, and **Save Class**. That 
 whole class's set at once, use **Load mechanics** with a class mechanics file (`src/lib/classMechanicsFile.js`). The
 sandbox's `build-dark-knight-probe.mjs` writes `samples/dark-knight-mechanics.json`. Then **Save Class**: each row's
 mechanics become its linked Feature Forge draft, and the class pack republishes.
+- The standalone subclass editor has the same **Load mechanics** button, then **Save changes**. Its file's
+  `className` is the parent class. For example, the sandbox's `build-acrobat-probe.mjs` writes
+  `samples/acrobat-mechanics.json` for Way of the Acrobat (Monk).
+- To spend an official class's resource, give the identifier of its item on dnd5e's class. The 2024 Monk's is
+  `monks-focus`, and its scales are `@scale.monk.die` and `@scale.monk.focus`.
+  - A character whose class came from Plutonium may have none of these. See the sandbox's `probes/acrobat.md`.
 
 **A player taking a class:**
 1. Open the compendium (Compendium sidebar → Chrab Corner Classes) and drag the class onto the character sheet.
