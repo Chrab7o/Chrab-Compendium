@@ -12,6 +12,7 @@
 // Chrab Compendium repo.
 
 import { CLASS_PACK_FILE, CLASS_PACK_FORMAT, CLASS_PACK_LABEL, CLASS_PACK_NAME, MODULE_ID } from './constants.mjs'
+import { replaceSource } from './items.mjs'
 import { loadConfig } from './supabase.mjs'
 
 // The public file needs no sign-in: it holds only public classes.
@@ -55,16 +56,23 @@ async function refreshFeature(copy, next) {
   if (data.system?.uses && copy.system?.uses) data.system.uses.spent = copy.system.uses.spent ?? 0
   data.flags = { ...data.flags, dnd5e: copy._source.flags?.dnd5e ?? {} }
   data._stats = copy._source._stats
-  await copy.importFromJSON(JSON.stringify(data))
+  await replaceSource(copy, data)
 }
+
+// dnd5e 5.3 keeps advancements keyed by id; the pack writes them as a list,
+// which dnd5e converts on create. Either shape -> a list.
+const advancementList = (adv) => (Array.isArray(adv) ? adv : Object.values(adv ?? {}))
 
 // A class or subclass copy: the new advancements (so later level-ups use the
 // current class), each keeping what this character already chose for it,
 // plus the character's levels and spent hit dice.
 async function refreshAdvancing(copy, next) {
-  const before = new Map((copy._source.system.advancement ?? []).map((a) => [a._id, a]))
+  const current = copy._source.system.advancement
+  const before = new Map(advancementList(current).map((a) => [a._id, a]))
   const system = foundry.utils.deepClone(next.system)
-  system.advancement = system.advancement.map((a) => (before.has(a._id) ? { ...a, value: before.get(a._id).value } : a))
+  const merged = advancementList(system.advancement).map((a) => (before.has(a._id) ? { ...a, value: before.get(a._id).value } : a))
+  // Written back in the shape the copy already has.
+  system.advancement = Array.isArray(current) ? merged : Object.fromEntries(merged.map((a) => [a._id, a]))
   if (copy.type === 'class') {
     system.levels = copy._source.system.levels
     system.hd = { ...system.hd, spent: copy._source.system.hd?.spent ?? 0 }

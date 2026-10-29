@@ -47,14 +47,25 @@ async function backup(item) {
   await copy.update({ name: `${item.name} — ${new Date().toISOString().slice(0, 16).replace('T', ' ')}` })
 }
 
-// importFromJSON replaces the document's source wholesale, so the incoming
-// data has to carry the target's own id (and for a character's copy, the
-// uses they've already spent).
+// Replaces an item's source wholesale, like right-click -> Import Data.
+// Foundry 14's importFromJSON calls this.collection.fromCompendium, which only
+// world collections have, so a character's copy is cleaned through game.items
+// and written with the same full-replace update importFromJSON does.
+export async function replaceSource(target, data) {
+  if (typeof target.collection?.fromCompendium === 'function') return target.importFromJSON(JSON.stringify(data))
+  const next = game.items.fromCompendium(data, { keepId: true })
+  next._id = target.id
+  delete next.folder
+  await target.update(next, { diff: false, recursive: false })
+}
+
+// The incoming data has to carry the target's own id (and for a character's
+// copy, the uses they've already spent).
 async function replaceWith(target, data, { keepSpent = false } = {}) {
   const next = foundry.utils.deepClone(data)
   next._id = target.id
   if (keepSpent && next.system?.uses && target.system?.uses) next.system.uses.spent = target.system.uses.spent ?? 0
-  await target.importFromJSON(JSON.stringify(next))
+  await replaceSource(target, next)
 }
 
 // Returns { item, mode: 'created' | 'updated', copies }. Throws on failure.
