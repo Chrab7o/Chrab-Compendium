@@ -531,7 +531,7 @@ const teleport = {
   key: 'teleport',
   group: 'Things you use',
   label: 'Teleport yourself',
-  help: 'After you use it, click a spot within range and your token moves there instantly (Shadow Warp). Right-click to cancel. Name your mark and it first offers to warp beside the creature carrying it, seen or not.',
+  help: 'After you use it, click a spot within range and your token moves there instantly (Shadow Warp). Right-click or Esc cancels. Name your mark and it first offers to warp beside the creature carrying it, seen or not.',
   params: [
     ...costParams('bonus'),
     { key: 'range', label: 'Up to (ft)', kind: 'number', default: '30' },
