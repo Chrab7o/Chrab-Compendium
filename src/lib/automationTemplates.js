@@ -547,10 +547,10 @@ const launch = {
   key: 'launch',
   group: 'Things you use',
   label: 'Launch yourself: damage by distance',
-  help: 'After you use it, click a creature or a spot to aim. Your token flies that way in a straight line, stops against the first creature or wall in the path, and deals damage for each stretch flown (Launch: 1d4 per 10 ft).',
+  help: 'After you use it, click a creature or a spot to aim. Your token flies that way in a straight line, stops against the first creature or wall in the path, and deals damage for each stretch flown (Launch: 1d4 per 10 ft). It asks first whether you Dashed this turn, to fly double your speed.',
   params: [
     ...costParams('bonus'),
-    { key: 'range', label: 'Up to (ft)', kind: 'number', default: '', hint: 'Blank = your walking speed.' },
+    { key: 'range', label: 'Up to (ft)', kind: 'number', default: '', hint: 'Blank = your walking speed (doubled with Dash).' },
     { key: 'fullDistance', label: 'Always flies the full distance (the click only aims)', kind: 'checkbox', default: true },
     { key: 'perFeet', label: 'One die per (ft flown)', kind: 'number', default: '10' },
     { key: 'die', label: 'Die', kind: 'select', default: 'd4', options: ['d4', 'd6', 'd8', 'd10', 'd12'].map((d) => [d, d]) },

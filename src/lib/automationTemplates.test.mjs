@@ -650,12 +650,13 @@ test('teleport: a range ring while picking, and the token keeps its rotation', a
     tokens: { placeables: [] },
     interface: { addChild: () => {} },
     stage: {
-      on: (event, fn) => {
+      addEventListener: (event, fn, options) => {
+        assert.equal(options?.capture, true, 'ahead of the token under the cursor')
         listeners[event] = fn
         // The player clicks 20 ft to the right.
-        queueMicrotask(() => fn({ button: 0, getLocalPosition: () => ({ x: 900, y: 500 }) }))
+        queueMicrotask(() => fn({ button: 0, getLocalPosition: () => ({ x: 900, y: 500 }), stopPropagation() {} }))
       },
-      off: () => {},
+      removeEventListener: () => {},
     },
   }
   globalThis.ui = { notifications: { info: () => {}, warn: () => {} } }
@@ -762,7 +763,8 @@ test('missiles: a blue ring, a target per missile, damage per creature', async (
 })
 
 // Acrobat's Launch: speed 45, aimed at a goblin 30 ft to the right. The monk
-// stops against it (25 ft flown, 2d4), then flies the other way into a wall.
+// stops against it (25 ft flown, 2d4), then flies the other way into a wall;
+// then Dash (asked first) doubles the reach.
 test('launch: flies along the aim, stops at the first creature or wall, 1d4 per 10 ft', async () => {
   const spec = fromTemplate('launch', { pool: 'monks-focus', poolCost: 1 })
   const [act] = acts(spec.item)
@@ -772,16 +774,28 @@ test('launch: flies along the aim, stops at the first creature or wall, 1d4 per 
   const self = { center: { x: 500, y: 500 }, w: 100, h: 100, document: doc }
   const goblin = { name: 'Goblin', actor: {}, center: { x: 1100, y: 500 }, w: 100, h: 100 }
   const ally = { name: 'Off the line', actor: {}, center: { x: 800, y: 800 }, w: 100, h: 100 }
+  const ogre = { name: 'Ogre', actor: {}, center: { x: 500, y: -700 }, w: 100, h: 100 } // 60 ft up
   let click = { x: 1100, y: 500 }
+  let dashAnswer = false
+  const asked = []
   let wall = null
-  globalThis.PIXI = { Graphics: class { lineStyle() { return this } beginFill() { return this } drawCircle(x, y, r) { this.r = r; return this } endFill() { return this } destroy() {} } }
+  const rings = []
+  globalThis.PIXI = { Graphics: class { constructor() { this.r = []; rings.push(this) } lineStyle() { return this } beginFill() { return this } drawCircle(x, y, r) { this.r.push(r); return this } endFill() { return this } destroy() {} } }
+  let stopped = 0
   globalThis.canvas = {
     ready: true,
     dimensions: { distance: 5, size: 100 },
     grid: { distance: 5, size: 100, measurePath: ([a, b]) => ({ distance: (Math.hypot(b.x - a.x, b.y - a.y) / 100) * 5 }) },
-    tokens: { placeables: [self, goblin, ally] },
+    tokens: { placeables: [self, goblin, ally, ogre] },
     interface: { addChild: () => {} },
-    stage: { on: (event, fn) => queueMicrotask(() => fn({ button: 0, getLocalPosition: () => click })), off: () => {} },
+    stage: {
+      // Capture phase, so a click on the goblin's token isn't swallowed by it.
+      addEventListener: (event, fn, options) => {
+        assert.equal(options?.capture, true)
+        queueMicrotask(() => fn({ button: 0, getLocalPosition: () => click, stopPropagation: () => stopped++ }))
+      },
+      removeEventListener: () => {},
+    },
   }
   globalThis.ui = { notifications: { info: () => {}, warn: () => {} } }
   const moves = []
@@ -796,14 +810,18 @@ test('launch: flies along the aim, stops at the first creature or wall, 1d4 per 
     Dice: { DamageRoll: class { constructor(formula) { formulas.push(formula); this.total = 6 } async evaluate() { return this } } },
   }
   const posted = []
-  globalThis.foundry = { utils: { escapeHTML: (s) => String(s) }, applications: { api: {} } }
+  globalThis.foundry = { utils: { escapeHTML: (s) => String(s) }, applications: { api: { DialogV2: { confirm: async (c) => (asked.push(c), dashAnswer) } } } }
   globalThis.ChatMessage = { getSpeaker: () => ({}), implementation: { create: async (m) => posted.push(m) } }
   globalThis.game = { user: { isGM: false } }
   const AsyncFunction = Object.getPrototypeOf(async () => {}).constructor
   const run = new AsyncFunction('workflow', 'args', 'actor', 'token', 'item', act.macroData.command)
-  const actor = { name: 'Bhern', uuid: 'Actor.bhern', system: { attributes: { movement: { walk: 45 } } }, getActiveTokens: () => [self], getRollData: () => ({}) }
+  const actor = { name: 'Bhern', uuid: 'Actor.bhern', system: { attributes: { movement: { walk: 45 } } }, effects: [], getActiveTokens: () => [self], getRollData: () => ({}) }
   const item = { name: 'Launch', img: 'launch.webp', flags: {} }
   await run({}, [{ macroPass: 'postActiveEffects' }], actor, self, item)
+  assert.equal(stopped, 1, 'the click is the aim, not a token select')
+  assert.deepEqual(rings[0].r, [900], 'his 45 ft')
+  assert.match(asked[0].content, /Did you Dash this turn\?.*90 ft instead of 45/)
+  assert.equal(asked[0].yes.label, 'Yes, I Dashed')
   assert.deepEqual(moves[0], [{ x: 1000, y: 500 }, { ignoreTokens: true, autoRotate: false }], 'stops beside the goblin')
   assert.deepEqual(formulas, ['2d4'])
   assert.deepEqual(applied, [['Goblin', 6, 'bludgeoning']])
@@ -817,5 +835,30 @@ test('launch: flies along the aim, stops at the first creature or wall, 1d4 per 
   assert.deepEqual(formulas, ['2d4', '1d4'], '17.5 ft rounds to 18: one die')
   assert.equal(applied.length, 1, 'nobody to damage')
   assert.match(posted[1].content, /launches 18 ft into a wall/)
+
+  // He Dashed: 90 ft, so the ogre 60 ft up is in reach: 55 ft, 5d4.
+  wall = null
+  click = { x: 500, y: 400 }
+  dashAnswer = true
+  await run({}, [{ macroPass: 'postActiveEffects' }], actor, self, item)
+  assert.deepEqual(moves[2][0], { x: 500, y: -600 })
+  assert.deepEqual(formulas.at(-1), '5d4')
+  assert.deepEqual(applied.at(-1), ['Ogre', 6, 'bludgeoning'])
+  assert.deepEqual(rings.at(-1).r, [1800], 'the ring is the Dash reach')
+  assert.match(posted[2].content, /Bhern Dashes and launches 55 ft into <strong>Ogre/)
+
+  // Without the Dash, the same aim falls short of the ogre: 45 ft, nothing hit.
+  dashAnswer = false
+  await run({}, [{ macroPass: 'postActiveEffects' }], actor, self, item)
+  assert.deepEqual(moves[3][0], { x: 500, y: -400 })
+  assert.match(posted[3].content, /Bhern launches 45 ft<\/li>/)
+
+  // A Dashing effect on him counts without asking.
+  actor.effects = [{ name: 'Dashing', disabled: false }]
+  const before = asked.length
+  await run({}, [{ macroPass: 'postActiveEffects' }], actor, self, item)
+  assert.deepEqual(rings.at(-1).r, [1800])
+  assert.deepEqual(moves[4][0], { x: 500, y: -600 })
+  assert.equal(asked.length, before, 'not asked')
   for (const k of ['PIXI', 'canvas', 'ui', 'MidiQOL', 'foundry', 'ChatMessage', 'CONFIG', 'game']) delete globalThis[k]
 })

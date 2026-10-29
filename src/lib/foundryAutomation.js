@@ -109,6 +109,35 @@ const CARD_PARAMS = { flavor: '', color: '' }
 const cardStart = (p) =>
   `${CHAT_RUNTIME}const card = { title: item.name, img: item.img, color: ${js(cardColor(p.color))}, flavor: ${js(String(p.flavor ?? '').trim())}, steps: [], rolls: [] };\n`
 
+// One click on the map (the teleport and launch recipes). Capture phase, like
+// the picker below: a token the user controls (any token, for a GM) takes the
+// click and stops it, so a plain stage listener never hears a click on a
+// creature. Resolves to { point } on a left-click, null on a right-click
+// or Esc.
+export const CLICK_RUNTIME = `function chrabClickPoint() {
+  return new Promise((resolve) => {
+    const stage = canvas.stage;
+    const finish = (value) => {
+      stage.removeEventListener("pointerdown", onDown, { capture: true });
+      globalThis.document?.removeEventListener("keydown", onKey, true);
+      resolve(value);
+    };
+    const onKey = (event) => {
+      if (event.key !== "Escape") return;
+      event.stopPropagation();
+      event.preventDefault();
+      finish(null);
+    };
+    const onDown = (event) => {
+      event.stopPropagation();
+      finish(event.button === 0 ? { point: event.getLocalPosition(stage) } : null);
+    };
+    stage.addEventListener("pointerdown", onDown, { capture: true });
+    globalThis.document?.addEventListener("keydown", onKey, true);
+  });
+}
+`
+
 // Picking creatures on the map, shared by the missiles recipe and the
 // Automation Builder's "Pick targets on the map" line. A blue ring shows the
 // reach on the picker's screen only. Left-click picks a creature (again: one
@@ -300,7 +329,7 @@ for (const target of targets) {
     pass: 'postActiveEffects',
     params: { range: '30', toMark: '', ...CARD_PARAMS },
     code: (p) =>
-      `${HEADER(`Teleport up to ${num(p.range, 30)} ft.`)}${cardStart(p)}const self = token ?? actor.getActiveTokens?.()[0];
+      `${HEADER(`Teleport up to ${num(p.range, 30)} ft.`)}${cardStart(p)}${CLICK_RUNTIME}const self = token ?? actor.getActiveTokens?.()[0];
 if (!self || !canvas?.ready) return;
 const range = ${num(p.range, 30)};
 const center = (t) => t.center ?? t.object?.center;
@@ -323,7 +352,7 @@ if (markName) {
   }
 }
 if (!point) {
-  ui.notifications.info("Click where to go (up to " + range + " ft). Right-click to cancel.");
+  ui.notifications.info("Click where to go (up to " + range + " ft). Right-click or Esc cancels.");
   // The reach, drawn around you while you pick (only on your screen).
   let ring = null;
   try {
@@ -333,14 +362,7 @@ if (!point) {
   } catch (err) {
     console.warn("chrab-sync | range ring", err);
   }
-  point = await new Promise((resolve) => {
-    const stage = canvas.stage;
-    const onDown = (event) => {
-      stage.off("pointerdown", onDown);
-      resolve(event.button === 2 ? null : event.getLocalPosition(stage));
-    };
-    stage.on("pointerdown", onDown);
-  });
+  point = (await chrabClickPoint())?.point ?? null;
   ring?.destroy();
   if (!point) return;
   if (far(point) > range) return ui.notifications.warn("Too far: " + Math.round(far(point)) + " ft (up to " + range + ").");
@@ -357,16 +379,26 @@ await chrabPost(card, actor);
   {
     id: 'launch',
     label: 'Launch yourself in a line, damage by distance',
-    help: 'After use, click a creature or a spot to aim. Your token flies that way (the full distance, or only to the spot), stops against the first creature or wall in its path, and that creature takes damage per distance flown (Launch: 1d4 per 10 ft).',
+    help: 'After use, click a creature or a spot to aim. Your token flies that way (the full distance, or only to the spot), stops against the first creature or wall in its path, and that creature takes damage per distance flown (Launch: 1d4 per 10 ft). With the range blank (your speed), it first asks whether you Dashed this turn, to fly double; an effect named Dash or Dashing on you counts without asking.',
     pass: 'postActiveEffects',
     params: { range: '', fullDistance: true, perFeet: '10', die: 'd4', damageType: 'bludgeoning', ...CARD_PARAMS },
     code: (p) =>
-      `${HEADER(`Launch ${num(p.range) > 0 ? `${num(p.range)} ft.` : 'your speed'} in a line; 1${p.die || 'd4'} per ${num(p.perFeet, 10)} ft. to what it hits`)}${cardStart(p)}const self = token ?? actor.getActiveTokens?.()[0];
+      `${HEADER(`Launch ${num(p.range) > 0 ? `${num(p.range)} ft.` : 'your speed'} in a line; 1${p.die || 'd4'} per ${num(p.perFeet, 10)} ft. to what it hits`)}${cardStart(p)}${CLICK_RUNTIME}const self = token ?? actor.getActiveTokens?.()[0];
 if (!self || !canvas?.ready) return;
 const unit = canvas.scene?.grid?.units || "ft";
 // Blank range: the walking speed (Unarmored Movement and the like included).
-const range = ${num(p.range) > 0 ? num(p.range) : 'Number(actor.system?.attributes?.movement?.walk) || 0'};
-if (!(range > 0)) return ui.notifications.warn(item.name + ": no speed to launch with.");
+const bySpeed = ${num(p.range) > 0 ? 'false' : 'true'};
+const speed = ${num(p.range) > 0 ? num(p.range) : 'Number(actor.system?.attributes?.movement?.walk) || 0'};
+if (!(speed > 0)) return ui.notifications.warn(item.name + ": no speed to launch with.");
+// Dash doubles the movement this turn. dnd5e doesn't track it, so an effect
+// named Dash / Dashing / Dashed on you counts, and otherwise you're asked.
+const dashEffect = bySpeed && [...(actor.appliedEffects ?? actor.effects ?? [])].some((e) => !e.disabled && /^dash(ing|ed)?\\b/i.test(e.name ?? ""));
+const dashed = dashEffect || (bySpeed && !!(await chrabDialog(actor, "confirm", {
+  window: { title: item.name },
+  content: chrabCardHtml(card) + "<p><strong>Did you Dash this turn?</strong> Then you launch double your speed (" + speed * 2 + " " + unit + " instead of " + speed + ").</p>",
+  yes: { label: "Yes, I Dashed" },
+  no: { label: "No" },
+})));
 const perFeet = ${num(p.perFeet, 10)};
 const fullDistance = ${p.fullDistance === false ? 'false' : 'true'};
 const center = (t) => t.center ?? t.object?.center;
@@ -374,7 +406,8 @@ const from = center(self);
 const far = (point) => canvas.grid.measurePath([from, point]).distance;
 const pxPerUnit = canvas.dimensions.size / canvas.dimensions.distance;
 const radius = (t) => Math.max(t.w ?? 0, t.h ?? 0) / 2;
-ui.notifications.info(item.name + ": click a creature or a spot to launch toward (" + range + " " + unit + (fullDistance ? ", the full distance" : "") + "). Right-click cancels.");
+const range = dashed ? speed * 2 : speed;
+ui.notifications.info(item.name + ": click a creature or a spot to launch toward (" + range + " " + unit + (dashed ? ", Dashing" : "") + (fullDistance ? ", the full distance" : "") + "). Right-click or Esc cancels.");
 let ring = null;
 try {
   ring = new PIXI.Graphics();
@@ -383,16 +416,10 @@ try {
 } catch (err) {
   console.warn("chrab-sync | range ring", err);
 }
-const aim = await new Promise((resolve) => {
-  const stage = canvas.stage;
-  const onDown = (event) => {
-    stage.off("pointerdown", onDown);
-    resolve(event.button === 2 ? null : event.getLocalPosition(stage));
-  };
-  stage.on("pointerdown", onDown);
-});
+const click = await chrabClickPoint();
 ring?.destroy();
-if (!aim) return;
+if (!click) return;
+const aim = click.point;
 const length = Math.hypot(aim.x - from.x, aim.y - from.y);
 if (length < 1) return;
 const ux = (aim.x - from.x) / length;
@@ -432,7 +459,7 @@ const rotation = self.document?.rotation ?? 0;
 await MidiQOL.moveToken(self, point, { ignoreTokens: true, autoRotate: false });
 if ((self.document?.rotation ?? 0) !== rotation && self.document?.isOwner) await self.document.update({ rotation });
 const dice = Math.floor(moved / perFeet);
-card.steps.push(chrabEsc(actor.name) + " launches " + moved + " " + unit + (struck ? " into <strong>" + chrabEsc(struck.name) + "</strong>" : hitWall ? " into a wall" : ""));
+card.steps.push(chrabEsc(actor.name) + (dashed ? " Dashes and" : "") + " launches " + moved + " " + unit + (struck ? " into <strong>" + chrabEsc(struck.name) + "</strong>" : hitWall ? " into a wall" : ""));
 const type = ${js(p.damageType || '')} || undefined;
 if ((struck || hitWall) && dice > 0) {
   const roll = await new CONFIG.Dice.DamageRoll(dice + ${js(p.die || 'd4')}, actor.getRollData(), { type }).evaluate();
