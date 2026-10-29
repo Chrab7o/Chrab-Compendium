@@ -26,7 +26,10 @@ export function openInChain({ key, draftId = null, start }) {
   } catch {
     // private window: the chain tab starts blank
   }
-  const url = `/dm/item-forge/${draftId ? `${draftId}/chain` : 'chain/new'}?for=${encodeURIComponent(key)}`
+  // The site uses a HashRouter (GitHub Pages has no fallback for deep paths),
+  // so the route goes after the #.
+  const route = `/dm/item-forge/${draftId ? `${draftId}/chain` : 'chain/new'}?for=${encodeURIComponent(key)}`
+  const url = `${window.location.pathname}#${route}`
   // Named per row, so opening the same feature again goes back to its tab.
   window.open(url, `chrab-chain-${key}`)
 }
