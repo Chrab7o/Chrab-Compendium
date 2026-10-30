@@ -12,6 +12,7 @@
 // Chrab Compendium repo.
 
 import { CLASS_PACK_FILE, CLASS_PACK_FORMAT, CLASS_PACK_LABEL, CLASS_PACK_NAME, MODULE_ID } from './constants.mjs'
+import { stampItems } from './classDiff.mjs'
 import { replaceSource } from './items.mjs'
 import { loadConfig } from './supabase.mjs'
 
@@ -104,7 +105,8 @@ export async function syncClassPack(data, { updateCopies = true } = {}) {
     const index = await pack.getIndex()
     const old = index.map((e) => e._id)
     if (old.length) await Item.implementation.deleteDocuments(old, options)
-    await Item.implementation.createDocuments(data.items, { ...options, keepId: true })
+    // Fingerprinted, so the next sync can tell what changed (classDiff.mjs).
+    await Item.implementation.createDocuments(stampItems(data.items), { ...options, keepId: true })
 
     const stale = pack.folders.filter((f) => !wanted.has(f.id)).map((f) => f.id)
     if (stale.length) await FolderClass.deleteDocuments(stale, options)

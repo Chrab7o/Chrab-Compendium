@@ -263,7 +263,6 @@ export class SyncApp extends ApplicationV2 {
       ${this.classMessage ? `<p class="chrab-sync-message">${esc(this.classMessage)}</p>` : ''}
       ${status}
       ${this.classResult ? `<p class="chrab-sync-result ${this.classResult.ok ? 'ok' : 'fail'}">${esc(this.classResult.text)}</p>` : ''}
-      ${this.#classDiffHTML()}
       <label class="chrab-sync-inline"><input type="checkbox" name="updateClassCopies" ${this.updateCopies ? 'checked' : ''}> Also update copies already on characters${copies.length ? ` (${copies.length}, on ${esc([...new Set(copies.map((c) => c.parent?.name))].join(', '))})` : ''}. Keeps spent uses and the choices made while levelling.</label>
       <p class="chrab-sync-meta">Syncing replaces the contents of the <strong>${esc(CLASS_PACK_LABEL)}</strong> compendium. Players can open it: they drag a class onto their sheet and level up from the sheet. Features can carry scripts that run in players' browsers, written by a DM on the Compendium site.</p>
       <input type="file" name="classFile" accept="application/json,.json" hidden>
@@ -272,7 +271,8 @@ export class SyncApp extends ApplicationV2 {
         <button type="button" data-action="syncClasses" class="chrab-sync-primary" ${this.busy || !data ? 'disabled' : ''}>
           <i class="fa-solid fa-book"></i> Sync classes
         </button>
-      </footer>`
+      </footer>
+      ${this.#classDiffHTML()}`
   }
 
   // What Sync classes would change: per class and subclass, the features
@@ -302,7 +302,6 @@ export class SyncApp extends ApplicationV2 {
       .map((c) => {
         const lines = []
         if (c.updated.length) lines.push(`<li>Updates: ${esc(c.updated.join(', '))}</li>`)
-        if (c.edits.length) lines.push(`<li class="chrab-sync-warn">Edited in Foundry, overwritten by the sync: ${esc(c.edits.join(', '))}</li>`)
         if (c.missed.length) lines.push(`<li class="chrab-sync-warn">New at a level they already have, so not granted (drag from the compendium): ${esc(c.missed.join(', '))}</li>`)
         if (c.orphaned.length) lines.push(`<li>No longer in the pack, left as they are: ${esc(c.orphaned.join(', '))}</li>`)
         if (!lines.length) return ''
@@ -310,11 +309,17 @@ export class SyncApp extends ApplicationV2 {
       })
       .join('')
     const summary = added || removed || changed ? `${plural(changed, 'change')}, ${added} new, ${removed} removed since this world’s copy.` : 'Nothing has changed since this world’s copy.'
+    const note = diff.noBaseline ? '<p class="chrab-sync-meta">This world’s copy was synced before Chrab Sync 0.3, so only new and removed features show. From the next sync on, changed ones will too.</p>' : ''
+    // Collapsed, with its own scroll, so it never pushes the buttons away.
     return `
-      <h3 class="chrab-sync-heading">What this sync changes</h3>
-      <p class="chrab-sync-meta">${esc(summary)}</p>
-      ${groups ? `<ul class="chrab-sync-list">${groups}</ul>` : ''}
-      ${characters ? `<p><strong>Characters</strong> <span class="chrab-sync-meta">(with Also update copies)</span></p><ul class="chrab-sync-list">${characters}</ul>` : ''}`
+      <details class="chrab-sync-diff">
+        <summary><strong>What this sync changes</strong> <span class="chrab-sync-meta">${esc(summary)}</span></summary>
+        <div class="chrab-sync-diff-body">
+          ${note}
+          ${groups ? `<ul class="chrab-sync-changes">${groups}</ul>` : ''}
+          ${characters ? `<p><strong>Characters</strong> <span class="chrab-sync-meta">(with Also update copies)</span></p><ul class="chrab-sync-changes">${characters}</ul>` : ''}
+        </div>
+      </details>`
   }
 
   async _renderHTML() {
