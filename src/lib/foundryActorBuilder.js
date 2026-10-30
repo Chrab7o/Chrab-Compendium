@@ -478,6 +478,8 @@ export function identifierFor(text) {
 // disposition) enters / exits / starts / ends its turn inside, use one of the
 // item's other rolls on it (target = that roll's key) or apply / remove one
 // of the item's effects (target = the effect's key; mark it "aura").
+// place (ft): the user puts the area down up to that far away instead, and it
+// stays there (a statue, a banner). light: a color it glows with, '' = none.
 export const AURA_TRIGGERS = [
   { key: 'entry', label: 'Enters' },
   { key: 'exit', label: 'Leaves' },
@@ -490,7 +492,7 @@ export const AURA_ACTIONS = [
   { key: 'removeEffect', label: 'Remove an effect' },
 ]
 export function emptyAura() {
-  return { radius: '20', affects: 'enemy', oncePerTurn: true, rules: [] }
+  return { radius: '20', affects: 'enemy', oncePerTurn: true, place: '', light: '', rules: [] }
 }
 const AURA_DISPOSITION = { enemy: -1, all: 0, ally: 1 }
 
@@ -951,8 +953,10 @@ function scalePerExtraStep(built) {
 
 function consumptionFor(item, activity) {
   const targets = []
-  // A repeating roll is midi's doing each turn; it never costs anything.
-  if (activity?.overTime) return { scaling: { allowed: false }, spellSlot: false, targets }
+  // A repeating roll is midi's doing each turn, and an aura's roll its
+  // region's on whoever comes in; neither ever costs anything.
+  const auraRoll = (item.activities ?? []).some((a) => a.key !== activity?.key && (a.aura?.rules ?? []).some((r) => (r.action || 'useActivity') === 'useActivity' && r.target === activity?.key))
+  if (activity?.overTime || auraRoll) return { scaling: { allowed: false }, spellSlot: false, targets }
   const legendary = (activity?.activation || item.section) === 'legendary'
   const spendsLegact = (activity?.spend ?? []).some((s) => s.source === 'legact')
   if (legendary && !spendsLegact) {
@@ -1095,8 +1099,13 @@ function transformData(activity, id) {
 
 // midi auto-places a region when the activity's range is "self" and its
 // template a radius (utils.ts ~9191), attaches it to the caster
-// (attachToken) and adds its regionActivity behavior with these rules.
+// (attachToken) and adds its regionActivity behavior with these rules. With a
+// range instead, the user places the template and the region stays put
+// (attachToken "default" leaves a placed template stationary).
 function buildAura(aura, ids) {
+  const radius = Number(aura.radius) || 10
+  const place = Number(aura.place) || 0
+  const light = /^#[0-9a-f]{6}$/i.test(String(aura.light ?? '')) ? aura.light : ''
   const rules = (aura.rules ?? [])
     .map((r) => ({
       trigger: AURA_TRIGGERS.some((t) => t.key === r.trigger) ? r.trigger : 'entry',
@@ -1106,21 +1115,24 @@ function buildAura(aura, ids) {
     }))
     .filter((r) => r.targetId)
   return {
-    range: { units: 'self', special: '', override: true },
+    range: place ? { value: String(place), units: 'ft', special: '', override: true } : { units: 'self', special: '', override: true },
     target: {
       prompt: true,
       override: true,
-      template: { contiguous: false, stationary: false, units: 'ft', count: '', type: 'radius', size: String(Number(aura.radius) || 10), width: '', height: '' },
+      template: { contiguous: false, stationary: !!place, units: 'ft', count: '', type: 'radius', size: String(radius), width: '', height: '' },
       affects: { count: '', type: 'creature', choice: false, special: '' },
     },
     regionBehavior: {
       enabled: true,
-      attachToken: 'caster',
+      attachToken: place ? 'default' : 'caster',
       dispositionFilter: AURA_DISPOSITION[aura.affects] ?? -1,
       excludeSource: true,
       oncePerTurn: aura.oncePerTurn !== false,
       rules,
     },
+    ...(light
+      ? { regionLight: { enabled: true, dim: radius, bright: Math.round(radius / 2), color: light, alpha: 0.5, luminosity: 0.5, animationType: 'torch', animationSpeed: 3, animationIntensity: 3 } }
+      : {}),
   }
 }
 
@@ -2208,6 +2220,8 @@ export function foundryItemToNpcItem(item) {
         radius: String(act.target?.template?.size ?? ''),
         affects,
         oncePerTurn: rb.oncePerTurn !== false,
+        place: rb.attachToken !== 'caster' && act.range?.units === 'ft' ? String(act.range.value ?? '') : '',
+        light: act.regionLight?.enabled ? String(act.regionLight.color ?? '') : '',
         rules: (rb.rules ?? []).map((r) => ({ trigger: r.trigger, action: r.action, target: keyForId[r.targetId] ?? r.targetId })),
       }
     }

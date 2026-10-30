@@ -8,80 +8,19 @@
 // Forge item builder and the class form helpers, both plain JS that already
 // run here. A DM session can read the DM-only drafts, and storage policy lets
 // only DMs write the file. Anything not public (visibility 'dm') is left out,
-// because the file is public.
+// because the file is public. The building and uploading is in
+// classPackSource.js, shared with the Foundry sandbox's push script.
 import { supabase } from './supabaseClient'
-import { classToFormState, standaloneSubclassToFormState } from './homebrew'
-import { CLASS_PACK_BUCKET, CLASS_PACK_PATH, buildClassPack, classPackSummary, draftItems } from './foundryClassPack'
+import { CLASS_PACK_BUCKET, CLASS_PACK_PATH } from './foundryClassPack'
+import { loadClassPackWith, publishClassPackWith } from './classPackSource'
 
 export function classPackUrl() {
   return supabase.storage.from(CLASS_PACK_BUCKET).getPublicUrl(CLASS_PACK_PATH).data.publicUrl
 }
 
-async function rows(query) {
-  const { data, error } = await query
-  if (error) throw new Error(error.message)
-  return data ?? []
-}
+export const loadClassPack = () => loadClassPackWith(supabase)
 
-const groupBy = (list, key) => {
-  const map = new Map()
-  for (const row of list) {
-    if (!map.has(row[key])) map.set(row[key], [])
-    map.get(row[key]).push(row)
-  }
-  return map
-}
-
-export async function loadClassPack() {
-  const [classRows, classFeatures, columns, values, subclassRows, subclassFeatures] = await Promise.all([
-    rows(supabase.from('homebrew_classes').select('*').eq('visibility', 'public').order('name')),
-    rows(supabase.from('homebrew_class_features').select('*')),
-    rows(supabase.from('homebrew_class_table_columns').select('*')),
-    rows(supabase.from('homebrew_class_table_values').select('*')),
-    rows(supabase.from('homebrew_subclasses').select('*').eq('visibility', 'public').order('name')),
-    rows(supabase.from('homebrew_subclass_features').select('*')),
-  ])
-
-  const featuresByClass = groupBy(classFeatures, 'class_id')
-  const columnsByClass = groupBy(columns, 'class_id')
-  const subclassesByClass = groupBy(subclassRows, 'class_id')
-  const featuresBySubclass = groupBy(subclassFeatures, 'subclass_id')
-
-  const classes = classRows.map((c) => {
-    const cols = columnsByClass.get(c.id) ?? []
-    const colIds = new Set(cols.map((col) => col.id))
-    return classToFormState(
-      c,
-      featuresByClass.get(c.id) ?? [],
-      cols,
-      values.filter((v) => colIds.has(v.column_id)),
-      subclassesByClass.get(c.id) ?? [],
-      featuresBySubclass,
-    )
-  })
-  const standaloneSubclasses = subclassRows
-    .filter((s) => !s.class_id)
-    .map((s) => standaloneSubclassToFormState(s, featuresBySubclass.get(s.id) ?? []))
-
-  // Only drafts linked from something that's actually in the pack.
-  const included = [
-    ...classes.flatMap((c) => [...c.features, ...c.subclasses.flatMap((s) => s.features)]),
-    ...standaloneSubclasses.flatMap((s) => s.features),
-  ]
-  const draftIds = [...new Set(included.map((f) => f.feature_draft_id).filter(Boolean))]
-  const drafts = draftIds.length ? await rows(supabase.from('feature_drafts').select('id, kind, spec').in('id', draftIds)) : []
-
-  return buildClassPack({ classes, standaloneSubclasses, items: draftItems(drafts) })
-}
-
-export async function publishClassPack() {
-  const pack = await loadClassPack()
-  const body = new Blob([JSON.stringify(pack)], { type: 'application/json' })
-  // A short cache: Chrab Sync sees a change within a minute or so.
-  const { error } = await supabase.storage.from(CLASS_PACK_BUCKET).upload(CLASS_PACK_PATH, body, { upsert: true, cacheControl: '60', contentType: 'application/json' })
-  if (error) throw new Error(error.message)
-  return classPackSummary(pack)
-}
+export const publishClassPack = () => publishClassPackWith(supabase)
 
 // What's live right now, read back from the public file (null if nothing has
 // been published yet).

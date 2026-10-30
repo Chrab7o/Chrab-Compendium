@@ -26,3 +26,6 @@ IMPLEMENTATION.md
 # Chrab Sync local config - generated into the deployed module by deploy.yml
 foundry/chrab-sync/config.json
 CLAUDE.md
+# Foundry exports belong in the sandbox (foundry-expirmenets/exports)
+/fvtt-*.json
+/party.json

@@ -281,7 +281,7 @@ function TriggerFields({ activity, set, siblings }) {
   )
 }
 
-// A midi region that follows this creature: what happens to the creatures in it.
+// A midi region that follows this creature (or that it places): what happens to the creatures in it.
 function AuraFields({ activity, set, item }) {
   if (!activity.aura) {
     return (
@@ -314,6 +314,18 @@ function AuraFields({ activity, set, item }) {
         <label>
           Lasts (minutes)
           <input value={activity.durationMinutes ?? ''} onChange={(e) => set({ durationMinutes: e.target.value })} placeholder="1, 10, or perm" />
+        </label>
+        <label>
+          Placed up to (ft.)
+          <input type="number" min="0" step="5" value={aura.place ?? ''} onChange={(e) => setAura({ place: e.target.value })} placeholder="blank: around you" />
+        </label>
+        <label>
+          Glows
+          <input type="color" value={aura.light || '#ffd76a'} onChange={(e) => setAura({ light: e.target.value })} disabled={!aura.light} />
+        </label>
+        <label className="tag-checklist-item">
+          <input type="checkbox" checked={!!aura.light} onChange={(e) => setAura({ light: e.target.checked ? '#ffd76a' : '' })} />
+          Glow
         </label>
         <label className="tag-checklist-item">
           <input type="checkbox" checked={aura.oncePerTurn !== false} onChange={(e) => setAura({ oncePerTurn: e.target.checked })} />

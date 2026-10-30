@@ -862,3 +862,69 @@ test('launch: flies along the aim, stops at the first creature or wall, 1d4 per 
   assert.equal(asked.length, before, 'not asked')
   for (const k of ['PIXI', 'canvas', 'ui', 'MidiQOL', 'foundry', 'ChatMessage', 'CONFIG', 'game']) delete globalThis[k]
 })
+
+// Witness My Superiority: a statue of light placed up to 30 ft away, 15 ft
+// around. Allies entering get 1d4 temp HP (only a higher roll replaces what
+// they have); enemies are Awed (disadvantage on Perception) for a round.
+test('zone: a placed, glowing area; allies get temp HP, enemies an effect, and its roll costs nothing', async () => {
+  const { item } = fromTemplate('zone', { uses: 'prof-lr', place: 30, radius: 15, allyTempHp: '1d4', effectName: 'Awed', disSkills: ['prc'] })
+  const [main, touch] = acts(item)
+  assert.deepEqual(main.range, { value: '30', units: 'ft', special: '', override: true })
+  assert.equal(main.target.template.size, '15')
+  assert.equal(main.regionBehavior.attachToken, 'default', 'stays where it was placed')
+  assert.equal(main.regionBehavior.dispositionFilter, 0, 'everyone: the script sorts friend from foe')
+  assert.deepEqual(main.regionBehavior.rules.map((r) => [r.trigger, r.targetId]), [['entry', touch._id], ['turnStart', touch._id]])
+  assert.equal(main.regionLight.color, '#ffd76a')
+  assert.equal(main.consumption.targets.length, 1, 'placing it spends a use')
+  assert.deepEqual(touch.consumption.targets, [], 'someone walking in spends nothing')
+  assert.equal(item.flags['midi-qol'].onUseMacroName, `[postActiveEffects]ActivityMacro-${touch._id}`)
+  const awed = item.effects.find((e) => e.name === 'Awed')
+  assert.deepEqual(awed.system.changes.map((c) => c.key), ['flags.midi-qol.disadvantage.skill.prc'])
+  assert.deepEqual(main.effects, [], 'nothing lands on whoever is targeted when it is placed')
+
+  const actorFor = (name, temp, owner = false) => {
+    const a = { name, uuid: `Actor.${name}`, isOwner: owner, system: { attributes: { hp: { temp } } }, effects: [], created: [], deleted: [] }
+    a.createEmbeddedDocuments = async (_, list) => a.created.push(...list)
+    a.deleteEmbeddedDocuments = async (_, ids) => a.deleted.push(...ids)
+    return a
+  }
+  const mava = { document: { disposition: 1 } }
+  const lyra = { name: 'Lyra', actor: actorFor('Lyra', 0), document: { disposition: 1 } }
+  const tank = { name: 'Tank', actor: actorFor('Tank', 9), document: { disposition: 1 } }
+  const goblin = { name: 'Goblin', actor: actorFor('Goblin', 0), document: { disposition: -1 } }
+  const applied = []
+  const gm = []
+  globalThis.MidiQOL = {
+    applyTokenDamage: async (detail, total, targets) => applied.push([[...targets][0].name, total, detail[0].type]),
+    socket: () => ({ executeAsGM: async (what, data) => gm.push([what, data]) }),
+  }
+  globalThis.Roll = class { constructor(f) { this.formula = f } async evaluate() { this.total = 3; return this } }
+  globalThis.CONFIG = {}
+  const posted = []
+  globalThis.foundry = { utils: { escapeHTML: (s) => String(s), deepClone: (o) => JSON.parse(JSON.stringify(o)) }, applications: { api: {} } }
+  globalThis.ChatMessage = { getSpeaker: () => ({}), implementation: { create: async (m) => posted.push(m) } }
+  globalThis.game = { user: { isGM: false } }
+  const AsyncFunction = Object.getPrototypeOf(async () => {}).constructor
+  const run = new AsyncFunction('workflow', 'args', 'actor', 'token', 'item', touch.macroData.command)
+  const source = { name: 'Awed', toObject: () => ({ _id: 'src', name: 'Awed', flags: { dae: { dontApply: true } }, system: { changes: awed.system.changes } }) }
+  const featureItem = { name: 'Witness My Superiority', uuid: 'Item.witness', img: 'statue.webp', effects: [source] }
+  const actor = { name: 'Mava', getRollData: () => ({}), getActiveTokens: () => [mava] }
+  await run({ targets: new Set([lyra, tank, goblin]) }, [{ macroPass: 'postActiveEffects' }], actor, mava, featureItem)
+  assert.deepEqual(applied, [['Lyra', 3, 'temphp']], 'the tank already has 9: a 3 doesn’t replace it')
+  const [[what, data]] = gm
+  assert.equal(what, 'createEffects', 'the goblin isn’t Mava’s: the GM adds it')
+  assert.equal(data.actorUuid, 'Actor.Goblin')
+  assert.deepEqual(data.effects[0].duration, { value: 1, units: 'rounds', expiry: null })
+  assert.equal(data.effects[0].origin, 'Item.witness')
+  assert.equal(data.effects[0].flags.dae.dontApply, undefined)
+  assert.match(posted[0].content, /Lyra gains 3 temporary HP/)
+  assert.match(posted[0].content, /Tank keeps 9 temporary HP/)
+  assert.match(posted[0].content, /Goblin: <strong>Awed/)
+
+  // Starting its turn still inside: the old one is replaced, not stacked.
+  goblin.actor.effects = [{ id: 'e1', name: 'Awed', origin: 'Item.witness' }]
+  gm.length = 0
+  await run({ targets: new Set([goblin]) }, [{ macroPass: 'postActiveEffects' }], actor, mava, featureItem)
+  assert.deepEqual(gm.map(([w, d]) => [w, d.effects]), [['removeEffects', ['e1']], ['createEffects', gm[1][1].effects]])
+  for (const k of ['MidiQOL', 'Roll', 'CONFIG', 'foundry', 'ChatMessage', 'game']) delete globalThis[k]
+})

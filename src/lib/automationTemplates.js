@@ -1042,6 +1042,65 @@ const aura = {
   },
 }
 
+// A placed area for both sides: one script (the "zone" recipe) runs on each
+// creature entering it or starting a turn there and sorts friend from foe,
+// since a midi region filters to one side only.
+const zone = {
+  key: 'zone',
+  group: 'Auras',
+  label: 'Place a zone: helps allies, hinders enemies',
+  help: 'You place an area up to some distance away and it stays there (Witness My Superiority’s statue of light). Allies who enter it or start their turn in it gain temporary hit points (not stacking) and/or healing; enemies get an effect for a round, renewed while they stay.',
+  params: [
+    ...costParams('action'),
+    { key: 'place', label: 'Placed up to (ft)', kind: 'number', default: '30' },
+    { key: 'radius', label: 'Radius (ft)', kind: 'number', default: '15' },
+    { key: 'minutes', label: 'Lasts (minutes)', kind: 'text', default: '1' },
+    { key: 'allyTempHp', label: 'Allies: temporary hit points', kind: 'formula', default: '1d4' },
+    { key: 'allyHeal', label: 'Allies: healing', kind: 'formula', default: '' },
+    { key: 'effectName', label: 'Enemies: effect name', kind: 'text', default: '', hint: 'Shown on them while it lasts, e.g. Awed.' },
+    { key: 'disSkills', label: 'Enemies: disadvantage on skill checks', kind: 'skills' },
+    { key: 'disAttacks', label: 'Enemies: disadvantage on attack rolls', kind: 'checkbox', default: false },
+    { key: 'condition', label: 'Enemies: condition', kind: 'select', default: '', options: CONDITION_OPTIONS },
+    { key: 'glow', label: 'Glows (light in the area)', kind: 'checkbox', default: true },
+    ...flavorParams('A statue of you, in light, looks down on them.'),
+  ],
+  build(values) {
+    const changes = [
+      ...list(values.disSkills).map((s) => change('custom', '1', { path: `flags.midi-qol.disadvantage.skill.${s}`, type: 'custom' })),
+      values.disAttacks && change('disAttack'),
+    ].filter(Boolean)
+    const enemy = changes.length || values.condition
+    if (enemy && !text(values.effectName)) throw new Error('Name the effect enemies get.')
+    if (!enemy && !text(values.allyTempHp) && !text(values.allyHeal)) throw new Error('Give allies temporary hit points or healing, or enemies an effect.')
+    const effects = enemy ? [{ ...emptyEffect(), byRule: true, name: text(values.effectName), changes, statuses: values.condition ? [values.condition] : [] }] : []
+    const card = { flavor: text(values.flavor), color: values.cardColor || '' }
+    const touch = {
+      ...emptyActivity('utility'),
+      name: 'Zone',
+      activation: 'special',
+      targetType: 'creature',
+      targetCount: '1',
+      script: { ...emptyScript('zone'), params: { ...emptyScript('zone').params, ...card, allyTempHp: text(values.allyTempHp), allyHeal: text(values.allyHeal), enemyEffect: enemy ? text(values.effectName) : '' } },
+    }
+    const main = {
+      ...emptyActivity('utility'),
+      durationMinutes: text(values.minutes) || '1',
+      aura: {
+        radius: String(num(values.radius) || 15),
+        affects: 'all',
+        oncePerTurn: true,
+        place: String(num(values.place) || 30),
+        light: values.glow === false ? '' : '#ffd76a',
+        rules: [
+          { trigger: 'entry', action: 'useActivity', target: touch.key },
+          { trigger: 'turnStart', action: 'useActivity', target: touch.key },
+        ],
+      },
+    }
+    return usedFeature(values, [main, touch], { effects })
+  },
+}
+
 // ---------------------------------------------------------------------------
 // Summons and shapes
 
@@ -1113,6 +1172,7 @@ export const AUTOMATION_TEMPLATES = [
   stance,
   lingering,
   aura,
+  zone,
   summon,
   transform,
 ].map((t) => ({ ...t, kind: 'type' }))

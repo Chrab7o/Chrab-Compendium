@@ -24,6 +24,7 @@ export const CREATURE_TYPES = [
 
 const js = (value) => JSON.stringify(value)
 const num = (value, fallback = 0) => (Number.isFinite(Number(value)) && String(value).trim() !== '' ? Number(value) : fallback)
+const text = (value) => String(value ?? '').trim()
 
 // `where` limits a preset to the condition slots it makes sense in:
 // use (can the roll be used), effect (does the effect land on this target),
@@ -474,6 +475,62 @@ if ((struck || hitWall) && dice > 0) {
   card.steps.push("Not far enough to deal damage (under " + perFeet + " " + unit + ")");
 }
 await chrabPost(card, actor);
+`,
+  },
+  {
+    id: 'zone',
+    label: 'Zone: help allies, hinder enemies',
+    help: 'For a placed area’s rule (entering, starting a turn inside). Each creature it runs on: an ally gains temporary hit points (they don’t stack: only a higher roll replaces them) and/or healing; an enemy gets the named effect of this feature for a round, renewed while it stays inside.',
+    pass: 'postActiveEffects',
+    params: { allyTempHp: '1d4', allyHeal: '', enemyEffect: '', ...CARD_PARAMS },
+    code: (p) =>
+      `${HEADER(`Zone: allies ${[text(p.allyTempHp) && `${text(p.allyTempHp)} temp HP`, text(p.allyHeal) && `heal ${text(p.allyHeal)}`].filter(Boolean).join(', ') || 'nothing'}; enemies ${text(p.enemyEffect) || 'nothing'}`)}${cardStart(p)}// Run by the area's rules: the targets are whoever entered or started a turn in it.
+const mine = token ?? actor.getActiveTokens?.()[0];
+const side = mine?.document?.disposition ?? 1;
+const tempFormula = ${js(text(p.allyTempHp))};
+const healFormula = ${js(text(p.allyHeal))};
+const effectName = ${js(text(p.enemyEffect))};
+const source = effectName ? item.effects.find((e) => e.name === effectName) : null;
+if (effectName && !source) console.warn("chrab-sync | " + item.name + ": no effect named " + effectName);
+async function hitCreature(t, n, type) {
+  await MidiQOL.applyTokenDamage([{ value: n, type }], n, new Set([t]), item, new Set(), { existingDamage: [], superSavers: new Set(), semiSuperSavers: new Set(), workflow, forceApply: false });
+}
+for (const t of workflow.targets ?? []) {
+  const who = t.actor;
+  if (!who || t === mine) continue;
+  if ((t.document?.disposition ?? 0) === side) {
+    if (tempFormula) {
+      const roll = await new Roll(tempFormula, actor.getRollData()).evaluate();
+      card.rolls.push(roll);
+      const had = Number(who.system?.attributes?.hp?.temp) || 0;
+      if (roll.total > had) {
+        await hitCreature(t, roll.total, "temphp");
+        card.steps.push(chrabEsc(t.name) + " gains " + roll.total + " temporary HP");
+      } else card.steps.push(chrabEsc(t.name) + " keeps " + had + " temporary HP (rolled " + roll.total + ")");
+    }
+    if (healFormula) {
+      const roll = await new CONFIG.Dice.DamageRoll(healFormula, actor.getRollData(), { type: "healing" }).evaluate();
+      card.rolls.push(roll);
+      await hitCreature(t, roll.total, "healing");
+      card.steps.push(chrabEsc(t.name) + " regains " + roll.total + " HP");
+    }
+  } else if (source) {
+    // One copy, lasting a round: renewed (replaced) each time it applies.
+    const old = who.effects.filter((e) => e.origin === item.uuid && e.name === source.name).map((e) => e.id);
+    if (old.length) {
+      if (who.isOwner === false) await MidiQOL.socket().executeAsGM("removeEffects", { actorUuid: who.uuid, effects: old });
+      else await who.deleteEmbeddedDocuments("ActiveEffect", old);
+    }
+    const data = foundry.utils.deepClone(source.toObject());
+    delete data._id;
+    if (data.flags?.dae) delete data.flags.dae.dontApply;
+    Object.assign(data, { origin: item.uuid, transfer: false, disabled: false, duration: { value: 1, units: "rounds", expiry: null } });
+    if (who.isOwner === false) await MidiQOL.socket().executeAsGM("createEffects", { actorUuid: who.uuid, effects: [data] });
+    else await who.createEmbeddedDocuments("ActiveEffect", [data]);
+    if (!old.length) card.steps.push(chrabEsc(t.name) + ": <strong>" + chrabEsc(source.name) + "</strong>");
+  }
+}
+if (card.steps.length) await chrabPost(card, actor);
 `,
   },
   {

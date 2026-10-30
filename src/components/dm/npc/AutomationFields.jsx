@@ -243,6 +243,23 @@ function RecipeFields({ recipe, p, set }) {
           </label>
         </div>
       )
+    case 'zone':
+      return (
+        <div className="dm-form-row">
+          <label>
+            Allies: temporary HP
+            <input value={p.allyTempHp} onChange={(e) => set({ allyTempHp: e.target.value })} placeholder="1d4" />
+          </label>
+          <label>
+            Allies: healing
+            <input value={p.allyHeal} onChange={(e) => set({ allyHeal: e.target.value })} placeholder="none" />
+          </label>
+          <label>
+            Enemies: this feature’s effect named
+            <input value={p.enemyEffect} onChange={(e) => set({ enemyEffect: e.target.value })} placeholder="none" />
+          </label>
+        </div>
+      )
     case 'missiles':
       return (
         <>
