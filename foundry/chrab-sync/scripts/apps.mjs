@@ -11,6 +11,7 @@
 
 import { applyQueuedNpc, findDraftActor } from './apply.mjs'
 import { characterState, partyActors, pendingTrades, pushCharacter, pushCharacters } from './characters.mjs'
+import { diffClassPack } from './classDiff.mjs'
 import { fetchClassPack, findClassCopies, isNewer, lastSynced, readClassPack, syncClassPack } from './classes.mjs'
 import { CLASS_PACK_LABEL, MODULE_ID } from './constants.mjs'
 import { applyQueuedFeature, findDraftCopies, findDraftItem } from './items.mjs'
@@ -57,6 +58,8 @@ export class SyncApp extends ApplicationV2 {
   classSource = '' // '' = the published file, else the loaded file's name
   classMessage = ''
   classResult = null // { ok, text }
+  classDiff = null // what syncing classPack would change (classDiff.mjs)
+  classDiffMessage = ''
   trades = [] // unsettled shop trades, from sync_pending_trades
   tradeMessage = ''
   message = ''
@@ -98,6 +101,19 @@ export class SyncApp extends ApplicationV2 {
     } catch (err) {
       this.classPack = null
       this.classMessage = err.message
+    }
+    await this.loadClassDiff()
+  }
+
+  async loadClassDiff() {
+    this.classDiff = null
+    this.classDiffMessage = ''
+    if (!this.classPack) return
+    try {
+      this.classDiff = await diffClassPack(this.classPack)
+    } catch (err) {
+      console.error(`${MODULE_ID} | class diff failed`, err)
+      this.classDiffMessage = `Couldn't compare with this world's copy: ${err.message}`
     }
   }
 
@@ -247,6 +263,7 @@ export class SyncApp extends ApplicationV2 {
       ${this.classMessage ? `<p class="chrab-sync-message">${esc(this.classMessage)}</p>` : ''}
       ${status}
       ${this.classResult ? `<p class="chrab-sync-result ${this.classResult.ok ? 'ok' : 'fail'}">${esc(this.classResult.text)}</p>` : ''}
+      ${this.#classDiffHTML()}
       <label class="chrab-sync-inline"><input type="checkbox" name="updateClassCopies" ${this.updateCopies ? 'checked' : ''}> Also update copies already on characters${copies.length ? ` (${copies.length}, on ${esc([...new Set(copies.map((c) => c.parent?.name))].join(', '))})` : ''}. Keeps spent uses and the choices made while levelling.</label>
       <p class="chrab-sync-meta">Syncing replaces the contents of the <strong>${esc(CLASS_PACK_LABEL)}</strong> compendium. Players can open it: they drag a class onto their sheet and level up from the sheet. Features can carry scripts that run in players' browsers, written by a DM on the Compendium site.</p>
       <input type="file" name="classFile" accept="application/json,.json" hidden>
@@ -256,6 +273,48 @@ export class SyncApp extends ApplicationV2 {
           <i class="fa-solid fa-book"></i> Sync classes
         </button>
       </footer>`
+  }
+
+  // What Sync classes would change: per class and subclass, the features
+  // added, removed or changed since the version in this world's compendium,
+  // then per character what happens to their copies.
+  #classDiffHTML() {
+    if (this.classDiffMessage) return `<p class="chrab-sync-message">${esc(this.classDiffMessage)}</p>`
+    const diff = this.classDiff
+    if (!diff) return ''
+    if (diff.firstSync) return '<p class="chrab-sync-meta">This world has no class compendium yet: everything in the file is new.</p>'
+    const { added, removed, changed } = diff.counts
+    const mark = { added: '+', removed: '−', changed: '~' }
+    const word = { added: 'new', removed: 'removed', changed: 'changed' }
+    const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`
+    const featureRow = (f) => `<li class="chrab-sync-change ${f.status}"><span class="chrab-sync-mark">${mark[f.status]}</span> ${esc(f.name)} <span class="chrab-sync-meta">${word[f.status]}</span></li>`
+    const groups = diff.groups
+      .map((g) => {
+        const head = g.status === 'same' ? '' : ` <span class="chrab-sync-meta">(${word[g.status]})</span>`
+        return `
+          <li class="chrab-sync-row">
+            <strong>${esc(g.name)}</strong>${head}
+            ${g.features.length ? `<ul class="chrab-sync-changes">${g.features.map(featureRow).join('')}</ul>` : ''}
+          </li>`
+      })
+      .join('')
+    const characters = diff.characters
+      .map((c) => {
+        const lines = []
+        if (c.updated.length) lines.push(`<li>Updates: ${esc(c.updated.join(', '))}</li>`)
+        if (c.edits.length) lines.push(`<li class="chrab-sync-warn">Edited in Foundry, overwritten by the sync: ${esc(c.edits.join(', '))}</li>`)
+        if (c.missed.length) lines.push(`<li class="chrab-sync-warn">New at a level they already have, so not granted (drag from the compendium): ${esc(c.missed.join(', '))}</li>`)
+        if (c.orphaned.length) lines.push(`<li>No longer in the pack, left as they are: ${esc(c.orphaned.join(', '))}</li>`)
+        if (!lines.length) return ''
+        return `<li class="chrab-sync-row"><strong>${esc(c.actor)}</strong> <span class="chrab-sync-meta">${esc(plural(c.unchanged, 'copy'))} unchanged</span><ul class="chrab-sync-changes">${lines.join('')}</ul></li>`
+      })
+      .join('')
+    const summary = added || removed || changed ? `${plural(changed, 'change')}, ${added} new, ${removed} removed since this world’s copy.` : 'Nothing has changed since this world’s copy.'
+    return `
+      <h3 class="chrab-sync-heading">What this sync changes</h3>
+      <p class="chrab-sync-meta">${esc(summary)}</p>
+      ${groups ? `<ul class="chrab-sync-list">${groups}</ul>` : ''}
+      ${characters ? `<p><strong>Characters</strong> <span class="chrab-sync-meta">(with Also update copies)</span></p><ul class="chrab-sync-list">${characters}</ul>` : ''}`
   }
 
   async _renderHTML() {
@@ -304,6 +363,7 @@ export class SyncApp extends ApplicationV2 {
     } catch (err) {
       this.classMessage = `${file.name}: ${err.message}`
     }
+    await this.loadClassDiff()
     this.render()
   }
 
@@ -325,6 +385,7 @@ export class SyncApp extends ApplicationV2 {
       console.error(`${MODULE_ID} | class sync failed`, err)
       this.classResult = { ok: false, text: err.message }
     }
+    await this.loadClassDiff()
     this.busy = false
     this.render()
   }

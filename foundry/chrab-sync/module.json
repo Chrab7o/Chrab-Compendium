@@ -2,7 +2,7 @@
   "id": "chrab-sync",
   "title": "Chrab Sync",
   "description": "Pulls NPCs, Feature Forge items and homebrew classes from the Chrab Compendium into this world, and pushes player character sheets back to the Compendium. Syncing is GM only; players use the class compendium.",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "authors": [{ "name": "Chrab7o" }],
   "compatibility": {
     "minimum": "14",
