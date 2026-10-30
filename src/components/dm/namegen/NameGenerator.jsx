@@ -75,7 +75,7 @@ export default function NameGenerator() {
       <div className="dm-panel ng-empty">
         <p>No name schemes are installed yet.</p>
         <p className="ng-muted">
-          Run <code>node scripts/name-schemes/install.mjs</code> to add them, then rebuild.
+          Run <code>node install.mjs</code> in the lab's <code>scripts/name-schemes</code> to add them, then rebuild.
         </p>
       </div>
     )

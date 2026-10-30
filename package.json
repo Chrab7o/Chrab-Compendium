@@ -7,8 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node --test src/lib/foundryActorBuilder.test.mjs src/lib/fiveToolsSpells.test.mjs src/lib/foundryBehaviors.test.mjs src/lib/foundryClassPack.test.mjs src/lib/automationTemplates.test.mjs src/lib/automationFlow.test.mjs src/lib/itemLibrary.test.mjs src/lib/gearItems.test.mjs src/lib/forgeKinds.test.mjs src/lib/forgeChain.test.mjs src/lib/forgeClassRows.test.mjs",
-    "convert:drawio": "node scripts/drawio-to-skilltree.mjs"
+    "test": "node --test src/lib/foundryActorBuilder.test.mjs src/lib/fiveToolsSpells.test.mjs src/lib/foundryBehaviors.test.mjs src/lib/foundryClassPack.test.mjs src/lib/automationTemplates.test.mjs src/lib/automationFlow.test.mjs src/lib/itemLibrary.test.mjs src/lib/gearItems.test.mjs src/lib/forgeKinds.test.mjs src/lib/forgeChain.test.mjs src/lib/forgeClassRows.test.mjs"
   },
   "dependencies": {
     "@dagrejs/dagre": "^3.0.0",
@@ -45,7 +44,6 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.1",
-    "google-auth-library": "^10.9.0",
     "playwright": "^1.62.0",
     "supabase": "^2.109.0",
     "vite": "^5.4.8"

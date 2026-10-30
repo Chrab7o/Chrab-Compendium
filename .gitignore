@@ -29,3 +29,9 @@ CLAUDE.md
 # Foundry exports belong in the sandbox (foundry-expirmenets/exports)
 /fvtt-*.json
 /party.json
+
+# Docs, dev scripts and drafts live in the lab (foundry-expirmenets): this repo is
+# only what the site needs to build and deploy
+/docs/
+/scripts/
+/HB-*.txt
