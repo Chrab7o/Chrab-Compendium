@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useCampaignContext } from '../contexts/CampaignContext'
@@ -23,6 +23,42 @@ export default function Nav() {
     setMobileOpen(false)
   }, [location.pathname])
 
+  // Folds into the hamburger whenever brand, links and controls don't fit on
+  // one row, instead of at a fixed width: which links show depends on who's
+  // signed in, and a fixed breakpoint broke the first time a link was added.
+  // While collapsed the full row can't be measured, so it remembers how wide
+  // the row needed to be and unfolds once there's room again.
+  const navRef = useRef(null)
+  const neededWidth = useRef(0)
+  const [collapsed, setCollapsed] = useState(false)
+  const contentKey = `${isDM}|${isPlayer}|${worlds.length}|${worldId}|${worldCampaigns.length}|${theme}`
+
+  // What's in the row changed: measure it afresh (before paint, so no flash).
+  useLayoutEffect(() => {
+    setCollapsed(false)
+  }, [contentKey])
+
+  useLayoutEffect(() => {
+    const nav = navRef.current
+    if (!nav) return
+    function check() {
+      if (!collapsed) {
+        if (nav.scrollWidth > nav.clientWidth + 1) {
+          neededWidth.current = nav.scrollWidth
+          setCollapsed(true)
+        }
+      } else if (nav.clientWidth >= neededWidth.current) {
+        setCollapsed(false)
+      }
+    }
+    check()
+    // The brand and links resize when the web fonts load, not just the window.
+    const observer = new ResizeObserver(check)
+    observer.observe(nav)
+    for (const el of nav.querySelectorAll('.nav-brand, .nav-links, .nav-right')) observer.observe(el)
+    return () => observer.disconnect()
+  }, [collapsed, contentKey])
+
   function exitImpersonation() {
     stopImpersonating()
     navigate('/dm/characters')
@@ -38,7 +74,7 @@ export default function Nav() {
           </button>
         </div>
       )}
-      <header className="nav">
+      <header ref={navRef} className={collapsed ? 'nav is-collapsed' : 'nav'}>
       <NavStarfield />
       <Link to="/" className="nav-brand">
         Chrab's TTRPG Compendium
