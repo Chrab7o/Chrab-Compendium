@@ -231,23 +231,22 @@ export function branchProblems(branch, { events, branches, memberIds }) {
 
 // --- Layout -----------------------------------------------------------------
 
+// Sizes along time ("step" between events) and across it (laneGap between
+// lines). Vertical runs top to bottom with labels to the right of each node,
+// so its lanes sit wider apart and it keeps equal room on both sides: canon
+// is then the centre line of the drawing. Horizontal is left to right.
 export const LAYOUT = {
-  step: 170,
-  laneGap: 110,
-  padX: 90,
-  padTop: 60,
-  padBottom: 90,
-  curve: 60,
-  minScaleWidth: 900,
+  vertical: { step: 84, laneGap: 230, padStart: 50, crossBefore: 210, crossAfter: 210, axis: 90, curve: 50, minScale: 700 },
+  horizontal: { step: 170, laneGap: 110, padStart: 90, crossBefore: 60, crossAfter: 90, curve: 60, minScale: 900 },
 }
 
 const LANE_SLOTS = Array.from({ length: 40 }, (_, i) => (i % 2 === 0 ? i / 2 + 1 : -(i + 1) / 2))
 
-// Year ticks to scale: the smallest round step that keeps labels ~120px apart.
-function scaleTicks(min, max, width) {
+// Year ticks to scale: the smallest round step that keeps labels apart.
+function scaleTicks(min, max, length, spacing) {
   const span = max - min
   if (span <= 0) return [Math.floor(min)]
-  const room = Math.max(1, Math.floor(width / 120))
+  const room = Math.max(1, Math.floor(length / spacing))
   const steps = [1, 2, 5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000, 25000, 50000, 100000]
   const step = steps.find((s) => span / s <= room) ?? steps[steps.length - 1]
   const ticks = []
@@ -255,46 +254,53 @@ function scaleTicks(min, max, width) {
   return ticks
 }
 
-function branchPath(fx, rx, parentY, laneY, curve) {
-  const c = Math.max(8, Math.min(curve, (rx - fx) / 2))
-  const out = `M ${fx} ${parentY} C ${fx + c / 2} ${parentY}, ${fx + c / 2} ${laneY}, ${fx + c} ${laneY}`
-  if (rx === Infinity) return out
-  return `${out} L ${rx - c} ${laneY} C ${rx - c / 2} ${laneY}, ${rx - c / 2} ${parentY}, ${rx} ${parentY}`
+// A branch's line in (time, cross) terms: off the parent at `from`, along its
+// lane, and back at `to` (Infinity: never back). `pt` maps to x/y.
+function branchPath(from, to, parent, lane, curve, pt) {
+  const c = Math.max(8, Math.min(curve, (to - from) / 2))
+  const P = (t, k) => pt(t, k).join(' ')
+  const out = `M ${P(from, parent)} C ${P(from + c / 2, parent)}, ${P(from + c / 2, lane)}, ${P(from + c, lane)}`
+  if (to === Infinity) return out
+  return `${out} L ${P(to - c, lane)} C ${P(to - c / 2, lane)}, ${P(to - c / 2, parent)}, ${P(to, parent)}`
 }
 
 // Where everything goes. `placed` comes from filterEvents. Spacing 'even'
-// gives every event its own column; 'scale' puts x in proportion to the date.
-// Canon is lane 0; branches take lanes above and below it in turn, and a lane
-// is free again once the branch on it has rejoined.
-export function layoutChronicle({ placed, branches, shownBranches, calendar, spacing = 'even' }) {
-  const L = LAYOUT
+// gives every event its own slot; 'scale' spaces them in proportion to the
+// date. Canon is lane 0; branches take lanes either side of it in turn
+// (left/right when vertical, above/below when horizontal), and a lane is free
+// again once the branch on it has rejoined.
+export function layoutChronicle({ placed, branches, shownBranches, calendar, spacing = 'even', orientation = 'vertical' }) {
+  const vertical = orientation === 'vertical'
+  const L = LAYOUT[vertical ? 'vertical' : 'horizontal']
+  const pt = (t, k) => (vertical ? [k, t] : [t, k])
   const sorted = [...placed].sort((a, b) => compareDates(a.event, b.event))
   const n = sorted.length
+  const toScale = spacing === 'scale' && n > 1
 
-  const xOf = new Map()
-  let width
-  if (spacing === 'scale' && n > 1) {
-    const values = sorted.map((p) => dateValue(p.event, calendar))
-    const min = values[0]
-    const max = values[n - 1]
-    width = Math.max(L.minScaleWidth, n * L.step) + 2 * L.padX
-    const inner = width - 2 * L.padX
-    sorted.forEach((p, i) => xOf.set(p.event.id, L.padX + (max > min ? ((values[i] - min) / (max - min)) * inner : inner / 2)))
+  // Position along time.
+  const tOf = new Map()
+  let length
+  const values = sorted.map((p) => dateValue(p.event, calendar))
+  if (toScale) {
+    length = Math.max(L.minScale, n * L.step) + 2 * L.padStart
+    const inner = length - 2 * L.padStart
+    const [min, max] = [values[0], values[n - 1]]
+    sorted.forEach((p, i) => tOf.set(p.event.id, L.padStart + (max > min ? ((values[i] - min) / (max - min)) * inner : inner / 2)))
   } else {
-    width = Math.max(1, n) * L.step + 2 * L.padX - L.step
-    sorted.forEach((p, i) => xOf.set(p.event.id, L.padX + i * L.step))
+    length = Math.max(1, n) * L.step + 2 * L.padStart - L.step
+    sorted.forEach((p, i) => tOf.set(p.event.id, L.padStart + i * L.step))
   }
-  const endX = width - L.padX / 3
+  const endT = length - L.padStart / 3
 
   // Branch extents, parents first so a sub-branch can hang off its parent's lane.
   const byId = new Map(branches.map((b) => [b.id, b]))
   const lineBranches = branches
     .filter((b) => shownBranches.has(b.id))
     .map((b) => {
-      const own = sorted.filter((p) => p.event.branch_id === b.id).map((p) => xOf.get(p.event.id))
-      let start = b.fork_event_id && xOf.has(b.fork_event_id) ? xOf.get(b.fork_event_id) : null
+      const own = sorted.filter((p) => p.event.branch_id === b.id).map((p) => tOf.get(p.event.id))
+      let start = b.fork_event_id && tOf.has(b.fork_event_id) ? tOf.get(b.fork_event_id) : null
       if (start === null && own.length) start = Math.min(...own) - L.step / 2
-      const end = b.rejoin_event_id && xOf.has(b.rejoin_event_id) ? xOf.get(b.rejoin_event_id) : Infinity
+      const end = b.rejoin_event_id && tOf.has(b.rejoin_event_id) ? tOf.get(b.rejoin_event_id) : Infinity
       return { branch: b, start, end, depth: branchDepth(b, byId) }
     })
     .filter((l) => l.start !== null)
@@ -311,51 +317,67 @@ export function layoutChronicle({ placed, branches, shownBranches, calendar, spa
     laneOf.set(line.branch.id, offset)
   }
 
+  // Across time: positive lanes come first (left / above), negative after.
   const offsets = [...laneOf.values()]
-  const maxUp = Math.max(0, ...offsets)
-  const maxDown = Math.max(0, ...offsets.map((o) => -o))
-  const baseY = L.padTop + maxUp * L.laneGap
-  const yOfLane = (offset) => baseY - offset * L.laneGap
-  const yOfLine = (lineId) => yOfLane(laneOf.get(lineId ?? null) ?? 0)
-  const height = baseY + maxDown * L.laneGap + L.padBottom
+  let before = Math.max(0, ...offsets)
+  let after = Math.max(0, ...offsets.map((o) => -o))
+  if (vertical) before = after = Math.max(before, after)
+  const base = L.crossBefore + before * L.laneGap
+  const crossSize = base + after * L.laneGap + L.crossAfter
+  const crossOf = (lineId) => base - (laneOf.get(lineId ?? null) ?? 0) * L.laneGap
 
-  const lines = [{ id: null, path: `M ${L.padX / 3} ${baseY} L ${endX} ${baseY}`, color: null }]
+  const lines = [{ id: null, path: `M ${pt(L.padStart / 3, base).join(' ')} L ${pt(endT, base).join(' ')}`, color: null }]
   for (const line of lineBranches) {
-    if (!laneOf.has(line.branch.id)) continue
-    const parentY = yOfLine(line.branch.parent_branch_id || null)
-    const laneY = yOfLine(line.branch.id)
+    const parent = crossOf(line.branch.parent_branch_id || null)
+    const lane = crossOf(line.branch.id)
     // A branch that never rejoins runs on to the end of the chronicle.
     const path =
       line.end === Infinity
-        ? `${branchPath(line.start, Infinity, parentY, laneY, L.curve)} L ${endX} ${laneY}`
-        : branchPath(line.start, line.end, parentY, laneY, L.curve)
+        ? `${branchPath(line.start, Infinity, parent, lane, L.curve, pt)} L ${pt(endT, lane).join(' ')}`
+        : branchPath(line.start, line.end, parent, lane, L.curve, pt)
     lines.push({ id: line.branch.id, path, color: line.branch.color || null, rejoins: line.end !== Infinity })
   }
 
-  const nodes = sorted.map((p) => ({
-    event: p.event,
-    muted: p.muted,
-    x: xOf.get(p.event.id),
-    y: yOfLine(p.event.branch_id || null),
-  }))
+  const nodes = sorted.map((p) => {
+    const [x, y] = pt(tOf.get(p.event.id), crossOf(p.event.branch_id || null))
+    return { event: p.event, muted: p.muted, x, y }
+  })
 
-  let ticks
-  if (spacing === 'scale' && n > 1) {
-    const min = dateValue(sorted[0].event, calendar)
-    const max = dateValue(sorted[n - 1].event, calendar)
-    const inner = width - 2 * L.padX
-    ticks = scaleTicks(min, max, inner).map((year) => ({
+  // Year ticks along an axis: under the drawing when horizontal, down its
+  // left side when vertical.
+  const axisCross = vertical ? L.axis : crossSize - L.crossAfter / 3
+  let tickTs
+  if (toScale) {
+    const [min, max] = [values[0], values[n - 1]]
+    const inner = length - 2 * L.padStart
+    tickTs = scaleTicks(min, max, inner, vertical ? 60 : 120).map((year) => ({
       year,
-      x: L.padX + (max > min ? ((year - min) / (max - min)) * inner : inner / 2),
+      t: L.padStart + (max > min ? ((year - min) / (max - min)) * inner : inner / 2),
     }))
   } else {
-    ticks = []
+    tickTs = []
     let lastYear = null
-    for (const node of nodes) {
-      if (node.event.year !== lastYear) ticks.push({ year: node.event.year, x: node.x })
-      lastYear = node.event.year
+    for (const p of sorted) {
+      if (p.event.year !== lastYear) tickTs.push({ year: p.event.year, t: tOf.get(p.event.id) })
+      lastYear = p.event.year
     }
   }
+  const ticks = tickTs.map(({ year, t }) => {
+    const [x, y] = pt(t, axisCross)
+    return { year, x, y }
+  })
+  const [ax1, ay1] = pt(0, axisCross)
+  const [ax2, ay2] = pt(length, axisCross)
 
-  return { width, height, axisY: height - L.padBottom / 3, nodes, lines, ticks, lanes: Object.fromEntries(laneOf) }
+  const [width, height] = vertical ? [crossSize, length] : [length, crossSize]
+  return {
+    orientation: vertical ? 'vertical' : 'horizontal',
+    width,
+    height,
+    axis: { x1: ax1, y1: ay1, x2: ax2, y2: ay2 },
+    nodes,
+    lines,
+    ticks,
+    lanes: Object.fromEntries(laneOf),
+  }
 }

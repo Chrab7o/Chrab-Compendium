@@ -77,7 +77,7 @@ export default function DMChroniclePage() {
   const sorted = sortEvents(events)
 
   return (
-    <section className="page page-wide chronicle-page">
+    <section className="page chronicle-page">
       <div className="view-header">
         <h1>Chronicle</h1>
         <Link to="/chronicle" className="button-link">

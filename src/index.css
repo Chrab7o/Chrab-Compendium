@@ -373,7 +373,7 @@ h3 {
   /* Brand and links shrink with the window so the full DM row (8 links plus
      the world picker and Sign out) fits on one line down to ~1500px; past
      the floors Nav.jsx folds it into the hamburger. */
-  font-size: clamp(1.5rem, 2vw - 10px, 2.15rem);
+  font-size: clamp(1.3rem, 1.6vw - 8px, 1.85rem);
   font-weight: 700;
   /* --accent-strong instead of --accent here specifically — the darker
      wine-red --accent read fine on the old cream nav but goes dim against
@@ -7304,7 +7304,7 @@ button.aw-line-text.is-bad {
   background: var(--surface-2);
 }
 
-/* Chronicle (ChronicleView.jsx): canon across the middle, branches on their
+/* Chronicle (ChronicleView.jsx): canon down the middle, branches on their
    own lanes. Every color reads a token, so the minimal theme needs nothing
    of its own; a branch's color comes inline from chronicle_branches.color. */
 .chronicle-board {
@@ -7313,7 +7313,12 @@ button.aw-line-text.is-bad {
   gap: 1rem;
 }
 
+/* Hugs the drawing and sits centred on the page; a drawing wider than the
+   page (many branch lanes) scrolls sideways inside it instead. */
 .chronicle-scroll {
+  width: fit-content;
+  max-width: 100%;
+  margin-inline: auto;
   overflow-x: auto;
   background: var(--surface);
   border: 1px solid var(--border);

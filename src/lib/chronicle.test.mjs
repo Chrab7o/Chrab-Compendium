@@ -130,7 +130,7 @@ test('layout: overlapping branches take separate lanes; a rejoined lane is reuse
   const branches = [first, overlap, after]
   const events = [...canon, ev({ year: 15, branch_id: first.id }), ev({ year: 25, branch_id: overlap.id }), ev({ year: 35, branch_id: after.id })]
   const { placed, shownBranches } = filterEvents(events, branches)
-  const layout = layoutChronicle({ placed, branches, shownBranches, calendar })
+  const layout = layoutChronicle({ placed, branches, shownBranches, calendar, orientation: 'horizontal' })
 
   assert.equal(layout.lanes[first.id], 1)
   assert.equal(layout.lanes[overlap.id], -1)
@@ -148,8 +148,25 @@ test('layout: overlapping branches take separate lanes; a rejoined lane is reuse
 test('layout: to scale puts x in proportion to the date', () => {
   const events = [ev({ year: 0 }), ev({ year: 10 }), ev({ year: 100 })]
   const { placed, shownBranches } = filterEvents(events, [])
-  const { nodes, ticks } = layoutChronicle({ placed, branches: [], shownBranches, calendar, spacing: 'scale' })
+  const { nodes, ticks } = layoutChronicle({ placed, branches: [], shownBranches, calendar, spacing: 'scale', orientation: 'horizontal' })
   const [a, b, c] = nodes.map((n) => n.x)
   assert.ok(Math.abs((b - a) / (c - a) - 0.1) < 1e-9)
   assert.ok(ticks.length >= 2)
+})
+
+test('layout: vertical runs top to bottom with canon down the middle', () => {
+  const canon = [10, 20, 30].map((year) => ev({ year }))
+  const branch = br({ fork_event_id: canon[0].id, rejoin_event_id: canon[2].id })
+  const events = [...canon, ev({ year: 15, branch_id: branch.id })]
+  const { placed, shownBranches } = filterEvents(events, [branch])
+  const layout = layoutChronicle({ placed, branches: [branch], shownBranches, calendar })
+
+  assert.equal(layout.orientation, 'vertical')
+  const ys = layout.nodes.map((n) => n.y)
+  assert.deepEqual(ys, [...ys].sort((a, b) => a - b), 'later events sit lower')
+  const canonX = layout.nodes.find((n) => n.event.id === canon[0].id).x
+  assert.equal(canonX, layout.width / 2, 'canon is centred even with a branch on one side only')
+  const member = layout.nodes.find((n) => n.event.branch_id === branch.id)
+  assert.ok(member.x < canonX, 'lane 1 sits to the left')
+  assert.ok(layout.ticks.every((t) => t.x === layout.axis.x1), 'year ticks run down one axis')
 })

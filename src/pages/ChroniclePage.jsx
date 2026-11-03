@@ -33,7 +33,7 @@ export default function ChroniclePage() {
   }
 
   return (
-    <section className="page page-wide chronicle-page">
+    <section className="page chronicle-page">
       <div className="view-header">
         <h1>Chronicle</h1>
         {isDM && (

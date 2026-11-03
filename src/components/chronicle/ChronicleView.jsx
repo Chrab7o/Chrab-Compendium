@@ -1,18 +1,45 @@
+import { useLayoutEffect, useRef } from 'react'
 import { formatDate, formatYear } from '../../lib/chronicle'
 
-// Titles are clipped to fit one column of LAYOUT.step; the full title is in
-// the panel and the node's aria-label.
-const TITLE_CHARS = 18
+// Titles are clipped to the room beside a node (the lane gap when vertical,
+// one column of LAYOUT.step when horizontal); the full title is in the panel
+// and the node's aria-label.
+const TITLE_CHARS = { vertical: 26, horizontal: 18 }
 
-function clip(text, max = TITLE_CHARS) {
+// Where a node's title and date sit, and the shape of a date marker.
+const LABELS = {
+  vertical: {
+    title: { x: 16, y: -3, textAnchor: 'start' },
+    date: { x: 16, y: 14, textAnchor: 'start' },
+    mark: { x1: -10, x2: 10, y1: 0, y2: 0 },
+  },
+  horizontal: {
+    title: { x: 0, y: -16, textAnchor: 'middle' },
+    date: { x: 0, y: 26, textAnchor: 'middle' },
+    mark: { x1: 0, x2: 0, y1: -10, y2: 10 },
+  },
+}
+
+function clip(text, max) {
   return text.length > max ? `${text.slice(0, max - 1)}…` : text
 }
 
-// Paints a layout from layoutChronicle (lib/chronicle.js): canon across the
-// middle, each branch on its own lane curving off at its split and back at
-// its rejoin. Scrolls sideways; the layout decides every coordinate.
+// Paints a layout from layoutChronicle (lib/chronicle.js): canon down the
+// middle (or across it, horizontal), each branch on its own lane curving off
+// at its split and back at its rejoin. The layout decides every coordinate.
 export default function ChronicleView({ layout, calendar, branches, selectedId, onSelect }) {
   const branchById = new Map(branches.map((b) => [b.id, b]))
+  const vertical = layout.orientation === 'vertical'
+  const labels = LABELS[layout.orientation]
+  const scrollRef = useRef(null)
+
+  // Vertical, canon is the middle of the drawing: when the box is narrower
+  // than that (a phone), open it scrolled to canon rather than to the
+  // year axis at its left edge.
+  useLayoutEffect(() => {
+    const box = scrollRef.current
+    if (box && vertical) box.scrollLeft = (box.scrollWidth - box.clientWidth) / 2
+  }, [vertical, layout.width])
 
   if (layout.nodes.length === 0) {
     return <p className="status-message">Nothing on the Chronicle matches.</p>
@@ -26,7 +53,7 @@ export default function ChronicleView({ layout, calendar, branches, selectedId, 
   }
 
   return (
-    <div className="chronicle-scroll">
+    <div className="chronicle-scroll" ref={scrollRef}>
       <svg
         className="chronicle-svg"
         width={layout.width}
@@ -35,13 +62,24 @@ export default function ChronicleView({ layout, calendar, branches, selectedId, 
         role="group"
         aria-label="Chronicle"
       >
-        <line className="chronicle-axis" x1={0} x2={layout.width} y1={layout.axisY} y2={layout.axisY} />
+        <line className="chronicle-axis" {...layout.axis} />
         {layout.ticks.map((t) => (
-          <g key={`${t.year}-${t.x}`} className="chronicle-tick">
-            <line x1={t.x} x2={t.x} y1={layout.axisY - 5} y2={layout.axisY + 5} />
-            <text x={t.x} y={layout.axisY + 20} textAnchor="middle">
-              {formatYear(t.year, calendar)}
-            </text>
+          <g key={`${t.year}-${t.x}-${t.y}`} className="chronicle-tick" transform={`translate(${t.x} ${t.y})`}>
+            {vertical ? (
+              <>
+                <line x1={-5} x2={5} y1={0} y2={0} />
+                <text x={-10} y={4} textAnchor="end">
+                  {formatYear(t.year, calendar)}
+                </text>
+              </>
+            ) : (
+              <>
+                <line x1={0} x2={0} y1={-5} y2={5} />
+                <text x={0} y={20} textAnchor="middle">
+                  {formatYear(t.year, calendar)}
+                </text>
+              </>
+            )}
           </g>
         ))}
 
@@ -81,14 +119,14 @@ export default function ChronicleView({ layout, calendar, branches, selectedId, 
               onKeyDown={(e) => keySelect(e, event.id)}
             >
               {event.kind === 'date' ? (
-                <line className="chronicle-date-mark" x1={0} x2={0} y1={-10} y2={10} />
+                <line className="chronicle-date-mark" {...labels.mark} />
               ) : (
                 <circle r={selected ? 9 : 7} style={branch?.color ? { stroke: branch.color } : undefined} />
               )}
-              <text className="chronicle-node-title" y={-16} textAnchor="middle">
-                {clip(event.title)}
+              <text className="chronicle-node-title" {...labels.title}>
+                {clip(event.title, TITLE_CHARS[layout.orientation])}
               </text>
-              <text className="chronicle-node-date" y={26} textAnchor="middle">
+              <text className="chronicle-node-date" {...labels.date}>
                 {formatDate(event, calendar)}
               </text>
             </g>
