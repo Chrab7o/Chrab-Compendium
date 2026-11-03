@@ -61,6 +61,12 @@ export default function Nav() {
           <NavLink to="/maps" className={({ isActive }) => (isActive ? 'active' : '')}>
             Maps
           </NavLink>
+          {/* DM-only until it's been tried on the live site. */}
+          {isDM && (
+            <NavLink to="/chronicle" className={({ isActive }) => (isActive ? 'active' : '')}>
+              Chronicle
+            </NavLink>
+          )}
           <NavLink to="/locations" className={({ isActive }) => (isActive ? 'active' : '')}>
             Locations
           </NavLink>

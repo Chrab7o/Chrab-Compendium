@@ -5,6 +5,7 @@ const SECTIONS = [
   { to: '/dm/tags', title: 'Tags & Groups', desc: 'The vocabulary everything is organized by \u2014 groups act as the filter rows in search.' },
   { to: '/dm/campaigns', title: 'Campaigns', desc: 'Add and edit campaigns.' },
   { to: '/dm/maps', title: 'Maps', desc: 'Upload maps and place markers.' },
+  { to: '/dm/chronicle', title: 'Chronicle', desc: "A world's history on a line: dated events linked to entries, and branches that split off canon and rejoin it." },
   { to: '/dm/characters', title: 'Characters', desc: 'Review imported character sheets, assign owners.' },
   { to: '/dm/character-notes', title: 'Character Notes', desc: 'Your own bio, arc plans, and notes for each player character.' },
   { to: '/dm/long-term-planning', title: 'Long-Term Planning', desc: 'Free-form brainstorming and things to remember to do at some point, with no date on them yet.' },

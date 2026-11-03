@@ -7,6 +7,8 @@ import { useAuth } from '../contexts/AuthContext'
 import { tagLabel } from '../lib/tagLabels'
 import { useTags } from '../contexts/TagContext'
 import { typeTagValue } from '../lib/tags'
+import { formatDate, sortEvents } from '../lib/chronicle'
+import { useCampaignContext } from '../contexts/CampaignContext'
 
 export default function EntryDetail() {
   const { id } = useParams()
@@ -14,6 +16,8 @@ export default function EntryDetail() {
   const { tags: allTags, groups } = useTags()
   const [entry, setEntry] = useState(null)
   const [dmNotes, setDmNotes] = useState([])
+  const [chronicle, setChronicle] = useState([])
+  const { worlds } = useCampaignContext()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
@@ -47,6 +51,26 @@ export default function EntryDetail() {
       .eq('parent_entry_id', id)
       .then(({ data }) => {
         if (!cancelled) setDmNotes(data ?? [])
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [id, isDM])
+
+  // The Chronicle events that link here. DM-only while the Chronicle is new,
+  // like its nav link.
+  useEffect(() => {
+    if (!isDM) {
+      setChronicle([])
+      return
+    }
+    let cancelled = false
+    supabase
+      .from('chronicle_event_entries')
+      .select('event:chronicle_events(*)')
+      .eq('entry_id', id)
+      .then(({ data }) => {
+        if (!cancelled) setChronicle(sortEvents((data ?? []).map((row) => row.event).filter(Boolean)))
       })
     return () => {
       cancelled = true
@@ -90,6 +114,22 @@ export default function EntryDetail() {
       <div className="entry-content">
         <ReactMarkdown remarkPlugins={[remarkGfm]}>{entry.content}</ReactMarkdown>
       </div>
+
+      {chronicle.length > 0 && (
+        <div className="chronicle-entry-events">
+          <h2>In the Chronicle</h2>
+          <ul className="dm-list">
+            {chronicle.map((ev) => (
+              <li key={ev.id}>
+                <span className="dm-list-meta chronicle-list-date">
+                  {formatDate(ev, worlds.find((w) => w.id === ev.world_id)?.calendar)}
+                </span>
+                <Link to={`/chronicle?event=${ev.id}`}>{ev.title}</Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {isDM && dmNotes.length > 0 && (
         <div className="dm-notes-section">

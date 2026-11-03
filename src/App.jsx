@@ -7,6 +7,7 @@ import MapsView from './pages/MapsView'
 import MapDetail from './pages/MapDetail'
 import ShopDetail from './pages/ShopDetail'
 import WorldMapPage from './pages/WorldMapPage'
+import ChroniclePage from './pages/ChroniclePage'
 import TagView from './pages/TagView'
 import SearchPage from './pages/SearchPage'
 import Login from './pages/Login'
@@ -19,6 +20,7 @@ import DMTagsPage from './pages/dm/DMTagsPage'
 import DMSortPage from './pages/dm/DMSortPage'
 import DMWorldsPage from './pages/dm/DMWorldsPage'
 import DMMapsPage from './pages/dm/DMMapsPage'
+import DMChroniclePage from './pages/dm/DMChroniclePage'
 import DMCharactersPage from './pages/dm/DMCharactersPage'
 import DMSkillTreesPage from './pages/dm/DMSkillTreesPage'
 import DMHomebrewPage from './pages/dm/DMHomebrewPage'
@@ -74,6 +76,7 @@ export default function App() {
             <Route path="/map/:slug" element={<MapDetail />} />
             <Route path="/shop/:slug" element={<ShopDetail />} />
             <Route path="/world/:slug" element={<WorldMapPage />} />
+            <Route path="/chronicle" element={<ChroniclePage />} />
             <Route path="/locations" element={<TagView tag="location" title="Locations" />} />
             <Route path="/people" element={<TagView tag="person" title="People" />} />
             <Route path="/homebrew" element={<HomebrewIndex />} />
@@ -115,6 +118,7 @@ export default function App() {
               <Route path="sort" element={<DMSortPage />} />
               <Route path="campaigns" element={<DMCampaignsPage />} />
               <Route path="maps" element={<DMMapsPage />} />
+              <Route path="chronicle" element={<DMChroniclePage />} />
               <Route path="characters" element={<DMCharactersPage />} />
               <Route path="character-notes" element={<DMCharacterNotesPage />} />
               <Route path="skill-trees" element={<DMSkillTreesPage />} />

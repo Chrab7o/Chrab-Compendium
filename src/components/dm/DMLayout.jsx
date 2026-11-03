@@ -7,6 +7,7 @@ const LINKS = [
   { to: '/dm/sort', label: 'Sort Entries' },
   { to: '/dm/campaigns', label: 'Campaigns' },
   { to: '/dm/maps', label: 'Maps' },
+  { to: '/dm/chronicle', label: 'Chronicle' },
   { to: '/dm/characters', label: 'Characters' },
   { to: '/dm/character-notes', label: 'Character Notes' },
   { to: '/dm/skill-trees', label: 'Skill Trees' },

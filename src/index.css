@@ -7287,6 +7287,180 @@ button.aw-line-text.is-bad {
   background: var(--surface-2);
 }
 
+/* Chronicle (ChronicleView.jsx): canon across the middle, branches on their
+   own lanes. Every color reads a token, so the minimal theme needs nothing
+   of its own; a branch's color comes inline from chronicle_branches.color. */
+.chronicle-board {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.chronicle-scroll {
+  overflow-x: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-frame);
+  box-shadow: var(--shadow-sm);
+}
+
+.chronicle-svg {
+  display: block;
+}
+
+.chronicle-line {
+  fill: none;
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+.chronicle-line.is-canon {
+  stroke: var(--text);
+  stroke-width: 4;
+}
+
+.chronicle-line.is-branch {
+  stroke: var(--accent-2);
+}
+
+.chronicle-axis,
+.chronicle-tick line {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.chronicle-tick text {
+  fill: var(--text-muted);
+  font-family: var(--font-display);
+  font-size: 12px;
+}
+
+.chronicle-node {
+  cursor: pointer;
+  outline: none;
+}
+
+.chronicle-node circle {
+  fill: var(--surface);
+  stroke: var(--accent);
+  stroke-width: 3;
+  transition: fill var(--transition);
+}
+
+.chronicle-node:hover circle,
+.chronicle-node:focus-visible circle {
+  fill: var(--surface-2);
+  stroke-width: 4;
+}
+
+.chronicle-node.is-selected circle {
+  fill: var(--accent);
+}
+
+.chronicle-node:focus-visible .chronicle-node-title {
+  text-decoration: underline;
+}
+
+.chronicle-node.is-dm circle {
+  stroke-dasharray: 3 2;
+}
+
+/* Kept only because a shown branch splits or rejoins here. */
+.chronicle-node.is-muted {
+  opacity: 0.4;
+}
+
+.chronicle-date-mark {
+  stroke: var(--text);
+  stroke-width: 3;
+}
+
+.chronicle-node-title {
+  fill: var(--text);
+  font-family: var(--font-display);
+  font-size: 13px;
+}
+
+.chronicle-node-date {
+  fill: var(--text-muted);
+  font-size: 12px;
+}
+
+.chronicle-panel-date {
+  margin: 0;
+  font-family: var(--font-display);
+  color: var(--text-muted);
+}
+
+.chronicle-panel-badges {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.chronicle-line-badge {
+  background: var(--chronicle-branch, var(--accent-2));
+  color: var(--on-accent-2);
+}
+
+.chronicle-rows,
+.chronicle-members {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: stretch;
+}
+
+.chronicle-rows > button.secondary {
+  align-self: flex-start;
+}
+
+.chronicle-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem;
+}
+
+.chronicle-row > label {
+  flex: 1 1 140px;
+}
+
+.chronicle-row > label.tag-checklist-item {
+  flex: 0 0 auto;
+}
+
+.chronicle-problems {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.chronicle-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.chronicle-list-date {
+  min-width: 9rem;
+  font-family: var(--font-display);
+}
+
+details.dm-panel > summary {
+  cursor: pointer;
+}
+
+.chronicle-summary-heading {
+  display: inline;
+  margin: 0;
+}
+
+.chronicle-entry-events {
+  margin-top: 2rem;
+}
+
 /* "Simple" view: a flat, dark, minimalist alternative to the Marginalia
    parchment look, toggled from the nav (useTheme.js sets
    data-theme="minimal" on <html>). Mostly a token swap - nearly every
