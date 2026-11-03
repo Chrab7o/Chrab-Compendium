@@ -7429,6 +7429,16 @@ button.aw-line-text.is-bad {
   flex: 0 0 auto;
 }
 
+.chronicle-era-spans {
+  margin: 0;
+  padding-left: 1.25rem;
+  color: var(--text);
+}
+
+.chronicle-era-spans .status-message {
+  margin: 0;
+}
+
 .chronicle-problems {
   list-style: none;
   margin: 0;

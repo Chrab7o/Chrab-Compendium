@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { formatDate, normalizeCalendar } from '../../../lib/chronicle'
+import { eraSpans, formatDate, formatYear, normalizeCalendar } from '../../../lib/chronicle'
 
 // A world's calendar (worlds.calendar): eras and months. Years are stored
 // absolute, so changing an era here rewrites how every date reads without
@@ -25,6 +25,10 @@ export default function CalendarEditor({ calendar, onSave }) {
     if (message) setError(message)
   }
 
+  // What will be saved, in the order it'll be saved.
+  const sortedDraft = normalizeCalendar(draft)
+  const spans = eraSpans(sortedDraft)
+
   const sample = draft.eras.length
     ? formatDate({ year: draft.eras[draft.eras.length - 1].start_year + 12, month: draft.months.length ? 1 : null, day: draft.months.length ? 3 : null }, draft)
     : null
@@ -34,7 +38,8 @@ export default function CalendarEditor({ calendar, onSave }) {
       <fieldset className="tag-checklist chronicle-rows">
         <legend>Eras</legend>
         <p className="status-message">
-          Each era starts at an absolute year. A backward era counts down to the next era's start, like "50 BC".
+          Each era starts at an absolute year, and eras are ordered by that year: anything before year 0 is negative.
+          An era that counts down runs to the next era's start, like "50 BC".
         </p>
         {draft.eras.map((era, i) => (
           <div key={i} className="chronicle-row">
@@ -71,6 +76,25 @@ export default function CalendarEditor({ calendar, onSave }) {
         >
           + Add era
         </button>
+        {spans.length > 0 && (
+          <ol className="chronicle-era-spans" aria-label="Eras in order">
+            {spans.map(({ era, start, end, problems }, i) => (
+              <li key={i}>
+                <strong>{era.name || era.abbr}</strong>{' '}
+                <span className="status-message">
+                  {end === null
+                    ? `from year ${start} (${formatYear(start, sortedDraft)}) onward`
+                    : `years ${start} to ${end} (${formatYear(start, sortedDraft)} to ${formatYear(end, sortedDraft)})`}
+                </span>
+                {problems.map((p) => (
+                  <p key={p} className="status-message error">
+                    {p}
+                  </p>
+                ))}
+              </li>
+            ))}
+          </ol>
+        )}
       </fieldset>
 
       <fieldset className="tag-checklist chronicle-rows">

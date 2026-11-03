@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import {
   branchProblems,
   compareDates,
+  eraSpans,
   eventTags,
   filterEvents,
   formatDate,
@@ -48,6 +49,21 @@ test('era years round-trip through the editor', () => {
   assert.equal(fromEraYear(0, 50, calendar), -50)
   assert.deepEqual(toEraYear(484, calendar), { eraIndex: 1, eraYear: 484 })
   assert.equal(fromEraYear(1, 484, calendar), 484)
+})
+
+test('era spans: in order of start year, flagging a count-down era with nothing after it', () => {
+  const spans = eraSpans(calendar)
+  assert.deepEqual(spans.map((s) => [s.era.abbr, s.start, s.end]), [['BC', -10000, -1], ['AC', 0, null]])
+  assert.ok(spans.every((s) => s.problems.length === 0))
+
+  const flipped = eraSpans({
+    eras: [
+      { abbr: 'AC', start_year: 0 },
+      { abbr: 'BC', start_year: 40000, backward: true },
+    ],
+  })
+  assert.deepEqual(flipped.map((s) => s.era.abbr), ['AC', 'BC'])
+  assert.equal(flipped[1].problems.length, 1)
 })
 
 test('region filter: linked entries lend their tags, and a branch keeps the event it hangs from', () => {

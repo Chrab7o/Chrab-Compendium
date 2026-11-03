@@ -28,6 +28,22 @@ export function normalizeCalendar(calendar) {
   return { eras, months }
 }
 
+// Each era in the order it happens, with the absolute years it covers (end is
+// null for the last, which runs on), plus what's wrong with the setup. The
+// calendar editor shows this so the sort by start year is never a surprise.
+export function eraSpans(calendar) {
+  const { eras } = normalizeCalendar(calendar)
+  return eras.map((era, i) => {
+    const next = eras[i + 1]
+    const end = next ? next.start_year - 1 : null
+    const problems = []
+    if (next && next.start_year === era.start_year) problems.push(`Starts the same year as ${next.abbr || next.name}.`)
+    if (era.backward && !next)
+      problems.push('Counts down, but no era comes after it to count down to. Give it an earlier start (negative years come before 0).')
+    return { era, start: era.start_year, end, problems }
+  })
+}
+
 // The era a year falls in: the latest one started by then. A year before
 // every era belongs to the first, so it still gets a label.
 function eraIndexFor(year, eras) {
