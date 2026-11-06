@@ -96,11 +96,13 @@
   --text-xs: 0.75rem;
   --text-sm: 0.85rem;
   --text-base: 1rem;
-  --text-md: 1.1rem;
-  --text-lg: 1.35rem;
-  --text-xl: 1.75rem;
-  --text-2xl: clamp(1.6rem, 1.3rem + 1.2vw, 2.25rem);
-  --text-3xl: clamp(2rem, 1.5rem + 2vw, 3rem);
+  /* md and up shrink on narrow screens and reach full size by about 640px,
+     so headings and titles fit a phone without changing desktop. */
+  --text-md: clamp(1rem, 0.9rem + 0.5vw, 1.1rem);
+  --text-lg: clamp(1.15rem, 1rem + 0.9vw, 1.35rem);
+  --text-xl: clamp(1.4rem, 1.05rem + 1.8vw, 1.75rem);
+  --text-2xl: clamp(1.5rem, 1.2rem + 1.4vw, 2.25rem);
+  --text-3xl: clamp(1.75rem, 1.3rem + 2.2vw, 3rem);
 
   --transition: 0.2s ease;
 
@@ -850,6 +852,12 @@ button.link-button:hover {
     margin: 0 0.5rem;
     padding: 1.25rem 1rem;
   }
+
+  /* Any word too long for the line breaks rather than running off screen. */
+  .page,
+  .page-wide {
+    overflow-wrap: anywhere;
+  }
 }
 
 .view-header {
@@ -971,7 +979,7 @@ button:disabled {
 
 .entry-grid {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
   gap: 1rem;
 }
 
@@ -1075,6 +1083,9 @@ button:disabled {
   padding: 0.15rem 0.6rem;
   font-size: 0.75rem;
   color: var(--text-muted);
+  /* Generated names like collection-<uuid> are one long word. */
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .badge {
@@ -1301,10 +1312,17 @@ button:disabled {
 }
 
 .editor-toolbar {
+  margin-bottom: 0.5rem;
+}
+
+.editor-toolbar-items {
   display: flex;
   gap: 0.5rem;
-  margin-bottom: 0.5rem;
   flex-wrap: wrap;
+}
+
+.editor-toolbar-toggle {
+  display: none;
 }
 
 .editor-toolbar button.active {
@@ -1337,8 +1355,9 @@ button:disabled {
   position: relative;
 }
 
-/* Phone: no inner padding eating the line, and the toolbar is one row that
-   scrolls sideways and stays on screen while writing a long entry. */
+/* Phone: less inner padding eating the line. The tools fold into a Format
+   menu that lists them top to bottom, and the bar holding it stays on screen
+   while writing a long entry. */
 @media (max-width: 640px) {
   .rich-editor {
     padding: 0.5rem 0.6rem 0.75rem;
@@ -1347,29 +1366,59 @@ button:disabled {
   .editor-toolbar {
     position: sticky;
     top: 0;
-    z-index: 2;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    gap: 0.35rem;
+    z-index: 3;
     margin: -0.5rem -0.6rem 0.5rem;
     padding: 0.5rem 0.6rem;
     background: var(--surface);
     border-bottom: 1px solid var(--border);
-    scrollbar-width: none;
   }
 
-  .editor-toolbar::-webkit-scrollbar {
+  .editor-toolbar-toggle {
+    display: block;
+  }
+
+  .editor-toolbar-items {
     display: none;
+    position: absolute;
+    top: calc(100% - 0.25rem);
+    left: 0.6rem;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    gap: 0.15rem;
+    min-width: 11rem;
+    max-height: 60vh;
+    overflow-y: auto;
+    padding: 0.4rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-frame);
+    box-shadow: var(--shadow-lg);
   }
 
-  .editor-toolbar button {
-    flex: 0 0 auto;
-    padding: 0.45rem 0.7rem;
-    font-size: var(--text-sm);
-    white-space: nowrap;
+  .editor-toolbar-items.is-open {
+    display: flex;
   }
 
-  /* Hover lift would stick after a tap and nudge the row. */
+  /* Plain menu rows; the format the cursor is in stays highlighted. */
+  .editor-toolbar-items button {
+    text-align: left;
+    padding: 0.6rem 0.8rem;
+    background: none;
+    color: var(--text);
+    box-shadow: none;
+  }
+
+  .editor-toolbar-items button:hover {
+    background: var(--surface-2);
+    box-shadow: none;
+  }
+
+  .editor-toolbar-items button.active {
+    background: var(--accent-strong);
+    color: var(--on-accent);
+  }
+
+  /* Hover lift would stick after a tap and nudge the menu. */
   .editor-toolbar button:hover {
     transform: none;
   }
@@ -1478,6 +1527,7 @@ button:disabled {
 
 .dm-form-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.75rem;
 }
 
@@ -1721,6 +1771,7 @@ button:disabled {
 
 .dm-panel-header {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
@@ -2661,7 +2712,7 @@ button.tree-label:hover {
      that eat up the remaining row width, leaving a lone card stuck in a
      small column with dead space beside it. auto-fit collapses those empty
      tracks so existing cards actually stretch to fill the row. */
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));
   gap: 1.25rem;
 }
 
@@ -3053,7 +3104,7 @@ button.chip:hover {
 /* Settings flow in a grid; the multi-select lists take a whole row. */
 .template-params {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(13rem, 100%), 1fr));
   gap: 0.6rem 0.9rem;
   align-items: end;
 }
@@ -3738,6 +3789,7 @@ button.ltp-index-open:hover .ltp-index-title {
 
 input.ltp-editor-title {
   flex: 1 1 18rem;
+  min-width: 0;
   font-family: var(--font-display);
   font-size: var(--text-xl);
   font-weight: 700;
@@ -4238,6 +4290,8 @@ button.tag-picker-option.is-create {
 
 .entry-card-shell .entry-card {
   flex: 1;
+  /* A flex item won't shrink below its widest word without this. */
+  min-width: 0;
 }
 
 .entry-card-select {
@@ -4385,7 +4439,7 @@ button.tag-picker-option.is-create {
 
 .shop-sources {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
   gap: 0.4rem;
 }
 
@@ -4468,7 +4522,7 @@ button.tag-picker-option.is-create {
 
 .shop-shelf {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
   gap: var(--space-4);
 }
 
@@ -4654,7 +4708,7 @@ button.tag-picker-option.is-create {
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));
   gap: var(--space-3);
 }
 
@@ -6798,7 +6852,7 @@ button.sg-toggle.is-on {
 
 .aw-choices {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(200px, 100%), 1fr));
   gap: 0.5rem;
 }
 

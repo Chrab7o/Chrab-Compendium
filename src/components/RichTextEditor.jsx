@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useEditor, useEditorState, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import { TableKit } from '@tiptap/extension-table'
@@ -20,6 +20,8 @@ function ToolbarButton({ active, ...props }) {
 // trying to resync content into an already-initialized editor.
 export default function RichTextEditor({ content, onChange }) {
   const fileInputRef = useRef(null)
+  const toolbarRef = useRef(null)
+  const [menuOpen, setMenuOpen] = useState(false)
 
   const editor = useEditor({
     extensions: [
@@ -63,84 +65,116 @@ export default function RichTextEditor({ content, onChange }) {
     if (url) editor?.chain().focus().extendMarkRange('link').setLink({ href: url }).run()
   }
 
+  // Phones get one Format button that opens the tools as a top-to-bottom menu
+  // (CSS hides the toggle on wider screens, where the tools are one row).
+  useEffect(() => {
+    if (!menuOpen) return
+    function close(e) {
+      if (e.type === 'keydown' ? e.key === 'Escape' : !toolbarRef.current?.contains(e.target)) setMenuOpen(false)
+    }
+    document.addEventListener('pointerdown', close)
+    document.addEventListener('keydown', close)
+    return () => {
+      document.removeEventListener('pointerdown', close)
+      document.removeEventListener('keydown', close)
+    }
+  }, [menuOpen])
+
   if (!editor) return null
 
   return (
     <div className="rich-editor">
-      <div className="editor-toolbar">
-        <ToolbarButton active={editor.isActive('bold')} onClick={() => editor.chain().focus().toggleBold().run()}>
-          Bold
-        </ToolbarButton>
-        <ToolbarButton active={editor.isActive('italic')} onClick={() => editor.chain().focus().toggleItalic().run()}>
-          Italic
-        </ToolbarButton>
-        <ToolbarButton
-          active={editor.isActive('heading', { level: 1 })}
-          onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+      {/* mousedown default would take focus from the text, closing a phone's keyboard. */}
+      <div className="editor-toolbar" ref={toolbarRef} onMouseDown={(e) => e.preventDefault()}>
+        <button
+          type="button"
+          className="editor-toolbar-toggle"
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen((open) => !open)}
         >
-          H1
-        </ToolbarButton>
-        <ToolbarButton
-          active={editor.isActive('heading', { level: 2 })}
-          onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+          Format {menuOpen ? '▴' : '▾'}
+        </button>
+        <div
+          className={`editor-toolbar-items${menuOpen ? ' is-open' : ''}`}
+          // Indent/Outdent keep it open: nesting often takes a few taps.
+          onClick={(e) => e.target.closest('button:not([data-keep-open])') && setMenuOpen(false)}
         >
-          H2
-        </ToolbarButton>
-        <ToolbarButton
-          active={editor.isActive('heading', { level: 3 })}
-          onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-        >
-          H3
-        </ToolbarButton>
-        <ToolbarButton
-          active={editor.isActive('bulletList')}
-          onClick={() => editor.chain().focus().toggleBulletList().run()}
-        >
-          • List
-        </ToolbarButton>
-        <ToolbarButton
-          active={editor.isActive('orderedList')}
-          onClick={() => editor.chain().focus().toggleOrderedList().run()}
-        >
-          1. List
-        </ToolbarButton>
-        {inList && (
-          <>
-            <ToolbarButton
-              aria-label="Indent list item"
-              onClick={() => editor.chain().focus().sinkListItem('listItem').run()}
-            >
-              Indent →
-            </ToolbarButton>
-            <ToolbarButton
-              aria-label="Outdent list item"
-              onClick={() => editor.chain().focus().liftListItem('listItem').run()}
-            >
-              ← Outdent
-            </ToolbarButton>
-          </>
-        )}
-        <ToolbarButton
-          active={editor.isActive('blockquote')}
-          onClick={() => editor.chain().focus().toggleBlockquote().run()}
-        >
-          Quote
-        </ToolbarButton>
-        <ToolbarButton
-          active={editor.isActive('codeBlock')}
-          onClick={() => editor.chain().focus().toggleCodeBlock().run()}
-        >
-          Code
-        </ToolbarButton>
-        <ToolbarButton active={editor.isActive('link')} onClick={setLink}>
-          Link
-        </ToolbarButton>
-        <ToolbarButton
-          onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 2, withHeaderRow: true }).run()}
-        >
-          Table
-        </ToolbarButton>
-        <ToolbarButton onClick={() => fileInputRef.current?.click()}>Image</ToolbarButton>
+          <ToolbarButton active={editor.isActive('bold')} onClick={() => editor.chain().focus().toggleBold().run()}>
+            Bold
+          </ToolbarButton>
+          <ToolbarButton active={editor.isActive('italic')} onClick={() => editor.chain().focus().toggleItalic().run()}>
+            Italic
+          </ToolbarButton>
+          <ToolbarButton
+            active={editor.isActive('heading', { level: 1 })}
+            onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+          >
+            H1
+          </ToolbarButton>
+          <ToolbarButton
+            active={editor.isActive('heading', { level: 2 })}
+            onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+          >
+            H2
+          </ToolbarButton>
+          <ToolbarButton
+            active={editor.isActive('heading', { level: 3 })}
+            onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+          >
+            H3
+          </ToolbarButton>
+          <ToolbarButton
+            active={editor.isActive('bulletList')}
+            onClick={() => editor.chain().focus().toggleBulletList().run()}
+          >
+            • List
+          </ToolbarButton>
+          <ToolbarButton
+            active={editor.isActive('orderedList')}
+            onClick={() => editor.chain().focus().toggleOrderedList().run()}
+          >
+            1. List
+          </ToolbarButton>
+          {inList && (
+            <>
+              <ToolbarButton
+                aria-label="Indent list item"
+              data-keep-open
+                onClick={() => editor.chain().focus().sinkListItem('listItem').run()}
+              >
+                Indent →
+              </ToolbarButton>
+              <ToolbarButton
+                aria-label="Outdent list item"
+              data-keep-open
+                onClick={() => editor.chain().focus().liftListItem('listItem').run()}
+              >
+                ← Outdent
+              </ToolbarButton>
+            </>
+          )}
+          <ToolbarButton
+            active={editor.isActive('blockquote')}
+            onClick={() => editor.chain().focus().toggleBlockquote().run()}
+          >
+            Quote
+          </ToolbarButton>
+          <ToolbarButton
+            active={editor.isActive('codeBlock')}
+            onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+          >
+            Code
+          </ToolbarButton>
+          <ToolbarButton active={editor.isActive('link')} onClick={setLink}>
+            Link
+          </ToolbarButton>
+          <ToolbarButton
+            onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 2, withHeaderRow: true }).run()}
+          >
+            Table
+          </ToolbarButton>
+          <ToolbarButton onClick={() => fileInputRef.current?.click()}>Image</ToolbarButton>
+        </div>
         <input
           ref={fileInputRef}
           type="file"
