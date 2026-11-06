@@ -838,6 +838,20 @@ button.link-button:hover {
   box-shadow: var(--shadow-md);
 }
 
+/* On a phone the desktop margins and 2.5rem padding left text a column
+   about 250px wide, and a bullet inside the editor under 180px. */
+@media (max-width: 640px) {
+  .page {
+    width: calc(100% - 1rem);
+    padding: 1.25rem 1rem;
+  }
+
+  .page-wide {
+    margin: 0 0.5rem;
+    padding: 1.25rem 1rem;
+  }
+}
+
 .view-header {
   margin-bottom: 1.5rem;
   text-align: center;
@@ -1181,6 +1195,8 @@ button:disabled {
 .entry-content {
   margin-top: 1.5rem;
   line-height: 1.7;
+  /* Long names, links and pasted strings wrap instead of widening the page. */
+  overflow-wrap: break-word;
 }
 
 .entry-content :is(h1, h2, h3) {
@@ -1220,6 +1236,70 @@ button:disabled {
   background: var(--surface-2);
 }
 
+/* Lists: a tighter indent than the browser's 40px, and list items written
+   in the editor (each wraps its text in a <p>) without a paragraph gap
+   between every bullet. */
+.entry-content :is(ul, ol) {
+  padding-left: 1.5rem;
+  margin: 0.5rem 0 1rem;
+}
+
+.entry-content li + li {
+  margin-top: 0.25rem;
+}
+
+.entry-content li > p {
+  margin: 0;
+}
+
+.entry-content li > p + p {
+  margin-top: 0.5rem;
+}
+
+.entry-content li > :is(ul, ol) {
+  margin: 0.25rem 0 0;
+  padding-left: 1.25rem;
+}
+
+.entry-content pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.entry-content :is(td, th, code) {
+  overflow-wrap: anywhere;
+}
+
+.entry-content img {
+  height: auto;
+}
+
+/* The editor wraps each table in this; let a wide one scroll on its own. */
+.entry-content .tableWrapper {
+  overflow-x: auto;
+}
+
+@media (max-width: 640px) {
+  .entry-content :is(ul, ol) {
+    padding-left: 1.25rem;
+  }
+
+  .entry-content li > :is(ul, ol) {
+    padding-left: 1rem;
+  }
+
+  /* A many-column table scrolls sideways instead of crushing every cell. */
+  .entry-content:not(.rich-editor-content) table {
+    display: block;
+    overflow-x: auto;
+  }
+
+  .entry-content th,
+  .entry-content td {
+    padding: 0.4rem 0.5rem;
+  }
+}
+
 .editor-toolbar {
   display: flex;
   gap: 0.5rem;
@@ -1255,6 +1335,44 @@ button:disabled {
 .rich-editor-content td,
 .rich-editor-content th {
   position: relative;
+}
+
+/* Phone: no inner padding eating the line, and the toolbar is one row that
+   scrolls sideways and stays on screen while writing a long entry. */
+@media (max-width: 640px) {
+  .rich-editor {
+    padding: 0.5rem 0.6rem 0.75rem;
+  }
+
+  .editor-toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 0.35rem;
+    margin: -0.5rem -0.6rem 0.5rem;
+    padding: 0.5rem 0.6rem;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    scrollbar-width: none;
+  }
+
+  .editor-toolbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .editor-toolbar button {
+    flex: 0 0 auto;
+    padding: 0.45rem 0.7rem;
+    font-size: var(--text-sm);
+    white-space: nowrap;
+  }
+
+  /* Hover lift would stick after a tap and nudge the row. */
+  .editor-toolbar button:hover {
+    transform: none;
+  }
 }
 
 .dm-notes-section {

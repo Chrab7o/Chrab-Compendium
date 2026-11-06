@@ -1,5 +1,5 @@
 import { useRef } from 'react'
-import { useEditor, EditorContent } from '@tiptap/react'
+import { useEditor, useEditorState, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import { TableKit } from '@tiptap/extension-table'
 import Image from '@tiptap/extension-image'
@@ -37,6 +37,13 @@ export default function RichTextEditor({ content, onChange }) {
     editorProps: {
       attributes: { class: 'entry-content rich-editor-content' },
     },
+  })
+
+  // Phone keyboards have no Tab, so nesting a bullet needs its own buttons.
+  // Shown only inside a list; useEditorState re-renders on cursor moves.
+  const inList = useEditorState({
+    editor,
+    selector: ({ editor }) => editor?.isActive('listItem') ?? false,
   })
 
   async function handleImagePick(e) {
@@ -97,6 +104,22 @@ export default function RichTextEditor({ content, onChange }) {
         >
           1. List
         </ToolbarButton>
+        {inList && (
+          <>
+            <ToolbarButton
+              aria-label="Indent list item"
+              onClick={() => editor.chain().focus().sinkListItem('listItem').run()}
+            >
+              Indent →
+            </ToolbarButton>
+            <ToolbarButton
+              aria-label="Outdent list item"
+              onClick={() => editor.chain().focus().liftListItem('listItem').run()}
+            >
+              ← Outdent
+            </ToolbarButton>
+          </>
+        )}
         <ToolbarButton
           active={editor.isActive('blockquote')}
           onClick={() => editor.chain().focus().toggleBlockquote().run()}
