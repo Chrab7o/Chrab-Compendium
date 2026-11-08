@@ -6555,6 +6555,23 @@ button.sg-toggle.is-on {
   font-weight: 700;
 }
 
+/* The 5etools feat picker: click a name to read the feat under its row. */
+.npc-feat-toggle {
+  color: var(--text);
+  text-align: left;
+}
+
+.npc-feat-details {
+  grid-column: 1 / -1;
+  padding: 0.25rem 0.5rem 0.6rem 1.1rem;
+  border-left: 2px solid var(--border, currentColor);
+  font-size: 0.92rem;
+}
+
+.npc-feat-details p {
+  margin: 0.3rem 0;
+}
+
 .npc-spell-group h4 {
   margin: 0.4rem 0;
   font-family: var(--font-display);
