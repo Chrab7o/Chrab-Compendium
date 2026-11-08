@@ -6,6 +6,17 @@ import { supabase } from '../lib/supabaseClient'
 import { formatBackgroundAbilities } from '../lib/homebrew'
 import NestedFeatureList from '../components/homebrew/NestedFeatureList'
 
+// The homebrew feat the origin-feat text names: by its full name, else
+// without a trailing variant, so "Magic Initiate (Wizard)" finds the
+// "Magic Initiate" feat the 5etools picker added.
+async function findFeat(name) {
+  if (!name) return { data: null }
+  const byName = (n) => supabase.from('homebrew_feats').select('slug').ilike('name', n).maybeSingle()
+  const exact = await byName(name)
+  const base = name.replace(/\s*\([^)]*\)\s*$/, '')
+  return exact.data || base === name ? exact : byName(base)
+}
+
 export default function HomebrewBackgroundDetail() {
   const { slug } = useParams()
   const [background, setBackground] = useState(undefined)
@@ -41,9 +52,7 @@ export default function HomebrewBackgroundDetail() {
             .select('*')
             .eq('background_id', row.id)
             .order('sort_order', { ascending: true }),
-          row.feat
-            ? supabase.from('homebrew_feats').select('slug').ilike('name', row.feat).maybeSingle()
-            : Promise.resolve({ data: null }),
+          findFeat(row.feat),
         ])
         if (cancelled) return
         setBackground(row)

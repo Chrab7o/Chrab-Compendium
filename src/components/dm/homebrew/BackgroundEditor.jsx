@@ -5,6 +5,7 @@ import {
   ABILITY_LABELS,
   ABILITY_SCORES,
   BACKGROUND_FIELDS,
+  FEAT_FIELDS,
   LANGUAGE_OPTIONS,
   SKILLS,
   TOOL_PROFICIENCY_OPTIONS,
@@ -15,11 +16,13 @@ import {
   emptyBackgroundForm,
   fiveToolsBackgroundToForm,
   fiveToolsEntryList,
+  fiveToolsFeatToForm,
 } from '../../../lib/homebrew'
 import { downloadJson, saveParentWithChildren, slugify } from '../../../lib/homebrewSave'
 import OptionPicker from '../OptionPicker'
 import RepeatableRows from '../RepeatableRows'
 import FiveToolsEntryPicker from './FiveToolsEntryPicker'
+import FiveToolsFeatPicker from './FiveToolsFeatPicker'
 import VisibilitySelect from './VisibilitySelect'
 
 const SKILL_OPTIONS = SKILLS.map((s) => s.name)
@@ -39,6 +42,12 @@ export default function BackgroundEditor() {
   const [error, setError] = useState(null)
   const [fiveToolsPool, setFiveToolsPool] = useState([])
   const [featNames, setFeatNames] = useState([])
+  // A feat picked from the 5etools catalog (form shape). On save it's also
+  // added to Feats, so the detail page links the full text, unless one by
+  // that name already exists or the DM unticks it.
+  const [featPickerOpen, setFeatPickerOpen] = useState(false)
+  const [pickedFeat, setPickedFeat] = useState(null)
+  const [addPickedFeat, setAddPickedFeat] = useState(true)
 
   useEffect(() => {
     supabase
@@ -70,6 +79,21 @@ export default function BackgroundEditor() {
     setForm((f) => ({ ...f, ...patch }))
   }
 
+  // Still names the picked feat - as is, or with a variant added
+  // ("Magic Initiate (Wizard)"), which the detail page also links.
+  const pickedFeatInUse =
+    pickedFeat && (form.feat === pickedFeat.name || form.feat.startsWith(`${pickedFeat.name} (`))
+  const pickedFeatExists =
+    pickedFeat && featNames.some((n) => n.toLowerCase() === pickedFeat.name.toLowerCase())
+
+  function pickFeat(entry) {
+    const feat = fiveToolsFeatToForm(entry)
+    setPickedFeat(feat)
+    setAddPickedFeat(true)
+    set({ feat: feat.name })
+    setFeatPickerOpen(false)
+  }
+
   function toggleAbility(ability) {
     const options = form.ability_options.includes(ability)
       ? form.ability_options.filter((a) => a !== ability)
@@ -93,12 +117,34 @@ export default function BackgroundEditor() {
       payload,
       children: form.features,
     })
-    setSaving(false)
     if (result.id) set({ id: result.id })
     if (result.error) {
+      setSaving(false)
       setError(result.error)
       return
     }
+
+    if (pickedFeatInUse && addPickedFeat && !pickedFeatExists) {
+      const featResult = await saveParentWithChildren({
+        table: 'homebrew_feats',
+        childTable: 'homebrew_feat_benefits',
+        foreignKey: 'feat_id',
+        id: null,
+        payload: {
+          ...Object.fromEntries(FEAT_FIELDS.map((k) => [k, pickedFeat[k]])),
+          slug: slugify(pickedFeat.name),
+          visibility: form.visibility,
+        },
+        children: pickedFeat.benefits,
+      })
+      if (featResult.id) setFeatNames((names) => [...names, pickedFeat.name])
+      if (featResult.error) {
+        setSaving(false)
+        setError(`The background saved, but adding ${pickedFeat.name} to Feats failed: ${featResult.error}`)
+        return
+      }
+    }
+    setSaving(false)
     navigate('/dm/homebrew?tab=backgrounds')
   }
 
@@ -219,20 +265,37 @@ export default function BackgroundEditor() {
           </label>
         </fieldset>
 
-        <label>
-          Origin Feat
-          <input
-            list="background-feats"
-            value={form.feat}
-            onChange={(e) => set({ feat: e.target.value })}
-            placeholder="e.g. Magic Initiate (Wizard)"
-          />
-          <datalist id="background-feats">
-            {featNames.map((n) => (
-              <option key={n} value={n} />
-            ))}
-          </datalist>
-        </label>
+        <div className="dm-form-row">
+          <label>
+            Origin Feat
+            <input
+              list="background-feats"
+              value={form.feat}
+              onChange={(e) => set({ feat: e.target.value })}
+              placeholder="e.g. Magic Initiate (Wizard)"
+            />
+            <datalist id="background-feats">
+              {featNames.map((n) => (
+                <option key={n} value={n} />
+              ))}
+            </datalist>
+          </label>
+          <div className="dm-form-actions">
+            <button type="button" className="secondary" onClick={() => setFeatPickerOpen((o) => !o)}>
+              Pick from 5etools
+            </button>
+          </div>
+        </div>
+        {featPickerOpen && <FiveToolsFeatPicker onPick={pickFeat} onClose={() => setFeatPickerOpen(false)} />}
+        {pickedFeatInUse &&
+          (pickedFeatExists ? (
+            <p className="npc-hint">{pickedFeat.name} is already in Feats - the background will link to it.</p>
+          ) : (
+            <label className="tag-checklist-item">
+              <input type="checkbox" checked={addPickedFeat} onChange={(e) => setAddPickedFeat(e.target.checked)} />
+              Also add {pickedFeat.name} to Feats on save, so this background links to its full text
+            </label>
+          ))}
 
         <OptionPicker
           label="Skill Proficiencies"
