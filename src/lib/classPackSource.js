@@ -2,7 +2,7 @@
 // Supabase client. No client of its own, so the same code runs in a DM's
 // browser (foundryClassPackPublish.js) and in the Foundry sandbox's push
 // script (node, signed in as a DM): both publish the same file.
-import { classToFormState, standaloneSubclassToFormState } from './homebrew.js'
+import { backgroundToFormState, classToFormState, featToFormState, standaloneSubclassToFormState } from './homebrew.js'
 import { CLASS_PACK_BUCKET, CLASS_PACK_PATH, buildClassPack, classPackSummary, draftItems } from './foundryClassPack.js'
 
 async function rows(query) {
@@ -25,13 +25,17 @@ const groupBy = (list, key) => {
 // publish (the sandbox's "chrab.mjs preview").
 export async function loadClassPackWith(db, preview = null) {
   const linked = (list) => (preview ? list.map((r) => (preview.links.has(r.id) ? { ...r, feature_draft_id: preview.links.get(r.id) } : r)) : list)
-  const [classRows, classFeatures, columns, values, subclassRows, subclassFeatures] = await Promise.all([
+  const [classRows, classFeatures, columns, values, subclassRows, subclassFeatures, backgroundRows, backgroundFeatures, featRows, featBenefits] = await Promise.all([
     rows(db.from('homebrew_classes').select('*').eq('visibility', 'public').order('name')),
     rows(db.from('homebrew_class_features').select('*')).then(linked),
     rows(db.from('homebrew_class_table_columns').select('*')),
     rows(db.from('homebrew_class_table_values').select('*')),
     rows(db.from('homebrew_subclasses').select('*').eq('visibility', 'public').order('name')),
     rows(db.from('homebrew_subclass_features').select('*')).then(linked),
+    rows(db.from('homebrew_backgrounds').select('*').eq('visibility', 'public').order('name')),
+    rows(db.from('homebrew_background_features').select('*')),
+    rows(db.from('homebrew_feats').select('*').eq('visibility', 'public').order('name')),
+    rows(db.from('homebrew_feat_benefits').select('*')),
   ])
 
   const featuresByClass = groupBy(classFeatures, 'class_id')
@@ -67,7 +71,12 @@ export async function loadClassPackWith(db, preview = null) {
     ...draftIds.filter((id) => preview?.specs.has(id)).map((id) => ({ id, kind: 'feat', spec: preview.specs.get(id) })),
   ]
 
-  return buildClassPack({ classes, standaloneSubclasses, items: draftItems(drafts) })
+  const featuresByBackground = groupBy(backgroundFeatures, 'background_id')
+  const benefitsByFeat = groupBy(featBenefits, 'feat_id')
+  const backgrounds = backgroundRows.map((b) => backgroundToFormState(b, featuresByBackground.get(b.id) ?? []))
+  const feats = featRows.map((f) => featToFormState(f, benefitsByFeat.get(f.id) ?? []))
+
+  return buildClassPack({ classes, standaloneSubclasses, backgrounds, feats, items: draftItems(drafts) })
 }
 
 export async function publishClassPackWith(db) {

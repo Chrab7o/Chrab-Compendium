@@ -15,6 +15,7 @@ import {
   fiveToolsFeatToForm,
 } from '../../../lib/homebrew'
 import { downloadJson, saveParentWithChildren, slugify } from '../../../lib/homebrewSave'
+import { republishQuietly } from '../../../lib/foundryClassPackPublish'
 import RepeatableRows from '../RepeatableRows'
 import FiveToolsEntryPicker from './FiveToolsEntryPicker'
 import VisibilitySelect from './VisibilitySelect'
@@ -79,13 +80,16 @@ export default function FeatEditor() {
       payload,
       children: form.benefits,
     })
-    setSaving(false)
     if (result.id) set({ id: result.id })
     if (result.error) {
+      setSaving(false)
       setError(result.error)
       return
     }
-    navigate('/dm/homebrew?tab=feats')
+    // Public feats are in the Foundry class pack.
+    const notice = await republishQuietly()
+    setSaving(false)
+    navigate('/dm/homebrew?tab=feats', notice ? { state: { notice } } : undefined)
   }
 
   async function readJsonFile(e) {

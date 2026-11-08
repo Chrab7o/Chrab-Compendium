@@ -1,5 +1,6 @@
-// The Compendium's homebrew classes as a world compendium, "Chrab Corner
-// Classes". The site publishes them as one public file of native dnd5e items
+// The Compendium's homebrew classes (and public backgrounds and feats) as a
+// world compendium, "Chrab Corner Classes". The site publishes them as one
+// public file of native dnd5e items
 // (src/lib/foundryClassPack.js); syncing replaces the compendium's contents
 // with that file. Players drag a class from the compendium onto their sheet
 // and level up with the sheet's own level-up flow, which grants the features
@@ -47,33 +48,43 @@ async function classCompendium() {
 
 const packItemId = (item) => item.flags?.[MODULE_ID]?.packItem ?? null
 
+// dnd5e 5.3 keeps advancements keyed by id; the pack writes them as a list,
+// which dnd5e converts on create. Either shape -> a list.
+const advancementList = (adv) => (Array.isArray(adv) ? adv : Object.values(adv ?? {}))
+
+// The new advancements, each keeping what this character already chose for
+// it, in the shape the copy already has.
+function keepChoices(copy, nextAdvancement) {
+  const current = copy._source.system.advancement
+  const before = new Map(advancementList(current).map((a) => [a._id, a]))
+  const merged = advancementList(nextAdvancement).map((a) => (before.has(a._id) ? { ...a, value: before.get(a._id).value } : a))
+  return Array.isArray(current) ? merged : Object.fromEntries(merged.map((a) => [a._id, a]))
+}
+
 // A feature copy: the new item under the copy's own id, with its spent uses
-// and dnd5e's record of which advancement granted it.
+// and dnd5e's record of which advancement granted it. A feat's ability score
+// increase keeps the abilities the player picked.
 async function refreshFeature(copy, next) {
   const data = foundry.utils.deepClone(next)
   data._id = copy.id
   delete data.folder
   delete data.sort
   if (data.system?.uses && copy.system?.uses) data.system.uses.spent = copy.system.uses.spent ?? 0
+  if (data.system?.advancement && copy._source.system?.advancement) data.system.advancement = keepChoices(copy, data.system.advancement)
   data.flags = { ...data.flags, dnd5e: copy._source.flags?.dnd5e ?? {} }
   data._stats = copy._source._stats
   await replaceSource(copy, data)
 }
 
-// dnd5e 5.3 keeps advancements keyed by id; the pack writes them as a list,
-// which dnd5e converts on create. Either shape -> a list.
-const advancementList = (adv) => (Array.isArray(adv) ? adv : Object.values(adv ?? {}))
+// A class, subclass or background copy: the new advancements (so later
+// level-ups use the current class), each keeping what this character already
+// chose for it (a background's ability scores, skills and languages), plus a
+// class's levels and spent hit dice.
+const ADVANCING = new Set(['class', 'subclass', 'background'])
 
-// A class or subclass copy: the new advancements (so later level-ups use the
-// current class), each keeping what this character already chose for it,
-// plus the character's levels and spent hit dice.
 async function refreshAdvancing(copy, next) {
-  const current = copy._source.system.advancement
-  const before = new Map(advancementList(current).map((a) => [a._id, a]))
   const system = foundry.utils.deepClone(next.system)
-  const merged = advancementList(system.advancement).map((a) => (before.has(a._id) ? { ...a, value: before.get(a._id).value } : a))
-  // Written back in the shape the copy already has.
-  system.advancement = Array.isArray(current) ? merged : Object.fromEntries(merged.map((a) => [a._id, a]))
+  system.advancement = keepChoices(copy, system.advancement)
   if (copy.type === 'class') {
     system.levels = copy._source.system.levels
     system.hd = { ...system.hd, spent: copy._source.system.hd?.spent ?? 0 }
@@ -123,7 +134,7 @@ export async function syncClassPack(data, { updateCopies = true } = {}) {
     for (const copy of findClassCopies(data)) {
       try {
         const next = byId.get(packItemId(copy))
-        if (copy.type === 'class' || copy.type === 'subclass') await refreshAdvancing(copy, next)
+        if (ADVANCING.has(copy.type)) await refreshAdvancing(copy, next)
         else await refreshFeature(copy, next)
         copies++
       } catch (err) {

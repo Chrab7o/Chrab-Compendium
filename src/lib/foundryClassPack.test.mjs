@@ -6,7 +6,18 @@
 // mechanics helpers and the 5etools export, which share these fixtures.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { classFormToFiveToolsJson, emptyClassForm, fiveToolsJsonToClassForm, flattenFeatureRows, nestFeatureRows } from './homebrew.js'
+import {
+  backgroundFeatOptions,
+  classFormToFiveToolsJson,
+  emptyBackgroundForm,
+  emptyClassForm,
+  emptyFeatForm,
+  fiveToolsBackgroundToForm,
+  fiveToolsJsonToClassForm,
+  flattenFeatureRows,
+  joinBackgroundFeatOptions,
+  nestFeatureRows,
+} from './homebrew.js'
 import {
   FEATURE_TEMPLATES,
   buildFeatureItem,
@@ -105,7 +116,7 @@ test('one file: the class, its subclass and a standalone subclass of an official
   assert.equal(one(pack, 'Godless Domain', 'subclass').system.classIdentifier, 'cleric')
   assert.equal(one(pack, 'Harbinger of Darkness', 'subclass').system.classIdentifier, 'the-dark-knight')
   // ASI rows are an advancement, not a feature: 9 rows - 1 ASI + 3 subclass features.
-  assert.deepEqual(classPackSummary(pack), { classes: 1, subclasses: 2, features: 10, automated: 4, updatedAt: new Date('2026-10-23T12:00:00Z') })
+  assert.deepEqual(classPackSummary(pack), { classes: 1, subclasses: 2, features: 10, automated: 4, backgrounds: 0, feats: 0, updatedAt: new Date('2026-10-23T12:00:00Z') })
   for (const item of pack.items) assert.match(item._id, /^[0-9A-Za-z]{16}$/)
   assert.equal(new Set(pack.items.map((i) => i._id)).size, pack.items.length, 'ids are unique')
 })
@@ -417,4 +428,162 @@ test('a mechanics file fills a standalone subclass’s rows', () => {
   assert.equal(form.features[0].mechanicsDirty, true)
   assert.equal(form.features[1].mechanics, undefined)
   assert.equal(attachStandaloneMechanicsFile(acrobat, mechanicsFile('Fighter', [])).classMismatch, 'Fighter')
+})
+
+// --- Backgrounds and feats ---------------------------------------------------
+
+const toughCrab = () => ({
+  ...emptyFeatForm,
+  id: 'feat-crab',
+  name: 'Tough Crab',
+  category: 'Origin',
+  ability_bonus_note: 'Increase your Strength or Constitution by 1',
+  benefits: [{ id: null, name: 'Shell', description: 'You gain **+1** AC.', sort_order: 0, choice_group: '', choice_count: null }],
+})
+
+const dockHand = (extra = {}) => ({
+  ...emptyBackgroundForm,
+  id: 'bg-dock',
+  name: 'Dock Hand',
+  ability_options: ['STR', 'CON', 'WIS'],
+  feat: 'Tough Crab',
+  skill_proficiencies: ['Athletics', 'One of: Perception, Survival'],
+  tool_proficiencies: ["Navigator's tools", 'Any one gaming set'],
+  equipment: 'Rope, 10 GP',
+  ...extra,
+})
+
+const advancementOf = (item, type, title) => item.system.advancement.find((a) => a.type === type && (!title || a.title === title))
+
+test('a background is a dnd5e background whose advancements grant its scores, proficiencies, languages and feat', () => {
+  const pack = buildClassPack({ backgrounds: [dockHand()], feats: [toughCrab()] })
+  assert.deepEqual(pack.folders.map((f) => f.name), ['Feats', 'Backgrounds'])
+  assert.equal(pack.summary.backgrounds, 1)
+  assert.equal(pack.summary.feats, 1)
+  const feat = pack.items.find((i) => i.type === 'feat' && i.name === 'Tough Crab')
+  const bg = pack.items.find((i) => i.type === 'background')
+  assert.equal(bg.system.identifier, 'dock-hand')
+  assert.equal(bg.flags['chrab-sync'].packItem, bg._id)
+
+  const asi = advancementOf(bg, 'AbilityScoreImprovement')
+  assert.equal(asi.level, 0)
+  assert.equal(asi.configuration.points, 3)
+  assert.equal(asi.configuration.cap, 2)
+  assert.deepEqual(asi.configuration.locked, ['dex', 'int', 'cha'])
+
+  const profs = advancementOf(bg, 'Trait', 'Background Proficiencies')
+  assert.deepEqual(profs.configuration.grants, ['skills:ath', 'tool:navg'])
+  assert.deepEqual(profs.configuration.choices, [
+    { count: 1, pool: ['skills:prc', 'skills:sur'] },
+    { count: 1, pool: ['tool:game:*'] },
+  ])
+
+  // No languages listed on a 2024 background: Common plus two standard.
+  const languages = advancementOf(bg, 'Trait', 'Choose Languages')
+  assert.deepEqual(languages.configuration.grants, ['languages:standard:common'])
+  assert.deepEqual(languages.configuration.choices, [{ count: 2, pool: ['languages:standard:*'] }])
+
+  const featGrant = advancementOf(bg, 'ItemGrant', 'Background Feat')
+  assert.deepEqual(featGrant.configuration.items, [{ uuid: `Compendium.world.chrab-classes.Item.${feat._id}`, optional: false }])
+  assert.match(bg.system.description.value, /<strong>Feat:<\/strong> @UUID\[Compendium\.world\.chrab-classes\.Item\.\w+\]\{Tough Crab\}/)
+  assert.match(bg.system.description.value, /<strong>Equipment:<\/strong> Rope, 10 GP/)
+})
+
+test('a homebrew feat becomes a dnd5e feat with its ability increase as an ASI', () => {
+  const pack = buildClassPack({ feats: [{ ...toughCrab(), category: 'General', prerequisite: 'Level 4+', repeatable: true }] })
+  const feat = pack.items[0]
+  assert.deepEqual(feat.system.type, { value: 'feat', subtype: 'general' })
+  assert.equal(feat.system.prerequisites.level, 4)
+  assert.equal(feat.system.prerequisites.repeatable, true)
+  assert.equal(feat.system.requirements, 'Level 4+')
+  const asi = feat.system.advancement[0]
+  assert.equal(asi.configuration.points, 1)
+  assert.equal(asi.configuration.cap, 1)
+  assert.deepEqual(asi.configuration.locked, ['dex', 'int', 'wis', 'cha'])
+  assert.match(feat.system.description.value, /<p><strong>Shell\.<\/strong> You gain <strong>\+1<\/strong> AC\.<\/p>/)
+
+  const fixed = buildClassPack({ feats: [{ ...toughCrab(), ability_bonuses: { CON: 1 }, ability_bonus_note: '' }] }).items[0]
+  assert.equal(fixed.system.advancement[0].configuration.fixed.con, 1)
+  assert.equal(fixed.system.advancement[0].configuration.points, 0)
+  const none = buildClassPack({ feats: [{ ...toughCrab(), ability_bonus_note: '' }] }).items[0]
+  assert.deepEqual(none.system.advancement, [])
+})
+
+test('a background naming a feat dnd5e ships grants dnd5e’s copy, even with a variant', () => {
+  const homebrewCopy = { ...emptyFeatForm, id: 'feat-mi', name: 'Magic Initiate', category: 'Origin' }
+  const pack = buildClassPack({ backgrounds: [dockHand({ feat: 'Magic Initiate (Druid)' })], feats: [homebrewCopy] })
+  const bg = pack.items.find((i) => i.type === 'background')
+  assert.deepEqual(advancementOf(bg, 'ItemGrant', 'Background Feat').configuration.items, [
+    { uuid: 'Compendium.dnd5e.feats24.Item.phbftMagicInitia', optional: false },
+  ])
+  assert.match(bg.system.description.value, /\{Magic Initiate\} \(Druid\)/)
+})
+
+test('a background feat found nowhere is only named; a homebrew feat matches without its variant', () => {
+  const missing = buildClassPack({ backgrounds: [dockHand({ feat: 'Crab Whisperer' })] }).items[0]
+  assert.equal(advancementOf(missing, 'ItemGrant', 'Background Feat'), undefined)
+  assert.match(missing.system.description.value, /<strong>Feat:<\/strong> Crab Whisperer/)
+
+  const variant = buildClassPack({ backgrounds: [dockHand({ feat: 'Tough Crab (Blue)' })], feats: [toughCrab()] })
+  const bg = variant.items.find((i) => i.type === 'background')
+  const feat = variant.items.find((i) => i.type === 'feat')
+  assert.equal(advancementOf(bg, 'ItemGrant', 'Background Feat').configuration.items[0].uuid, `Compendium.world.chrab-classes.Item.${feat._id}`)
+})
+
+test('listed languages keep Common on a 2024 background; 2014 features become granted background features', () => {
+  const bg = buildClassPack({
+    backgrounds: [
+      dockHand({
+        ability_options: ['INT', 'WIS', 'CHA'],
+        feat: '',
+        languages: ['Elvish', 'Deep Speech', 'Two extra languages of your choice'],
+        features: [
+          { id: null, name: 'Shelter of the Faithful', description: 'Temples help you.', sort_order: 0, choice_group: '', choice_count: null },
+        ],
+      }),
+    ],
+  })
+  const background = bg.items.find((i) => i.type === 'background')
+  const languages = advancementOf(background, 'Trait', 'Languages')
+  assert.deepEqual(languages.configuration.grants, ['languages:standard:common', 'languages:standard:elvish', 'languages:exotic:deep'])
+  assert.deepEqual(languages.configuration.choices, [{ count: 2, pool: ['languages:standard:*', 'languages:exotic:*'] }])
+  const feature = bg.items.find((i) => i.name === 'Shelter of the Faithful')
+  assert.deepEqual(feature.system.type, { value: 'background', subtype: '' })
+  assert.deepEqual(advancementOf(background, 'ItemGrant', 'Background Feature').configuration.items, [
+    { uuid: `Compendium.world.chrab-classes.Item.${feature._id}`, optional: false },
+  ])
+  assert.equal(bg.summary.features, 1)
+})
+
+test('background and feat ids are stable across publishes and renames', () => {
+  const a = buildClassPack({ backgrounds: [dockHand()], feats: [toughCrab()] })
+  const b = buildClassPack({ backgrounds: [dockHand({ name: 'Dockworker' })], feats: [toughCrab()] })
+  const bgId = (p) => p.items.find((i) => i.type === 'background')._id
+  assert.equal(bgId(a), bgId(b))
+  assert.equal(advancementOf(a.items.find((i) => i.type === 'background'), 'ItemGrant').configuration.items[0].uuid, advancementOf(b.items.find((i) => i.type === 'background'), 'ItemGrant').configuration.items[0].uuid)
+})
+
+test('several feat options on a background are a choose-one ItemChoice; dnd5e and homebrew feats mix', () => {
+  const pack = buildClassPack({ backgrounds: [dockHand({ feat: 'Alert or Tough Crab or Crab Whisperer' })], feats: [toughCrab()] })
+  const bg = pack.items.find((i) => i.type === 'background')
+  const feat = pack.items.find((i) => i.type === 'feat')
+  assert.equal(advancementOf(bg, 'ItemGrant', 'Background Feat'), undefined)
+  const pick = advancementOf(bg, 'ItemChoice', 'Background Feat')
+  assert.deepEqual(pick.configuration.choices, { 0: { count: 1, replacement: false } })
+  assert.deepEqual(pick.configuration.pool, [
+    { uuid: 'Compendium.dnd5e.feats24.Item.phbftAlert000000' },
+    { uuid: `Compendium.world.chrab-classes.Item.${feat._id}` },
+  ])
+  // Crab Whisperer isn't anywhere: left out, and the pick allows a drop.
+  assert.equal(pick.configuration.allowDrops, true)
+  assert.match(pick.hint, /Alert, Tough Crab, Crab Whisperer/)
+  assert.match(bg.system.description.value, /<strong>Feat \(choose one\):<\/strong> @UUID\[[^\]]+\]\{Alert\} or @UUID\[[^\]]+\]\{Tough Crab\} or Crab Whisperer/)
+})
+
+test('background feat options split and join on " or "; 5etools alternatives import as options', () => {
+  assert.deepEqual(backgroundFeatOptions('Alert or  Magic Initiate (Wizard) OR Tough'), ['Alert', 'Magic Initiate (Wizard)', 'Tough'])
+  assert.deepEqual(backgroundFeatOptions(''), [])
+  assert.equal(joinBackgroundFeatOptions(['Alert', ' ', 'Tough ']), 'Alert or Tough')
+  const form = fiveToolsBackgroundToForm({ name: 'Wanderer', feats: [{ 'alert|xphb': true }, { 'magic initiate; druid|xphb': true }], entries: [] })
+  assert.equal(form.feat, 'Alert or Magic Initiate (Druid)')
 })

@@ -80,12 +80,14 @@ export function comparePacks(oldItems, newItems) {
     entries.set(id, { id, name: item.name, type: item.type, ...owner(item), status })
   }
 
-  // One group per class / subclass, its features under it.
+  // One group per class / subclass / background, its features under it;
+  // feats and anything else under one last group.
+  const owners = new Set(['class', 'subclass', 'background'])
   const groups = new Map()
-  for (const e of entries.values()) if (e.type === 'class' || e.type === 'subclass') groups.set(e.id, { ...e, features: [] })
-  const other = { id: '', name: 'Other features', type: 'other', status: 'same', features: [] }
+  for (const e of entries.values()) if (owners.has(e.type)) groups.set(e.id, { ...e, features: [] })
+  const other = { id: '', name: 'Feats and other features', type: 'other', status: 'same', features: [] }
   for (const e of entries.values()) {
-    if (e.type === 'class' || e.type === 'subclass' || e.status === 'same') continue
+    if (owners.has(e.type) || e.status === 'same') continue
     ;(groups.get(e.ownerId) ?? other).features.push(e)
   }
   const list = [...groups.values(), other]

@@ -6572,6 +6572,24 @@ button.sg-toggle.is-on {
   margin: 0.3rem 0;
 }
 
+/* The background editor's origin feat options: one input per option. */
+.background-feat-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.background-feat-option {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.background-feat-option input {
+  flex: 1;
+  min-width: 0;
+}
+
 .npc-spell-group h4 {
   margin: 0.4rem 0;
   font-family: var(--font-display);

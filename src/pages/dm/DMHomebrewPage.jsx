@@ -5,9 +5,9 @@ import { formatBackgroundMeta, formatFeatMeta, formatRaceSpeed } from '../../lib
 import { classPackSummary } from '../../lib/foundryClassPack'
 import { fetchPublishedClassPack, publishClassPack, republishQuietly } from '../../lib/foundryClassPackPublish'
 
-// The Foundry class pack: every public class and subclass as native dnd5e
-// items, with linked Feature Forge automation (docs/foundry-classes.md).
-// Saving a class, subclass or linked feature republishes it; this shows
+// The Foundry class pack: every public class, subclass, background and feat
+// as native dnd5e items, with linked Feature Forge automation
+// (docs/foundry-classes.md). Saving any of them republishes it; this shows
 // what's live and has a manual republish. Chrab Sync's Classes tab loads it.
 function FoundryClassesPanel({ notice }) {
   const [live, setLive] = useState(undefined) // undefined = loading, null = never published
@@ -47,17 +47,18 @@ function FoundryClassesPanel({ notice }) {
         </button>
       </div>
       <p className="status-message">
-        Every <strong>public</strong> class and subclass as native Foundry items, with the automation of linked Feature
-        Forge features. In Foundry, open <strong>Chrab Sync → Classes</strong> and click <strong>Sync classes</strong> to
-        fill the <strong>Chrab Corner Classes</strong> compendium. Players drag a class from it onto their sheet and
-        level up from the sheet. It republishes on its own whenever you save a class, a subclass or a linked feature.
+        Every <strong>public</strong> class, subclass, background and feat as native Foundry items, with the automation
+        of linked Feature Forge features. In Foundry, open <strong>Chrab Sync → Classes</strong> and click{' '}
+        <strong>Sync classes</strong> to fill the <strong>Chrab Corner Classes</strong> compendium. Players drag a class
+        or a background from it onto their sheet (a background grants its feat) and level up from the sheet. It
+        republishes on its own whenever you save or delete any of them, or a linked feature.
       </p>
       <p className="dm-list-meta">
         {live === undefined
           ? 'Checking what’s live…'
           : live === null
             ? 'Not published yet.'
-            : `Live: ${plural(live.classes, 'class', 'classes')}, ${plural(live.subclasses, 'subclass', 'subclasses')}, ${plural(live.features, 'feature', 'features')} (${live.automated} automated)${live.updatedAt ? ` · published ${live.updatedAt.toLocaleString()}` : ''}`}
+            : `Live: ${plural(live.classes, 'class', 'classes')}, ${plural(live.subclasses, 'subclass', 'subclasses')}, ${plural(live.features, 'feature', 'features')} (${live.automated} automated), ${plural(live.backgrounds ?? 0, 'background', 'backgrounds')}, ${plural(live.feats ?? 0, 'feat', 'feats')}${live.updatedAt ? ` · published ${live.updatedAt.toLocaleString()}` : ''}`}
       </p>
       {message && <p className="status-message error">{message}</p>}
     </div>
@@ -197,7 +198,8 @@ function SubclassesTab() {
 
 // Races, feats and backgrounds are all "one table, edit/delete per row" -
 // only the table, the labels and the meta line differ.
-function SimpleEntityTab({ table, path, title, singular, childLabel, meta }) {
+// inPack: the table is in the Foundry class pack, so a delete republishes.
+function SimpleEntityTab({ table, path, title, singular, childLabel, meta, inPack = false }) {
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -217,8 +219,9 @@ function SimpleEntityTab({ table, path, title, singular, childLabel, meta }) {
   async function handleDelete(row) {
     if (!confirm(`Delete "${row.name}"? This also deletes its ${childLabel}.`)) return
     const { error: deleteError } = await supabase.from(table).delete().eq('id', row.id)
-    if (deleteError) setError(deleteError.message)
-    else load()
+    if (deleteError) return setError(deleteError.message)
+    load()
+    if (inPack) setError(await republishQuietly())
   }
 
   if (loading) return <p className="status-message">Loading...</p>
@@ -279,7 +282,7 @@ export default function DMHomebrewPage() {
         ))}
       </nav>
 
-      {(tab === 'classes' || tab === 'subclasses') && <FoundryClassesPanel notice={notice} />}
+      {['classes', 'subclasses', 'feats', 'backgrounds'].includes(tab) && <FoundryClassesPanel notice={notice} />}
       {tab === 'classes' && <ClassesTab />}
       {tab === 'subclasses' && <SubclassesTab />}
       {tab === 'races' && (
@@ -302,6 +305,7 @@ export default function DMHomebrewPage() {
           singular="Feat"
           childLabel="benefits"
           meta={formatFeatMeta}
+          inPack
         />
       )}
       {tab === 'backgrounds' && (
@@ -313,6 +317,7 @@ export default function DMHomebrewPage() {
           singular="Background"
           childLabel="features"
           meta={formatBackgroundMeta}
+          inPack
         />
       )}
     </section>

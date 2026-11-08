@@ -2,12 +2,14 @@
 // dnd5e items - class, subclass and feature items with dnd5e's own
 // advancements - published as one file that Chrab Sync loads into a world
 // compendium ("Chrab Corner Classes"). Players drag a class from it onto their
-// sheet and level up with the sheet's own level-up flow. See
+// sheet and level up with the sheet's own level-up flow. Public homebrew
+// backgrounds and feats ride along: a background is dnd5e's background item,
+// whose advancements grant its ability scores, proficiencies and feat. See
 // docs/foundry-classes.md.
 //
-// Pure: callers pass already-loaded class forms (lib/homebrew.js
-// classToFormState shape) and the built Foundry items of the linked Feature
-// Forge drafts.
+// Pure: callers pass already-loaded class, background and feat forms
+// (lib/homebrew.js *ToFormState shapes) and the built Foundry items of the
+// linked Feature Forge drafts.
 //
 // Every document id is derived from what it is (the class row's id, the
 // feature's level and name), so a republish keeps the same ids. That keeps
@@ -15,7 +17,17 @@
 // the copies already on characters (flags.chrab-sync.packItem).
 
 import { buildFeatureItem, featureSpecFromRow } from './foundryFeatures.js'
-import { ABILITY_LABELS, ABILITY_SCORES, SKILLS, parseProficiencyText, splitChoiceGroups } from './homebrew.js'
+import {
+  ABILITY_LABELS,
+  ABILITY_SCORES,
+  SKILLS,
+  backgroundFeatOptions,
+  formatAbilityBonuses,
+  formatBackgroundAbilities,
+  nestFeatureRows,
+  parseProficiencyText,
+  splitChoiceGroups,
+} from './homebrew.js'
 
 export const CLASS_PACK_FORMAT = 'chrab-class-pack'
 export const CLASS_PACK_BUCKET = 'foundry-feed'
@@ -386,6 +398,370 @@ function classAdvancement(form, features) {
   return out
 }
 
+// ---------------------------------------------------------------------------
+// Backgrounds and feats
+
+// dnd5e's own 2024 feats (the system's "Feats" compendium, feats24), by
+// lowercased name. A background naming one grants dnd5e's item, which comes
+// with dnd5e's automation (Alert's initiative bonus, Magic Initiate's
+// spells), ahead of a text-only homebrew copy of the same feat.
+export const SRD_FEATS = {
+  alert: 'phbftAlert000000',
+  'magic initiate': 'phbftMagicInitia',
+  'savage attacker': 'phbftSavageAttac',
+  skilled: 'phbftSkilled0000',
+  grappler: 'phbftGrappler000',
+  archery: 'phbfstArchery000',
+  defense: 'phbfstDefense000',
+  'great weapon fighting': 'phbfstGreatWeapo',
+  'two-weapon fighting': 'phbfstTwoWeaponF',
+  'boon of combat prowess': 'phbBoonofCombatP',
+  'boon of dimensional travel': 'phbBoonofDimensi',
+  'boon of fate': 'phbBoonofFate000',
+  'boon of irresistible offense': 'phbBoonofIrresis',
+  'boon of spell recall': 'phbBoonofSpellRe',
+  'boon of the night spirit': 'phbBoonoftheNigh',
+  'boon of truesight': 'phbBoonofTruesig',
+}
+const srdFeatUuid = (id) => `Compendium.dnd5e.feats24.Item.${id}`
+
+// "Magic Initiate (Wizard)" -> "Magic Initiate": the variant is the
+// player's pick when the feat is granted, not a different feat.
+export const featBaseName = (name) =>
+  String(name ?? '')
+    .trim()
+    .replace(/\s*\([^)]*\)\s*$/, '')
+
+const FEAT_SUBTYPES = [
+  ['origin', 'origin'],
+  ['general', 'general'],
+  ['fighting style', 'fightingStyle'],
+  ['epic boon', 'epicBoon'],
+]
+const featSubtype = (category) =>
+  FEAT_SUBTYPES.find(([word]) => String(category ?? '').toLowerCase().startsWith(word))?.[1] ?? ''
+
+const NUMBER_WORDS = { a: 1, an: 1, one: 1, two: 2, three: 3, four: 4, five: 5 }
+const countOf = (word) => NUMBER_WORDS[String(word).toLowerCase()] ?? (Number(word) || 1)
+
+const TOOL_KEYS = {
+  "alchemist's supplies": 'tool:art:alchemist',
+  "brewer's supplies": 'tool:art:brewer',
+  "calligrapher's supplies": 'tool:art:calligrapher',
+  "carpenter's tools": 'tool:art:carpenter',
+  "cartographer's tools": 'tool:art:cartographer',
+  "cobbler's tools": 'tool:art:cobbler',
+  "cook's utensils": 'tool:art:cook',
+  "glassblower's tools": 'tool:art:glassblower',
+  "jeweler's tools": 'tool:art:jeweler',
+  "leatherworker's tools": 'tool:art:leatherworker',
+  "mason's tools": 'tool:art:mason',
+  "painter's supplies": 'tool:art:painter',
+  "potter's tools": 'tool:art:potter',
+  "smith's tools": 'tool:art:smith',
+  "tinker's tools": 'tool:art:tinker',
+  "weaver's tools": 'tool:art:weaver',
+  "woodcarver's tools": 'tool:art:woodcarver',
+  "thieves' tools": 'tool:thief',
+  'disguise kit': 'tool:disg',
+  'forgery kit': 'tool:forg',
+  'herbalism kit': 'tool:herb',
+  "navigator's tools": 'tool:navg',
+  "poisoner's kit": 'tool:pois',
+  'vehicles (land)': 'tool:vehicle:land',
+  'vehicles (water)': 'tool:vehicle:water',
+  'dice set': 'tool:game:dice',
+  'dragonchess set': 'tool:game:chess',
+  'playing card set': 'tool:game:card',
+  'three-dragon ante set': 'tool:game:card',
+  bagpipes: 'tool:music:bagpipes',
+  drum: 'tool:music:drum',
+  dulcimer: 'tool:music:dulcimer',
+  flute: 'tool:music:flute',
+  lute: 'tool:music:lute',
+  lyre: 'tool:music:lyre',
+  horn: 'tool:music:horn',
+  'pan flute': 'tool:music:panflute',
+  shawm: 'tool:music:shawm',
+  viol: 'tool:music:viol',
+}
+// "Any one gaming set", "One type of artisan's tools" -> a choice from that
+// kind of tool.
+const TOOL_KINDS = [
+  ['artisan', 'tool:art:*'],
+  ['gaming', 'tool:game:*'],
+  ['musical', 'tool:music:*'],
+]
+
+const STANDARD_LANGUAGES = ['common', 'draconic', 'dwarvish', 'elvish', 'giant', 'gnomish', 'goblin', 'halfling', 'orc']
+const EXOTIC_LANGUAGES = {
+  abyssal: 'abyssal',
+  celestial: 'celestial',
+  'deep speech': 'deep',
+  infernal: 'infernal',
+  primordial: 'primordial',
+  sylvan: 'sylvan',
+  undercommon: 'undercommon',
+  "thieves' cant": 'cant',
+  druidic: 'druidic',
+}
+const languageKey = (name) => {
+  const lower = String(name).trim().toLowerCase()
+  if (STANDARD_LANGUAGES.includes(lower)) return `languages:standard:${lower}`
+  if (EXOTIC_LANGUAGES[lower]) return `languages:exotic:${EXOTIC_LANGUAGES[lower]}`
+  return null
+}
+const skillKey = (name) => {
+  const known = SKILLS.find((k) => k.name.toLowerCase() === String(name).trim().toLowerCase())
+  return known ? `skills:${SKILL_KEYS[known.name]}` : null
+}
+const toolKey = (name) => TOOL_KEYS[String(name).trim().toLowerCase().replace(/’/g, "'")] ?? null
+
+// The background editor's chips -> a Trait's grants and choices. A chip is a
+// name ("Insight"), a pick ("One of: Arcana, Nature"), or "of your choice"
+// text ("Two skills of your choice", "Any one gaming set"). Chips that match
+// nothing stay in the description only.
+export function chipsToTrait(chips, { keyFor, anyPool }) {
+  const grants = []
+  const choices = []
+  for (const chip of chips ?? []) {
+    const text = String(chip).trim()
+    const pick = text.match(/^(\w+)\s+of:\s*(.+)$/i)
+    if (pick) {
+      const pool = parseProficiencyText(pick[2]).map(keyFor).filter(Boolean)
+      if (pool.length) choices.push({ count: countOf(pick[1]), pool })
+      continue
+    }
+    const key = keyFor(text)
+    if (key) {
+      grants.push(key)
+      continue
+    }
+    const any = text.match(/^any\s+(\w+)\b/i) ?? text.match(/^(\w+)\b.*\bof your choice\b/i) ?? text.match(/^(\w+)\s+type/i)
+    const pool = anyPool(text)
+    if (any && pool) choices.push({ count: countOf(any[1]), pool })
+  }
+  return { grants: [...new Set(grants)], choices }
+}
+
+const skillAnyPool = (text) => (/skill/i.test(text) ? ['skills:*'] : null)
+const toolAnyPool = (text) => {
+  const lower = text.toLowerCase()
+  const kind = TOOL_KINDS.find(([word]) => lower.includes(word))
+  return kind ? [kind[1]] : /tool/.test(lower) ? ['tool:*'] : null
+}
+const languageAnyPool = (text) =>
+  /language/i.test(text) ? (/standard/i.test(text) ? ['languages:standard:*'] : ['languages:standard:*', 'languages:exotic:*']) : null
+
+// Child rows (a feat's benefits, a background's features) as sheet HTML:
+// each row a paragraph led by its bold name, its options quoted under it.
+function namedHtml(name, description, tagName) {
+  const lead = `<${tagName}>${escapeHtml(name.trim())}.</${tagName}>`
+  const body = markdownToHtml(description)
+  return body.startsWith('<p>') ? body.replace(/^<p>/, `<p>${lead} `) : `<p>${lead}</p>${body}`
+}
+
+function rowsHtml(rows) {
+  return nestFeatureRows((rows ?? []).filter((r) => r.name?.trim()))
+    .map((row) => {
+      const options = row.children.map((c) => namedHtml(c.name, c.description, 'em')).join('')
+      return namedHtml(row.name, row.description, 'strong') + (options ? `<blockquote>${options}</blockquote>` : '')
+    })
+    .join('')
+}
+
+const abilityKeysIn = (text) => {
+  const lower = String(text ?? '').toLowerCase()
+  return ABILITY_SCORES.filter((a) => lower.includes(ABILITY_LABELS[a].toLowerCase())).map((a) => a.toLowerCase())
+}
+
+// A feat's ability score increase as dnd5e's ASI advancement, like the SRD
+// feats: fixed bonuses as they are; a note naming abilities ("Increase your
+// Strength or Dexterity by 1") as 1 point among those, capped at 1. A note
+// naming no ability stays in the text only.
+function featAsi(form) {
+  const fixed = Object.fromEntries(ABILITY_SCORES.map((a) => [a.toLowerCase(), Number(form.ability_bonuses?.[a]) || 0]))
+  const base = { type: 'AbilityScoreImprovement', level: 0, title: '', value: {} }
+  if (Object.values(fixed).some(Boolean)) {
+    return { ...base, configuration: { points: 0, fixed, cap: 2, locked: [], recommendation: null } }
+  }
+  const among = abilityKeysIn(form.ability_bonus_note)
+  if (!among.length) return null
+  const locked = ABILITY_SCORES.map((a) => a.toLowerCase()).filter((a) => !among.includes(a))
+  return { ...base, configuration: { points: 1, fixed: { ...NO_ABILITY }, cap: 1, locked, recommendation: null } }
+}
+
+const levelPrerequisite = (text) => {
+  const m = String(text ?? '').match(/level\s*(\d+)|(\d+)(?:st|nd|rd|th)?[-\s]level/i)
+  return m ? Number(m[1] ?? m[2]) : null
+}
+
+function featItem(form, { folder, sort }) {
+  const name = form.name.trim()
+  const _id = stableId(`feat|${form.id ?? slug(name)}`)
+  const abilityText = formatAbilityBonuses(form.ability_bonuses, form.ability_bonus_note)
+  const asi = featAsi(form)
+  const item = {
+    _id,
+    name,
+    type: 'feat',
+    img: 'icons/svg/upgrade.svg',
+    folder,
+    sort,
+    system: {
+      description: {
+        value:
+          markdownToHtml(form.description) +
+          (abilityText ? `<p><strong>Ability Score Increase.</strong> ${escapeHtml(abilityText)}</p>` : '') +
+          rowsHtml(form.benefits),
+        chat: '',
+      },
+      identifier: slug(name),
+      source: { ...SOURCE(name), rules: '2024' },
+      uses: { max: '', spent: 0, recovery: [] },
+      activities: {},
+      properties: [],
+      type: { value: 'feat', subtype: featSubtype(form.category) },
+      prerequisites: { level: levelPrerequisite(form.prerequisite), repeatable: !!form.repeatable, items: [] },
+      requirements: String(form.prerequisite ?? '').trim(),
+      advancement: asi ? withIds([asi], _id) : [],
+    },
+    effects: [],
+    flags: {},
+  }
+  item.flags = tag(item, `feat|${slug(name)}`)
+  return item
+}
+
+// A 2014-style background feature ("Shelter of the Faithful") as a
+// background feature item, its options in its text.
+function backgroundFeatureItem(row, { backgroundId, book, folder, sort }) {
+  const name = row.name.trim()
+  const key = `${backgroundId}|0|${name.toLowerCase()}`
+  const item = plainFeature(name)
+  item._id = stableId(key)
+  item.folder = folder
+  item.sort = sort
+  const options = row.children.map((c) => namedHtml(c.name, c.description, 'strong')).join('')
+  item.system = {
+    ...item.system,
+    description: { value: markdownToHtml(row.description) + options, chat: '' },
+    source: SOURCE(book),
+    type: { value: 'background', subtype: '' },
+  }
+  item.flags = tag(item, key)
+  return item
+}
+
+// The background's feat: dnd5e's SRD feat when the name matches one, else
+// the pack's homebrew feat of that name (with or without a "(Variant)"),
+// else null and it's only named in the text.
+function resolveFeat(featName, featUuids) {
+  if (!featName) return null
+  const base = featBaseName(featName).toLowerCase()
+  if (SRD_FEATS[base]) return srdFeatUuid(SRD_FEATS[base])
+  return featUuids.get(featName.toLowerCase()) ?? featUuids.get(base) ?? null
+}
+
+/**
+ * One background form -> its background item plus the feature items it
+ * grants. Advancements sit at level 0, like dnd5e's own backgrounds: the
+ * ability score improvement, proficiencies, languages, the feat, and any
+ * 2014-style features.
+ */
+function backgroundItems(form, { featUuids, folder, nextSort }) {
+  const name = form.name.trim()
+  const _id = stableId(`background|${form.id ?? slug(name)}`)
+  const book = name
+  // One feat is granted; several options are a pick of one (an ItemChoice,
+  // like the SRD Human's origin feat). Options found nowhere are left out of
+  // the pool, so it also allows dropping a feat in.
+  const featOptions = backgroundFeatOptions(form.feat).map((option) => ({ option, uuid: resolveFeat(option, featUuids) }))
+  const featPool = featOptions.map((f) => f.uuid).filter(Boolean)
+  const allAbilities = ABILITY_SCORES.map((a) => a.toLowerCase())
+
+  const advancement = []
+  const abilities = ABILITY_SCORES.filter((a) => form.ability_options?.includes(a)).map((a) => a.toLowerCase())
+  if (abilities.length) {
+    advancement.push({
+      type: 'AbilityScoreImprovement',
+      level: 0,
+      title: 'Background Ability Score Improvement',
+      hint: `Your background allows you to increase ${formatBackgroundAbilities(form.ability_options, form.ability_note)}.`,
+      configuration: { points: 3, fixed: { ...NO_ABILITY }, cap: 2, locked: allAbilities.filter((a) => !abilities.includes(a)), recommendation: null },
+      value: {},
+    })
+  }
+  const skills = chipsToTrait(form.skill_proficiencies, { keyFor: skillKey, anyPool: skillAnyPool })
+  const tools = chipsToTrait(form.tool_proficiencies, { keyFor: toolKey, anyPool: toolAnyPool })
+  const grants = [...skills.grants, ...tools.grants]
+  const choices = [...skills.choices, ...tools.choices]
+  if (grants.length || choices.length) advancement.push({ ...trait('Background Proficiencies', grants, choices), level: 0 })
+  const languages = chipsToTrait(form.languages, { keyFor: languageKey, anyPool: languageAnyPool })
+  // 2024 rules: everyone knows Common.
+  if (abilities.length && languages.grants.length && !languages.grants.includes('languages:standard:common')) {
+    languages.grants.unshift('languages:standard:common')
+  }
+  if (languages.grants.length || languages.choices.length) {
+    advancement.push({ ...trait('Languages', languages.grants, languages.choices), level: 0 })
+  } else if (abilities.length) {
+    // 2024 rules: Common plus two standard languages, as dnd5e's own
+    // backgrounds carry it.
+    advancement.push({ ...trait('Choose Languages', ['languages:standard:common'], [{ count: 2, pool: ['languages:standard:*'] }]), level: 0 })
+  }
+  if (featOptions.length === 1 && featPool.length) {
+    advancement.push({ ...grant(0, featPool, 'Background Feat'), hint: `Your background grants you the ${featOptions[0].option} feat.` })
+  } else if (featOptions.length > 1) {
+    const pick = choice(0, 1, featPool, 'Background Feat')
+    pick.configuration.allowDrops = true
+    advancement.push({ ...pick, hint: `Your background grants you one of these feats: ${featOptions.map((f) => f.option).join(', ')}.` })
+  }
+
+  const features = nestFeatureRows((form.features ?? []).filter((r) => r.name?.trim())).map((row) =>
+    backgroundFeatureItem(row, { backgroundId: _id, book, folder, sort: nextSort() }),
+  )
+  if (features.length) advancement.push(grant(0, features.map((f) => packUuid(f._id)), 'Background Feature'))
+
+  const featHtml = featOptions
+    .map(({ option, uuid }) => {
+      const base = featBaseName(option)
+      return uuid ? `@UUID[${uuid}]{${escapeHtml(base)}}${escapeHtml(option.slice(base.length))}` : escapeHtml(option)
+    })
+    .join(' or ')
+  const summary = [
+    ['Ability Scores', escapeHtml(formatBackgroundAbilities(form.ability_options, form.ability_note))],
+    [featOptions.length > 1 ? 'Feat (choose one)' : 'Feat', featHtml],
+    ['Skill Proficiencies', escapeHtml((form.skill_proficiencies ?? []).join(', '))],
+    ['Tool Proficiencies', escapeHtml((form.tool_proficiencies ?? []).join(', '))],
+    ['Languages', escapeHtml((form.languages ?? []).join(', '))],
+    ['Equipment', escapeHtml(String(form.equipment ?? '').replace(/\n+/g, ' ').trim())],
+  ]
+    .filter(([, value]) => value)
+    .map(([label, value]) => `<p><strong>${label}:</strong> ${value}</p>`)
+    .join('')
+
+  const background = {
+    _id,
+    name,
+    type: 'background',
+    img: 'icons/svg/village.svg',
+    folder,
+    sort: nextSort(),
+    system: {
+      description: { value: summary + markdownToHtml(form.description) + rowsHtml(form.features), chat: '' },
+      identifier: slug(name),
+      source: { ...SOURCE(book), rules: abilities.length ? '2024' : '2014' },
+      advancement: withIds(advancement, _id),
+      startingEquipment: [],
+      wealth: '',
+    },
+    effects: [],
+    flags: {},
+  }
+  background.flags = tag(background, `background|${slug(name)}`)
+  return { background, features }
+}
+
 /**
  * @param classes   class forms (classToFormState), already limited to public ones;
  *                  each form's subclasses likewise limited to public ones
@@ -393,9 +769,11 @@ function classAdvancement(form, features) {
  *                  attached to the official class with that name ("Cleric" -> cleric)
  * @param items     Map feature draft id -> built Foundry item (buildFeatureItem
  *                  with its draftId)
+ * @param backgrounds  background forms (backgroundToFormState), public only
+ * @param feats     feat forms (featToFormState), public only
  * @param generatedAt  Date
  */
-export function buildClassPack({ classes = [], standaloneSubclasses = [], items = new Map(), generatedAt = new Date() }) {
+export function buildClassPack({ classes = [], standaloneSubclasses = [], backgrounds = [], feats = [], items = new Map(), generatedAt = new Date() }) {
   const pack = {
     format: CLASS_PACK_FORMAT,
     version: 1,
@@ -403,7 +781,7 @@ export function buildClassPack({ classes = [], standaloneSubclasses = [], items 
     pack: { name: CLASS_PACK_NAME, label: CLASS_PACK_LABEL },
     folders: [],
     items: [],
-    summary: { classes: 0, subclasses: 0, features: 0, automated: 0 },
+    summary: { classes: 0, subclasses: 0, features: 0, automated: 0, backgrounds: 0, feats: 0 },
   }
   let sort = 0
   const nextSort = () => (sort += 100)
@@ -500,6 +878,25 @@ export function buildClassPack({ classes = [], standaloneSubclasses = [], items 
     const parent = String(sc.parent_class_name ?? '').trim()
     if (!parent) continue
     addSubclass(sc, { className: parent, classIdentifier: slug(parent), book: sc.name.trim(), folder: folderFor(`${parent} subclasses`), classKey: slug(parent) })
+  }
+
+  // Feats first, so backgrounds can grant them by name.
+  const featUuids = new Map()
+  const namedFeats = feats.filter((f) => f.name?.trim())
+  const featFolder = namedFeats.length ? folderFor('Feats') : null
+  for (const form of namedFeats) {
+    const item = featItem(form, { folder: featFolder, sort: nextSort() })
+    pack.items.push(item)
+    featUuids.set(item.name.toLowerCase(), packUuid(item._id))
+    pack.summary.feats++
+  }
+  const namedBackgrounds = backgrounds.filter((b) => b.name?.trim())
+  const backgroundFolder = namedBackgrounds.length ? folderFor('Backgrounds') : null
+  for (const form of namedBackgrounds) {
+    const { background, features } = backgroundItems(form, { featUuids, folder: backgroundFolder, nextSort })
+    pack.items.push(background, ...features)
+    pack.summary.features += features.length
+    pack.summary.backgrounds++
   }
 
   return pack

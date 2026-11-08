@@ -253,18 +253,23 @@ export class SyncApp extends ApplicationV2 {
       const subclasses = data.items.filter((i) => i.type === 'subclass')
       const subclassesOf = (identifier) => subclasses.filter((s) => s.system.classIdentifier === identifier).map((s) => s.name)
       const official = subclasses.filter((s) => !classes.some((c) => c.system.identifier === s.system.classIdentifier))
+      const backgrounds = data.items.filter((i) => i.type === 'background')
+      const feats = data.items.filter((i) => i.type === 'feat' && i.system?.type?.value === 'feat')
+      const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`
       status = `
-        <p>${this.classSource ? `From the file <strong>${esc(this.classSource)}</strong>` : 'Published'} ${when(data.generatedAt)}: ${summary.classes} class${summary.classes === 1 ? '' : 'es'}, ${summary.subclasses} subclass${summary.subclasses === 1 ? '' : 'es'}, ${summary.features} features (${summary.automated} automated).</p>
+        <p>${this.classSource ? `From the file <strong>${esc(this.classSource)}</strong>` : 'Published'} ${when(data.generatedAt)}: ${plural(summary.classes, 'class', 'classes')}, ${plural(summary.subclasses, 'subclass', 'subclasses')}, ${summary.features} features (${summary.automated} automated), ${plural(backgrounds.length, 'background', 'backgrounds')}, ${plural(feats.length, 'feat', 'feats')}.</p>
         <p class="chrab-sync-meta">${synced ? `This world last synced the version from ${when(synced)}.` : 'Not synced into this world yet.'}${isNewer(data) ? ' <strong>Newer than this world’s copy.</strong>' : ''}</p>
         <ul class="chrab-sync-list">${classes.map((c) => `<li class="chrab-sync-row"><strong>${esc(c.name)}</strong> <span class="chrab-sync-meta">${esc(subclassesOf(c.system.identifier).join(', '))}</span></li>`).join('')}</ul>
-        ${official.length ? `<p class="chrab-sync-meta">Subclasses for official classes: ${esc(official.map((s) => s.name).join(', '))}</p>` : ''}`
+        ${official.length ? `<p class="chrab-sync-meta">Subclasses for official classes: ${esc(official.map((s) => s.name).join(', '))}</p>` : ''}
+        ${backgrounds.length ? `<p class="chrab-sync-meta">Backgrounds: ${esc(backgrounds.map((b) => b.name).join(', '))}</p>` : ''}
+        ${feats.length ? `<p class="chrab-sync-meta">Feats: ${esc(feats.map((f) => f.name).join(', '))}</p>` : ''}`
     }
     return `
       ${this.classMessage ? `<p class="chrab-sync-message">${esc(this.classMessage)}</p>` : ''}
       ${status}
       ${this.classResult ? `<p class="chrab-sync-result ${this.classResult.ok ? 'ok' : 'fail'}">${esc(this.classResult.text)}</p>` : ''}
       <label class="chrab-sync-inline"><input type="checkbox" name="updateClassCopies" ${this.updateCopies ? 'checked' : ''}> Also update copies already on characters${copies.length ? ` (${copies.length}, on ${esc([...new Set(copies.map((c) => c.parent?.name))].join(', '))})` : ''}. Keeps spent uses and the choices made while levelling.</label>
-      <p class="chrab-sync-meta">Syncing replaces the contents of the <strong>${esc(CLASS_PACK_LABEL)}</strong> compendium. Players can open it: they drag a class onto their sheet and level up from the sheet. Features can carry scripts that run in players' browsers, written by a DM on the Compendium site.</p>
+      <p class="chrab-sync-meta">Syncing replaces the contents of the <strong>${esc(CLASS_PACK_LABEL)}</strong> compendium. Players can open it: they drag a class or a background onto their sheet (a background grants its feat) and level up from the sheet. Features can carry scripts that run in players' browsers, written by a DM on the Compendium site.</p>
       <input type="file" name="classFile" accept="application/json,.json" hidden>
       <footer class="chrab-sync-footer">
         <button type="button" data-action="pickClassFile" ${this.busy ? 'disabled' : ''}><i class="fa-solid fa-file-import"></i> Load a file…</button>

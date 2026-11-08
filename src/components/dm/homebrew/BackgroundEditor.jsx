@@ -11,14 +11,17 @@ import {
   TOOL_PROFICIENCY_OPTIONS,
   backgroundFormToExportJson,
   backgroundFormToFiveToolsJson,
+  backgroundFeatOptions,
   backgroundJsonToFormState,
   backgroundToFormState,
   emptyBackgroundForm,
   fiveToolsBackgroundToForm,
   fiveToolsEntryList,
   fiveToolsFeatToForm,
+  joinBackgroundFeatOptions,
 } from '../../../lib/homebrew'
 import { downloadJson, saveParentWithChildren, slugify } from '../../../lib/homebrewSave'
+import { republishQuietly } from '../../../lib/foundryClassPackPublish'
 import OptionPicker from '../OptionPicker'
 import RepeatableRows from '../RepeatableRows'
 import FiveToolsEntryPicker from './FiveToolsEntryPicker'
@@ -31,6 +34,9 @@ const SKILL_OPTIONS = SKILLS.map((s) => s.name)
 // 2024 fields (ability options, origin feat) and the 2014 ones (a named
 // "Feature", suggested characteristics tables) - the latter just go in the
 // features list, and anything left blank is hidden on the detail page.
+//
+// The origin feat can be several options the player chooses one of; they're
+// stored in the one `feat` column, joined with " or " (backgroundFeatOptions).
 export default function BackgroundEditor() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -42,12 +48,24 @@ export default function BackgroundEditor() {
   const [error, setError] = useState(null)
   const [fiveToolsPool, setFiveToolsPool] = useState([])
   const [featNames, setFeatNames] = useState([])
-  // A feat picked from the 5etools catalog (form shape). On save it's also
-  // added to Feats, so the detail page links the full text, unless one by
-  // that name already exists or the DM unticks it.
+  // The feat options as edited, blanks included (a just-added row), so
+  // typing doesn't lose an empty row. form.feat is always their join.
+  const [featRows, setFeatRows] = useState([''])
+  // Feats picked from the 5etools catalog: [{ feat (form shape), add }]. On
+  // save each still named is also added to Feats, so the detail page links
+  // its full text and it's in the Foundry pack, unless one by that name
+  // already exists or the DM unticks it.
   const [featPickerOpen, setFeatPickerOpen] = useState(false)
-  const [pickedFeat, setPickedFeat] = useState(null)
-  const [addPickedFeat, setAddPickedFeat] = useState(true)
+  const [pickedFeats, setPickedFeats] = useState([])
+
+  // A load or import replaced form.feat: show its options.
+  useEffect(() => {
+    setFeatRows((rows) => {
+      if (joinBackgroundFeatOptions(rows) === form.feat) return rows
+      const options = backgroundFeatOptions(form.feat)
+      return options.length ? options : ['']
+    })
+  }, [form.feat])
 
   useEffect(() => {
     supabase
@@ -79,18 +97,24 @@ export default function BackgroundEditor() {
     setForm((f) => ({ ...f, ...patch }))
   }
 
-  // Still names the picked feat - as is, or with a variant added
-  // ("Magic Initiate (Wizard)"), which the detail page also links.
-  const pickedFeatInUse =
-    pickedFeat && (form.feat === pickedFeat.name || form.feat.startsWith(`${pickedFeat.name} (`))
-  const pickedFeatExists =
-    pickedFeat && featNames.some((n) => n.toLowerCase() === pickedFeat.name.toLowerCase())
+  function changeFeatRows(rows) {
+    setFeatRows(rows)
+    set({ feat: joinBackgroundFeatOptions(rows) })
+  }
 
+  // A picked feat still named by an option - as is, or with a variant added
+  // ("Magic Initiate (Wizard)"), which the detail page also links.
+  const featOptions = backgroundFeatOptions(form.feat)
+  const inUse = (feat) => featOptions.some((o) => o === feat.name || o.startsWith(`${feat.name} (`))
+  const exists = (feat) => featNames.some((n) => n.toLowerCase() === feat.name.toLowerCase())
+  const pickedInUse = pickedFeats.filter((p) => inUse(p.feat))
+
+  // Fills the first blank option, else adds one.
   function pickFeat(entry) {
     const feat = fiveToolsFeatToForm(entry)
-    setPickedFeat(feat)
-    setAddPickedFeat(true)
-    set({ feat: feat.name })
+    setPickedFeats((list) => [...list.filter((p) => p.feat.name !== feat.name), { feat, add: true }])
+    const blank = featRows.findIndex((r) => !r.trim())
+    changeFeatRows(blank >= 0 ? featRows.map((r, i) => (i === blank ? feat.name : r)) : [...featRows, feat.name])
     setFeatPickerOpen(false)
   }
 
@@ -124,28 +148,30 @@ export default function BackgroundEditor() {
       return
     }
 
-    if (pickedFeatInUse && addPickedFeat && !pickedFeatExists) {
+    for (const { feat } of pickedInUse.filter((p) => p.add && !exists(p.feat))) {
       const featResult = await saveParentWithChildren({
         table: 'homebrew_feats',
         childTable: 'homebrew_feat_benefits',
         foreignKey: 'feat_id',
         id: null,
         payload: {
-          ...Object.fromEntries(FEAT_FIELDS.map((k) => [k, pickedFeat[k]])),
-          slug: slugify(pickedFeat.name),
+          ...Object.fromEntries(FEAT_FIELDS.map((k) => [k, feat[k]])),
+          slug: slugify(feat.name),
           visibility: form.visibility,
         },
-        children: pickedFeat.benefits,
+        children: feat.benefits,
       })
-      if (featResult.id) setFeatNames((names) => [...names, pickedFeat.name])
+      if (featResult.id) setFeatNames((names) => [...names, feat.name])
       if (featResult.error) {
         setSaving(false)
-        setError(`The background saved, but adding ${pickedFeat.name} to Feats failed: ${featResult.error}`)
+        setError(`The background saved, but adding ${feat.name} to Feats failed: ${featResult.error}`)
         return
       }
     }
+    // Public backgrounds and feats are in the Foundry class pack.
+    const notice = await republishQuietly()
     setSaving(false)
-    navigate('/dm/homebrew?tab=backgrounds')
+    navigate('/dm/homebrew?tab=backgrounds', notice ? { state: { notice } } : undefined)
   }
 
   async function readJsonFile(e) {
@@ -265,37 +291,67 @@ export default function BackgroundEditor() {
           </label>
         </fieldset>
 
-        <div className="dm-form-row">
-          <label>
-            Origin Feat
-            <input
-              list="background-feats"
-              value={form.feat}
-              onChange={(e) => set({ feat: e.target.value })}
-              placeholder="e.g. Magic Initiate (Wizard)"
-            />
-            <datalist id="background-feats">
-              {featNames.map((n) => (
-                <option key={n} value={n} />
-              ))}
-            </datalist>
-          </label>
+        <fieldset className="background-feat-options">
+          <legend>Origin Feat</legend>
+          <p className="npc-hint">
+            {featOptions.length > 1
+              ? `The player chooses one of these ${featOptions.length} feats.`
+              : 'Add another option to let the player choose one.'}
+          </p>
+          <datalist id="background-feats">
+            {featNames.map((n) => (
+              <option key={n} value={n} />
+            ))}
+          </datalist>
+          {featRows.map((value, i) => (
+            <div key={i} className="background-feat-option">
+              <input
+                list="background-feats"
+                value={value}
+                aria-label={`Feat option ${i + 1}`}
+                onChange={(e) => changeFeatRows(featRows.map((r, j) => (j === i ? e.target.value : r)))}
+                placeholder="e.g. Magic Initiate (Wizard)"
+              />
+              {featRows.length > 1 && (
+                <button
+                  type="button"
+                  className="icon-button"
+                  aria-label={`Remove feat option ${i + 1}`}
+                  onClick={() => changeFeatRows(featRows.filter((_, j) => j !== i))}
+                >
+                  ×
+                </button>
+              )}
+            </div>
+          ))}
           <div className="dm-form-actions">
+            <button type="button" className="secondary" onClick={() => changeFeatRows([...featRows, ''])}>
+              + Add another option
+            </button>
             <button type="button" className="secondary" onClick={() => setFeatPickerOpen((o) => !o)}>
               Pick from 5etools
             </button>
           </div>
-        </div>
-        {featPickerOpen && <FiveToolsFeatPicker onPick={pickFeat} onClose={() => setFeatPickerOpen(false)} />}
-        {pickedFeatInUse &&
-          (pickedFeatExists ? (
-            <p className="npc-hint">{pickedFeat.name} is already in Feats - the background will link to it.</p>
-          ) : (
-            <label className="tag-checklist-item">
-              <input type="checkbox" checked={addPickedFeat} onChange={(e) => setAddPickedFeat(e.target.checked)} />
-              Also add {pickedFeat.name} to Feats on save, so this background links to its full text
-            </label>
-          ))}
+          {featPickerOpen && <FiveToolsFeatPicker onPick={pickFeat} onClose={() => setFeatPickerOpen(false)} />}
+          {pickedInUse.map(({ feat, add }) =>
+            exists(feat) ? (
+              <p key={feat.name} className="npc-hint">
+                {feat.name} is already in Feats - the background will link to it.
+              </p>
+            ) : (
+              <label key={feat.name} className="tag-checklist-item">
+                <input
+                  type="checkbox"
+                  checked={add}
+                  onChange={(e) =>
+                    setPickedFeats((list) => list.map((p) => (p.feat.name === feat.name ? { ...p, add: e.target.checked } : p)))
+                  }
+                />
+                Also add {feat.name} to Feats on save, so this background links to it and Foundry can grant it
+              </label>
+            )
+          )}
+        </fieldset>
 
         <OptionPicker
           label="Skill Proficiencies"

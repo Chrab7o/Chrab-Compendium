@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { supabase } from '../lib/supabaseClient'
-import { formatBackgroundAbilities } from '../lib/homebrew'
+import { backgroundFeatOptions, formatBackgroundAbilities } from '../lib/homebrew'
 import NestedFeatureList from '../components/homebrew/NestedFeatureList'
 
 // The homebrew feat the origin-feat text names: by its full name, else
@@ -21,15 +21,15 @@ export default function HomebrewBackgroundDetail() {
   const { slug } = useParams()
   const [background, setBackground] = useState(undefined)
   const [features, setFeatures] = useState([])
-  // The homebrew feat the origin-feat field names, when there is one -
-  // the field is free text so it can also name an official feat.
-  const [featLink, setFeatLink] = useState(null)
+  // The homebrew feat each origin-feat option names, when there is one
+  // (slug or null) - the field is free text so it can name an official feat.
+  const [featLinks, setFeatLinks] = useState([])
   const [error, setError] = useState(null)
 
   useEffect(() => {
     let cancelled = false
     setBackground(undefined)
-    setFeatLink(null)
+    setFeatLinks([])
     supabase
       .from('homebrew_backgrounds')
       .select('*')
@@ -46,18 +46,18 @@ export default function HomebrewBackgroundDetail() {
           setBackground(null)
           return
         }
-        const [{ data: featureData }, { data: featRow }] = await Promise.all([
+        const [{ data: featureData }, ...featRows] = await Promise.all([
           supabase
             .from('homebrew_background_features')
             .select('*')
             .eq('background_id', row.id)
             .order('sort_order', { ascending: true }),
-          findFeat(row.feat),
+          ...backgroundFeatOptions(row.feat).map(findFeat),
         ])
         if (cancelled) return
         setBackground(row)
         setFeatures(featureData ?? [])
-        setFeatLink(featRow?.slug ?? null)
+        setFeatLinks(featRows.map((r) => r.data?.slug ?? null))
       })
     return () => {
       cancelled = true
@@ -68,6 +68,7 @@ export default function HomebrewBackgroundDetail() {
   if (background === null) return <p className="status-message error">{error ?? 'Background not found.'}</p>
 
   const abilityText = formatBackgroundAbilities(background.ability_options, background.ability_note)
+  const featOptions = backgroundFeatOptions(background.feat)
   const listRows = [
     ['Skill Proficiencies', background.skill_proficiencies.join(', ')],
     ['Tool Proficiencies', background.tool_proficiencies.join(', ')],
@@ -94,10 +95,15 @@ export default function HomebrewBackgroundDetail() {
             <strong>Ability Scores:</strong> {abilityText}
           </p>
         )}
-        {background.feat && (
+        {featOptions.length > 0 && (
           <p>
-            <strong>Feat:</strong>{' '}
-            {featLink ? <Link to={`/homebrew/feats/${featLink}`}>{background.feat}</Link> : background.feat}
+            <strong>{featOptions.length > 1 ? 'Feat (choose one):' : 'Feat:'}</strong>{' '}
+            {featOptions.map((option, i) => (
+              <Fragment key={option}>
+                {i > 0 && ' or '}
+                {featLinks[i] ? <Link to={`/homebrew/feats/${featLinks[i]}`}>{option}</Link> : option}
+              </Fragment>
+            ))}
           </p>
         )}
         {listRows.map(([label, text]) => (

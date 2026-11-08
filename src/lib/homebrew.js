@@ -1380,6 +1380,23 @@ export function backgroundJsonToFormState(json) {
   }
 }
 
+// A background's feat field holds one feat, or several the player chooses
+// one of, joined with " or " ("Alert or Tough") - so it stays one text
+// column and reads naturally in exports. No 5etools feat name has " or ".
+export function backgroundFeatOptions(text) {
+  return String(text ?? '')
+    .split(/\s+or\s+/i)
+    .map((s) => s.trim())
+    .filter(Boolean)
+}
+
+export function joinBackgroundFeatOptions(list) {
+  return list
+    .map((s) => String(s ?? '').trim())
+    .filter(Boolean)
+    .join(' or ')
+}
+
 // ['CON', 'INT', 'WIS'] + note -> "Constitution, Intelligence, Wisdom; note".
 export function formatBackgroundAbilities(options, note) {
   const listed = ABILITY_SCORES.filter((a) => options?.includes(a))
@@ -1618,17 +1635,23 @@ function fiveToolsLanguages(list) {
   })
 }
 
-// { "magic initiate; wizard|xphb": true } -> "Magic Initiate (Wizard)"
+// { "magic initiate; wizard|xphb": true } -> "Magic Initiate (Wizard)".
+// 5etools lists alternatives as separate objects ([{ a }, { b }] = choose
+// one), which become feat options; keys within one object are all granted.
 function fiveToolsBackgroundFeat(feats) {
-  return Object.keys(feats?.[0] ?? {})
-    .map((key) => {
-      const [name, variant] = key
-        .split('|')[0]
-        .split(';')
-        .map((s) => s.trim())
-      return titleCase(variant ? `${name} (${variant})` : name)
-    })
-    .join(', ')
+  return joinBackgroundFeatOptions(
+    (feats ?? []).map((alt) =>
+      Object.keys(alt ?? {})
+        .map((key) => {
+          const [name, variant] = key
+            .split('|')[0]
+            .split(';')
+            .map((s) => s.trim())
+          return titleCase(variant ? `${name} (${variant})` : name)
+        })
+        .join(', ')
+    )
+  )
 }
 
 export function fiveToolsBackgroundToForm(bg) {
