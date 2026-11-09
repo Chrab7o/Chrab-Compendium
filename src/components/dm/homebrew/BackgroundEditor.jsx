@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { supabase } from '../../../lib/supabaseClient'
 import {
   ABILITY_LABELS,
@@ -14,6 +14,7 @@ import {
   backgroundFeatOptions,
   backgroundJsonToFormState,
   backgroundToFormState,
+  duplicateBackgroundForm,
   emptyBackgroundForm,
   fiveToolsBackgroundToForm,
   fiveToolsEntryList,
@@ -37,13 +38,19 @@ const SKILL_OPTIONS = SKILLS.map((s) => s.name)
 //
 // The origin feat can be several options the player chooses one of; they're
 // stored in the one `feat` column, joined with " or " (backgroundFeatOptions).
+//
+// /new?from=<id> starts from a copy of that background (Duplicate), so one
+// can serve as a template: same feat list and picks, new name and lore.
 export default function BackgroundEditor() {
   const { id } = useParams()
   const navigate = useNavigate()
   const isNew = !id
+  const [searchParams] = useSearchParams()
+  const fromId = isNew ? searchParams.get('from') : null
+  const loadId = id ?? fromId
 
   const [form, setForm] = useState(emptyBackgroundForm)
-  const [loading, setLoading] = useState(!isNew)
+  const [loading, setLoading] = useState(!!loadId)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
   const [fiveToolsPool, setFiveToolsPool] = useState([])
@@ -76,22 +83,29 @@ export default function BackgroundEditor() {
   }, [])
 
   useEffect(() => {
-    if (isNew) return
+    if (!loadId) {
+      setForm(emptyBackgroundForm)
+      setLoading(false)
+      return
+    }
     let cancelled = false
     setLoading(true)
     Promise.all([
-      supabase.from('homebrew_backgrounds').select('*').eq('id', id).single(),
-      supabase.from('homebrew_background_features').select('*').eq('background_id', id),
+      supabase.from('homebrew_backgrounds').select('*').eq('id', loadId).single(),
+      supabase.from('homebrew_background_features').select('*').eq('background_id', loadId),
     ]).then(([{ data: backgroundRow, error: fetchError }, { data: features }]) => {
       if (cancelled) return
       if (fetchError) setError(fetchError.message)
-      else setForm(backgroundToFormState(backgroundRow, features ?? []))
+      else {
+        const loaded = backgroundToFormState(backgroundRow, features ?? [])
+        setForm(fromId ? duplicateBackgroundForm(loaded) : loaded)
+      }
       setLoading(false)
     })
     return () => {
       cancelled = true
     }
-  }, [id, isNew])
+  }, [loadId, fromId])
 
   function set(patch) {
     setForm((f) => ({ ...f, ...patch }))
@@ -210,7 +224,7 @@ export default function BackgroundEditor() {
   return (
     <section className="page-wide">
       <div className="view-header">
-        <h1>{isNew ? 'New Background' : `Edit ${form.name}`}</h1>
+        <h1>{isNew ? (fromId ? 'New Background (from a copy)' : 'New Background') : `Edit ${form.name}`}</h1>
         <div className="dm-form-actions">
           {isNew ? (
             <>
@@ -225,6 +239,14 @@ export default function BackgroundEditor() {
             </>
           ) : (
             <>
+              <button
+                type="button"
+                className="secondary"
+                title="Start a new background from this one's saved version"
+                onClick={() => navigate(`/dm/homebrew/backgrounds/new?from=${id}`)}
+              >
+                Duplicate
+              </button>
               <button
                 type="button"
                 className="secondary"

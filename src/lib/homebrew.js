@@ -1380,6 +1380,18 @@ export function backgroundJsonToFormState(json) {
   }
 }
 
+// A saved background as a new, unsaved one to edit: everything kept but its
+// ids and slug (so saving makes a second background, not an overwrite), the
+// name marked as a copy. For "template" backgrounds - same picks, new lore.
+export function duplicateBackgroundForm(form) {
+  return {
+    ...backgroundJsonToFormState(backgroundFormToExportJson(form)),
+    name: `${form.name} (copy)`,
+    slug: '',
+    visibility: form.visibility ?? emptyBackgroundForm.visibility,
+  }
+}
+
 // A background's feat field holds one feat, or several the player chooses
 // one of, joined with " or " ("Alert or Tough") - so it stays one text
 // column and reads naturally in exports. No 5etools feat name has " or ".

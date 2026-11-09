@@ -199,7 +199,7 @@ function SubclassesTab() {
 // Races, feats and backgrounds are all "one table, edit/delete per row" -
 // only the table, the labels and the meta line differ.
 // inPack: the table is in the Foundry class pack, so a delete republishes.
-function SimpleEntityTab({ table, path, title, singular, childLabel, meta, inPack = false }) {
+function SimpleEntityTab({ table, path, title, singular, childLabel, meta, inPack = false, duplicable = false }) {
   const [rows, setRows] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -243,6 +243,7 @@ function SimpleEntityTab({ table, path, title, singular, childLabel, meta, inPac
             <span className="dm-list-meta">{meta(row)}</span>
             <div className="dm-list-actions">
               <Link to={`/dm/homebrew/${path}/${row.id}/edit`}>Edit</Link>
+              {duplicable && <Link to={`/dm/homebrew/${path}/new?from=${row.id}`}>Duplicate</Link>}
               <button type="button" className="danger" onClick={() => handleDelete(row)}>
                 Delete
               </button>
@@ -318,6 +319,7 @@ export default function DMHomebrewPage() {
           childLabel="features"
           meta={formatBackgroundMeta}
           inPack
+          duplicable
         />
       )}
     </section>

@@ -9,6 +9,7 @@ import assert from 'node:assert/strict'
 import {
   backgroundFeatOptions,
   classFormToFiveToolsJson,
+  duplicateBackgroundForm,
   emptyBackgroundForm,
   emptyClassForm,
   emptyFeatForm,
@@ -487,6 +488,52 @@ test('a background is a dnd5e background whose advancements grant its scores, pr
   assert.deepEqual(featGrant.configuration.items, [{ uuid: `Compendium.world.chrab-classes.Item.${feat._id}`, optional: false }])
   assert.match(bg.system.description.value, /<strong>Feat:<\/strong> @UUID\[Compendium\.world\.chrab-classes\.Item\.\w+\]\{Tough Crab\}/)
   assert.match(bg.system.description.value, /<strong>Equipment:<\/strong> Rope, 10 GP/)
+})
+
+test('a "build your own" background: any abilities, a curated feat pick, any two skills, any one tool', () => {
+  const pack = buildClassPack({
+    backgrounds: [
+      dockHand({
+        ability_options: ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'],
+        feat: 'Alert or Tough Crab or Magic Initiate (Wizard)',
+        skill_proficiencies: ['Two skills of your choice'],
+        tool_proficiencies: ['One tool of your choice'],
+      }),
+    ],
+    feats: [toughCrab()],
+  })
+  const bg = pack.items.find((i) => i.type === 'background')
+  assert.deepEqual(advancementOf(bg, 'AbilityScoreImprovement').configuration.locked, [])
+  const profs = advancementOf(bg, 'Trait', 'Background Proficiencies')
+  assert.deepEqual(profs.configuration.grants, [])
+  assert.deepEqual(profs.configuration.choices, [
+    { count: 2, pool: ['skills:*'] },
+    { count: 1, pool: ['tool:*'] },
+  ])
+  const featPick = advancementOf(bg, 'ItemChoice', 'Background Feat')
+  assert.equal(featPick.configuration.pool.length, 3)
+})
+
+test('duplicating a background keeps its picks and features but not its ids or slug', () => {
+  const saved = dockHand({
+    slug: 'dock-hand',
+    visibility: 'public',
+    features: [{ id: 'row-1', name: 'Harbor Friends', description: 'Sailors know you.', sort_order: 0, choice_group: '', choice_count: null }],
+  })
+  const copy = duplicateBackgroundForm(saved)
+  assert.equal(copy.id, null)
+  assert.equal(copy.slug, '')
+  assert.equal(copy.name, 'Dock Hand (copy)')
+  assert.equal(copy.visibility, 'public')
+  assert.equal(copy.feat, saved.feat)
+  assert.deepEqual(copy.skill_proficiencies, saved.skill_proficiencies)
+  assert.deepEqual(copy.ability_options, saved.ability_options)
+  assert.equal(copy.features[0].id, null)
+  assert.equal(copy.features[0].name, 'Harbor Friends')
+  // A different pack id, so syncing makes a second background.
+  const pack = buildClassPack({ backgrounds: [saved, { ...copy, id: 'bg-copy' }] })
+  const ids = pack.items.filter((i) => i.type === 'background').map((i) => i._id)
+  assert.notEqual(ids[0], ids[1])
 })
 
 test('a homebrew feat becomes a dnd5e feat with its ability increase as an ASI', () => {
