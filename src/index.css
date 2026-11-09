@@ -3292,6 +3292,23 @@ button.chip:hover {
   max-width: 14rem;
 }
 
+/* The "One of…"/"Two of…" checklist under a picker. */
+.option-picker-choice {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--accent-2);
+  border-radius: 6px;
+  background: var(--surface-2);
+}
+
+.option-picker-choice-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.9rem;
+}
+
 
 .chip-add input {
   max-width: 12rem;

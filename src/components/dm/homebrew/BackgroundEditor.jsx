@@ -382,6 +382,8 @@ export default function BackgroundEditor() {
           onChange={(skill_proficiencies) => set({ skill_proficiencies })}
           addPlaceholder="Add skill…"
           customPlaceholder="Other (e.g. One of: Arcana, Nature)…"
+          choiceCounts={[1, 2]}
+          anyOptions={['One skill of your choice', 'Two skills of your choice']}
         />
         <OptionPicker
           label="Tool Proficiencies"
@@ -390,6 +392,8 @@ export default function BackgroundEditor() {
           onChange={(tool_proficiencies) => set({ tool_proficiencies })}
           addPlaceholder="Add tool…"
           customPlaceholder="Other tool…"
+          choiceCounts={[1, 2]}
+          anyOptions={['One tool of your choice', "Any one artisan's tools"]}
         />
         <OptionPicker
           label="Languages"

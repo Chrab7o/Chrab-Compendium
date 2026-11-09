@@ -11,6 +11,18 @@ import { useState } from 'react'
 // lists don't cover still goes in through the custom-entry box when
 // `allowCustom` is on, so homebrew never hits a wall the picker can't
 // express.
+//
+// `choiceCounts` (e.g. [1, 2]) adds "One of…"/"Two of…" to the list: picking
+// one opens a checklist of the options and adds the ticked ones as a single
+// "Two of: Arcana, History, Nature" chip - the text the Foundry pack reads as
+// a pick. `anyOptions` adds ready-made "of your choice" chips beside them.
+const COUNT_WORDS = ['Zero', 'One', 'Two', 'Three', 'Four', 'Five']
+const PICK = '__pick:'
+
+export function pickChip(count, picked) {
+  return `${COUNT_WORDS[count] ?? count} of: ${picked.join(', ')}`
+}
+
 export default function OptionPicker({
   label,
   hint,
@@ -20,13 +32,42 @@ export default function OptionPicker({
   allowCustom = true,
   addPlaceholder = 'Add…',
   customPlaceholder = 'Something else…',
+  choiceCounts = [],
+  anyOptions = [],
 }) {
   const [custom, setCustom] = useState('')
+  // The open "N of…" checklist: { count, picked }.
+  const [pick, setPick] = useState(null)
 
   const groups = options.length > 0 && typeof options[0] === 'object' ? options : [{ group: null, options }]
   const remaining = groups
     .map((g) => ({ ...g, options: g.options.filter((o) => !selected.includes(o)) }))
     .filter((g) => g.options.length > 0)
+  const choiceOptions = anyOptions.filter((o) => !selected.includes(o))
+  const hasChoices = choiceCounts.length > 0 || choiceOptions.length > 0
+  // The checklist offers the named options, not "Any one gaming set".
+  const pickGroups = groups
+    .map((g) => ({ ...g, options: g.options.filter((o) => !/^any/i.test(o)) }))
+    .filter((g) => g.options.length > 0)
+
+  function choose(value) {
+    if (value.startsWith(PICK)) setPick({ count: Number(value.slice(PICK.length)), picked: [] })
+    else add(value)
+  }
+
+  function togglePicked(option) {
+    setPick((p) => ({
+      ...p,
+      picked: p.picked.includes(option) ? p.picked.filter((o) => o !== option) : [...p.picked, option],
+    }))
+  }
+
+  function addPick() {
+    // Kept in list order, whatever order they were ticked in.
+    const order = pickGroups.flatMap((g) => g.options)
+    add(pickChip(pick.count, order.filter((o) => pick.picked.includes(o))))
+    setPick(null)
+  }
 
   function add(value) {
     const trimmed = value.trim()
@@ -62,11 +103,25 @@ export default function OptionPicker({
       <div className="option-picker-controls">
         <select
           value=""
-          onChange={(e) => add(e.target.value)}
-          disabled={remaining.length === 0}
+          onChange={(e) => choose(e.target.value)}
+          disabled={remaining.length === 0 && !hasChoices}
           aria-label={label ? `Add ${label}` : 'Add option'}
         >
-          <option value="">{remaining.length === 0 ? 'All options added' : addPlaceholder}</option>
+          <option value="">{remaining.length === 0 && !hasChoices ? 'All options added' : addPlaceholder}</option>
+          {hasChoices && (
+            <optgroup label="Player chooses">
+              {choiceCounts.map((n) => (
+                <option key={`${PICK}${n}`} value={`${PICK}${n}`}>
+                  {COUNT_WORDS[n] ?? n} of… (pick the list)
+                </option>
+              ))}
+              {choiceOptions.map((o) => (
+                <option key={o} value={o}>
+                  {o}
+                </option>
+              ))}
+            </optgroup>
+          )}
           {remaining.map((g, i) =>
             g.group ? (
               <optgroup key={g.group} label={g.group}>
@@ -105,6 +160,37 @@ export default function OptionPicker({
           </span>
         )}
       </div>
+      {pick && (
+        <div className="option-picker-choice">
+          <span className="option-picker-hint">
+            The player picks {(COUNT_WORDS[pick.count] ?? String(pick.count)).toLowerCase()} of the ones you tick.
+          </span>
+          {pickGroups.map((g, i) => (
+            <div key={g.group ?? i} className="option-picker-choice-group">
+              {g.group && <span className="option-picker-label">{g.group}</span>}
+              <div className="option-picker-choice-options">
+                {g.options.map((o) => (
+                  <label key={o} className="tag-checklist-item">
+                    <input type="checkbox" checked={pick.picked.includes(o)} onChange={() => togglePicked(o)} />
+                    {o}
+                  </label>
+                ))}
+              </div>
+            </div>
+          ))}
+          <div className="option-picker-controls">
+            <button type="button" onClick={addPick} disabled={pick.picked.length <= pick.count}>
+              Add “{COUNT_WORDS[pick.count] ?? pick.count} of” ({pick.picked.length} ticked)
+            </button>
+            <button type="button" className="secondary" onClick={() => setPick(null)}>
+              Cancel
+            </button>
+            {pick.picked.length <= pick.count && (
+              <span className="option-picker-hint">Tick at least {pick.count + 1}, so there's a choice.</span>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

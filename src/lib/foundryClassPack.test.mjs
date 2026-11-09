@@ -514,6 +514,22 @@ test('a "build your own" background: any abilities, a curated feat pick, any two
   assert.equal(featPick.configuration.pool.length, 3)
 })
 
+test('the picker’s "Two of…" and "of your choice" chips become Trait choices', () => {
+  const bg = buildClassPack({
+    backgrounds: [
+      dockHand({
+        skill_proficiencies: ['Two of: Arcana, History, Nature, Religion'],
+        tool_proficiencies: ["One of: Smith's tools, Thieves' tools", "Any one artisan's tools"],
+      }),
+    ],
+  }).items.find((i) => i.type === 'background')
+  assert.deepEqual(advancementOf(bg, 'Trait', 'Background Proficiencies').configuration.choices, [
+    { count: 2, pool: ['skills:arc', 'skills:his', 'skills:nat', 'skills:rel'] },
+    { count: 1, pool: ['tool:art:smith', 'tool:thief'] },
+    { count: 1, pool: ['tool:art:*'] },
+  ])
+})
+
 test('duplicating a background keeps its picks and features but not its ids or slug', () => {
   const saved = dockHand({
     slug: 'dock-hand',
