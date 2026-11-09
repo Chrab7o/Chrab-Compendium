@@ -10,6 +10,7 @@ import { relinkWorldActivityMacros } from './activityMacros.mjs'
 import { ConfigApp, SyncApp } from './apps.mjs'
 import { syncOnLoad, watchCharacters } from './characters.mjs'
 import { checkClassPack } from './classes.mjs'
+import { setupCrits } from './crits.mjs'
 import { DEFAULT_FOLDER, DEFAULT_ITEM_FOLDER, MODULE_ID } from './constants.mjs'
 import { checkQueue, state } from './queue.mjs'
 import { setupSummons } from './summons.mjs'
@@ -62,6 +63,14 @@ Hooks.once('init', () => {
     type: Boolean,
     default: true,
   })
+  game.settings.register(MODULE_ID, 'critDoubleTotal', {
+    name: 'Critical hits double the damage total',
+    hint: 'House rule: a critical damage roll rolls its normal dice and modifiers once, then doubles the total (1d8 + 3 rolling 5 + 3 deals 16). Applies to every damage roll marked critical, including separate cards like Sneak Attack. Keep Midi-QOL’s Critical Damage setting on “DnD5e default”.',
+    scope: 'world',
+    config: true,
+    type: Boolean,
+    default: true,
+  })
   game.settings.registerMenu(MODULE_ID, 'account', {
     name: 'Chrab Sync account & campaign',
     label: 'Open',
@@ -71,6 +80,10 @@ Hooks.once('init', () => {
     restricted: true,
   })
 })
+
+// Crits double the damage total (crits.mjs): every client, since players roll
+// their own damage. 'setup' runs after dnd5e has filled CONFIG.Dice at init.
+Hooks.once('setup', () => setupCrits())
 
 // Summon range ring and "one at a time" summons: every user, players included.
 Hooks.once('ready', () => setupSummons())
