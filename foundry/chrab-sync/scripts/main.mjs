@@ -14,9 +14,15 @@ import { addSiteButtons, watchLocalEdits } from './copies.mjs'
 import { setupCrits } from './crits.mjs'
 import { DEFAULT_FOLDER, DEFAULT_ITEM_FOLDER, MODULE_ID } from './constants.mjs'
 import { checkQueue, state } from './queue.mjs'
+import { runBehavior } from './runtime.mjs'
 import { setupSummons } from './summons.mjs'
 
 Hooks.once('init', () => {
+  // Items built with the module runtime call this from their stub macro
+  // (runtime.mjs): game.modules.get('chrab-sync').api.runBehavior(scope).
+  const module = game.modules.get(MODULE_ID)
+  if (module) module.api = { ...module.api, runBehavior }
+
   // World-scoped settings are readable by every connected client, so nothing
   // secret goes here - just which campaign this world belongs to.
   game.settings.register(MODULE_ID, 'campaignId', {

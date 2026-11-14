@@ -339,7 +339,8 @@ function buildGearItem(spec) {
   return { ...built, type: type.type, img: item.img || built.img, system: sys }
 }
 
-export function buildFeatureItem(stored, { draftId = null } = {}) {
+// moduleRuntime: behaviors run in Chrab Sync (buildNpcItem).
+export function buildFeatureItem(stored, { draftId = null, moduleRuntime = false } = {}) {
   // Saved in the one automation format (automation.js): read as the old fields.
   const spec = stored?.item?.automation ? { ...stored, item: lowered(stored.item) } : stored
   let built
@@ -353,7 +354,7 @@ export function buildFeatureItem(stored, { draftId = null } = {}) {
     built.system.prepared = 0
     built.system.description = { value: textToHtml(spec.spell.description), chat: '' }
   } else {
-    built = buildNpcItem(NEUTRAL_OWNER, { ...spec.item, itemType: 'feat' })
+    built = buildNpcItem(NEUTRAL_OWNER, { ...spec.item, itemType: 'feat' }, 0, { moduleRuntime })
     built.system.type = { value: spec.featType || 'class', subtype: '' }
     built.system.requirements = String(spec.requirements ?? '')
     built.system.description = { value: featureDescription(spec.item), chat: '' }

@@ -928,9 +928,12 @@ export function buildClassPack({ classes = [], standaloneSubclasses = [], backgr
 // Built items for linked drafts, as buildClassPack wants them. A draft still
 // exactly as its template built it is rebuilt from the template's settings, so
 // a template fix reaches it (lib/forgeSource.js).
-export function draftItems(drafts) {
+// moduleRuntime: true, or a Set of draft ids, whose behaviors run in Chrab Sync
+// (Phase 4) instead of a generated macro. Off unless asked for.
+export function draftItems(drafts, { moduleRuntime = false } = {}) {
   const items = new Map()
-  for (const d of drafts) if (d.kind === 'feat') items.set(d.id, buildFeatureItem(featureSpecFromRow(rebuildFromSource(d.spec, d.id)), { draftId: d.id }))
+  const inModule = (id) => moduleRuntime === true || (moduleRuntime instanceof Set && moduleRuntime.has(id))
+  for (const d of drafts) if (d.kind === 'feat') items.set(d.id, buildFeatureItem(featureSpecFromRow(rebuildFromSource(d.spec, d.id)), { draftId: d.id, moduleRuntime: inModule(d.id) }))
   return items
 }
 

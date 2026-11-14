@@ -16,7 +16,7 @@
 import { conditionRows, conditionText, parseOnUseMacros, scriptCode, scriptPass } from './foundryAutomation.js'
 import { flowCode, flowPasses, hasFlow } from './automationFlow.js'
 import { lowered } from './automation.js'
-import { activeBehavior, behaviorChanges, behaviorMacro, behaviorSummary, bondChanges, extraDamageChanges, hasSelfUseRules, picksOnUse, storedKeys, turnTicks } from './foundryBehaviors.js'
+import { BEHAVIOR_RUNTIME_VERSION, activeBehavior, behaviorChanges, behaviorMacro, behaviorRuntimeData, behaviorStub, behaviorSummary, bondChanges, extraDamageChanges, hasSelfUseRules, picksOnUse, storedKeys, turnTicks } from './foundryBehaviors.js'
 
 export const CORE_VERSION = '14.368'
 export const SYSTEM_ID = 'dnd5e'
@@ -1537,7 +1537,9 @@ function behaviorEffect(item, behavior, suffix, extra) {
   }
 }
 
-export function buildNpcItem(spec, stored, index = 0, { inSpell = false } = {}) {
+// moduleRuntime: the behavior runs in Chrab Sync (a stub macro, its data in
+// flags.chrab-sync.runtime) instead of a whole generated macro.
+export function buildNpcItem(spec, stored, index = 0, { inSpell = false, moduleRuntime = false } = {}) {
   // An item saved in the one automation format (automation.js) is written
   // into the behavior rules, flows and recipes the generators below read.
   const item = lowered(stored)
@@ -1611,6 +1613,7 @@ export function buildNpcItem(spec, stored, index = 0, { inSpell = false } = {}) 
 
   // A behavior's hook goes FIRST: midi resolves the bare "ActivityMacro" in
   // the effect's onUseMacroName change to the item's first activity.
+  let runtime = null
   if (behavior) {
     const hookSpec = {
       ...emptyActivity('utility'),
@@ -1621,7 +1624,8 @@ export function buildNpcItem(spec, stored, index = 0, { inSpell = false } = {}) 
     }
     const hook = buildActivity(item, hookSpec, [], -1, ids, !toggle)
     hook.target.affects = { ...hook.target.affects, type: 'self', count: '' }
-    hook.macroData = { name: `${item.name || 'Feature'} automation`, command: behaviorMacro(item, behavior) }
+    hook.macroData = { name: `${item.name || 'Feature'} automation`, command: moduleRuntime ? behaviorStub(item) : behaviorMacro(item, behavior) }
+    if (moduleRuntime) runtime = { version: BEHAVIOR_RUNTIME_VERSION, behavior: behaviorRuntimeData(item, behavior) }
     // Turn ticks: hidden activities midi uses at the start / end of the
     // owner's turn (ActivityOverTime below); using one runs the hook through
     // the item's own onUseMacroName, and the macro knows them by id.
@@ -1730,6 +1734,7 @@ export function buildNpcItem(spec, stored, index = 0, { inSpell = false } = {}) 
         ? {
             'chrab-sync': {
               ...(behavior ? { behavior } : {}),
+              ...(runtime ? { runtime } : {}),
               ...(Object.keys(flows).length ? { flows } : {}),
               ...(single.length ? { singleSummon: single } : {}),
             },

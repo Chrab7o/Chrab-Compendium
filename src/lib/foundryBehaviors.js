@@ -621,10 +621,11 @@ const HEADER = (name) => `// ${name} - Chrab Corner feature behavior, generated 
 // any other item. Edit it on the Compendium site, not here - a re-send replaces it.
 `
 
-// The macro's whole code. It's the body of an async function midi calls with
-// workflow, args, actor, token, rolledItem, rolledActivity and macroItem in
-// scope (src/module/workflow.ts executeMacroWithScope).
-export function behaviorMacro(item, behavior) {
+// What one item's behavior runtime reads: SETUP (data) and WHEN (each rule's
+// extra condition, as code). behaviorMacro puts them in front of
+// BEHAVIOR_RUNTIME; Chrab Sync (0.7+) runs BEHAVIOR_RUNTIME itself with them
+// (behaviorRuntimeData -> flags.chrab-sync.runtime.behavior).
+export function behaviorRuntimeData(item, behavior) {
   const rules = (behavior.rules ?? []).filter(ruleOutcomeFits)
   const toggle = behavior.mode === 'toggle'
   const flavor = behavior.flavor ?? {}
@@ -654,11 +655,41 @@ export function behaviorMacro(item, behavior) {
     .map(([key, code]) => `  ${js(key)}: async (c) => ${code},`)
     .join('\n')
 
+  return { setup, whens }
+}
+
+// Chrab Sync's runtime (Phase 4, docs/forge-overhaul.md in the lab): the
+// version of the data the module reads, and the one-line macro an item gets
+// instead of the whole runtime. The data goes in flags.chrab-sync.runtime.
+// Chrab Sync refuses data of a newer version than it knows.
+export const BEHAVIOR_RUNTIME_VERSION = 1
+export function behaviorStub(item) {
+  const name = String(item?.name ?? '').trim() || 'Feature'
+  return `// ${name} - Chrab Corner feature behavior. It runs in the Chrab Sync module (0.7 or later),
+// from the data in this item's flags.chrab-sync.runtime. Edit it on the Compendium site.
+const run = game.modules.get("chrab-sync")?.active ? game.modules.get("chrab-sync").api?.runBehavior : null;
+if (!run) return ui.notifications?.warn(${JSON.stringify(name)} + " needs the Chrab Sync module (0.7 or later) to run.");
+return run({ workflow, args, actor, token, rolledItem, rolledActivity, macroItem, macroActivity: typeof macroActivity === "undefined" ? null : macroActivity });
+`
+}
+
+// The macro's whole code. It's the body of an async function midi calls with
+// workflow, args, actor, token, rolledItem, rolledActivity and macroItem in
+// scope (src/module/workflow.ts executeMacroWithScope).
+export function behaviorMacro(item, behavior) {
+  const { setup, whens } = behaviorRuntimeData(item, behavior)
   return `${HEADER(setup.name)}const SETUP = ${JSON.stringify(setup, null, 2)};
 const WHEN = {
 ${whens}
 };
-const FLAG = "chrab-sync";
+${BEHAVIOR_RUNTIME}`
+}
+
+// The behavior runtime: everything in a behavior macro after SETUP and WHEN.
+// Shared by behaviorMacro (today's macro items) and Chrab Sync, which runs it
+// itself (foundry/chrab-sync/scripts/runtime/behaviorRuntime.mjs is generated
+// from this: npm run module-runtime).
+export const BEHAVIOR_RUNTIME = `const FLAG = "chrab-sync";
 const pass = String(args?.[0]?.macroPass ?? "");
 const feature = macroItem;
 const me = actor;
@@ -1288,7 +1319,6 @@ async function outcome(rule, use, bonus, c) {
   }
 }
 `
-}
 
 // ---------------------------------------------------------------------------
 // Ready-made behaviors

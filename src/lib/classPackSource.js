@@ -20,7 +20,8 @@ const groupBy = (list, key) => {
   return map
 }
 
-// preview: { links: Map(feature row id -> draft id), specs: Map(draft id -> spec) }
+// preview: { links: Map(feature row id -> draft id), specs: Map(draft id -> spec),
+//            moduleRuntime: true | Set(draft id) (behaviors run in Chrab Sync, Phase 4) }
 // stands in for mechanics not saved yet, so the pack is what saving them would
 // publish (the sandbox's "chrab.mjs preview").
 export async function loadClassPackWith(db, preview = null) {
@@ -76,7 +77,7 @@ export async function loadClassPackWith(db, preview = null) {
   const backgrounds = backgroundRows.map((b) => backgroundToFormState(b, featuresByBackground.get(b.id) ?? []))
   const feats = featRows.map((f) => featToFormState(f, benefitsByFeat.get(f.id) ?? []))
 
-  return buildClassPack({ classes, standaloneSubclasses, backgrounds, feats, items: draftItems(drafts) })
+  return buildClassPack({ classes, standaloneSubclasses, backgrounds, feats, items: draftItems(drafts, { moduleRuntime: preview?.moduleRuntime ?? false }) })
 }
 
 export async function publishClassPackWith(db) {
