@@ -8273,3 +8273,325 @@ button.feature-line-head[aria-expanded='true'] {
 .feature-for-class.is-lost {
   border-color: var(--accent-red);
 }
+
+/* ---------------------------------------------------------------------------
+   Levels step (class and subclass editors): LevelsBoard + FeaturePanel.
+   The table on the left, the open feature's panel on the right; under 900px
+   the panel covers the page instead. */
+.levels-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.levels-layout.has-panel {
+  grid-template-columns: minmax(0, 1fr) minmax(20rem, 28rem);
+}
+
+.levels-main {
+  min-width: 0;
+}
+
+.levels-heading {
+  margin: var(--space-4) 0 var(--space-2);
+  font-size: var(--text-lg);
+}
+
+.levels-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.levels-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.levels-table th,
+.levels-table td {
+  padding: 0.3rem 0.45rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 35%, transparent);
+  vertical-align: top;
+  text-align: left;
+}
+
+.levels-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--surface-2, var(--surface));
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.levels-table tbody tr:hover {
+  background: color-mix(in srgb, var(--accent-2) 8%, transparent);
+}
+
+.levels-level {
+  width: 2.5rem;
+  text-align: center !important;
+  color: var(--text-muted);
+}
+
+.levels-prof {
+  width: 3rem;
+  color: var(--text-muted);
+}
+
+.levels-column {
+  width: 8.5rem;
+}
+
+.levels-column input,
+.levels-column-head input {
+  width: 100%;
+  min-width: 4.5rem;
+  padding: 0.15rem 0.35rem;
+  font-size: var(--text-sm);
+}
+
+.levels-column-head {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+button.levels-x {
+  flex: none;
+  padding: 0 0.35rem;
+  color: var(--text-muted);
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  filter: none;
+  transform: none;
+}
+
+button.levels-x:hover {
+  color: var(--danger);
+}
+
+.levels-add-column {
+  width: 1%;
+}
+
+.levels-lane {
+  min-width: 12rem;
+}
+
+.levels-lane.is-closed {
+  background: color-mix(in srgb, var(--text-muted) 7%, transparent);
+}
+
+.levels-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+  min-height: 1.7rem;
+}
+
+button.feature-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  padding: 0.2rem 0.55rem;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  text-align: left;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: none;
+  filter: none;
+  transform: none;
+}
+
+button.feature-chip:hover {
+  border-color: var(--accent-2-strong);
+  background: var(--surface);
+}
+
+button.feature-chip.is-selected {
+  border-color: var(--accent-2-strong);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-2) 55%, transparent);
+}
+
+.feature-chip .is-untitled {
+  font-style: italic;
+  color: var(--text-muted);
+}
+
+.feature-chip-note {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.feature-chip-mark {
+  font-size: var(--text-xs);
+  color: var(--accent-2-strong);
+}
+
+button.levels-add {
+  padding: 0 0.5rem;
+  line-height: 1.6;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px dashed color-mix(in srgb, var(--border) 60%, transparent);
+  border-radius: var(--radius-sm);
+  box-shadow: none;
+  filter: none;
+  transform: none;
+  opacity: 0.55;
+}
+
+.levels-table tr:hover button.levels-add,
+button.levels-add:focus-visible {
+  opacity: 1;
+}
+
+button.levels-add:hover {
+  color: var(--text);
+  border-color: var(--accent-2-strong);
+}
+
+.levels-subclasses {
+  margin-bottom: var(--space-3);
+}
+
+.levels-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: var(--space-2);
+}
+
+.levels-tabs-label {
+  font-weight: 600;
+  margin-right: 0.25rem;
+}
+
+button.levels-tab {
+  padding: 0.25rem 0.7rem;
+  font-size: var(--text-sm);
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  box-shadow: none;
+  filter: none;
+  transform: none;
+}
+
+button.levels-tab.is-active {
+  color: var(--on-accent-2);
+  background: var(--accent-2);
+  border-color: var(--accent-2-strong);
+}
+
+.levels-subclass {
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.levels-subclass .dm-form-row {
+  align-items: end;
+}
+
+.levels-subclass .dm-form-row > button {
+  flex: none;
+  align-self: end;
+}
+
+.levels-subclass details {
+  margin-top: var(--space-2);
+}
+
+.levels-subclass textarea {
+  width: 100%;
+  margin-top: var(--space-2);
+}
+
+.feature-panel {
+  position: sticky;
+  top: var(--space-3);
+  max-height: calc(100vh - 2 * var(--space-3));
+  overflow-y: auto;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+}
+
+.feature-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.feature-panel-trail {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.feature-panel-section {
+  padding-top: var(--space-3);
+  border-top: 1px solid color-mix(in srgb, var(--border) 40%, transparent);
+}
+
+.feature-panel-section h3 {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-base);
+}
+
+.feature-panel-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin: 0 0 var(--space-2);
+  padding: 0;
+  list-style: none;
+}
+
+.feature-mechanics-summary {
+  margin: 0 0 0.3rem;
+  font-weight: 500;
+}
+
+.feature-automation-lines {
+  margin: 0 0 0.4rem;
+  padding-left: 1.1rem;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.feature-automation-lines li + li {
+  margin-top: 0.15rem;
+}
+
+@media (max-width: 900px) {
+  .levels-layout.has-panel {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .feature-panel {
+    position: fixed;
+    inset: 0;
+    /* Over the site's floating buttons. */
+    z-index: 2000;
+    max-height: none;
+    border-radius: 0;
+  }
+}

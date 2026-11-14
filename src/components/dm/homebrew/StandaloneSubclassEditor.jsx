@@ -2,12 +2,9 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../../../lib/supabaseClient'
 import { emptyStandaloneSubclassForm, standaloneSubclassToFormState } from '../../../lib/homebrew'
-import RepeatableRows from '../RepeatableRows'
 import VisibilitySelect from './VisibilitySelect'
 import { useAutomationOptions } from './useAutomationOptions'
-import FeatureMechanics from './FeatureMechanics'
-import ForgeFeaturePicker from './ForgeFeaturePicker'
-import { useForgeSaves } from './useForgeSaves'
+import LevelsBoard from './LevelsBoard'
 import { attachMechanics, loadDraftSpecs, saveRowMechanics } from './mechanics'
 import { republishQuietly } from '../../../lib/foundryClassPackPublish'
 import { attachStandaloneMechanicsFile } from '../../../lib/classMechanicsFile'
@@ -36,8 +33,6 @@ export default function StandaloneSubclassEditor() {
   const [error, setError] = useState(null)
   const [notice, setNotice] = useState(null)
   const automationOptions = useAutomationOptions()
-  // Features are built in the chain builder, in another tab; its saves land here.
-  const createInChain = useForgeSaves(form, setForm, form.name)
 
   useEffect(() => {
     if (isNew) return
@@ -213,31 +208,11 @@ export default function StandaloneSubclassEditor() {
           />
         </label>
 
-        <RepeatableRows
-          rows={form.features}
-          onChange={(features) => setForm({ ...form, features })}
-          withLevel
-          withSubFeatures
-          addLabel="+ Add Feature"
-          renderRowExtra={(row, patch) => (
-            <FeatureMechanics
-              row={row}
-              onChange={patch}
-              linkable={automationOptions.options}
-              onRefreshLinks={automationOptions.reload}
-              classLabel={form.name}
-            />
-          )}
-          collapsible
-          onCreate={createInChain}
-          untitled="New feature: name it in the chain builder tab"
-          renderAddExtra={(add, parent) => (
-            <ForgeFeaturePicker
-              label={parent ? '+ Add from the Item Forge…' : '+ Add Feature from the Item Forge…'}
-              onPick={add}
-              linkedHere={form.features.map((f) => f.feature_draft_id).filter(Boolean)}
-            />
-          )}
+        <h2 className="levels-heading">Features by level</h2>
+        <LevelsBoard
+          lanes={[{ key: 'subclass', label: form.name.trim() || 'Features', rows: form.features, setRows: (features) => setForm((f) => ({ ...f, features })), levels: null }]}
+          linkable={automationOptions.options}
+          onRefreshLinks={automationOptions.reload}
         />
 
         {error && <p className="status-message error">{error}</p>}

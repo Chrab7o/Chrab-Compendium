@@ -21,12 +21,9 @@ import {
   joinProficiencyList,
 } from '../../../lib/homebrew'
 import WizardShell from '../WizardShell'
-import RepeatableRows from '../RepeatableRows'
 import VisibilitySelect from './VisibilitySelect'
 import { useAutomationOptions } from './useAutomationOptions'
-import FeatureMechanics from './FeatureMechanics'
-import ForgeFeaturePicker from './ForgeFeaturePicker'
-import { useForgeSaves } from './useForgeSaves'
+import LevelsBoard from './LevelsBoard'
 import { attachMechanics, loadDraftSpecs, saveRowMechanics } from './mechanics'
 import { attachMechanicsFile } from '../../../lib/classMechanicsFile'
 import { republishQuietly } from '../../../lib/foundryClassPackPublish'
@@ -36,10 +33,10 @@ import OptionPicker from '../OptionPicker'
 const STEPS = [
   { key: 'basics', label: 'Basics' },
   { key: 'proficiencies', label: 'Proficiencies & Equipment' },
-  { key: 'features', label: 'Level Features' },
-  { key: 'table', label: 'Special Table Columns' },
-  { key: 'subclasses', label: 'Subclasses' },
+  { key: 'levels', label: 'Levels & Features' },
 ]
+// Drafts autosaved before the Levels step was one step.
+const stepKey = (key) => (['features', 'table', 'subclasses'].includes(key) ? 'levels' : key)
 
 const SKILL_OPTIONS = SKILLS.map((s) => s.name)
 
@@ -53,20 +50,9 @@ function slugify(name) {
     .replace(/(^-|-$)/g, '')
 }
 
-function emptySubclass(subclassLevels) {
-  return {
-    id: null,
-    name: '',
-    description: '',
-    features: subclassLevels.map((level, i) => ({
-      level,
-      name: '',
-      description: '',
-      sort_order: i,
-      choice_group: '',
-      choice_count: null,
-    })),
-  }
+// Features are added level by level in the Levels step.
+function emptySubclass() {
+  return { id: null, name: '', description: '', visibility: 'dm', features: [] }
 }
 
 export default function ClassWizard() {
@@ -84,21 +70,8 @@ export default function ClassWizard() {
   const [notice, setNotice] = useState(null)
   const [newSubclassLevel, setNewSubclassLevel] = useState('')
   const automationOptions = useAutomationOptions()
-  // Features are built in the chain builder, in another tab; its saves land here.
-  const createInChain = useForgeSaves(form, setForm, form.name)
-  const renderMechanics = (row, patch) => (
-    <FeatureMechanics
-      row={row}
-      onChange={patch}
-      linkable={automationOptions.options}
-      onRefreshLinks={automationOptions.reload}
-      classLabel={form.name}
-    />
-  )
-  const linkedHere = [...form.features, ...form.subclasses.flatMap((s) => s.features)].map((f) => f.feature_draft_id).filter(Boolean)
-  const renderForgePicker = (add, parent) => (
-    <ForgeFeaturePicker label={parent ? '+ Add from the Item Forge…' : '+ Add Feature from the Item Forge…'} onPick={add} linkedHere={linkedHere} />
-  )
+  // The subclass shown beside the class in the Levels step (its index), or null.
+  const [activeSubclass, setActiveSubclass] = useState(null)
 
   // Autosaves to localStorage as the DM works through the wizard, so
   // closing the tab, a crash, or navigating away mid-edit doesn't lose
@@ -171,7 +144,7 @@ export default function ClassWizard() {
   // freshly fetched above, not part of the DM's in-progress edits.
   function restoreDraft() {
     setForm(pendingDraft.value.form)
-    setCurrentStep(pendingDraft.value.currentStep)
+    setCurrentStep(stepKey(pendingDraft.value.currentStep))
     setDraftPromptDismissed(true)
   }
 
@@ -215,34 +188,38 @@ export default function ClassWizard() {
   }
 
   function addSubclass() {
-    setForm({ ...form, subclasses: [...form.subclasses, emptySubclass(form.subclass_levels)] })
+    setForm((f) => ({ ...f, subclasses: [...f.subclasses, emptySubclass()] }))
+    setActiveSubclass(form.subclasses.length)
   }
 
   function updateSubclass(index, patch) {
-    setForm({
-      ...form,
-      subclasses: form.subclasses.map((s, i) => (i === index ? { ...s, ...patch } : s)),
-    })
+    setForm((f) => ({ ...f, subclasses: f.subclasses.map((s, i) => (i === index ? { ...s, ...patch } : s)) }))
   }
 
   function removeSubclass(index) {
-    setForm({ ...form, subclasses: form.subclasses.filter((_, i) => i !== index) })
+    const s = form.subclasses[index]
+    const named = s.features.filter((x) => x.name.trim()).length
+    const what = `${s.name.trim() || `this ${form.subclass_label}`}${named ? ` and its ${named} feature${named === 1 ? '' : 's'}` : ''}`
+    if (!confirm(`Remove ${what}? Nothing is deleted until you save the class.`)) return
+    setForm((f) => ({ ...f, subclasses: f.subclasses.filter((_, i) => i !== index) }))
+    setActiveSubclass(null)
   }
 
-  function addTableColumn() {
-    setForm({ ...form, tableColumns: [...form.tableColumns, { id: null, name: '', valuesByLevel: {} }] })
-  }
-
-  function updateTableColumn(index, patch) {
-    setForm({
-      ...form,
-      tableColumns: form.tableColumns.map((c, i) => (i === index ? { ...c, ...patch } : c)),
-    })
-  }
-
-  function removeTableColumn(index) {
-    setForm({ ...form, tableColumns: form.tableColumns.filter((_, i) => i !== index) })
-  }
+  const subclass = activeSubclass != null ? form.subclasses[activeSubclass] : null
+  const lanes = [
+    { key: 'class', label: form.name.trim() || 'Class', rows: form.features, setRows: (features) => setForm((f) => ({ ...f, features })), levels: null },
+    ...(subclass
+      ? [
+          {
+            key: `subclass:${activeSubclass}`,
+            label: subclass.name.trim() || `Unnamed ${form.subclass_label}`,
+            rows: subclass.features,
+            setRows: (features) => updateSubclass(activeSubclass, { features }),
+            levels: form.subclass_levels,
+          },
+        ]
+      : []),
+  ]
 
   async function handleSave() {
     // Caught here rather than let the insert fail on a not-null constraint,
@@ -255,7 +232,8 @@ export default function ClassWizard() {
     }
     const unnamedSubclass = form.subclasses.findIndex((s) => !s.name.trim())
     if (unnamedSubclass !== -1) {
-      setCurrentStep('subclasses')
+      setCurrentStep('levels')
+      setActiveSubclass(unnamedSubclass)
       setError(`${form.subclass_label} ${unnamedSubclass + 1} needs a name before saving.`)
       return
     }
@@ -774,111 +752,63 @@ export default function ClassWizard() {
           </div>
         )}
 
-        {currentStep === 'features' && (
-          <div className="dm-form">
-            <p className="status-message">
-              Add a row for each level that grants a feature. Not every level needs one. A feature that is really a
-              menu — Metamagic, Dark Arts, Fighting Styles — keeps its options as sub-features inside it, and you set
-              whether the player picks some of them or gets them all. “+ Add Feature” opens the chain builder in a new
-              tab; save there and the feature shows up here. Click a feature to see its text and chain.
-            </p>
-            <RepeatableRows
-              rows={form.features}
-              onChange={(features) => setForm({ ...form, features })}
-              withLevel
-              withSubFeatures
-              addLabel="+ Add Feature"
-              renderRowExtra={renderMechanics}
-              renderAddExtra={renderForgePicker}
-              collapsible
-              onCreate={createInChain}
-              untitled="New feature: name it in the chain builder tab"
-            />
-          </div>
-        )}
-
-        {currentStep === 'table' && (
-          <div className="dm-form">
-            <p className="status-message">
-              Optional — only needed for classes with a per-level progression beyond features (Sneak Attack dice, Rages,
-              Ki Points, etc). Most classes can skip this step.
-            </p>
-            {form.tableColumns.map((col, i) => (
-              <div key={i} className="class-table-column">
-                <div className="dm-form-row">
-                  <label>
-                    Column Name
-                    <input value={col.name} onChange={(e) => updateTableColumn(i, { name: e.target.value })} />
-                  </label>
-                  <button type="button" className="danger" onClick={() => removeTableColumn(i)}>
-                    Remove Column
-                  </button>
-                </div>
-                <div className="class-table-grid">
-                  {Array.from({ length: 20 }, (_, idx) => idx + 1).map((level) => (
-                    <label key={level} className="class-table-cell">
-                      {level}
-                      <input
-                        value={col.valuesByLevel[level] ?? ''}
-                        onChange={(e) =>
-                          updateTableColumn(i, { valuesByLevel: { ...col.valuesByLevel, [level]: e.target.value } })
-                        }
-                      />
-                    </label>
+        {currentStep === 'levels' && (
+          <LevelsBoard
+            lanes={lanes}
+            columns={form.tableColumns}
+            onColumnsChange={(tableColumns) => setForm((f) => ({ ...f, tableColumns }))}
+            linkable={automationOptions.options}
+            onRefreshLinks={automationOptions.reload}
+            campaignId={form.campaign_id || null}
+            above={
+              <div className="levels-subclasses">
+                <div className="levels-tabs" role="tablist" aria-label={`${form.subclass_label}s`}>
+                  <span className="levels-tabs-label">{form.subclass_label}s:</span>
+                  {form.subclasses.map((s, i) => (
+                    <button
+                      type="button"
+                      role="tab"
+                      key={s.id ?? `new:${i}`}
+                      aria-selected={activeSubclass === i}
+                      className={`levels-tab${activeSubclass === i ? ' is-active' : ''}`}
+                      onClick={() => setActiveSubclass(activeSubclass === i ? null : i)}
+                    >
+                      {s.name.trim() || `Unnamed ${form.subclass_label}`}
+                    </button>
                   ))}
-                </div>
-              </div>
-            ))}
-            <button type="button" onClick={addTableColumn}>
-              + Add Column
-            </button>
-          </div>
-        )}
-
-        {currentStep === 'subclasses' && (
-          <div className="dm-form">
-            {form.subclasses.map((subclass, i) => (
-              <div key={i} className="class-subclass-block">
-                <div className="dm-form-row">
-                  <label>
-                    {form.subclass_label} Name
-                    <input value={subclass.name} onChange={(e) => updateSubclass(i, { name: e.target.value })} />
-                  </label>
-                  <VisibilitySelect
-                    value={subclass.visibility ?? 'dm'}
-                    onChange={(visibility) => updateSubclass(i, { visibility })}
-                  />
-                  <button type="button" className="danger" onClick={() => removeSubclass(i)}>
-                    Remove {form.subclass_label}
+                  <button type="button" className="secondary npc-small-button" onClick={addSubclass}>
+                    + {form.subclass_label}
                   </button>
                 </div>
-                <label>
-                  Description
-                  <textarea
-                    value={subclass.description}
-                    onChange={(e) => updateSubclass(i, { description: e.target.value })}
-                    rows={4}
-                  />
-                </label>
-                <RepeatableRows
-                  rows={subclass.features}
-                  onChange={(features) => updateSubclass(i, { features })}
-                  withLevel
-                  allowedLevels={form.subclass_levels}
-                  withSubFeatures
-                  addLabel="+ Add Feature"
-                  renderRowExtra={renderMechanics}
-                  renderAddExtra={renderForgePicker}
-                  collapsible
-                  onCreate={createInChain}
-                  untitled="New feature: name it in the chain builder tab"
-                />
+                {subclass && (
+                  <div className="levels-subclass">
+                    <div className="dm-form-row">
+                      <label>
+                        {form.subclass_label} name
+                        <input value={subclass.name} onChange={(e) => updateSubclass(activeSubclass, { name: e.target.value })} autoFocus={!subclass.name} />
+                      </label>
+                      <VisibilitySelect value={subclass.visibility ?? 'dm'} onChange={(visibility) => updateSubclass(activeSubclass, { visibility })} />
+                      <button type="button" className="danger" onClick={() => removeSubclass(activeSubclass)}>
+                        Remove
+                      </button>
+                    </div>
+                    <details>
+                      <summary>Description</summary>
+                      <textarea
+                        value={subclass.description}
+                        onChange={(e) => updateSubclass(activeSubclass, { description: e.target.value })}
+                        rows={4}
+                        aria-label={`${form.subclass_label} description`}
+                      />
+                    </details>
+                    {form.subclass_levels.length === 0 && (
+                      <p className="sub-features-hint">Set the {form.subclass_label} feature levels in Basics to add its features.</p>
+                    )}
+                  </div>
+                )}
               </div>
-            ))}
-            <button type="button" onClick={addSubclass}>
-              + Add {form.subclass_label}
-            </button>
-          </div>
+            }
+          />
         )}
       </WizardShell>
     </section>

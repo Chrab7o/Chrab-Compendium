@@ -19,6 +19,7 @@ import { TOGGLE_VISUALS, emptyBehavior, emptyBehaviorAction, emptyBehaviorRule }
 import { emptyScript } from './foundryAutomation.js'
 import { CARD_COLOR_OPTIONS } from './foundryChat.js'
 import { FEATURE_TEMPLATES, emptyFeatureSpec } from './foundryFeatures.js'
+import { specFingerprint } from './forgeSource.js'
 
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1)
 const ABILITY_NAMES = { str: 'Strength', dex: 'Dexterity', con: 'Constitution', int: 'Intelligence', wis: 'Wisdom', cha: 'Charisma' }
@@ -297,6 +298,9 @@ const saveOrSuffer = {
     { key: 'damageType', label: 'Damage type', kind: 'select', default: 'necrotic', options: DAMAGE_TYPE_OPTIONS },
     { key: 'onSave', label: 'On a success', kind: 'select', default: 'half', options: [['half', 'Half damage'], ['none', 'No damage']] },
     { key: 'condition', label: 'Condition on a failure', kind: 'select', default: '', options: CONDITION_OPTIONS },
+    { key: 'effectName', label: 'Name of the condition’s effect', kind: 'text', default: '', hint: 'Blank = the condition’s name. e.g. Worshipping.' },
+    { key: 'moreConditions', label: 'Also gives these conditions', kind: 'conditions' },
+    { key: 'endsOnDamage', label: 'The condition ends when it takes damage', kind: 'checkbox', default: false },
     { key: 'repeatSave', label: 'Repeats the save at the end of each of its turns (a success ends it)', kind: 'checkbox', default: false },
     { key: 'extraTargets', label: 'Spending more: one more target per extra point', kind: 'checkbox', default: false, hint: 'One creature, with “Can spend more” on. Use this instead of +1 die each by leaving the damage blank, or have both.' },
   ],
@@ -316,7 +320,10 @@ const saveOrSuffer = {
     const activities = [roll]
     const effects = []
     if (values.condition) {
-      effects.push({ ...emptyEffect(), name: cap(values.condition), statuses: [values.condition] })
+      const statuses = [values.condition, ...list(values.moreConditions).filter((c) => c !== values.condition)]
+      const effect = { ...emptyEffect(), name: text(values.effectName) || cap(values.condition), statuses }
+      if (values.endsOnDamage) effect.specialDuration = ['isDamaged']
+      effects.push(effect)
       if (values.repeatSave) {
         // Its own activity (fresh key), rolled by midi at the end of each of the target's turns.
         activities.push({ ...emptyActivity('save'), name: 'Repeat save', saveAbility: base.saveAbility, dc, onSave: 'none', overTime: { turn: 'end', saveEnds: true, once: false, effectKey: '' } })
@@ -1120,10 +1127,15 @@ const summon = {
     ...creatureParams,
     { key: 'count', label: 'How many', kind: 'formula', default: '1', hint: 'With “spend more”: 1 + @scaling.increase for one more per extra point.' },
     { key: 'minutes', label: 'Lasts (minutes)', kind: 'number', default: '1', hint: 'midi removes it at the end if “auto remove summoned creatures” is on.' },
+    { key: 'creatureTypes', label: 'Only these creature types (when picking)', kind: 'text', default: '', hint: 'e.g. undead. Commas between several.' },
+    { key: 'range', label: 'Placed up to (ft)', kind: 'number', default: '', hint: 'Blank = next to you.' },
   ],
   build(values) {
     if (!text(values.uuid) && !text(values.crMax)) throw new Error('Give the creature’s UUID, or the highest CR the player can pick.')
     const roll = { ...emptyActivity('summon'), creatureUuid: text(values.uuid), creatureName: text(values.name), crMax: text(values.crMax), creatureCount: text(values.count) || '1', durationMinutes: text(values.minutes) }
+    const types = String(values.creatureTypes ?? '').split(',').map((t) => t.trim().toLowerCase()).filter(Boolean)
+    if (types.length) roll.creatureTypes = types
+    if (text(values.range)) roll.range = text(values.range)
     return usedFeature(values, [roll])
   },
 }
@@ -1190,9 +1202,13 @@ export function templateDefaults(template) {
 }
 
 // { spec } or { error } - for the picker, which shows the error instead of creating.
+// The spec remembers its template and settings (spec.source, lib/forgeSource.js),
+// so publishing can rebuild it with today's template code.
 export function buildFromTemplate(template, values) {
   try {
-    return { spec: template.build({ ...templateDefaults(template), ...(values ?? {}) }) }
+    const settings = { ...templateDefaults(template), ...(values ?? {}) }
+    const spec = template.build(settings)
+    return { spec: { ...spec, source: { template: template.key, settings: structuredClone(settings), fingerprint: specFingerprint(spec) } } }
   } catch (err) {
     return { error: err.message }
   }

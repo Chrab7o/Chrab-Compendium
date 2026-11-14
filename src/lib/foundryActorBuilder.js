@@ -15,6 +15,7 @@
 
 import { conditionRows, conditionText, parseOnUseMacros, scriptCode, scriptPass } from './foundryAutomation.js'
 import { flowCode, flowPasses, hasFlow } from './automationFlow.js'
+import { lowered } from './automation.js'
 import { activeBehavior, behaviorChanges, behaviorMacro, behaviorSummary, bondChanges, extraDamageChanges, hasSelfUseRules, picksOnUse, storedKeys, turnTicks } from './foundryBehaviors.js'
 
 export const CORE_VERSION = '14.368'
@@ -1536,7 +1537,10 @@ function behaviorEffect(item, behavior, suffix, extra) {
   }
 }
 
-export function buildNpcItem(spec, item, index = 0, { inSpell = false } = {}) {
+export function buildNpcItem(spec, stored, index = 0, { inSpell = false } = {}) {
+  // An item saved in the one automation format (automation.js) is written
+  // into the behavior rules, flows and recipes the generators below read.
+  const item = lowered(stored)
   const behavior = activeBehavior(item)
   const toggle = behavior?.mode === 'toggle'
   const kept = (item.effects ?? []).filter((e) => e.name || e.statuses?.length || e.changes?.length)

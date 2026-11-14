@@ -141,6 +141,8 @@ export default function DMFeatureForgePage() {
     else spec.item.name = copyName
     // A copy isn't the imported Item Maker record, so a re-import won't skip it.
     if (spec.gear?.source) spec.gear.source = null
+    // Nor is it the lab's: a copy is edited on the site.
+    delete spec.sandboxPush
     const { error: saveError } = await supabase.from('feature_drafts').insert({ name: copyName, kind: draft.kind, campaign_id: draft.campaign_id, spec })
     if (saveError) setError(saveError.message)
     else load()

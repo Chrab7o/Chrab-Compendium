@@ -91,8 +91,9 @@ export default function LibraryItemDialog({ draftId = null, initialSpec, ownerCt
         {(alsoOn.length > 0 || classLinks.length > 0) && (
           <p className="draft-banner">
             Shared: saving also changes it on{' '}
-            {[...alsoOn.map((n) => n.name || 'Untitled NPC'), ...classLinks.map((l) => l.label)].join(', ')}. Re-send
-            those NPCs to update them in Foundry, or use “Make a private copy” for a version only this NPC has.
+            {[...alsoOn.map((n) => n.name || 'Untitled NPC'), ...classLinks.map((l) => l.label)].join(', ')}.
+            {alsoOn.length > 0 && ' Re-send those NPCs to update them in Foundry, or use “Make a private copy” for a version only this NPC has.'}
+            {classLinks.length > 0 && ' Saving republishes the Foundry class pack; then Sync classes in Foundry.'}
           </p>
         )}
         {spec ? (

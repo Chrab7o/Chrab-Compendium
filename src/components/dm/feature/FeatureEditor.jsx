@@ -204,11 +204,18 @@ export default function FeatureEditor({ layout = null }) {
 
   const set = (patch) => setSpec((s) => ({ ...s, ...patch }))
   const name = featureName(spec)
+  // Mechanics written in the lab (mechanics/<name>.mjs) and pushed with
+  // chrab.mjs: edited there only, or the next push and this would fight.
+  const ownedBy = spec.sandboxPush?.from ?? ''
 
   // Same flow as the NPC editor: the item is built at send time into
   // queued_item, and a brand-new draft is rebuilt once its id exists so the
   // featureDraftId flag Chrab Sync matches on is set.
   async function save({ queue = false } = {}) {
+    if (ownedBy) {
+      setError(`Edit this in the lab's ${ownedBy} and push it from there.`)
+      return null
+    }
     setSaving(true)
     setError(null)
     const payload = { name: name || 'Untitled feature', kind: spec.kind, campaign_id: campaignId || null, spec }
@@ -322,7 +329,7 @@ export default function FeatureEditor({ layout = null }) {
           <button type="button" className="secondary" onClick={handleDownload} disabled={saving}>
             Save &amp; download Foundry JSON
           </button>
-          <button type="button" onClick={handleSend} disabled={saving} title={campaignId ? '' : 'Pick a campaign first'}>
+          <button type="button" onClick={handleSend} disabled={saving || !!ownedBy} title={campaignId ? '' : 'Pick a campaign first'}>
             {syncStatus === 'queued' ? 'Re-send to Foundry' : 'Send to Foundry'}
           </button>
         </div>
@@ -367,6 +374,15 @@ export default function FeatureEditor({ layout = null }) {
           }}
           onClose={() => setAddingToClass(false)}
         />
+      )}
+
+      {ownedBy && (
+        <div className="draft-banner feature-used-by">
+          <span>
+            Its mechanics are written in the lab&apos;s <code>{ownedBy}</code> and pushed with <code>chrab.mjs</code>, so
+            saving is off here. Change them there; the name and text still come from the class.
+          </span>
+        </div>
       )}
 
       {usedBy.length > 0 && (
@@ -501,7 +517,7 @@ export default function FeatureEditor({ layout = null }) {
 
           {error && <p className="status-message error">{error}</p>}
           <div className="dm-form-actions">
-            <button type="submit" disabled={saving}>
+            <button type="submit" disabled={saving || !!ownedBy}>
               {saving ? 'Saving...' : isNew && !draftId ? 'Create feature' : 'Save changes'}
             </button>
             <button type="button" className="secondary" onClick={() => navigate('/dm/item-forge')}>

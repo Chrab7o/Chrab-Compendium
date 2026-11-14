@@ -17,6 +17,7 @@
 // the copies already on characters (flags.chrab-sync.packItem).
 
 import { buildFeatureItem, featureSpecFromRow } from './foundryFeatures.js'
+import { rebuildFromSource } from './forgeBlocks.js'
 import {
   ABILITY_LABELS,
   ABILITY_SCORES,
@@ -902,10 +903,12 @@ export function buildClassPack({ classes = [], standaloneSubclasses = [], backgr
   return pack
 }
 
-// Built items for linked drafts, as buildClassPack wants them.
+// Built items for linked drafts, as buildClassPack wants them. A draft still
+// exactly as its template built it is rebuilt from the template's settings, so
+// a template fix reaches it (lib/forgeSource.js).
 export function draftItems(drafts) {
   const items = new Map()
-  for (const d of drafts) if (d.kind === 'feat') items.set(d.id, buildFeatureItem(featureSpecFromRow(d.spec), { draftId: d.id }))
+  for (const d of drafts) if (d.kind === 'feat') items.set(d.id, buildFeatureItem(featureSpecFromRow(rebuildFromSource(d.spec, d.id)), { draftId: d.id }))
   return items
 }
 

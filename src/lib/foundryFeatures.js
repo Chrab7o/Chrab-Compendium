@@ -9,6 +9,7 @@
 // resolve against whoever owns the item, and the generated description reads
 // the behaviors in words instead of printing an NPC's to-hit and damage.
 
+import { lowered } from './automation.js'
 import {
   buildNpcItem,
   buildNpcSpellItem,
@@ -338,7 +339,9 @@ function buildGearItem(spec) {
   return { ...built, type: type.type, img: item.img || built.img, system: sys }
 }
 
-export function buildFeatureItem(spec, { draftId = null } = {}) {
+export function buildFeatureItem(stored, { draftId = null } = {}) {
+  // Saved in the one automation format (automation.js): read as the old fields.
+  const spec = stored?.item?.automation ? { ...stored, item: lowered(stored.item) } : stored
   let built
   if (spec.kind === 'gear') {
     built = buildGearItem(spec)
