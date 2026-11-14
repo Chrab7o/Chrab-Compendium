@@ -29,6 +29,7 @@ import { attachMechanicsFile } from '../../../lib/classMechanicsFile'
 import { republishQuietly } from '../../../lib/foundryClassPackPublish'
 import AbilityScorePicker from '../AbilityScorePicker'
 import OptionPicker from '../OptionPicker'
+import BaseClassBreakpoints from './BaseClassBreakpoints'
 
 const STEPS = [
   { key: 'basics', label: 'Basics' },
@@ -656,6 +657,7 @@ export default function ClassWizard() {
                 </button>
               </span>
             </label>
+            <BaseClassBreakpoints form={form} setForm={setForm} subclassLabel={form.subclass_label} />
           </div>
         )}
 

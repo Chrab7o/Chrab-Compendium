@@ -1525,6 +1525,12 @@ button:disabled {
   color: var(--text);
 }
 
+/* Break points from a base class (ClassWizard, Basics): one per line. */
+.tag-checklist.base-breakpoints {
+  flex-direction: column;
+  flex-wrap: nowrap;
+}
+
 .dm-form-actions {
   display: flex;
   flex-wrap: wrap;
