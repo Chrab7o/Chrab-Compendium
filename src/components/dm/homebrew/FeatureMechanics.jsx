@@ -1,21 +1,25 @@
 import { useState } from 'react'
-import LibraryItemDialog from '../feature/LibraryItemDialog'
-import { OWNER_CONTEXT } from '../feature/ownerContext'
+import BlockEditor from './BlockEditor'
+import HandEditor from './HandEditor'
 import { loadDraftSpecs } from './mechanics'
 import { linkTextPatch } from '../../../lib/forgeClassRows'
-import { emptyFeatureSpec, mechanicsSummary } from '../../../lib/foundryFeatures'
+import { mechanicsSummary } from '../../../lib/foundryFeatures'
 import { findTemplate } from '../../../lib/automationTemplates'
 import { followsTemplate } from '../../../lib/forgeSource'
 import { automationOf, automationSummary } from '../../../lib/automation'
+import { blocksOf } from '../../../lib/forgeBlocks'
 
 // A class or subclass feature's Foundry mechanics, in the Levels panel: what
-// they are in a line, where they come from, and editing in the Item Forge
-// dialog on this page. The dialog saves the Item Forge draft at once; the
+// they are in a line, where they come from, and editing: as building blocks
+// right here (BlockEditor) when the feature is new or still follows its
+// template or blocks, else by hand in the guided steps, also right here
+// (HandEditor). The dialog saves the Item Forge draft at once; the
 // row's link to it is saved with the class (mechanics.js). The draft is what
 // the Foundry class pack hands to characters.
 export default function FeatureMechanics({ row, onChange, linkable = [], onRefreshLinks = null, campaignId = null }) {
   const [error, setError] = useState(null)
-  const [editing, setEditing] = useState(false)
+  // null, 'blocks' (BlockEditor) or 'hand' (HandEditor)
+  const [editing, setEditing] = useState(null)
   const spec = row.mechanics
   // Changed on this page and not saved yet (a mechanics file loaded into the
   // class): the draft doesn't have it, so the dialog would open the old one.
@@ -24,6 +28,8 @@ export default function FeatureMechanics({ row, onChange, linkable = [], onRefre
   const template = spec?.source?.template ? findTemplate(spec.source.template) : null
   const blockList = spec?.source?.blocks?.map((b) => b.block).join(', ')
   // Everything it does, from rules, flows and recipes alike (automation.js).
+  // New, or still exactly what its template or blocks built: edit as blocks.
+  const asBlocks = !spec || (followsTemplate(spec) && !!blocksOf(spec.source))
   const doing = spec ? automationSummary(spec.item.automation ?? automationOf(spec.item), spec.item) : []
 
   async function link(id) {
@@ -54,9 +60,45 @@ export default function FeatureMechanics({ row, onChange, linkable = [], onRefre
     onChange({ feature_draft_id: null, mechanics: undefined, mechanicsDirty: false, mechanicsMissing: false })
   }
 
-  const fresh = () => {
-    const base = emptyFeatureSpec('feat')
-    return { ...base, item: { ...base.item, name: row.name, description: row.description } }
+  const saved = (row) => onChange({ feature_draft_id: row.id, mechanics: row.spec, mechanicsDirty: false, mechanicsMissing: false })
+
+  if (editing === 'blocks') {
+    return (
+      <div className="feature-flow">
+        <BlockEditor
+          stored={spec ?? null}
+          draftId={row.feature_draft_id ?? null}
+          name={row.name}
+          description={row.description}
+          campaignId={campaignId}
+          onSaved={(r) => {
+            saved(r)
+            setEditing(null)
+          }}
+          onCancel={() => setEditing(null)}
+          onHandEdit={() => setEditing('hand')}
+        />
+      </div>
+    )
+  }
+
+  if (editing === 'hand') {
+    return (
+      <div className="feature-flow">
+        <HandEditor
+          stored={spec ?? null}
+          draftId={row.feature_draft_id ?? null}
+          name={row.name}
+          description={row.description}
+          campaignId={campaignId}
+          onSaved={(r) => {
+            saved(r)
+            setEditing(null)
+          }}
+          onCancel={() => setEditing(null)}
+        />
+      </div>
+    )
   }
 
   return (
@@ -92,8 +134,8 @@ export default function FeatureMechanics({ row, onChange, linkable = [], onRefre
       )}
       <div className="dm-form-actions">
         {!ownedBy && !row.mechanicsMissing && (
-          <button type="button" className="secondary" onClick={() => setEditing(true)} disabled={unsaved}>
-            {spec ? 'Edit mechanics' : 'Build mechanics'}
+          <button type="button" className="secondary" onClick={() => setEditing(asBlocks ? 'blocks' : 'hand')} disabled={unsaved}>
+            {spec ? (asBlocks ? 'Edit blocks' : 'Edit mechanics') : 'Build mechanics'}
           </button>
         )}
         {!spec && (
@@ -117,16 +159,6 @@ export default function FeatureMechanics({ row, onChange, linkable = [], onRefre
       </div>
       {unsaved && <p className="feature-mechanics-unsaved">Changed here: save the class to keep it, then edit it.</p>}
       {error && <p className="status-message error">{error}</p>}
-      {editing && (
-        <LibraryItemDialog
-          draftId={row.feature_draft_id ?? null}
-          initialSpec={fresh()}
-          ownerCtx={OWNER_CONTEXT}
-          campaignId={campaignId}
-          onSaved={(saved) => onChange({ feature_draft_id: saved.id, mechanics: saved.spec, mechanicsDirty: false, mechanicsMissing: false })}
-          onClose={() => setEditing(false)}
-        />
-      )}
     </div>
   )
 }

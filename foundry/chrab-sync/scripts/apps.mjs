@@ -14,6 +14,7 @@ import { characterState, partyActors, pendingTrades, pushCharacter, pushCharacte
 import { diffClassPack } from './classDiff.mjs'
 import { fetchClassPack, findClassCopies, isNewer, lastSynced, readClassPack, syncClassPack } from './classes.mjs'
 import { CLASS_PACK_LABEL, MODULE_ID } from './constants.mjs'
+import { copySummary } from './copies.mjs'
 import { applyQueuedFeature, findDraftCopies, findDraftItem } from './items.mjs'
 import { checkQueue } from './queue.mjs'
 import { currentEmail, isSignedIn, listCampaigns, rpc, signIn, signOut } from './supabase.mjs'
@@ -22,6 +23,28 @@ const { ApplicationV2 } = foundry.applications.api
 
 function esc(value) {
   return foundry.utils.escapeHTML ? foundry.utils.escapeHTML(String(value ?? '')) : String(value ?? '').replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`)
+}
+
+// Copies edited in Foundry, each with a tick to replace it anyway (unticked:
+// the sync keeps it as it is).
+function editedHTML(copies) {
+  const edited = copies.filter((c) => c.edited)
+  if (!edited.length) return ''
+  const rows = edited
+    .map((c) => `<label class="chrab-sync-inline"><input type="checkbox" name="replaceEdited" value="${esc(c.item.uuid)}"> ${esc(c.owner)}: ${esc(c.item.name)}</label>`)
+    .join('')
+  return `<div class="chrab-sync-edited"><span class="chrab-sync-warn">Edited in Foundry, kept as they are unless ticked:</span>${rows}</div>`
+}
+
+const ticked = (root) => new Set([...root.querySelectorAll('input[name="replaceEdited"]:checked')].map((b) => b.value))
+
+// "Updated 3 copies. Kept 1 edited in Foundry (…). Failed: …"
+function copiesText({ copies = 0, kept = [], failed = [] }) {
+  const parts = []
+  if (copies) parts.push(`${copies} cop${copies === 1 ? 'y' : 'ies'} updated`)
+  if (kept.length) parts.push(`kept ${kept.length} edited in Foundry (${kept.join('; ')})`)
+  if (failed.length) parts.push(`failed: ${failed.join('; ')}`)
+  return parts.join(', ')
 }
 
 function crLabel(cr) {
@@ -215,7 +238,7 @@ export class SyncApp extends ApplicationV2 {
         const result = this.featureResults[f.id]
         const copies = findDraftCopies(f.id)
         const target = findDraftItem(f.id) ? 'update existing' : 'new'
-        const owners = copies.length ? ` · on ${esc(copies.map((c) => c.parent?.name).join(', '))}` : ''
+        const owners = copies.length ? ` · copies: ${esc(copySummary(copies))}` : ''
         return `
           <li class="chrab-sync-row">
             <label>
@@ -223,14 +246,14 @@ export class SyncApp extends ApplicationV2 {
               <strong>${esc(f.name)}</strong>
               <span class="chrab-sync-meta">${f.kind === 'spell' ? 'Spell' : f.kind === 'gear' ? 'Item' : 'Feature'} · ${target}${owners} · sent ${esc(new Date(f.queued_at).toLocaleString())}</span>
             </label>
-            ${result ? `<span class="chrab-sync-result ${result.ok ? 'ok' : 'fail'}">${esc(result.text)}</span>` : ''}
+            ${result ? `<span class="chrab-sync-result ${result.ok ? 'ok' : 'fail'}">${esc(result.text)}</span>` : editedHTML(copies)}
           </li>`
       })
       .join('')
     const pending = this.features.filter((f) => !this.featureResults[f.id]?.ok).length
     return `
       ${this.features.length ? `<ul class="chrab-sync-list">${rows}</ul>` : this.loaded && !this.message ? '<p class="chrab-sync-message">No items waiting. Send them from the Item Forge on the Compendium site.</p>' : ''}
-      <label class="chrab-sync-inline"><input type="checkbox" name="updateCopies" ${this.updateCopies ? 'checked' : ''}> Also update copies already on characters (keeps their spent uses)</label>
+      <label class="chrab-sync-inline"><input type="checkbox" name="updateCopies" ${this.updateCopies ? 'checked' : ''}> Also update its copies everywhere: actors, unlinked tokens, the Items directory${game.settings.get(MODULE_ID, 'updateCompendiumCopies') ? ', unlocked world compendiums' : ''}. Keeps spent uses, quantity, equipped, attuned and spell preparation.</label>
       <p class="chrab-sync-meta">Features can carry scripts that run in players' browsers once they're on a character. They were written by a DM on the Compendium site.</p>
       <footer class="chrab-sync-footer">
         <button type="button" data-action="applyItems" class="chrab-sync-primary" ${this.busy || !pending ? 'disabled' : ''}>
@@ -268,7 +291,8 @@ export class SyncApp extends ApplicationV2 {
       ${this.classMessage ? `<p class="chrab-sync-message">${esc(this.classMessage)}</p>` : ''}
       ${status}
       ${this.classResult ? `<p class="chrab-sync-result ${this.classResult.ok ? 'ok' : 'fail'}">${esc(this.classResult.text)}</p>` : ''}
-      <label class="chrab-sync-inline"><input type="checkbox" name="updateClassCopies" ${this.updateCopies ? 'checked' : ''}> Also update copies already on characters${copies.length ? ` (${copies.length}, on ${esc([...new Set(copies.map((c) => c.parent?.name))].join(', '))})` : ''}. Keeps spent uses and the choices made while levelling.</label>
+      <label class="chrab-sync-inline"><input type="checkbox" name="updateClassCopies" ${this.updateCopies ? 'checked' : ''}> Also update copies everywhere${copies.length ? ` (${esc(copySummary(copies))})` : ''}. Keeps spent uses and the choices made while levelling.</label>
+      ${editedHTML(copies)}
       <p class="chrab-sync-meta">Syncing replaces the contents of the <strong>${esc(CLASS_PACK_LABEL)}</strong> compendium. Players can open it: they drag a class or a background onto their sheet (a background grants its feat) and level up from the sheet. Features can carry scripts that run in players' browsers, written by a DM on the Compendium site.</p>
       <input type="file" name="classFile" accept="application/json,.json" hidden>
       <footer class="chrab-sync-footer">
@@ -384,12 +408,15 @@ export class SyncApp extends ApplicationV2 {
   static async #onSyncClasses() {
     if (!this.classPack) return
     this.updateCopies = !!this.element.querySelector('input[name="updateClassCopies"]')?.checked
+    const replaceEdited = ticked(this.element)
     this.busy = true
     this.classResult = null
     this.render()
     try {
-      const { items, copies, failed } = await syncClassPack(this.classPack, { updateCopies: this.updateCopies })
-      const text = `Synced ${items} items into ${CLASS_PACK_LABEL}` + (copies ? `, ${copies} character cop${copies === 1 ? 'y' : 'ies'} updated` : '') + (failed.length ? `. Failed: ${failed.join('; ')}` : '.')
+      const result = await syncClassPack(this.classPack, { updateCopies: this.updateCopies, replaceEdited })
+      const more = copiesText(result)
+      const failed = result.failed
+      const text = `Synced ${result.items} items into ${CLASS_PACK_LABEL}${more ? `, ${more}` : ''}.`
       this.classResult = { ok: !failed.length, text }
     } catch (err) {
       console.error(`${MODULE_ID} | class sync failed`, err)
@@ -416,12 +443,13 @@ export class SyncApp extends ApplicationV2 {
   static async #onApplyItems() {
     const picked = new Set([...this.element.querySelectorAll('input[name="pickItem"]:checked:not(:disabled)')].map((b) => b.value))
     this.updateCopies = !!this.element.querySelector('input[name="updateCopies"]')?.checked
+    const replaceEdited = ticked(this.element)
     if (!picked.size) return
     this.busy = true
     this.render()
     for (const entry of this.features.filter((f) => picked.has(f.id))) {
       try {
-        const { item, mode, copies } = await applyQueuedFeature(entry, { updateCopies: this.updateCopies })
+        const { item, mode, ...result } = await applyQueuedFeature(entry, { updateCopies: this.updateCopies, replaceEdited })
         await rpc('sync_report_feature', {
           p_draft_id: entry.id,
           p_queued_at: entry.queued_at,
@@ -430,7 +458,8 @@ export class SyncApp extends ApplicationV2 {
           p_error: null,
         })
         const what = mode === 'created' ? 'Created' : 'Updated (backup saved)'
-        this.featureResults[entry.id] = { ok: true, text: copies ? `${what}, ${copies} character cop${copies === 1 ? 'y' : 'ies'} updated` : what }
+        const more = copiesText(result)
+        this.featureResults[entry.id] = { ok: !result.failed.length, text: more ? `${what}, ${more}` : what }
       } catch (err) {
         console.error(`${MODULE_ID} | failed to apply ${entry.name}`, err)
         this.featureResults[entry.id] = { ok: false, text: err.message }

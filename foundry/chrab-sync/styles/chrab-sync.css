@@ -158,3 +158,12 @@
 .chrab-sync .chrab-sync-warn {
   color: #b7791f;
 }
+
+/* Copies edited in Foundry, each with a tick to replace it anyway (copies.mjs). */
+.chrab-sync .chrab-sync-edited {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin: 0.25rem 0 0 1.5rem;
+  font-size: 0.9em;
+}

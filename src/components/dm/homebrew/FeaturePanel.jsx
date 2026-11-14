@@ -31,7 +31,9 @@ export default function FeaturePanel({ lane, rowKey, onSelect, linkable, onRefre
   }
 
   return (
-    <aside className="feature-panel" aria-label="Feature">
+    // Enter in a field mustn't submit the page's form (the standalone subclass
+    // editor's saves it).
+    <aside className="feature-panel" aria-label="Feature" onKeyDown={(e) => e.key === 'Enter' && e.target.tagName === 'INPUT' && e.preventDefault()}>
       <header className="feature-panel-head">
         <div className="feature-panel-trail">
           <span>{lane.label}</span>

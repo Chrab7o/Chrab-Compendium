@@ -791,14 +791,19 @@ export function buildClassPack({ classes = [], standaloneSubclasses = [], backgr
     if (!pack.folders.some((f) => f._id === _id)) pack.folders.push({ _id, name, type: 'Item', sorting: 'm', color: '#c4102f' })
     return _id
   }
+  // The site page that edits each class, subclass, feat and background (by
+  // its pack id); stamped on every item at the end as flags.chrab-sync.edit,
+  // for Chrab Sync's "Edit on the site" button.
+  const routes = new Map()
   const take = (built) => {
     pack.items.push(...built.items)
     pack.summary.features += built.items.length
     pack.summary.automated += built.automated
   }
 
-  const addSubclass = (sc, { className, classIdentifier, book, folder, classKey }) => {
+  const addSubclass = (sc, { className, classIdentifier, book, folder, classKey, route }) => {
     const id = stableId(`subclass|${sc.id ?? `${classKey}|${sc.name.toLowerCase()}`}`)
+    if (route) routes.set(id, route)
     const subclassName = sc.name.trim()
     const built = featuresAndAdvancements(sc.features ?? [], {
       keyPrefix: `${id}`,
@@ -835,6 +840,8 @@ export function buildClassPack({ classes = [], standaloneSubclasses = [], backgr
     const className = form.name.trim()
     const classIdentifier = slug(className)
     const id = stableId(`class|${form.id ?? classIdentifier}`)
+    const route = form.id ? `/dm/homebrew/classes/${form.id}/edit` : null
+    if (route) routes.set(id, route)
     const book = className
     const folder = folderFor(className)
     const classSort = nextSort()
@@ -872,13 +879,20 @@ export function buildClassPack({ classes = [], standaloneSubclasses = [], backgr
     })
     take(built)
     pack.summary.classes++
-    for (const sc of form.subclasses ?? []) addSubclass(sc, { className, classIdentifier, book, folder, classKey: id })
+    for (const sc of form.subclasses ?? []) addSubclass(sc, { className, classIdentifier, book, folder, classKey: id, route })
   }
 
   for (const sc of standaloneSubclasses) {
     const parent = String(sc.parent_class_name ?? '').trim()
     if (!parent) continue
-    addSubclass(sc, { className: parent, classIdentifier: slug(parent), book: sc.name.trim(), folder: folderFor(`${parent} subclasses`), classKey: slug(parent) })
+    addSubclass(sc, {
+      className: parent,
+      classIdentifier: slug(parent),
+      book: sc.name.trim(),
+      folder: folderFor(`${parent} subclasses`),
+      classKey: slug(parent),
+      route: sc.id ? `/dm/homebrew/subclasses/${sc.id}/edit` : null,
+    })
   }
 
   // Feats first, so backgrounds can grant them by name.
@@ -887,6 +901,7 @@ export function buildClassPack({ classes = [], standaloneSubclasses = [], backgr
   const featFolder = namedFeats.length ? folderFor('Feats') : null
   for (const form of namedFeats) {
     const item = featItem(form, { folder: featFolder, sort: nextSort() })
+    if (form.id) routes.set(item._id, `/dm/homebrew/feats/${form.id}/edit`)
     pack.items.push(item)
     featUuids.set(item.name.toLowerCase(), packUuid(item._id))
     pack.summary.feats++
@@ -895,11 +910,18 @@ export function buildClassPack({ classes = [], standaloneSubclasses = [], backgr
   const backgroundFolder = namedBackgrounds.length ? folderFor('Backgrounds') : null
   for (const form of namedBackgrounds) {
     const { background, features } = backgroundItems(form, { featUuids, folder: backgroundFolder, nextSort })
+    if (form.id) routes.set(background._id, `/dm/homebrew/backgrounds/${form.id}/edit`)
     pack.items.push(background, ...features)
     pack.summary.features += features.length
     pack.summary.backgrounds++
   }
 
+  // A feature's packKey starts with its owner's pack id ("<owner>|<level>|<name>").
+  for (const item of pack.items) {
+    const own = item.flags?.['chrab-sync'] ?? {}
+    const route = routes.get(item._id) ?? routes.get(String(own.packKey ?? '').split('|')[0])
+    if (route) item.flags = { ...item.flags, 'chrab-sync': { ...own, edit: route } }
+  }
   return pack
 }
 

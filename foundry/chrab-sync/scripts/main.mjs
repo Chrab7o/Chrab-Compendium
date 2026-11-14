@@ -10,6 +10,7 @@ import { relinkWorldActivityMacros } from './activityMacros.mjs'
 import { ConfigApp, SyncApp } from './apps.mjs'
 import { syncOnLoad, watchCharacters } from './characters.mjs'
 import { checkClassPack } from './classes.mjs'
+import { addSiteButtons, watchLocalEdits } from './copies.mjs'
 import { setupCrits } from './crits.mjs'
 import { DEFAULT_FOLDER, DEFAULT_ITEM_FOLDER, MODULE_ID } from './constants.mjs'
 import { checkQueue, state } from './queue.mjs'
@@ -71,6 +72,22 @@ Hooks.once('init', () => {
     type: Boolean,
     default: true,
   })
+  game.settings.register(MODULE_ID, 'updateCompendiumCopies', {
+    name: 'Also update copies in world compendiums',
+    hint: 'When syncing classes or items with “update copies”, also update copies inside this world’s unlocked compendiums (items, and items on actors). The class compendium and the backups are never touched.',
+    scope: 'world',
+    config: true,
+    type: Boolean,
+    default: false,
+  })
+  game.settings.register(MODULE_ID, 'siteUrl', {
+    name: 'Compendium site address',
+    hint: 'Where “Edit on the site” buttons on item and NPC sheets go. Blank = the address this module was installed from.',
+    scope: 'world',
+    config: true,
+    type: String,
+    default: '',
+  })
   game.settings.registerMenu(MODULE_ID, 'account', {
     name: 'Chrab Sync account & campaign',
     label: 'Open',
@@ -80,6 +97,11 @@ Hooks.once('init', () => {
     restricted: true,
   })
 })
+
+// Every client: an edit to a built item in Foundry marks it, so a sync asks
+// before replacing it (copies.mjs). GMs get "Edit on the site" on sheets.
+watchLocalEdits()
+addSiteButtons()
 
 // Crits double the damage total (crits.mjs): every client, since players roll
 // their own damage. 'setup' runs after dnd5e has filled CONFIG.Dice at init.

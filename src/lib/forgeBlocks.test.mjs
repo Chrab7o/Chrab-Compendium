@@ -3,10 +3,10 @@
 // Building blocks (forgeBlocks.js): a feature as "how it's used" plus blocks.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { AUTOMATION_TEMPLATES } from './automationTemplates.js'
-import { BLOCKS, BLOCK_GROUPS, buildFeatureFromBlocks, findBlock, rebuildFromSource } from './forgeBlocks.js'
+import { AUTOMATION_TEMPLATES, buildFromTemplate, findTemplate } from './automationTemplates.js'
+import { BLOCKS, BLOCK_GROUPS, blocksOf, buildFeatureFromBlocks, findBlock, rebuildFromSource, specFromSource } from './forgeBlocks.js'
 import { buildFeatureItem, featureSpecFromRow } from './foundryFeatures.js'
-import { followsTemplate, specFingerprint } from './forgeSource.js'
+import { canonicalSpec, followsTemplate, specFingerprint } from './forgeSource.js'
 
 const saved = (spec) => featureSpecFromRow(JSON.parse(JSON.stringify(spec)))
 const MINIMAL = {
@@ -151,4 +151,44 @@ test('a hand edit to a block feature stops it following', () => {
   stored.item.activities[0].range = '5'
   assert.ok(!followsTemplate(stored))
   assert.equal(rebuildFromSource(stored, 'x'), stored)
+})
+
+test('a template feature opens as one block, its use settings moved out (Phase 2c)', () => {
+  const { spec } = buildFromTemplate(findTemplate('attack'), { activation: 'bonus', uses: '1-sr', pool: 'darkness', poolCost: '2', damage: '2d6', damageType: 'fire' })
+  const def = blocksOf(spec.source)
+  assert.equal(def.blocks.length, 1)
+  assert.equal(def.blocks[0].block, 'attack')
+  assert.equal(def.use.activation, 'bonus')
+  assert.equal(def.use.uses, '1-sr')
+  assert.equal(def.use.pool, 'darkness')
+  assert.equal(def.blocks[0].settings.activation, undefined)
+  assert.equal(def.blocks[0].settings.damage, '2d6')
+  // Saved unchanged, it's the same feature.
+  assert.deepEqual(canonicalSpec(buildFeatureFromBlocks(def)), canonicalSpec(spec))
+  // Blocks open as they are; an example template, or none, doesn't open.
+  const blocks = { use: { activation: 'action' }, blocks: [{ id: 'a', block: 'heal', settings: { formula: '1d8' } }] }
+  assert.deepEqual(blocksOf(blocks).blocks, blocks.blocks)
+  assert.equal(blocksOf({ template: 'deathStance', settings: {} }), null)
+  assert.equal(blocksOf(null), null)
+})
+
+test('saving blocks over a stored spec keeps its words and Foundry ids (Phase 2c)', () => {
+  const def = { use: { activation: 'action' }, blocks: [{ id: 'a', block: 'attack', settings: { damage: '1d8' } }] }
+  const stored = saved({ ...buildFeatureFromBlocks(def), requirements: 'Dark Knight 3' })
+  stored.item = { ...stored.item, name: 'Lance', description: 'Pierce.' }
+  const changed = { ...def, blocks: [{ ...def.blocks[0], settings: { damage: '2d8' } }, { id: 'b', block: 'condition', settings: { name: 'Pierced', from: 'a' } }] }
+  const { spec, error } = specFromSource(changed, stored, 'draft-1')
+  assert.equal(error, undefined)
+  assert.equal(spec.item.name, 'Lance')
+  assert.equal(spec.item.description, 'Pierce.')
+  assert.equal(spec.requirements, 'Dark Knight 3')
+  assert.equal(spec.item.activities[0].key, stored.item.activities[0].key)
+  assert.equal(spec.item.activities[0].damage[0].formula, '2d8')
+  assert.deepEqual(spec.item.effects[0].appliedBy, [stored.item.activities[0].key])
+  assert.ok(followsTemplate(spec))
+  // Again from the same draft: the same new ids.
+  assert.deepEqual(specFromSource(changed, stored, 'draft-1').spec, spec)
+  // Nothing stored: a fresh build.
+  assert.equal(specFromSource(def).spec.source.blocks[0].block, 'attack')
+  assert.match(specFromSource({ use: {}, blocks: [] }).error, /at least one block/)
 })

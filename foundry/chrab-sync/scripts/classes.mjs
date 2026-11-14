@@ -8,13 +8,16 @@
 //
 // The file's ids are stable across publishes, so the class advancements'
 // UUIDs keep working and the copies already on characters can be refreshed
-// in place: matched by flags.chrab-sync.packItem, keeping their spent uses
-// and the choices made while levelling. See docs/foundry-classes.md in the
-// Chrab Compendium repo.
+// in place wherever they are (copies.mjs: actors, unlinked tokens, the Items
+// directory, opted-in compendiums): matched by flags.chrab-sync.packItem,
+// keeping their play state and the choices made while levelling. Copies
+// edited in Foundry are only replaced when the GM ticks them. See
+// docs/foundry-classes.md in the lab.
 
 import { CLASS_PACK_FILE, CLASS_PACK_FORMAT, CLASS_PACK_LABEL, CLASS_PACK_NAME, MODULE_ID } from './constants.mjs'
 import { stampItems } from './classDiff.mjs'
-import { replaceSource } from './items.mjs'
+import { findCompendiumCopies, findCopies, refreshCopy, splitEdited } from './copies.mjs'
+import { ADVANCING_TYPES, keepChoices, packItemOf } from './copyRules.mjs'
 import { loadConfig } from './supabase.mjs'
 
 // The public file needs no sign-in: it holds only public classes.
@@ -46,63 +49,29 @@ async function classCompendium() {
   return Compendium.createCompendium({ name: CLASS_PACK_NAME, label: CLASS_PACK_LABEL, type: 'Item', package: 'world' })
 }
 
-const packItemId = (item) => item.flags?.[MODULE_ID]?.packItem ?? null
-
-// dnd5e 5.3 keeps advancements keyed by id; the pack writes them as a list,
-// which dnd5e converts on create. Either shape -> a list.
-const advancementList = (adv) => (Array.isArray(adv) ? adv : Object.values(adv ?? {}))
-
-// The new advancements, each keeping what this character already chose for
-// it, in the shape the copy already has.
-function keepChoices(copy, nextAdvancement) {
-  const current = copy._source.system.advancement
-  const before = new Map(advancementList(current).map((a) => [a._id, a]))
-  const merged = advancementList(nextAdvancement).map((a) => (before.has(a._id) ? { ...a, value: before.get(a._id).value } : a))
-  return Array.isArray(current) ? merged : Object.fromEntries(merged.map((a) => [a._id, a]))
-}
-
-// A feature copy: the new item under the copy's own id, with its spent uses
-// and dnd5e's record of which advancement granted it. A feat's ability score
-// increase keeps the abilities the player picked.
-async function refreshFeature(copy, next) {
-  const data = foundry.utils.deepClone(next)
-  data._id = copy.id
-  delete data.folder
-  delete data.sort
-  if (data.system?.uses && copy.system?.uses) data.system.uses.spent = copy.system.uses.spent ?? 0
-  if (data.system?.advancement && copy._source.system?.advancement) data.system.advancement = keepChoices(copy, data.system.advancement)
-  data.flags = { ...data.flags, dnd5e: copy._source.flags?.dnd5e ?? {} }
-  data._stats = copy._source._stats
-  await replaceSource(copy, data)
-}
-
 // A class, subclass or background copy: the new advancements (so later
 // level-ups use the current class), each keeping what this character already
 // chose for it (a background's ability scores, skills and languages), plus a
 // class's levels and spent hit dice.
-const ADVANCING = new Set(['class', 'subclass', 'background'])
-
 async function refreshAdvancing(copy, next) {
   const system = foundry.utils.deepClone(next.system)
-  system.advancement = keepChoices(copy, system.advancement)
+  system.advancement = keepChoices(copy._source.system.advancement, system.advancement)
   if (copy.type === 'class') {
     system.levels = copy._source.system.levels
     system.hd = { ...system.hd, spent: copy._source.system.hd?.spent ?? 0 }
   }
-  await copy.update({ name: next.name, img: next.img, system }, { diff: false, recursive: false })
+  await copy.update({ name: next.name, img: next.img, system }, { diff: false, recursive: false, chrabSync: true })
 }
 
+// Every copy of a pack item in the world: [{ item, where, owner, edited }].
 export function findClassCopies(data) {
   const ids = new Set(data.items.map((i) => i._id))
-  const copies = []
-  for (const actor of game.actors) {
-    for (const item of actor.items) if (ids.has(packItemId(item))) copies.push(item)
-  }
-  return copies
+  return findCopies((item) => ids.has(packItemOf(item)))
 }
 
-// Returns { items, copies, failed }. Throws if the compendium can't be written.
-export async function syncClassPack(data, { updateCopies = true } = {}) {
+// Returns { items, copies, kept, failed }. Throws if the compendium can't be
+// written. replaceEdited: uuids of copies edited in Foundry to replace anyway.
+export async function syncClassPack(data, { updateCopies = true, replaceEdited = new Set() } = {}) {
   const pack = await classCompendium()
   const options = { pack: pack.collection }
   await pack.configure({ locked: false })
@@ -129,21 +98,26 @@ export async function syncClassPack(data, { updateCopies = true } = {}) {
 
   let copies = 0
   const failed = []
+  let kept = []
   if (updateCopies) {
     const byId = new Map(data.items.map((i) => [i._id, i]))
-    for (const copy of findClassCopies(data)) {
+    const ids = new Set(byId.keys())
+    const all = [...findClassCopies(data), ...(await findCompendiumCopies((item) => ids.has(packItemOf(item))))]
+    const split = splitEdited(all, replaceEdited)
+    kept = split.kept
+    for (const { item: copy, owner } of split.refresh) {
       try {
-        const next = byId.get(packItemId(copy))
-        if (ADVANCING.has(copy.type)) await refreshAdvancing(copy, next)
-        else await refreshFeature(copy, next)
+        const next = byId.get(packItemOf(copy))
+        if (ADVANCING_TYPES.has(copy.type)) await refreshAdvancing(copy, next)
+        else await refreshCopy(copy, next)
         copies++
       } catch (err) {
-        console.error(`${MODULE_ID} | failed to update ${copy.name} on ${copy.parent?.name}`, err)
-        failed.push(`${copy.parent?.name}: ${copy.name}`)
+        console.error(`${MODULE_ID} | failed to update ${copy.name} on ${owner}`, err)
+        failed.push(`${owner}: ${copy.name}`)
       }
     }
   }
-  return { items: data.items.length, copies, failed }
+  return { items: data.items.length, copies, kept: kept.map((c) => `${c.owner}: ${c.item.name}`), failed }
 }
 
 // For the login check: tells the GM when the site has published classes this

@@ -253,19 +253,46 @@ function buildSource(source, featureName) {
   }
 }
 
-// A stored spec rebuilt from its source (a template, or blocks), when it still
-// follows it (not edited by hand since). Otherwise, or if a template is gone or
-// now refuses the settings, the stored spec as it is. Keeps the stored spec's
-// words and keys (so Foundry ids don't change); `seed` (the draft id) gives
-// any new parts the same ids every time.
-export function rebuildFromSource(stored, seed = '') {
-  if (!followsTemplate(stored)) return stored
-  const { spec: fresh, error } = buildSource(stored.source, stored.item?.name ?? '')
-  if (error) return stored
-  const { source, ...built } = carryKeys(fresh, stored, seed)
+// A source built over a stored spec: the stored spec's words (name, text,
+// feature type, requirements, the behavior's level class) and keys (so Foundry
+// ids don't change); `seed` (the draft id) gives any new parts the same ids
+// every time. With no stored spec, the fresh build as it is (random keys).
+// -> { spec } | { error }
+export function specFromSource(source, stored = null, seed = '') {
+  const { spec: fresh, error } = buildSource(source, stored?.item?.name ?? '')
+  if (error) return { error }
+  if (!stored) return { spec: fresh }
+  const { source: builtSource, ...built } = carryKeys(fresh, stored, seed)
   const item = { ...built.item, name: stored.item?.name ?? '', description: stored.item?.description ?? '' }
   if (item.behavior && stored.item?.behavior?.levelClass) item.behavior = { ...item.behavior, levelClass: stored.item.behavior.levelClass }
   const spec = { ...built, featType: stored.featType ?? built.featType, requirements: stored.requirements ?? '', item }
   if (stored.sandboxPush) spec.sandboxPush = stored.sandboxPush
-  return { ...spec, source: { ...source, fingerprint: specFingerprint(spec) } }
+  return { spec: { ...spec, source: { ...builtSource, fingerprint: specFingerprint(spec) } } }
+}
+
+// A stored spec rebuilt from its source (a template, or blocks), when it still
+// follows it (not edited by hand since). Otherwise, or if a template is gone or
+// now refuses the settings, the stored spec as it is.
+export function rebuildFromSource(stored, seed = '') {
+  if (!followsTemplate(stored)) return stored
+  const { spec, error } = specFromSource(stored.source, stored, seed)
+  return error ? stored : spec
+}
+
+// A source as blocks, for the block editor: blocks as they are, or a single
+// template as one block (its "how it's used" settings moved to `use`). Null
+// for a template that isn't a block (the examples) or is gone.
+export function blocksOf(source) {
+  if (Array.isArray(source?.blocks)) return { use: { ...useDefaults(), ...source.use }, blocks: structuredClone(source.blocks) }
+  const block = findBlock(source?.template)
+  if (!block) return null
+  const settings = { ...(source.settings ?? {}) }
+  const use = useDefaults()
+  if (block.used) {
+    for (const key of USE_KEYS) {
+      if (key in settings) use[key] = settings[key]
+      delete settings[key]
+    }
+  }
+  return { use, blocks: [{ id: newBlockId(), block: block.key, settings }] }
 }

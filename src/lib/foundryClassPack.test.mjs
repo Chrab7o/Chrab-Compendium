@@ -650,3 +650,17 @@ test('background feat options split and join on " or "; 5etools alternatives imp
   const form = fiveToolsBackgroundToForm({ name: 'Wanderer', feats: [{ 'alert|xphb': true }, { 'magic initiate; druid|xphb': true }], entries: [] })
   assert.equal(form.feat, 'Alert or Magic Initiate (Druid)')
 })
+
+test('every pack item names the site page that edits it (Chrab Sync "Edit on the site")', () => {
+  const pack = buildClassPack({ classes: [darkKnight()], standaloneSubclasses: [godless], items: items() })
+  const edit = (name) => pack.items.find((i) => i.name === name)?.flags['chrab-sync'].edit
+  assert.equal(edit('The Dark Knight'), '/dm/homebrew/classes/class-tdk/edit')
+  assert.equal(edit('Shadow Smite'), '/dm/homebrew/classes/class-tdk/edit')
+  // A class's subclass and its features: the class editor.
+  assert.equal(edit('Death Stance'), '/dm/homebrew/classes/class-tdk/edit')
+  // A standalone subclass and its features: the subclass editor.
+  assert.equal(edit('Godless Domain'), '/dm/homebrew/subclasses/sub-godless/edit')
+  assert.equal(edit('Faithless Strike'), '/dm/homebrew/subclasses/sub-godless/edit')
+  // The pack key and item id are untouched.
+  assert.ok(pack.items.every((i) => i.flags['chrab-sync'].packItem === i._id))
+})
