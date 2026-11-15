@@ -306,6 +306,22 @@ test('choice_count 0 grants every option instead of a choice', () => {
   assert.equal(adv(cls, 'Subclass').length, 0, 'no subclasses, no subclass step')
 })
 
+test('options a later feature adds to a "get all" group are granted at that level; to a "choose" group, a pick of 1', () => {
+  const features = (count) => [
+    row(1, 'Illustrate'),
+    row(1, 'Bleeding Scar', { choice_group: 'Illustrate', choice_count: count }),
+    row(1, 'Grip of Fear', { choice_group: 'Illustrate', choice_count: count }),
+    row(7, 'Intermediate Illustrations'),
+    row(7, 'Frozen Maw', { choice_group: 'Illustrate', choice_count: null }),
+    row(7, 'Vines of Umbra', { choice_group: 'Illustrate', choice_count: null }),
+  ]
+  const all = one(buildClassPack({ classes: [{ ...darkKnight(), features: features(0), subclasses: [] }] }), 'The Dark Knight', 'class')
+  assert.equal(adv(all, 'ItemChoice').length, 0)
+  assert.deepEqual(adv(all, 'ItemGrant').map((a) => [a.level, a.configuration.items.length]), [[1, 3], [7, 3]])
+  const pick = one(buildClassPack({ classes: [{ ...darkKnight(), features: features(1), subclasses: [] }] }), 'The Dark Knight', 'class')
+  assert.deepEqual(adv(pick, 'ItemChoice').map((a) => [Object.keys(a.configuration.choices)[0], a.configuration.choices[Object.keys(a.configuration.choices)[0]].count, a.configuration.pool.length]), [['1', 1, 2], ['7', 1, 2]])
+})
+
 test('markdown becomes sheet HTML', () => {
   assert.equal(markdownToHtml(''), '')
   assert.equal(markdownToHtml('a *b* & c\nd\n\n- one\n- two'), '<p>a <em>b</em> &amp; c<br>d</p><ul><li>one</li><li>two</li></ul>')

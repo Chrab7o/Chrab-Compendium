@@ -138,11 +138,52 @@ export const choiceValue = (row) => (row.choice_into ? `into:${row.choice_into}`
 export const choicePatch = (value) =>
   value.startsWith('into:') ? { choice_into: value.slice(5), choice_count: null, choice_swap: false } : { choice_into: '', choice_count: Number(value) }
 
-// "pick 2 of 7", "all 3", "+4 to Dark Arts"
-export function choiceSummary(row) {
+// "pick 2 of 7", "all 3", "+4 to Dark Arts", "pick 1 of 4, +3 at 7".
+// later: the features that add to this one (laterAdditions).
+export function choiceSummary(row, later = []) {
   const n = row.children?.length ?? 0
   if (!n) return ''
   if (row.choice_into) return `+${n} to ${row.choice_into}`
   const count = row.choice_count ?? 1
-  return count === 0 ? `all ${n}` : `pick ${count} of ${n}${row.choice_swap ? ', swappable' : ''}`
+  const more = later.filter((l) => l.children.length).map((l) => `+${l.children.length} at ${l.level}`)
+  return [count === 0 ? `all ${n}` : `pick ${count} of ${n}${row.choice_swap ? ', swappable' : ''}`, ...more].join(', ')
+}
+
+const sameName = (a, b) => String(a ?? '').trim().toLowerCase() === String(b ?? '').trim().toLowerCase()
+
+// Later features that add their options to this one ("add these to
+// Illustrate"), by level: [{ level, row }].
+export function laterAdditions(rows, key) {
+  const nested = levelRows(rows)
+  const row = nested.find((n) => n.key === key)
+  if (!row || !row.name.trim()) return []
+  return nested.filter((n) => n.choice_into && sameName(n.choice_into, row.name)).sort((a, b) => a.level - b.level)
+}
+
+// Where an option can unlock: the group's own feature and every later feature
+// that adds to it, each one a level. [{ key, level, name, own }]. Empty for a
+// top-level feature.
+export function optionHomes(rows, key) {
+  const found = findRow(rows, key)
+  if (!found?.parent) return []
+  const nested = levelRows(rows)
+  const { parent } = found
+  const root = parent.choice_into ? nested.find((n) => !n.choice_into && sameName(n.name, parent.choice_into)) : parent
+  if (!root) return [{ key: parent.key, level: parent.level, name: parent.name.trim(), own: false }]
+  return [root, ...laterAdditions(rows, root.key)].map((n) => ({ key: n.key, level: n.level, name: n.name.trim(), own: n === root }))
+}
+
+// Moves an option under another feature (so it unlocks at that feature's
+// level), keeping everything else about it.
+export function moveOption(rows, key, toParentKey) {
+  const found = findRow(rows, key)
+  if (!found?.parent || found.parent.key === toParentKey) return rows
+  const { row } = found
+  return flat(
+    levelRows(rows).map((n) => {
+      if (n.key === found.parent.key) return { ...n, children: n.children.filter((c) => c.key !== key) }
+      if (n.key === toParentKey) return { ...n, children: [...n.children, { ...row, level: n.level }] }
+      return n
+    }),
+  )
 }

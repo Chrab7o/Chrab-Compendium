@@ -464,10 +464,23 @@ export function nestFeatures(features) {
   const parentIn = (pool, key) =>
     pool.find((n) => !n.synthetic && n.feature.name.trim().toLowerCase() === key) ??
     pool.find((n) => !n.synthetic && n.feature.name.toLowerCase().includes(key))
+  // Rows are stored parent first, then its options (flattenFeatureRows), so
+  // the feature just before an option at its level is the one it came under:
+  // that's how "Intermediate Illustrations" keeps the options it adds to
+  // Illustrate though neither name contains the other.
+  let lastTop = null
+  const before = new Map()
+  for (const f of features) {
+    if (!f.choice_group) lastTop = f
+    else if (lastTop && lastTop.level === f.level) before.set(f, nodes.find((n) => n.feature === lastTop))
+  }
   for (const f of features) {
     if (!f.choice_group) continue
     const key = f.choice_group.trim().toLowerCase()
-    let node = parentIn(nodes.filter((n) => n.feature.level === f.level), key) ?? byName.get(key) ?? parentIn(nodes, key)
+    const sameLevel = nodes.filter((n) => n.feature.level === f.level)
+    const owner = byName.get(key) ?? parentIn(nodes, key)
+    const adding = owner && owner.feature.level < f.level && before.get(f)
+    let node = parentIn(sameLevel, key) ?? adding ?? owner
     if (!node) {
       node = {
         feature: { id: `group:${f.choice_group}`, level: f.level, name: f.choice_group, description: '' },

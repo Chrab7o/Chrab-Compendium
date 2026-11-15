@@ -1,5 +1,10 @@
-import { addOption, choicePatch, choiceValue, earlierGroups, findRow, moveRow, removeRow, updateRow } from '../../../lib/levelRows'
+import { addOption, choicePatch, choiceValue, earlierGroups, findRow, laterAdditions, levelRows, moveOption, moveRow, optionHomes, removeRow, updateRow } from '../../../lib/levelRows'
 import FeatureMechanics from './FeatureMechanics'
+
+const levelRowsRoot = (rows, name) => {
+  const key = String(name ?? '').trim().toLowerCase()
+  return levelRows(rows).find((n) => !n.choice_into && n.name.trim().toLowerCase() === key) ?? null
+}
 
 const LEVELS = Array.from({ length: 20 }, (_, i) => i + 1)
 
@@ -16,6 +21,12 @@ export default function FeaturePanel({ lane, rowKey, onSelect, linkable, onRefre
   const name = row.name.trim()
   const levels = lane.levels ?? LEVELS
   const count = row.choice_count ?? 1
+  const later = parent || row.choice_into ? [] : laterAdditions(lane.rows, rowKey)
+  const homes = parent ? optionHomes(lane.rows, rowKey) : []
+  const home = homes.find((h) => h.key === parent?.key)
+  // The feature a later one adds to, for its hint: its swap decides how the
+  // added options are picked.
+  const intoRoot = row.choice_into ? levelRowsRoot(lane.rows, row.choice_into) : null
 
   function remove() {
     const what = parent ? 'this option' : row.children.length ? `${name || 'this feature'} and its ${row.children.length} option${row.children.length === 1 ? '' : 's'}` : name || 'this feature'
@@ -56,6 +67,24 @@ export default function FeaturePanel({ lane, rowKey, onSelect, linkable, onRefre
           {parent ? 'Option name' : 'Name'}
           <input value={row.name} onChange={(e) => set({ name: e.target.value })} autoFocus={!name} placeholder={parent ? 'e.g. Shadow Lance' : 'e.g. Dark Arts'} />
         </label>
+        {homes.length > 1 && (
+          <label>
+            Unlocks at
+            <select value={parent.key} onChange={(e) => lane.setRows(moveOption(lane.rows, rowKey, e.target.value))}>
+              {homes.map((h) => (
+                <option key={h.key} value={h.key}>
+                  level {h.level}
+                  {h.own ? ` (${h.name})` : `, with ${h.name || 'unnamed feature'}`}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        {parent && home && !home.own && (
+          <p className="sub-features-hint">
+            An option of {parent.choice_into}, unlocked at level {home.level} by {home.name || 'an unnamed feature'}.
+          </p>
+        )}
         {!parent && (
           <label>
             Level
@@ -127,7 +156,44 @@ export default function FeaturePanel({ lane, rowKey, onSelect, linkable, onRefre
                 number known follows the class table’s “{name} Known” column if there is one.
               </p>
             )}
-            {row.choice_into && <p className="sub-features-hint">More options for {row.choice_into}, from level {row.level}. Players don’t pick extra here.</p>}
+            {row.choice_into && (
+              <p className="sub-features-hint">
+                More options for {row.choice_into}, unlocked at level {row.level}.{' '}
+                {intoRoot?.choice_swap
+                  ? `They join ${row.choice_into}’s choices; how many players know follows the “${row.choice_into} Known” column.`
+                  : intoRoot?.choice_count === 0
+                    ? `Players get all of them at level ${row.level}, like the rest of ${row.choice_into}.`
+                    : `At level ${row.level} players choose 1 of these, besides their earlier ${row.choice_into} picks. To make them one growing list, tick “can swap one on each level-up” on ${row.choice_into}.`}
+              </p>
+            )}
+            {later.length > 0 && (
+              <div className="feature-panel-later">
+                <h4>Unlock later</h4>
+                {later.map((l) => (
+                  <div key={l.key} className="feature-panel-later-level">
+                    <button type="button" className="link-button" onClick={() => onSelect(l.key)} title={`Open ${l.name.trim() || 'the feature'} that adds these`}>
+                      Level {l.level}, with {l.name.trim() || 'an unnamed feature'}
+                    </button>
+                    <ul className="feature-panel-options">
+                      {l.children.map((c) => (
+                        <li key={c.key}>
+                          <button type="button" className="feature-chip" onClick={() => onSelect(c.key)}>
+                            {c.name.trim() || 'Unnamed option'}
+                            <span className="feature-chip-note">lv {l.level}</span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+                <p className="sub-features-hint">Open an option to change the level it unlocks at.</p>
+              </div>
+            )}
+            {!row.choice_into && row.children.length > 0 && later.length === 0 && (
+              <p className="sub-features-hint">
+                To unlock more of these at a higher level, add a feature at that level, give it options and set its Players to “add these to {name || 'this'}”.
+              </p>
+            )}
           </section>
         )}
 

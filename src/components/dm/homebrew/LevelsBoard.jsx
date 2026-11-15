@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { addFeature, byLevel, choiceSummary, findRow } from '../../../lib/levelRows'
+import { addFeature, byLevel, choiceSummary, findRow, laterAdditions } from '../../../lib/levelRows'
 import FeaturePanel from './FeaturePanel'
 
 const LEVELS = Array.from({ length: 20 }, (_, i) => i + 1)
@@ -96,7 +96,7 @@ export default function LevelsBoard({ lanes, columns = null, onColumnsChange = n
                         <div className="levels-chips">
                           {here.map((row) => {
                             const isOpen = open?.lane === l.key && (open.key === row.key || row.children.some((c) => c.key === open.key))
-                            const summary = choiceSummary(row)
+                            const summary = choiceSummary(row, row.children.length && !row.choice_into ? laterAdditions(l.rows, row.key) : [])
                             return (
                               <button
                                 type="button"

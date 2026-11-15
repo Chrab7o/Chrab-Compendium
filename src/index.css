@@ -8580,6 +8580,21 @@ button.levels-tab.is-active {
   list-style: none;
 }
 
+/* A feature's options that later features add ("Unlock later"). */
+.feature-panel-later {
+  margin-top: var(--space-3);
+}
+
+.feature-panel-later h4 {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-sm);
+}
+
+.feature-panel-later-level .link-button {
+  font-size: var(--text-sm);
+  margin-bottom: 0.25rem;
+}
+
 .feature-mechanics-summary {
   margin: 0 0 0.3rem;
   font-weight: 500;

@@ -315,6 +315,12 @@ function featuresAndAdvancements(rows, { keyPrefix, requirementsFor, book, folde
   const groupKey = (name) => name.trim().toLowerCase()
   const swapGroups = new Set(named.filter((r) => r.choice_group && r.choice_swap).map((r) => groupKey(r.choice_group)))
   const swaps = new Map() // group key -> { advancement, levels: [[level, count]] }
+  // A group's count where it starts: options a later feature adds to a
+  // "get all of them" group are granted too, not a fresh pick of 1.
+  const startCount = new Map()
+  for (const r of [...named].sort((a, b) => a.level - b.level)) {
+    if (r.choice_group && !startCount.has(groupKey(r.choice_group))) startCount.set(groupKey(r.choice_group), r.choice_count ?? 1)
+  }
   const make = (row, unlock = false) => {
     const key = `${keyPrefix}|${row.level}|${row.name.trim().toLowerCase()}`
     const { item, automated } = featureItem(row, { key, requirements: requirementsFor(row.level), book, folder, sort: nextSort(), items })
@@ -332,7 +338,7 @@ function featuresAndAdvancements(rows, { keyPrefix, requirementsFor, book, folde
     }
     const choices = []
     for (const g of groups) {
-      const count = g.features[0]?.choice_count ?? 1
+      const count = g.features[0]?.choice_count ?? (startCount.get(groupKey(g.name)) === 0 ? 0 : 1)
       if (swapGroups.has(groupKey(g.name))) {
         const uuids = g.features.map((row) => make(row, true))
         let swap = swaps.get(groupKey(g.name))
