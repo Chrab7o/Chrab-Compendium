@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabaseClient'
 import { useTags } from '../contexts/TagContext'
 import RichTextEditor from '../components/RichTextEditor'
 import TagGroupPicker from '../components/TagGroupPicker'
+import { loadEntrySecret, saveEntrySecret } from '../lib/entrySecrets'
 
 const emptyForm = {
   id: null,
@@ -28,6 +29,7 @@ export default function EntryEditorPage() {
   const { id } = useParams()
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
+  const location = useLocation()
   const { tags: availableTags, groups } = useTags()
   const isNew = !id
 
@@ -43,6 +45,9 @@ export default function EntryEditorPage() {
   const [loading, setLoading] = useState(!isNew)
   const [error, setError] = useState(null)
   const [saving, setSaving] = useState(false)
+  // DM-only text kept beside the public content (entry_secrets), saved after
+  // the entry itself so a new entry has an id to hang it on.
+  const [secret, setSecret] = useState('')
 
   useEffect(() => {
     supabase
@@ -61,17 +66,25 @@ export default function EntryEditorPage() {
     if (isNew) return
     let cancelled = false
     setLoading(true)
-    supabase
-      .from('entries')
-      .select('*')
-      .eq('id', id)
-      .single()
-      .then(({ data, error: fetchError }) => {
-        if (cancelled) return
-        if (fetchError) setError(fetchError.message)
-        else setForm(toFormState(data))
-        setLoading(false)
-      })
+    Promise.all([
+      supabase.from('entries').select('*').eq('id', id).single(),
+      loadEntrySecret(id).then(
+        (content) => ({ content }),
+        (secretError) => ({ error: secretError })
+      ),
+    ]).then(([{ data, error: fetchError }, secretResult]) => {
+      if (cancelled) return
+      if (fetchError) setError(fetchError.message)
+      else setForm(toFormState(data))
+      // A new entry whose secret failed to save comes back here with it.
+      const carried = location.state?.unsavedSecret
+      if (carried != null) {
+        setSecret(carried)
+        setError(location.state.error)
+      } else if (secretResult.error) setError(`Couldn't load the secrets: ${secretResult.error.message}`)
+      else setSecret(secretResult.content)
+      setLoading(false)
+    })
     return () => {
       cancelled = true
     }
@@ -113,20 +126,41 @@ export default function EntryEditorPage() {
         .insert(payload)
         .select()
         .single()
-      setSaving(false)
       if (saveError) {
+        setSaving(false)
         setError(saveError.message)
         return
       }
-      navigate(`/entry/${data.id}`)
+      const secretError = await saveSecret(data.id)
+      if (!secretError) navigate(`/entry/${data.id}`)
+      else
+        navigate(`/dm/entries/${data.id}/edit`, {
+          replace: true,
+          state: { unsavedSecret: secret, error: secretError },
+        })
     } else {
       const { error: saveError } = await supabase.from('entries').update(payload).eq('id', id)
-      setSaving(false)
       if (saveError) {
+        setSaving(false)
         setError(saveError.message)
         return
       }
-      navigate(`/entry/${id}`)
+      const secretError = await saveSecret(id)
+      if (!secretError) navigate(`/entry/${id}`)
+      else setError(secretError)
+    }
+  }
+
+  // Null when saved, else the message to show. By then the entry itself is
+  // saved, so the page stays open with the secret still typed in.
+  async function saveSecret(entryId) {
+    try {
+      await saveEntrySecret(entryId, secret)
+      return null
+    } catch (secretError) {
+      return `The entry saved, but the secrets didn't: ${secretError.message}. Save again to retry.`
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -169,6 +203,21 @@ export default function EntryEditorPage() {
             onChange={(markdown) => setForm((f) => ({ ...f, content: markdown }))}
           />
         </label>
+
+        <div className="entry-secret-field">
+          <span className="entry-secret-label">
+            Secrets <span className="badge badge-dm">DM only</span>
+          </span>
+          <p className="entry-secret-hint">
+            Shown under the content, to the DM only. Players see the entry without it.
+          </p>
+          <RichTextEditor
+            key={`secret-${id ?? 'new'}`}
+            content={secret}
+            placeholder="What the players don't know yet…"
+            onChange={(markdown) => setSecret(markdown)}
+          />
+        </div>
 
         <fieldset className="tag-checklist">
           <legend>Tags</legend>

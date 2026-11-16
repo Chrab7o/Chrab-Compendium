@@ -9,6 +9,7 @@ import { useTags } from '../contexts/TagContext'
 import { typeTagValue } from '../lib/tags'
 import { formatDate, sortEvents } from '../lib/chronicle'
 import { useCampaignContext } from '../contexts/CampaignContext'
+import { loadEntrySecret } from '../lib/entrySecrets'
 
 export default function EntryDetail() {
   const { id } = useParams()
@@ -16,6 +17,7 @@ export default function EntryDetail() {
   const { tags: allTags, groups } = useTags()
   const [entry, setEntry] = useState(null)
   const [dmNotes, setDmNotes] = useState([])
+  const [secret, setSecret] = useState('')
   const [chronicle, setChronicle] = useState([])
   const { worlds } = useCampaignContext()
   const [loading, setLoading] = useState(true)
@@ -52,6 +54,22 @@ export default function EntryDetail() {
       .then(({ data }) => {
         if (!cancelled) setDmNotes(data ?? [])
       })
+    return () => {
+      cancelled = true
+    }
+  }, [id, isDM])
+
+  // The entry's secret, DM only (players can't read entry_secrets anyway).
+  useEffect(() => {
+    setSecret('')
+    if (!isDM) return
+    let cancelled = false
+    loadEntrySecret(id).then(
+      (content) => {
+        if (!cancelled) setSecret(content)
+      },
+      () => {}
+    )
     return () => {
       cancelled = true
     }
@@ -114,6 +132,17 @@ export default function EntryDetail() {
       <div className="entry-content">
         <ReactMarkdown remarkPlugins={[remarkGfm]}>{entry.content}</ReactMarkdown>
       </div>
+
+      {isDM && secret.trim() && (
+        <aside className="entry-secret" aria-label="Secrets">
+          <h2 className="entry-secret-label">
+            Secrets <span className="badge badge-dm">DM only</span>
+          </h2>
+          <div className="entry-content">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>{secret}</ReactMarkdown>
+          </div>
+        </aside>
+      )}
 
       {chronicle.length > 0 && (
         <div className="chronicle-entry-events">

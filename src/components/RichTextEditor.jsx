@@ -18,7 +18,7 @@ function ToolbarButton({ active, ...props }) {
 // `content` is only used for the editor's initial value; pair with a `key`
 // prop on the parent so switching entries forces a fresh mount instead of
 // trying to resync content into an already-initialized editor.
-export default function RichTextEditor({ content, onChange }) {
+export default function RichTextEditor({ content, onChange, placeholder = 'Start writing…' }) {
   const fileInputRef = useRef(null)
   const toolbarRef = useRef(null)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -29,7 +29,7 @@ export default function RichTextEditor({ content, onChange }) {
       TableKit.configure({ table: { resizable: false } }),
       Image,
       Link.configure({ openOnClick: false }),
-      Placeholder.configure({ placeholder: 'Start writing…' }),
+      Placeholder.configure({ placeholder }),
       Markdown.configure({ html: false, linkify: true }),
     ],
     content,

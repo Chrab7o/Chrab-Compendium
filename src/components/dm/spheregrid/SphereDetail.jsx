@@ -5,6 +5,7 @@ import RichTextEditor from '../../RichTextEditor'
 import SpherePrompts from './SpherePrompts'
 import KindSelect from './KindSelect'
 import { answerLine, answeredLabels, appendMarkdown, kindPrompts, kindTag } from '../../../lib/sphereGrid'
+import { loadEntrySecret, saveEntrySecret } from '../../../lib/entrySecrets'
 
 // How long typing has to pause before the text autosaves.
 const SAVE_DELAY = 800
@@ -25,6 +26,9 @@ const LINK_GROUPS = [
 // Above the text sit the guided questions for the sphere's kind (its own and
 // every inherited one not switched off); answering one appends a
 // `**Label:** answer` line to the text.
+//
+// Under the text sits its secret: DM-only text that never reaches players
+// (entry_secrets), loaded on open and autosaved the same way.
 //
 // Below, its links are grouped by direction - what it's inside, what it
 // contains, what it's simply linked to - and each one's direction can be
@@ -71,9 +75,56 @@ export default function SphereDetail({
     Promise.resolve(onUpdateRef.current({ content })).then(() => setSaveState((s) => (s === 'saving' ? 'saved' : s)))
   }
 
+  // The secret: null while loading, then its markdown. Saved on its own
+  // timer so typing in one editor never holds up the other.
+  const [secret, setSecret] = useState(null)
+  const [secretState, setSecretState] = useState('saved')
+  const secretPending = useRef(null)
+  const secretTimer = useRef(null)
+  const entryId = entry.id
+
+  useEffect(() => {
+    let cancelled = false
+    loadEntrySecret(entryId).then(
+      (content) => {
+        if (!cancelled) setSecret(content)
+      },
+      () => {
+        if (!cancelled) setSecretState('error')
+      }
+    )
+    return () => {
+      cancelled = true
+    }
+  }, [entryId])
+
+  function flushSecret() {
+    clearTimeout(secretTimer.current)
+    if (secretPending.current === null) return
+    const content = secretPending.current
+    secretPending.current = null
+    saveEntrySecret(entryId, content).then(
+      () => setSecretState((s) => (s === 'saving' && secretPending.current === null ? 'saved' : s)),
+      () => setSecretState('error')
+    )
+  }
+
+  function handleSecret(markdown) {
+    secretPending.current = markdown
+    setSecretState('saving')
+    clearTimeout(secretTimer.current)
+    secretTimer.current = setTimeout(flushSecret, SAVE_DELAY)
+  }
+
   // Never lose a pause-less edit: save whatever is pending when this sphere
   // closes or another one opens.
-  useEffect(() => () => flush(), [])
+  useEffect(
+    () => () => {
+      flush()
+      flushSecret()
+    },
+    []
+  )
 
   function handleContent(markdown) {
     contentRef.current = markdown
@@ -146,7 +197,13 @@ export default function SphereDetail({
           onBlur={saveTitle}
           aria-label="Name"
         />
-        <span className={`sg-save-state is-${saveState}`}>{saveState === 'saving' ? 'Saving…' : 'Saved'}</span>
+        {secretState === 'error' ? (
+          <span className="sg-save-state is-error">Secrets didn't save</span>
+        ) : (
+          <span className={`sg-save-state is-${saveState === 'saving' || secretState === 'saving' ? 'saving' : 'saved'}`}>
+            {saveState === 'saving' || secretState === 'saving' ? 'Saving…' : 'Saved'}
+          </span>
+        )}
         <div className="sg-detail-links">
           <Link to={`/entry/${entry.id}`} className="button-link">
             Open entry
@@ -176,6 +233,25 @@ export default function SphereDetail({
             onAddQuestion={(row) => onAddQuestion(entry.sphere_kind_id, row)}
           />
           <RichTextEditor key={editorKey} content={contentRef.current} onChange={handleContent} />
+
+          <div className="entry-secret-field sg-secret">
+            <span className="entry-secret-label">
+              Secrets <span className="badge badge-dm">DM only</span>
+            </span>
+            {secret === null ? (
+              secretState === 'error' ? (
+                <p className="status-message error">Couldn't load the secrets.</p>
+              ) : (
+                <p className="status-message">Loading…</p>
+              )
+            ) : (
+              <RichTextEditor
+                content={secret}
+                placeholder="What the players don't know yet…"
+                onChange={handleSecret}
+              />
+            )}
+          </div>
         </div>
 
         <div className="sg-detail-meta">

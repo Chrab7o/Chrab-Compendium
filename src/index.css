@@ -1443,6 +1443,43 @@ button:disabled {
   box-shadow: var(--shadow-sm);
 }
 
+/* An entry's secret: DM-only text beside its public content
+   (src/lib/entrySecrets.js). Framed in dashed danger red, like DM notes, so
+   it never reads as part of what players see. */
+.entry-secret,
+.entry-secret-field {
+  margin-top: 1.5rem;
+  padding: 1rem 1.25rem;
+  border: 2px dashed var(--danger);
+  border-radius: var(--radius-md);
+  background: linear-gradient(160deg, var(--surface) 0%, var(--surface-2) 100%);
+}
+
+.entry-secret-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.entry-secret-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  color: var(--danger);
+  font-weight: 700;
+}
+
+h2.entry-secret-label {
+  margin-bottom: 0.75rem;
+}
+
+.entry-secret-hint {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
 .campaign-description {
   color: var(--text-muted);
   margin-bottom: 1.5rem;
@@ -5494,6 +5531,16 @@ input.sg-detail-title {
 
 .sg-save-state.is-saving {
   color: var(--accent-purple);
+}
+
+.sg-save-state.is-error {
+  color: var(--danger);
+}
+
+/* The sphere's secret sits under its text; the main editor's tall minimum
+   would make it hard to reach, so it starts short. */
+.sg-detail-text .sg-secret .rich-editor-content {
+  min-height: 140px;
 }
 
 .sg-detail-body {
