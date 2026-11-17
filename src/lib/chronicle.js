@@ -236,7 +236,7 @@ export function branchProblems(branch, { events, branches, memberIds }) {
 // so its lanes sit wider apart and it keeps equal room on both sides: canon
 // is then the centre line of the drawing. Horizontal is left to right.
 export const LAYOUT = {
-  vertical: { step: 84, laneGap: 230, padStart: 50, crossBefore: 210, crossAfter: 210, axis: 90, curve: 50, minScale: 700 },
+  vertical: { step: 84, laneGap: 230, padStart: 50, crossBefore: 210, crossAfter: 210, axis: 90, canonInset: 70, curve: 50, minScale: 700 },
   horizontal: { step: 170, laneGap: 110, padStart: 90, crossBefore: 60, crossAfter: 90, curve: 60, minScale: 900 },
 }
 
@@ -269,7 +269,12 @@ function branchPath(from, to, parent, lane, curve, pt) {
 // date. Canon is lane 0; branches take lanes either side of it in turn
 // (left/right when vertical, above/below when horizontal), and a lane is free
 // again once the branch on it has rejoined.
-export function layoutChronicle({ placed, branches, shownBranches, calendar, spacing = 'even', orientation = 'vertical' }) {
+//
+// `fit` (vertical only) is the width the drawing has to fill. Spare room goes
+// to the labels: with no branches canon moves in beside the year axis and its
+// titles get the rest; with branches every lane spreads out evenly, canon
+// staying centred.
+export function layoutChronicle({ placed, branches, shownBranches, calendar, spacing = 'even', orientation = 'vertical', fit = 0 }) {
   const vertical = orientation === 'vertical'
   const L = LAYOUT[vertical ? 'vertical' : 'horizontal']
   const pt = (t, k) => (vertical ? [k, t] : [t, k])
@@ -322,9 +327,23 @@ export function layoutChronicle({ placed, branches, shownBranches, calendar, spa
   let before = Math.max(0, ...offsets)
   let after = Math.max(0, ...offsets.map((o) => -o))
   if (vertical) before = after = Math.max(before, after)
-  const base = L.crossBefore + before * L.laneGap
-  const crossSize = base + after * L.laneGap + L.crossAfter
-  const crossOf = (lineId) => base - (laneOf.get(lineId ?? null) ?? 0) * L.laneGap
+  let { crossBefore, crossAfter, laneGap } = L
+  if (vertical && fit > 0) {
+    if (before === 0) {
+      crossBefore = L.axis + L.canonInset
+      crossAfter = Math.max(L.crossAfter, fit - crossBefore)
+    } else {
+      // 2*before lanes plus the two outer margins share the spare width.
+      const spare = Math.max(0, fit - (L.crossBefore + L.crossAfter + 2 * before * L.laneGap))
+      const share = spare / (2 * before + 2)
+      laneGap += share
+      crossBefore += share
+      crossAfter += share
+    }
+  }
+  const base = crossBefore + before * laneGap
+  const crossSize = base + after * laneGap + crossAfter
+  const crossOf = (lineId) => base - (laneOf.get(lineId ?? null) ?? 0) * laneGap
 
   const lines = [{ id: null, path: `M ${pt(L.padStart / 3, base).join(' ')} L ${pt(endT, base).join(' ')}`, color: null }]
   for (const line of lineBranches) {
@@ -339,8 +358,12 @@ export function layoutChronicle({ placed, branches, shownBranches, calendar, spa
   }
 
   const nodes = sorted.map((p) => {
-    const [x, y] = pt(tOf.get(p.event.id), crossOf(p.event.branch_id || null))
-    return { event: p.event, muted: p.muted, x, y }
+    const cross = crossOf(p.event.branch_id || null)
+    const [x, y] = pt(tOf.get(p.event.id), cross)
+    // Room for the title: vertical, up to the next lane on the right (or the
+    // edge); horizontal, one step either side.
+    const room = vertical ? (cross === base + after * laneGap ? crossSize - cross : laneGap) - 28 : L.step - 10
+    return { event: p.event, muted: p.muted, x, y, room }
   })
 
   // Year ticks along an axis: under the drawing when horizontal, down its

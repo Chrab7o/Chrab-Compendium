@@ -170,3 +170,18 @@ test('layout: vertical runs top to bottom with canon down the middle', () => {
   assert.ok(member.x < canonX, 'lane 1 sits to the left')
   assert.ok(layout.ticks.every((t) => t.x === layout.axis.x1), 'year ticks run down one axis')
 })
+
+test('layout: fit fills the width, canon beside the axis without branches, centred with them', () => {
+  const canon = [10, 20, 30].map((year) => ev({ year }))
+  const plain = filterEvents(canon, [])
+  const solo = layoutChronicle({ ...plain, branches: [], calendar, fit: 900 })
+  assert.equal(solo.width, 900)
+  assert.ok(solo.nodes[0].x < 200, 'canon moves in beside the year axis')
+  assert.ok(solo.nodes[0].room > 600, 'its titles get the rest of the width')
+
+  const branch = br({ fork_event_id: canon[0].id, rejoin_event_id: canon[2].id })
+  const events = [...canon, ev({ year: 15, branch_id: branch.id })]
+  const forked = layoutChronicle({ ...filterEvents(events, [branch]), branches: [branch], calendar, fit: 1200 })
+  assert.equal(forked.width, 1200)
+  assert.equal(forked.nodes.find((n) => n.event.id === canon[0].id).x, 600)
+})

@@ -7598,17 +7598,15 @@ button.aw-line-text.is-bad {
   gap: 1rem;
 }
 
-/* Hugs the drawing and sits centred on the page; a drawing wider than the
-   page (many branch lanes) scrolls sideways inside it instead. */
+/* Spans the page and sits on the parchment itself rather than in a card:
+   the drawing is laid out to this width (ChronicleBoard measures it), and
+   one wider than the page (many branch lanes) scrolls sideways instead.
+   Hairline rules top and bottom frame it like a section of the page. */
 .chronicle-scroll {
-  width: fit-content;
-  max-width: 100%;
-  margin-inline: auto;
+  width: 100%;
   overflow-x: auto;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-frame);
-  box-shadow: var(--shadow-sm);
+  border-block: 1px solid var(--border);
+  padding-block: 0.5rem;
 }
 
 .chronicle-svg {
@@ -7685,7 +7683,11 @@ button.aw-line-text.is-bad {
 .chronicle-node-title {
   fill: var(--text);
   font-family: var(--font-display);
-  font-size: 13px;
+  font-size: 15px;
+}
+
+.chronicle-node:hover .chronicle-node-title {
+  fill: var(--accent);
 }
 
 .chronicle-node-date {

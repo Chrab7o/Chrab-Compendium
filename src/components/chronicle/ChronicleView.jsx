@@ -1,15 +1,15 @@
 import { useLayoutEffect, useRef } from 'react'
 import { formatDate, formatYear } from '../../lib/chronicle'
 
-// Titles are clipped to the room beside a node (the lane gap when vertical,
-// one column of LAYOUT.step when horizontal); the full title is in the panel
-// and the node's aria-label.
-const TITLE_CHARS = { vertical: 26, horizontal: 18 }
+// Titles are clipped to the room the layout leaves beside each node; the
+// full title is in the panel, the node's tooltip and its aria-label. Room is
+// in px, turned into characters at the title font's rough average width.
+const TITLE_CHAR_PX = 9.5
 
 // Where a node's title and date sit, and the shape of a date marker.
 const LABELS = {
   vertical: {
-    title: { x: 16, y: -3, textAnchor: 'start' },
+    title: { x: 18, y: -2, textAnchor: 'start' },
     date: { x: 16, y: 14, textAnchor: 'start' },
     mark: { x1: -10, x2: 10, y1: 0, y2: 0 },
   },
@@ -94,7 +94,7 @@ export default function ChronicleView({ layout, calendar, branches, selectedId, 
           </path>
         ))}
 
-        {layout.nodes.map(({ event, x, y, muted }) => {
+        {layout.nodes.map(({ event, x, y, muted, room }) => {
           const branch = event.branch_id ? branchById.get(event.branch_id) : null
           const selected = event.id === selectedId
           const classes = [
@@ -123,8 +123,9 @@ export default function ChronicleView({ layout, calendar, branches, selectedId, 
               ) : (
                 <circle r={selected ? 9 : 7} style={branch?.color ? { stroke: branch.color } : undefined} />
               )}
+              <title>{event.title}</title>
               <text className="chronicle-node-title" {...labels.title}>
-                {clip(event.title, TITLE_CHARS[layout.orientation])}
+                {clip(event.title, Math.max(8, Math.floor(room / TITLE_CHAR_PX)))}
               </text>
               <text className="chronicle-node-date" {...labels.date}>
                 {formatDate(event, calendar)}

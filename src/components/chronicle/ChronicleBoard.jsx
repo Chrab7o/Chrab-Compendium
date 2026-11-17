@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { filterEvents, layoutChronicle } from '../../lib/chronicle'
 import ChronicleEventPanel from './ChronicleEventPanel'
 import ChronicleFilters from './ChronicleFilters'
@@ -20,16 +20,28 @@ export default function ChronicleBoard({
   showPanel = true,
 }) {
   const [filters, setFilters] = useState(emptyFilters)
+  // The drawing fills the board's width, so titles get the room the page has.
+  const boardRef = useRef(null)
+  const [fit, setFit] = useState(0)
+  useLayoutEffect(() => {
+    const board = boardRef.current
+    if (!board) return undefined
+    const measure = () => setFit(Math.floor(board.clientWidth))
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(board)
+    return () => observer.disconnect()
+  }, [])
 
   const layout = useMemo(() => {
     const { placed, shownBranches } = filterEvents(events, branches, { ...filters, campaignId, entriesByEvent })
-    return layoutChronicle({ placed, branches, shownBranches, calendar, spacing: filters.spacing })
-  }, [events, branches, entriesByEvent, calendar, campaignId, filters])
+    return layoutChronicle({ placed, branches, shownBranches, calendar, spacing: filters.spacing, fit })
+  }, [events, branches, entriesByEvent, calendar, campaignId, filters, fit])
 
   const selected = selectedId ? events.find((e) => e.id === selectedId) : null
 
   return (
-    <div className="chronicle-board">
+    <div className="chronicle-board" ref={boardRef}>
       <ChronicleFilters filters={filters} onChange={setFilters} branches={branches} />
       <ChronicleView
         layout={layout}
