@@ -19,6 +19,9 @@ export function CampaignProvider({ children }) {
   const [campaignId, setCampaignIdState] = useState(() => localStorage.getItem(STORAGE_KEY) ?? '')
   const [worldId, setWorldIdState] = useState(() => localStorage.getItem(WORLD_STORAGE_KEY) ?? '')
   const autoApplyTried = useRef(false)
+  // A missing key (not an empty one) means this browser has never picked a
+  // world — clearing the picker stores '' so that choice survives a reload.
+  const firstVisit = useRef(localStorage.getItem(WORLD_STORAGE_KEY) === null)
 
   const reload = useCallback(async () => {
     const { data } = await supabase.from('campaigns').select('*').order('name', { ascending: true })
@@ -44,8 +47,7 @@ export function CampaignProvider({ children }) {
   // that isn't even in the newly-selected world.
   function setWorldId(id) {
     setWorldIdState(id)
-    if (id) localStorage.setItem(WORLD_STORAGE_KEY, id)
-    else localStorage.removeItem(WORLD_STORAGE_KEY)
+    localStorage.setItem(WORLD_STORAGE_KEY, id ?? '')
     setCampaignIdState((prevCampaignId) => {
       const prevCampaign = campaigns.find((c) => c.id === prevCampaignId)
       if (prevCampaign && prevCampaign.world_id !== id) {
@@ -55,6 +57,16 @@ export function CampaignProvider({ children }) {
       return prevCampaignId
     })
   }
+
+  // First visit: start in Alva rather than no world at all. Skipped if
+  // something else (e.g. a player's campaign auto-apply) already chose one.
+  useEffect(() => {
+    if (!firstVisit.current || worlds.length === 0) return
+    firstVisit.current = false
+    if (worldId) return
+    const alva = worlds.find((w) => w.name?.trim().toLowerCase() === 'alva')
+    if (alva) setWorldId(alva.id)
+  }, [worlds, worldId])
 
   // Picking a specific campaign also enters its world, so the two never
   // disagree — the nav toggle and WorldMapPage's own picker both just call

@@ -7640,6 +7640,27 @@ button.aw-line-text.is-bad {
   font-size: 12px;
 }
 
+/* A stretch of time cut out "to scale": canon dotted across it, and a
+   double slash on the year axis saying how long it was. */
+.chronicle-break-line {
+  stroke: var(--text);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-dasharray: 0 9;
+}
+
+.chronicle-break path {
+  fill: none;
+  stroke: var(--text-muted);
+  stroke-width: 1.5;
+}
+
+.chronicle-break text {
+  fill: var(--text-muted);
+  font-size: 11px;
+  font-style: italic;
+}
+
 .chronicle-node {
   cursor: pointer;
   outline: none;

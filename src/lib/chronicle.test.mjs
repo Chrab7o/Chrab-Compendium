@@ -9,6 +9,7 @@ import {
   formatDate,
   fromEraYear,
   layoutChronicle,
+  SCALE,
   sortEvents,
   toEraYear,
 } from './chronicle.js'
@@ -184,4 +185,23 @@ test('layout: fit fills the width, canon beside the axis without branches, centr
   const forked = layoutChronicle({ ...filterEvents(events, [branch]), branches: [branch], calendar, fit: 1200 })
   assert.equal(forked.width, 1200)
   assert.equal(forked.nodes.find((n) => n.event.id === canon[0].id).x, 600)
+})
+
+test('layout: to scale cuts out a gap far longer than the rest and keeps the cluster readable', () => {
+  const years = [-40000, 0, 372, 400, 480, 480, 482, 484, 485, 500]
+  const events = years.map((year) => ev({ year }))
+  const { placed, shownBranches } = filterEvents(events, [])
+  const layout = layoutChronicle({ placed, branches: [], shownBranches, calendar, spacing: 'scale' })
+  assert.equal(layout.breaks[0].years, 40000, 'the 40000-year gap becomes a break')
+  const ys = layout.nodes.map((n) => n.y)
+  ys.slice(1).forEach((y, i) => assert.ok(y - ys[i] >= SCALE.minGap - 1e-9, 'neighbours never overlap'))
+  assert.ok(ys[1] - ys[0] < ys[ys.length - 1] - ys[1], 'the cluster gets more of the line than the gap')
+  assert.ok(layout.ticks.every((t, i) => i === 0 || t.y > layout.ticks[i - 1].y), 'ticks run in order')
+})
+
+test('layout: to scale leaves evenly spread dates unbroken', () => {
+  const events = [0, 100, 200, 300, 400].map((year) => ev({ year }))
+  const { placed, shownBranches } = filterEvents(events, [])
+  const layout = layoutChronicle({ placed, branches: [], shownBranches, calendar, spacing: 'scale' })
+  assert.equal(layout.breaks.length, 0)
 })

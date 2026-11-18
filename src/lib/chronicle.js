@@ -254,6 +254,59 @@ function scaleTicks(min, max, length, spacing) {
   return ticks
 }
 
+// To scale, but readable. A gap far longer than the others (8x the median gap
+// between neighbouring dates) is cut out of the line and drawn as a fixed-size
+// break, so 40000 BC doesn't squash the centuries everything else happened
+// in. The rest keeps one years-to-px scale, except that neighbours never sit
+// closer than `minGap`, so same-year events stay legible. Returns each value's
+// position, the breaks, the unbroken stretches and `at(year)` for ticks.
+export const SCALE = { breakLen: 70, minGap: 36, breakRatio: 8, minDates: 4 }
+
+export function scalePositions(values, budget, start) {
+  const n = values.length
+  const gaps = values.slice(1).map((v, i) => v - values[i])
+  const nonZero = gaps.filter((g) => g > 0).sort((a, b) => a - b)
+  const median = nonZero.length ? nonZero[Math.floor((nonZero.length - 1) / 2)] : 0
+  const enough = new Set(values).size >= SCALE.minDates
+  const isBreak = gaps.map((g) => enough && median > 0 && g > SCALE.breakRatio * median)
+  const breakCount = isBreak.filter(Boolean).length
+  const span = gaps.reduce((sum, g, i) => sum + (isBreak[i] ? 0 : g), 0)
+  const perYear = span > 0 ? Math.max(1, budget - breakCount * SCALE.breakLen) / span : 0
+
+  const ts = [start]
+  const breaks = []
+  gaps.forEach((g, i) => {
+    const prev = ts[i]
+    const next = isBreak[i] ? prev + SCALE.breakLen : prev + Math.max(SCALE.minGap, g * perYear)
+    ts.push(next)
+    if (isBreak[i]) breaks.push({ from: prev, to: next, fromYear: values[i], toYear: values[i + 1] })
+  })
+
+  // Year -> position: linear between the dates either side of it; null
+  // inside a break or off the ends.
+  function at(year) {
+    if (n === 0 || year < values[0] || year > values[n - 1]) return null
+    for (let i = 0; i < n - 1; i++) {
+      if (year > values[i + 1]) continue
+      if (year === values[i]) return ts[i]
+      if (isBreak[i]) return year === values[i + 1] ? ts[i + 1] : null
+      const g = values[i + 1] - values[i]
+      return ts[i] + ((year - values[i]) / g) * (ts[i + 1] - ts[i])
+    }
+    return ts[n - 1]
+  }
+
+  const segments = []
+  let from = 0
+  for (let i = 0; i <= gaps.length; i++) {
+    if (i === gaps.length || isBreak[i]) {
+      segments.push({ min: values[from], max: values[i], length: ts[i] - ts[from] })
+      from = i + 1
+    }
+  }
+  return { ts, breaks, at, segments }
+}
+
 // A branch's line in (time, cross) terms: off the parent at `from`, along its
 // lane, and back at `to` (Infinity: never back). `pt` maps to x/y.
 function branchPath(from, to, parent, lane, curve, pt) {
@@ -286,11 +339,11 @@ export function layoutChronicle({ placed, branches, shownBranches, calendar, spa
   const tOf = new Map()
   let length
   const values = sorted.map((p) => dateValue(p.event, calendar))
+  let scaled = null
   if (toScale) {
-    length = Math.max(L.minScale, n * L.step) + 2 * L.padStart
-    const inner = length - 2 * L.padStart
-    const [min, max] = [values[0], values[n - 1]]
-    sorted.forEach((p, i) => tOf.set(p.event.id, L.padStart + (max > min ? ((values[i] - min) / (max - min)) * inner : inner / 2)))
+    scaled = scalePositions(values, Math.max(L.minScale, n * L.step), L.padStart)
+    length = scaled.ts[n - 1] + L.padStart
+    sorted.forEach((p, i) => tOf.set(p.event.id, scaled.ts[i]))
   } else {
     length = Math.max(1, n) * L.step + 2 * L.padStart - L.step
     sorted.forEach((p, i) => tOf.set(p.event.id, L.padStart + i * L.step))
@@ -345,7 +398,13 @@ export function layoutChronicle({ placed, branches, shownBranches, calendar, spa
   const crossSize = base + after * laneGap + crossAfter
   const crossOf = (lineId) => base - (laneOf.get(lineId ?? null) ?? 0) * laneGap
 
-  const lines = [{ id: null, path: `M ${pt(L.padStart / 3, base).join(' ')} L ${pt(endT, base).join(' ')}`, color: null }]
+  // Canon runs solid between breaks; the view draws each break dotted.
+  const canonStops = [L.padStart / 3, ...(scaled?.breaks ?? []).flatMap((b) => [b.from + 6, b.to - 6]), endT]
+  const canonPath = []
+  for (let i = 0; i < canonStops.length; i += 2) {
+    canonPath.push(`M ${pt(canonStops[i], base).join(' ')} L ${pt(canonStops[i + 1], base).join(' ')}`)
+  }
+  const lines = [{ id: null, path: canonPath.join(' '), color: null }]
   for (const line of lineBranches) {
     const parent = crossOf(line.branch.parent_branch_id || null)
     const lane = crossOf(line.branch.id)
@@ -371,12 +430,17 @@ export function layoutChronicle({ placed, branches, shownBranches, calendar, spa
   const axisCross = vertical ? L.axis : crossSize - L.crossAfter / 3
   let tickTs
   if (toScale) {
-    const [min, max] = [values[0], values[n - 1]]
-    const inner = length - 2 * L.padStart
-    tickTs = scaleTicks(min, max, inner, vertical ? 60 : 120).map((year) => ({
-      year,
-      t: L.padStart + (max > min ? ((year - min) / (max - min)) * inner : inner / 2),
-    }))
+    // Each unbroken stretch picks its own round step; a tick crowding the
+    // one before it is dropped.
+    const room = vertical ? 28 : 90
+    tickTs = []
+    for (const seg of scaled.segments) {
+      for (const year of scaleTicks(seg.min, seg.max, seg.length, vertical ? 60 : 120)) {
+        const t = scaled.at(year)
+        const last = tickTs[tickTs.length - 1]
+        if (t !== null && (!last || t - last.t >= room)) tickTs.push({ year, t })
+      }
+    }
   } else {
     tickTs = []
     let lastYear = null
@@ -401,6 +465,14 @@ export function layoutChronicle({ placed, branches, shownBranches, calendar, spa
     nodes,
     lines,
     ticks,
+    // Stretches of time cut out "to scale": where canon runs dotted, where
+    // the axis marks it, and how many years it skips.
+    breaks: (scaled?.breaks ?? []).map((b) => {
+      const [x1, y1] = pt(b.from, base)
+      const [x2, y2] = pt(b.to, base)
+      const [axisX, axisY] = pt((b.from + b.to) / 2, axisCross)
+      return { x1, y1, x2, y2, axisX, axisY, years: b.toYear - b.fromYear }
+    }),
     lanes: Object.fromEntries(laneOf),
   }
 }

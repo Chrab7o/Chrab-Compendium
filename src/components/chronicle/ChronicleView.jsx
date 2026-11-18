@@ -83,6 +83,18 @@ export default function ChronicleView({ layout, calendar, branches, selectedId, 
           </g>
         ))}
 
+        {layout.breaks.map((b) => (
+          <g key={`${b.x1}-${b.y1}`} className="chronicle-break">
+            <line className="chronicle-break-line" x1={b.x1} y1={b.y1} x2={b.x2} y2={b.y2} />
+            <g transform={`translate(${b.axisX} ${b.axisY})`}>
+              <path d={vertical ? 'M -7 -6 L 7 -10 M -7 2 L 7 -2' : 'M -6 7 L -2 -7 M 2 7 L 6 -7'} />
+              <text x={vertical ? -10 : 0} y={vertical ? 4 : 22} textAnchor={vertical ? 'end' : 'middle'}>
+                {`${Math.round(b.years).toLocaleString()} yrs`}
+              </text>
+            </g>
+          </g>
+        ))}
+
         {layout.lines.map((line) => (
           <path
             key={line.id ?? 'canon'}
