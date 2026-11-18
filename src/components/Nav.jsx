@@ -112,6 +112,9 @@ export default function Nav() {
           <NavLink to="/homebrew" className={({ isActive }) => (isActive ? 'active' : '')}>
             Homebrew
           </NavLink>
+          <NavLink to="/dictionary" className={({ isActive }) => (isActive ? 'active' : '')}>
+            Dictionary
+          </NavLink>
           <NavLink to="/search" className={({ isActive }) => (isActive ? 'active' : '')}>
             Search
           </NavLink>

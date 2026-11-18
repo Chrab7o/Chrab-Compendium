@@ -10,6 +10,7 @@ import WorldMapPage from './pages/WorldMapPage'
 import ChroniclePage from './pages/ChroniclePage'
 import TagView from './pages/TagView'
 import SearchPage from './pages/SearchPage'
+import DictionaryPage from './pages/DictionaryPage'
 import Login from './pages/Login'
 import CharacterHub from './pages/CharacterHub'
 import CharacterSheet from './pages/CharacterSheet'
@@ -86,6 +87,7 @@ export default function App() {
             <Route path="/homebrew/feats/:slug" element={<HomebrewFeatDetail />} />
             <Route path="/homebrew/backgrounds/:slug" element={<HomebrewBackgroundDetail />} />
             <Route path="/session-notes" element={<TagView tag="session-note" title="Session Notes" />} />
+            <Route path="/dictionary" element={<DictionaryPage />} />
             <Route path="/search" element={<SearchPage />} />
             <Route path="/login" element={<Login />} />
             <Route

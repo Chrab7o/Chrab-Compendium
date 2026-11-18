@@ -8761,3 +8761,194 @@ button.levels-tab.is-active {
     border-radius: 0;
   }
 }
+
+/* Dictionary: the lore glossary, laid out like the spreadsheet it came from.
+   On a phone each row stacks into a card with its column names as labels. */
+.dictionary-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.dictionary-toolbar input[type='search'] {
+  flex: 1 1 16rem;
+}
+
+.dictionary-table-wrap {
+  overflow-x: auto;
+}
+
+.dictionary-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.dictionary-table thead th {
+  position: sticky;
+  top: 0;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-family: var(--font-display);
+  font-weight: 600;
+  text-align: left;
+  padding: 0.6rem 0.75rem;
+  white-space: nowrap;
+}
+
+.dictionary-table tbody th,
+.dictionary-table tbody td {
+  padding: 0.6rem 0.75rem;
+  border-top: 1px solid var(--border);
+  vertical-align: top;
+  text-align: left;
+  white-space: pre-line;
+}
+
+.dictionary-table tbody tr:nth-child(even) {
+  background: var(--surface-2);
+}
+
+.dictionary-table tbody th {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.dictionary-table tbody td:nth-child(2) {
+  min-width: 18rem;
+}
+
+.dictionary-table tbody td:nth-child(6) {
+  min-width: 16rem;
+}
+
+.dictionary-table tbody tr:target {
+  outline: 2px solid var(--accent-strong);
+  outline-offset: -2px;
+}
+
+.dictionary-table tbody tr[id] {
+  scroll-margin-top: 5rem;
+}
+
+.dictionary-related {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.dictionary-related .chip {
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.dictionary-related .chip.is-unlinked {
+  cursor: default;
+  opacity: 0.75;
+}
+
+.dictionary-row-actions button {
+  padding: 0.3rem 0.7rem;
+  font-size: var(--text-xs);
+}
+
+.dictionary-table tbody tr.dictionary-edit-row {
+  background: var(--surface-2);
+}
+
+.dictionary-editor {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: 0.75rem;
+  white-space: normal;
+}
+
+.dictionary-editor label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-weight: 600;
+}
+
+.dictionary-editor label.is-wide {
+  grid-column: 1 / -1;
+}
+
+.dictionary-editor textarea {
+  resize: vertical;
+}
+
+.dictionary-editor-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+@media (max-width: 760px) {
+  .dictionary-table,
+  .dictionary-table tbody,
+  .dictionary-table tr,
+  .dictionary-table th,
+  .dictionary-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .dictionary-table {
+    border: none;
+    background: none;
+  }
+
+  .dictionary-table thead {
+    display: none;
+  }
+
+  .dictionary-table tbody tr {
+    margin-bottom: 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+  }
+
+  .dictionary-table tbody tr:nth-child(even) {
+    background: var(--surface);
+  }
+
+  .dictionary-table tbody th,
+  .dictionary-table tbody td {
+    border-top: none;
+    padding: 0.35rem 0.75rem;
+    min-width: 0 !important;
+    white-space: pre-line;
+  }
+
+  .dictionary-table tbody th {
+    font-size: var(--text-md);
+    padding-top: 0.6rem;
+  }
+
+  .dictionary-table tbody td[data-label]:empty {
+    display: none;
+  }
+
+  .dictionary-table tbody td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    font-size: var(--text-xs);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+  }
+
+  .dictionary-row-actions {
+    padding-bottom: 0.6rem !important;
+  }
+}
