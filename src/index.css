@@ -1526,7 +1526,8 @@ h2.entry-secret-label {
   margin-bottom: 1.5rem;
 }
 
-.dm-form label {
+.dm-form label,
+.dm-form-field {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;

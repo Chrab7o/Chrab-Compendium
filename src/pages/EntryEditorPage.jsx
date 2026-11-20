@@ -195,14 +195,16 @@ export default function EntryEditorPage() {
           />
         </label>
 
-        <label>
-          Content
+        {/* Not a <label>: a tap anywhere in a label clicks its first button,
+            which here is the editor's Format toggle. */}
+        <div className="dm-form-field">
+          <span>Content</span>
           <RichTextEditor
             key={id ?? 'new'}
             content={form.content}
             onChange={(markdown) => setForm((f) => ({ ...f, content: markdown }))}
           />
-        </label>
+        </div>
 
         <div className="entry-secret-field">
           <span className="entry-secret-label">

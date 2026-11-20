@@ -56,15 +56,25 @@ export default function WorldMapPage() {
 
   const { maps, loading: mapsLoading } = useMaps({ worldId: world?.id })
 
+  // The map to land on: the selected timeline's default map if it has one
+  // in this world, otherwise the world's first map by name (its
+  // primary/overview map). Getting to any other map (e.g. a continent
+  // within it) happens by clicking a linked region on the current map.
+  const timelineMapId = worldCampaigns.find((c) => c.id === effectiveCampaignId)?.default_map_id
+  const landingMapId = maps.some((m) => m.id === timelineMapId)
+    ? timelineMapId
+    : [...maps].sort((a, b) => a.name.localeCompare(b.name))[0]?.id
+
+  // Picking a timeline jumps to its landing map, even from a sub-map —
+  // switching timelines is a fresh start.
   useEffect(() => {
-    // Sorted by name, same as the old "Map" dropdown's default — lands on
-    // the world's primary/overview map first; getting to any other map
-    // (e.g. a continent within it) now happens by clicking a linked region
-    // on the current map instead of picking from a flat list.
-    if (maps.length > 0 && !maps.some((m) => m.id === mapId)) {
-      setMapId([...maps].sort((a, b) => a.name.localeCompare(b.name))[0].id)
-    }
-  }, [maps, mapId])
+    if (landingMapId) setMapId(landingMapId)
+  }, [effectiveCampaignId, landingMapId])
+
+  // Fallback for a missing/stale mapId (e.g. first load).
+  useEffect(() => {
+    if (landingMapId && !maps.some((m) => m.id === mapId)) setMapId(landingMapId)
+  }, [maps, mapId, landingMapId])
 
   const activeMap = maps.find((m) => m.id === mapId)
 

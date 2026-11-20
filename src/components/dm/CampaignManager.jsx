@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
+import { useMaps } from '../../hooks/useMaps'
 
-const emptyForm = { id: null, name: '', slug: '', description: '', world_id: '' }
+const emptyForm = { id: null, name: '', slug: '', description: '', world_id: '', default_map_id: '' }
 
 function slugify(name) {
   return name
@@ -15,6 +16,12 @@ export default function CampaignManager({ campaigns, worlds, onChange }) {
   const [form, setForm] = useState(emptyForm)
   const [error, setError] = useState(null)
   const [saving, setSaving] = useState(false)
+  const { maps } = useMaps()
+
+  // Only maps in the campaign's world are valid defaults — the world page
+  // only ever shows that world's maps.
+  const formWorldId = form.world_id || worlds[0]?.id
+  const worldMaps = maps.filter((m) => m.world_id === formWorldId)
 
   function startEdit(campaign) {
     setForm(campaign)
@@ -35,7 +42,8 @@ export default function CampaignManager({ campaigns, worlds, onChange }) {
       name: form.name,
       slug: form.slug || slugify(form.name),
       description: form.description,
-      world_id: form.world_id || worlds[0]?.id,
+      world_id: formWorldId,
+      default_map_id: worldMaps.some((m) => m.id === form.default_map_id) ? form.default_map_id : null,
     }
 
     const { error: saveError } = form.id
@@ -82,12 +90,26 @@ export default function CampaignManager({ campaigns, worlds, onChange }) {
           World
           <select
             value={form.world_id}
-            onChange={(e) => setForm({ ...form, world_id: e.target.value })}
+            onChange={(e) => setForm({ ...form, world_id: e.target.value, default_map_id: '' })}
             required
           >
             {worlds.map((w) => (
               <option key={w.id} value={w.id}>
                 {w.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Default map (what the world page opens on for this timeline)
+          <select
+            value={form.default_map_id ?? ''}
+            onChange={(e) => setForm({ ...form, default_map_id: e.target.value })}
+          >
+            <option value="">World's first map (by name)</option>
+            {worldMaps.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.name}
               </option>
             ))}
           </select>

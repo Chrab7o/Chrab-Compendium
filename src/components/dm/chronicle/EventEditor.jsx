@@ -183,10 +183,11 @@ export default function EventEditor({ event, entries, worldId, calendar, branche
 
       {form.kind === 'event' && (
         <>
-          <label>
-            What happened
+          {/* Not a <label>: a tap anywhere in it would click the editor's Format toggle. */}
+          <div className="dm-form-field">
+            <span>What happened</span>
             <RichTextEditor key={form.id ?? 'new'} content={form.summary ?? ''} onChange={(summary) => set({ summary })} />
-          </label>
+          </div>
 
           <fieldset className="tag-checklist chronicle-rows">
             <legend>Linked entries</legend>
