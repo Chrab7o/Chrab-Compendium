@@ -1,5 +1,5 @@
 import { useTags } from '../contexts/TagContext'
-import { matchesAllTags, tagLabel as lookupLabel } from '../lib/tags'
+import { regionEntries, tagLabel as lookupLabel } from '../lib/tags'
 import { tagsByGroup } from '../lib/tags'
 import { BrowseIcon } from './Icons'
 import EntryCard from './EntryCard'
@@ -10,10 +10,14 @@ import EntryCard from './EntryCard'
 // up here automatically.
 // A region used to point at one folder; it now points at a set of tags an
 // entry must carry all of, which means a region can scope to a combination
-// ("Locations" + "Ashfall") that no single folder ever held.
-export default function RegionEntryPanel({ region, tagQuery, entries, onClose }) {
+// ("Locations" + "Ashfall") that no single folder ever held. On top of the
+// query, the DM can pick specific entries (target.entryIds); they're merged
+// in and sectioned by Type like everything else.
+export default function RegionEntryPanel({ region, target, entries, onClose }) {
   const { tags, groups } = useTags()
-  const matched = entries.filter((e) => matchesAllTags(e.tags, tagQuery))
+  const { tagQuery, entryIds } = target
+  const matched = regionEntries(entries, target)
+  const linksAnything = tagQuery.length > 0 || entryIds.length > 0
 
   // Section by Type, since that's the group that says what a thing is. The
   // region's own query tags are dropped as section headers — every entry
@@ -44,11 +48,11 @@ export default function RegionEntryPanel({ region, tagQuery, entries, onClose })
         </button>
       </div>
 
-      {(!tagQuery || tagQuery.length === 0) && (
-        <p className="status-message">This region isn't linked to any tags yet.</p>
+      {!linksAnything && (
+        <p className="status-message">This region isn't linked to any entries yet.</p>
       )}
 
-      {tagQuery?.length > 0 && (
+      {tagQuery.length > 0 && (
         <p className="region-panel-query">
           {tagQuery.map((t) => (
             <span key={t} className="tag">
@@ -58,10 +62,10 @@ export default function RegionEntryPanel({ region, tagQuery, entries, onClose })
         </p>
       )}
 
-      {tagQuery?.length > 0 && matched.length === 0 && (
+      {linksAnything && matched.length === 0 && (
         <div className="browse-empty">
           <BrowseIcon />
-          <p className="browse-empty-title">Nothing tagged this way yet</p>
+          <p className="browse-empty-title">Nothing here yet</p>
         </div>
       )}
 

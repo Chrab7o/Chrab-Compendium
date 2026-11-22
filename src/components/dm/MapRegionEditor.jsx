@@ -1,24 +1,27 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import { useMapRegions } from '../../hooks/useMapRegions'
 import { getMapImageUrl } from '../../lib/mapStorage'
 import MapViewer from '../MapViewer'
 import TagQueryPicker from './TagQueryPicker'
+import EntryListPicker from './EntryListPicker'
 
 const emptyForm = {
   id: null,
   name: '',
   tag_query: [],
+  // Hand-picked entries shown alongside whatever tag_query matches.
+  entry_ids: [],
   visibility: 'public',
   campaign_id: '',
   linked_map_id: '',
   linkType: 'none',
-  // Per-timeline exceptions on top of tag_query (the default) - keyed by
-  // campaign_id, value is the override tag array. See region_tag_links.
-  tagOverrides: {},
+  // Per-timeline exceptions to the default (tag_query + entry_ids) - keyed by
+  // campaign_id, value is { tag_query, entry_ids }. See region_tag_links.
+  overrides: {},
 }
 
-export default function MapRegionEditor({ maps, campaigns, regionTagLinks = [], onChange }) {
+export default function MapRegionEditor({ maps, campaigns, entries = [], regionTagLinks = [], onChange }) {
   const [mapId, setMapId] = useState('')
   const [drawing, setDrawing] = useState(false)
   const [drawingPoints, setDrawingPoints] = useState([])
@@ -40,6 +43,17 @@ export default function MapRegionEditor({ maps, campaigns, regionTagLinks = [], 
   // that has no tags yet would immediately re-derive back to "none" and the
   // tag picker would never appear at all.
   const linkType = form?.linkType ?? 'none'
+
+  // The form sits below the map, often off screen — bring it into view and
+  // focus Name whenever a region is opened (a new one after "Done", or an
+  // existing one clicked on the map), so it's clear saving is a next step.
+  const formRef = useRef(null)
+  const formKey = form ? (form.id ?? 'new') : null
+  useEffect(() => {
+    if (!formKey || !formRef.current) return
+    formRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    formRef.current.querySelector('input')?.focus({ preventScroll: true })
+  }, [formKey])
 
   // Escape cancels an in-progress drawing session.
   useEffect(() => {
@@ -88,20 +102,27 @@ export default function MapRegionEditor({ maps, campaigns, regionTagLinks = [], 
 
   function handleRegionClick(region) {
     if (drawing) return
+    setDrawingPoints([])
     const query = region.tag_query ?? []
+    const entryIds = region.entry_ids ?? []
     setForm({
       id: region.id,
       name: region.name,
       tag_query: query,
+      entry_ids: entryIds,
       visibility: region.visibility,
       points: region.points,
       campaign_id: region.campaign_id ?? '',
       linked_map_id: region.linked_map_id ?? '',
-      linkType: region.linked_map_id ? 'map' : query.length > 0 ? 'tags' : 'none',
-      tagOverrides: Object.fromEntries(
+      linkType: region.linked_map_id
+        ? 'map'
+        : query.length > 0 || entryIds.length > 0
+          ? 'tags'
+          : 'none',
+      overrides: Object.fromEntries(
         regionTagLinks
           .filter((l) => l.region_id === region.id)
-          .map((l) => [l.campaign_id, l.tag_query ?? []])
+          .map((l) => [l.campaign_id, { tag_query: l.tag_query ?? [], entry_ids: l.entry_ids ?? [] }])
       ),
     })
     setError(null)
@@ -109,6 +130,7 @@ export default function MapRegionEditor({ maps, campaigns, regionTagLinks = [], 
 
   function resetForm() {
     setForm(null)
+    setDrawingPoints([])
     setError(null)
   }
 
@@ -121,6 +143,7 @@ export default function MapRegionEditor({ maps, campaigns, regionTagLinks = [], 
       name: form.name,
       points: form.points,
       tag_query: linkType === 'tags' ? form.tag_query : [],
+      entry_ids: linkType === 'tags' ? form.entry_ids : [],
       visibility: form.visibility,
       campaign_id: form.campaign_id || null,
       linked_map_id: linkType === 'map' ? form.linked_map_id || null : null,
@@ -136,10 +159,12 @@ export default function MapRegionEditor({ maps, campaigns, regionTagLinks = [], 
 
     // Per-timeline overrides only make sense while the region actually
     // browses entries - clearing out any stale rows here too if the DM
-    // switched away from "Tags" or emptied one.
+    // switched away from "Entries" or emptied one.
     const desired =
       linkType === 'tags'
-        ? Object.entries(form.tagOverrides).filter(([, query]) => query?.length > 0)
+        ? Object.entries(form.overrides).filter(
+            ([, o]) => o?.tag_query?.length > 0 || o?.entry_ids?.length > 0
+          )
         : []
     const { error: clearError } = await supabase
       .from('region_tag_links')
@@ -147,16 +172,18 @@ export default function MapRegionEditor({ maps, campaigns, regionTagLinks = [], 
       .eq('region_id', saved.id)
     if (!clearError && desired.length > 0) {
       await supabase.from('region_tag_links').insert(
-        desired.map(([campaignId, query]) => ({
+        desired.map(([campaignId, o]) => ({
           region_id: saved.id,
           campaign_id: campaignId,
-          tag_query: query,
+          tag_query: o.tag_query ?? [],
+          entry_ids: o.entry_ids ?? [],
         }))
       )
     }
 
     setSaving(false)
     setForm(null)
+    setDrawingPoints([])
     reload()
     onChange?.()
   }
@@ -201,7 +228,9 @@ export default function MapRegionEditor({ maps, campaigns, regionTagLinks = [], 
           <p className="map-edit-hint">
             {drawing
               ? 'Click to place each vertex. Click near the first point (or press Done) to finish. Esc cancels.'
-              : 'Draw a new region, or click an existing one to edit it.'}
+              : form && !form.id
+                ? 'Name the region below and click "Add region" to save it.'
+                : 'Draw a new region, or click an existing one to edit it.'}
           </p>
           <div className="dm-form-actions">
             {!drawing && (
@@ -227,14 +256,17 @@ export default function MapRegionEditor({ maps, campaigns, regionTagLinks = [], 
             height={map.image_height}
             markers={[]}
             regions={regions}
-            regionsEditable={drawing}
+            // Always on in the editor: keeps every saved outline visible (not
+            // just on hover) and keeps a just-drawn shape on screen while its
+            // form is open. Map clicks outside drawing are ignored anyway.
+            regionsEditable
             drawingPoints={drawingPoints}
             onMapClick={handleMapClick}
             onRegionClick={handleRegionClick}
           />
 
           {form && (
-            <form onSubmit={handleSubmit} className="marker-form">
+            <form ref={formRef} onSubmit={handleSubmit} className="marker-form">
               <label>
                 Name
                 <input
@@ -255,23 +287,34 @@ export default function MapRegionEditor({ maps, campaigns, regionTagLinks = [], 
                         ...form,
                         linkType: next,
                         tag_query: [],
+                        entry_ids: [],
                         linked_map_id: otherWorldMaps[0]?.id ?? '',
                       })
-                    } else setForm({ ...form, linkType: next, tag_query: [], linked_map_id: '' })
+                    } else {
+                      setForm({ ...form, linkType: next, tag_query: [], entry_ids: [], linked_map_id: '' })
+                    }
                   }}
                 >
                   <option value="none">None</option>
-                  <option value="tags">Tags (browse entries)</option>
+                  <option value="tags">Entries (by tag or picked by name)</option>
                   <option value="map" disabled={otherWorldMaps.length === 0}>
                     Another map (zoom in){otherWorldMaps.length === 0 ? ' — no other maps in this world' : ''}
                   </option>
                 </select>
               </label>
               {linkType === 'tags' && (
-                <TagQueryPicker
-                  value={form.tag_query}
-                  onChange={(tag_query) => setForm({ ...form, tag_query })}
-                />
+                <>
+                  <TagQueryPicker
+                    value={form.tag_query}
+                    onChange={(tag_query) => setForm({ ...form, tag_query })}
+                  />
+                  <EntryListPicker
+                    entries={entries}
+                    campaigns={mapCampaigns}
+                    value={form.entry_ids}
+                    onChange={(entry_ids) => setForm({ ...form, entry_ids })}
+                  />
+                </>
               )}
 
               <div className="dm-form-row">
@@ -319,30 +362,37 @@ export default function MapRegionEditor({ maps, campaigns, regionTagLinks = [], 
               {linkType === 'tags' && mapCampaigns.length > 0 && (
                 <div className="region-tag-overrides">
                   <p className="map-edit-hint">
-                    Same shape, different destination per timeline — pick tags here to
-                    override the default above for that one timeline only. Leave a timeline
-                    empty to use the default.
+                    Same shape, different destination per timeline — pick tags or entries
+                    here to replace the default above (both parts) for that one timeline
+                    only. Leave a timeline empty to use the default.
                   </p>
-                  {mapCampaigns.map((c) => (
-                    <details key={c.id}>
-                      <summary>
-                        {c.name}
-                        {form.tagOverrides[c.id]?.length > 0
-                          ? ` — ${form.tagOverrides[c.id].length} tag(s)`
-                          : ' — uses default'}
-                      </summary>
-                      <TagQueryPicker
-                        label={`Override for ${c.name}`}
-                        value={form.tagOverrides[c.id] ?? []}
-                        onChange={(query) =>
-                          setForm({
-                            ...form,
-                            tagOverrides: { ...form.tagOverrides, [c.id]: query },
-                          })
-                        }
-                      />
-                    </details>
-                  ))}
+                  {mapCampaigns.map((c) => {
+                    const o = form.overrides[c.id] ?? { tag_query: [], entry_ids: [] }
+                    const setOverride = (patch) =>
+                      setForm({ ...form, overrides: { ...form.overrides, [c.id]: { ...o, ...patch } } })
+                    const parts = [
+                      o.tag_query.length > 0 && `${o.tag_query.length} tag(s)`,
+                      o.entry_ids.length > 0 && `${o.entry_ids.length} entry(s)`,
+                    ].filter(Boolean)
+                    return (
+                      <details key={c.id}>
+                        <summary>
+                          {c.name} — {parts.length > 0 ? parts.join(', ') : 'uses default'}
+                        </summary>
+                        <TagQueryPicker
+                          label={`Override for ${c.name}`}
+                          value={o.tag_query}
+                          onChange={(tag_query) => setOverride({ tag_query })}
+                        />
+                        <EntryListPicker
+                          entries={entries}
+                          campaigns={mapCampaigns}
+                          value={o.entry_ids}
+                          onChange={(entry_ids) => setOverride({ entry_ids })}
+                        />
+                      </details>
+                    )
+                  })}
                 </div>
               )}
 

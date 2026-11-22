@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabaseClient'
 // Per-timeline tag-query overrides for a set of regions (see the tag_groups
 // migration) - unfiltered fetch, same pattern as useMapMarkers/useMapRegions;
 // resolving which override applies for the active timeline happens in the
-// consuming component via effectiveRegionTagQuery().
+// consuming component via effectiveRegionTarget().
 export function useRegionTagLinks(regionIds) {
   const [links, setLinks] = useState([])
   const key = regionIds.join(',')

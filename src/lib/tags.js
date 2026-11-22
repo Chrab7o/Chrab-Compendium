@@ -117,13 +117,21 @@ export function entryInCampaignScope(entry, allowedCampaignIds) {
   return !entry.campaign_id
 }
 
-// A region's tag query, with the active timeline's override applied if one
-// exists (region_tag_links). Falls back to the region's own default when
-// there's no override for the active campaign, or no campaign selected.
-export function effectiveRegionTagQuery(region, links, campaignId) {
-  if (campaignId) {
-    const override = links.find((l) => l.region_id === region.id && l.campaign_id === campaignId)
-    if (override) return override.tag_query ?? []
-  }
-  return region.tag_query ?? []
+// What a region browses for the active timeline: its tag query plus any
+// hand-picked entries (map_regions.entry_ids). A per-timeline override
+// (region_tag_links) replaces both at once; with no override for the active
+// campaign, or no campaign selected, the region's own default applies.
+export function effectiveRegionTarget(region, links, campaignId) {
+  const source =
+    (campaignId && links.find((l) => l.region_id === region.id && l.campaign_id === campaignId)) ||
+    region
+  return { tagQuery: source.tag_query ?? [], entryIds: source.entry_ids ?? [] }
+}
+
+// The entries a region shows: everything matching its tag query, plus the
+// picked ones. Picked ids that no longer exist (deleted, or hidden from this
+// viewer by RLS) simply don't resolve.
+export function regionEntries(entries, { tagQuery, entryIds }) {
+  const picked = new Set(entryIds ?? [])
+  return entries.filter((e) => picked.has(e.id) || matchesAllTags(e.tags, tagQuery))
 }

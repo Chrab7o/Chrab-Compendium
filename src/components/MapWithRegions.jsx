@@ -4,14 +4,14 @@ import { useMapMarkers } from '../hooks/useMapMarkers'
 import { useMapRegions } from '../hooks/useMapRegions'
 import { useRegionTagLinks } from '../hooks/useRegionTagLinks'
 import { useCampaignContext } from '../contexts/CampaignContext'
-import { effectiveRegionTagQuery } from '../lib/tags'
+import { effectiveRegionTarget } from '../lib/tags'
 import { getMapImageUrl } from '../lib/mapStorage'
 import MapViewer from './MapViewer'
 import RegionEntryPanel from './RegionEntryPanel'
 
 // A map plus its regions: hover a region for its name, click it (or pick it
 // from the dropdown) to either open a side panel of everything matching its
-// tag query, or — if it's linked to another map instead — navigate there via
+// tag query and picked entries, or — if it's linked to another map instead — navigate there via
 // onNavigateToMap. A region is one or the other, never both.
 // Shared by MapDetail and WorldMapPage so this behavior only lives in one
 // place.
@@ -100,7 +100,7 @@ export default function MapWithRegions({ map, onNavigateToMap }) {
       {selectedRegion && (
         <RegionEntryPanel
           region={selectedRegion}
-          tagQuery={effectiveRegionTagQuery(selectedRegion, tagLinks, campaignId)}
+          target={effectiveRegionTarget(selectedRegion, tagLinks, campaignId)}
           entries={entries}
           onClose={() => setSelectedRegionId(null)}
         />

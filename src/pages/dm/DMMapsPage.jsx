@@ -18,7 +18,7 @@ export default function DMMapsPage() {
     setLoading(true)
     const [{ data: mapData }, { data: entryData }, { data: linkData }] = await Promise.all([
       supabase.from('maps').select('*').order('name', { ascending: true }),
-      supabase.from('entries').select('id, title').order('title', { ascending: true }),
+      supabase.from('entries').select('id, title, campaign_id').order('title', { ascending: true }),
       supabase.from('region_tag_links').select('*'),
     ])
     setMaps(mapData ?? [])
@@ -50,6 +50,7 @@ export default function DMMapsPage() {
       <MapRegionEditor
         maps={maps}
         campaigns={campaigns}
+        entries={entries}
         regionTagLinks={regionTagLinks}
         onChange={load}
       />

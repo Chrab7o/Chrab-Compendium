@@ -4407,6 +4407,28 @@ button.tag-picker-option.is-create {
   margin-bottom: 0.75rem;
 }
 
+/* Hand-picked entries for a region, under its tag picker. */
+.entry-list-picker {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.entry-list-picker-results {
+  list-style: none;
+  margin: 0;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  max-height: 14rem;
+  overflow-y: auto;
+}
+
+.entry-list-picker-results li + li {
+  margin-top: 0.25rem;
+}
+
 /* ---- Shops -------------------------------------------------------------
    The DM roller at /dm/shops and the player-facing shelf at /shop/:slug.
    Rarity badges extend the existing .badge system rather than inventing a
