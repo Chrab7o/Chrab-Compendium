@@ -8975,3 +8975,70 @@ button.levels-tab.is-active {
     padding-bottom: 0.6rem !important;
   }
 }
+
+/* Campaign home page on the world page (an entry tagged home-page). */
+.campaign-home {
+  margin-bottom: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.campaign-home > summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+}
+
+.campaign-home-title {
+  font-size: 1.35rem;
+  font-weight: 700;
+}
+
+.campaign-home[open] > summary {
+  margin-bottom: var(--space-3);
+}
+
+.campaign-home-links {
+  display: flex;
+  gap: var(--space-4);
+  margin: var(--space-3) 0 0;
+  font-size: var(--text-sm);
+}
+
+.campaign-home-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+button.campaign-home-card {
+  display: block;
+  text-align: left;
+  font-weight: normal;
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-sm);
+}
+
+button.campaign-home-card:hover {
+  filter: none;
+  box-shadow: var(--shadow-md), var(--shadow-glow-accent);
+}
+
+.campaign-home-card h3 {
+  margin: 0 0 var(--space-2);
+}
+
+.campaign-home-card p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}

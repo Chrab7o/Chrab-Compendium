@@ -7,6 +7,8 @@ import { useMapRegions } from '../hooks/useMapRegions'
 import { useCampaignContext } from '../contexts/CampaignContext'
 import { getWorldHeroImageUrl } from '../lib/worldStorage'
 import MapWithRegions from '../components/MapWithRegions'
+import CampaignHome, { CampaignHomeCards } from '../components/CampaignHome'
+import { useCampaignHomes } from '../hooks/useCampaignHomes'
 
 export default function WorldMapPage() {
   const { slug } = useParams()
@@ -53,6 +55,12 @@ export default function WorldMapPage() {
   // filtering maps by a campaign that isn't even listed in the picker.
   const worldCampaigns = world ? campaigns.filter((c) => c.world_id === world.id) : []
   const effectiveCampaignId = worldCampaigns.some((c) => c.id === campaignId) ? campaignId : ''
+
+  // Each campaign's home page: an entry tagged home-page. The picked
+  // campaign's shows in full above the map; with no campaign picked, every
+  // campaign that has one gets a card to jump into it.
+  const campaignHomes = useCampaignHomes(worldCampaigns)
+  const activeHome = effectiveCampaignId ? campaignHomes.get(effectiveCampaignId) : null
 
   const { maps, loading: mapsLoading } = useMaps({ worldId: world?.id })
 
@@ -133,6 +141,16 @@ export default function WorldMapPage() {
             </select>
           </label>
         </div>
+      )}
+
+      {activeHome && <CampaignHome key={activeHome.id} entry={activeHome} />}
+
+      {!effectiveCampaignId && campaignHomes.size > 0 && (
+        <CampaignHomeCards
+          campaigns={worldCampaigns.filter((c) => campaignHomes.has(c.id))}
+          homes={campaignHomes}
+          onPick={setCampaignId}
+        />
       )}
 
       {!mapsLoading && maps.length === 0 && (
