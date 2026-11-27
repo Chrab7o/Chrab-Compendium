@@ -1,0 +1,30 @@
+{
+  "id": "dwarven",
+  "label": "Dwarven",
+  "note": "Sky-faring industrialists who pioneered the airships. Hard, clanking syllables, clan names from rigging, engines and weather (Galewright, Brasskeel), and the odd ship's captain.",
+  "mix": 0.25,
+  "parts": {
+    "nA": ["Brak", "Dur", "Kogg", "Thrum", "Hald", "Vind", "Skel", "Gund", "Rikk", "Hrund"],
+    "nB": ["dak", "rik", "werk", "dur", "gar", "nak", "drum", "mast", "kel", "rigg"],
+    "mod": [
+      { "t": "Hrund", "m": "sky" }, { "t": "Vindr", "m": "wind" }, { "t": "Kogg", "m": "gear" },
+      { "t": "Thrumm", "m": "engine" }, { "t": "Skel", "m": "keel" }, { "t": "Ghal", "m": "brass" },
+      { "t": "Brakk", "m": "iron" }, { "t": "Dramm", "m": "hammer" }, { "t": "Hrimm", "m": "cloud" }
+    ],
+    "gM": ["Durnan", "Brokk", "Torvak", "Haldrik", "Bardrin", "Ozrik", "Dagnar", "Thordek", "Vondal", "Kargun", "Rikkard", "Skelmar", "Hrundar", "Koggrin"],
+    "gF": ["Kessa", "Brunna", "Helgra", "Ingra", "Thyra", "Haldra", "Runa", "Sigrun", "Torra", "Bryndis", "Gunnvor", "Vindra", "Skella", "Rikka"],
+    "clanA": ["Gale", "Cloud", "Sky", "Storm", "Brass", "Rivet", "Steam", "Boiler", "Gear", "Copper", "Iron", "Kite", "Thunder", "Smoke", "Anvil", "High"],
+    "clanB": ["wright", "keel", "rigger", "hull", "sail", "works", "forge", "wind", "mast", "helm", "burner", "gauge"],
+    "port": ["skydokk", "rigg"],
+    "hold": ["werk", "gorn"],
+    "tower": ["mastr", "hokk"],
+    "mine": ["smelt", "gruv"],
+    "market": ["werkhall", "kogg"]
+  },
+  "branches": {
+    "surM": [{ "seq": ["clanA", "clanB"], "weight": 40 }],
+    "surF": [{ "seq": ["clanA", "clanB"], "weight": 40 }],
+    "fullM": [{ "seq": ["lit:Captain ", "gM", "lit: ", "clanA", "clanB"], "weight": 8 }],
+    "fullF": [{ "seq": ["lit:Captain ", "gF", "lit: ", "clanA", "clanB"], "weight": 8 }]
+  }
+}

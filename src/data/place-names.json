@@ -1,6 +1,6 @@
 {
   "id": "places",
-  "note": "The shared half of the place-name generators: one generator per Location kind, plus the English descriptor words they wrap invented names in (Lake, Temple of, The ... Deeps). The invented half - sounds, roots and place words with meanings - comes from a language in src/data/place-languages/; see src/lib/placeNames.js.",
+  "note": "The shared half of the culture generators: the people-name patterns (given, full and family names), one place generator per Location kind, plus the English descriptor words they wrap names in (Lake, Temple of, The ... Deeps) and Alva's gods. The rest - sounds, names, roots and place words with meanings - comes from a region or old tongue in src/data/place-languages/, optionally flavored by a people in src/data/place-peoples/; see src/lib/placeNames.js.",
   "meanings": {
     "city": "city", "town": "town", "village": "village", "camp": "camp", "hold": "hold",
     "tower": "tower", "hall": "hall", "ruin": "ruin", "market": "market", "port": "harbor",
@@ -46,9 +46,45 @@
     "impClause": ["That Never Ends", "Where It Always Rains", "Without Shadows", "That Remembers", "Between Hours", "Nobody Built", "That Moves at Night", "of Lost Things"],
     "realmWord": ["Realm", "Kingdom", "Crown", "Dominion", "Throne", "Empire"],
     "terrWord": ["Reaches", "Wilds", "Wildlands", "Expanse", "Frontier", "Hinterlands", "Barrens", "Outlands", "Badlands"],
-    "compass": ["Northern", "Southern", "Eastern", "Western", "Border", "Outer"]
+    "compass": ["Northern", "Southern", "Eastern", "Western", "Border", "Outer"],
+    "nomadWord": ["Clan", "Band", "Riders", "Caravan", "Kin", "Wanderers", "Herd", "Host", "Tents", "Drovers"],
+    "god": ["Yenara", "Verdictus", "Salus", "Lunaria", "Nytheria", "Vinterkin", "Ingen", "Akathur", "the Raven Queen", "the Tides"]
   },
   "generators": {
+    "givenM": {
+      "label": "Given name (masc.)", "group": "People",
+      "branches": [{ "seq": ["gM"], "weight": 1 }]
+    },
+    "givenF": {
+      "label": "Given name (fem.)", "group": "People",
+      "branches": [{ "seq": ["gF"], "weight": 1 }]
+    },
+    "fullM": {
+      "label": "Full name (masc.)", "group": "People",
+      "branches": [{ "seq": ["gM", "lit: ", "gen:surM"], "weight": 100 }]
+    },
+    "fullF": {
+      "label": "Full name (fem.)", "group": "People",
+      "branches": [{ "seq": ["gF", "lit: ", "gen:surF"], "weight": 100 }]
+    },
+    "surM": {
+      "label": "Family name (masc.)", "group": "People",
+      "branches": [{ "seq": ["nA", "nB"], "weight": 1 }]
+    },
+    "surF": {
+      "label": "Family name (fem.)", "group": "People",
+      "branches": [{ "seq": ["gen:surM"], "weight": 1 }]
+    },
+    "nomads": {
+      "label": "Nomadic group", "group": "People",
+      "branches": [
+        { "seq": ["lit:The ", "nA", "nB", "lit: ", "nomadWord"], "weight": 35 },
+        { "seq": ["person", "lit:'s ", "nomadWord"], "weight": 25 },
+        { "seq": ["lit:The ", "mod", "j", "camp", "lit: ", "nomadWord"], "weight": 20 },
+        { "seq": ["lit:The ", "campNoun", "lit: of ", "person"], "weight": 20 }
+      ]
+    },
+
     "city": {
       "label": "City", "group": "Settlements",
       "branches": [

@@ -1,0 +1,61 @@
+{
+  "id": "northern",
+  "label": "Northern",
+  "kind": "region",
+  "note": "The Frozen North (Frosthold, the Shattered Wastes, Mölbrotin, Froln). Old Norse and Icelandic: patronymics (-sson, -sdóttir) or a byname, and places fused from a root and a place word (Kaldvík, Jarnborg, Hvítafjall).",
+  "parts": {
+    "j": [""],
+    "mod": [
+      { "t": "Frost", "m": "frost" }, { "t": "Kald", "m": "cold" }, { "t": "Hvít", "m": "white" },
+      { "t": "Svart", "m": "black" }, { "t": "Rauð", "m": "red" }, { "t": "Jarn", "m": "iron" },
+      { "t": "Ís", "m": "ice" }, { "t": "Snæ", "m": "snow" }, { "t": "Gull", "m": "gold" },
+      { "t": "Stein", "m": "stone" }, { "t": "Ulf", "m": "wolf" }, { "t": "Hrafn", "m": "raven" },
+      { "t": "Björn", "m": "bear" }, { "t": "Hár", "m": "high" }, { "t": "Gamal", "m": "old" },
+      { "t": "Ný", "m": "new" }, { "t": "Myrk", "m": "dark" }, { "t": "Vind", "m": "wind" },
+      { "t": "Eld", "m": "fire" }, { "t": "Konung", "m": "king's" }, { "t": "Heil", "m": "holy" },
+      { "t": "Dverg", "m": "dwarf's" }, { "t": "Brim", "m": "surf" }, { "t": "Mjö", "m": "narrow" }
+    ],
+    "nA": ["Mol", "Frol", "Hok", "Skjal", "Bryn", "Hvar", "Grim", "Sval", "Rang", "Vest", "Aust", "Kol", "Tor", "Ein", "Dag", "Sig"],
+    "nB": ["brotin", "n", "grir", "und", "vald", "rek", "ning", "old", "ast", "eid", "ung", "rin", "aug", "olf", "ir", "ey"],
+    "gM": [
+      "Ari", "Bjorn", "Einar", "Eirik", "Gunnar", "Halfdan", "Hakon", "Ivar", "Leif", "Ragnar",
+      "Sigurd", "Sven", "Thorvald", "Ulf", "Vidar", "Orm", "Hrafn", "Kol", "Gisli", "Asgeir",
+      "Snorri", "Thorgrim", "Ketil", "Arnbjorn", "Bard", "Egil", "Grim", "Hallvard", "Ottar", "Torstein",
+      "Hjalmar", "Brand", "Steinar", "Ingvar", "Dag", "Frodi", "Geir", "Haldor", "Jorund", "Thoman"
+    ],
+    "gF": [
+      "Astrid", "Bergljot", "Dagny", "Eydis", "Freydis", "Gudrun", "Gunnhild", "Hallgerd", "Helga", "Ingrid",
+      "Jorunn", "Kolfinna", "Ragnhild", "Sigrid", "Solveig", "Thora", "Thorunn", "Tove", "Una", "Vigdis",
+      "Yrsa", "Asa", "Bodil", "Gyda", "Hild", "Ragna", "Signy", "Alfhild", "Brynja", "Edda",
+      "Hervor", "Ingunn", "Ljot", "Svala", "Thordis", "Valdis", "Hrefna", "Aud", "Freya", "Ylva"
+    ],
+    "byname": [
+      "Frostbeard", "Ironside", "Halftroll", "Redcloak", "the Quiet", "the Grey", "Skullsplitter", "Longstride",
+      "the Unlucky", "Snowfoot", "the Old", "Fairhair", "Wolfcoat", "the Deep-Minded", "Ravenfeeder", "Coldhand"
+    ],
+    "city": ["borg", "stad"], "town": ["by", "garð"], "village": ["bær", "thorp"], "camp": ["búð", "leir"],
+    "hold": ["hold", "virki"], "tower": ["turn", "varða"], "hall": ["höll", "skáli"], "ruin": ["rúst", "tóft"],
+    "market": ["torg", "kaup"], "port": ["höfn", "vík"], "grave": ["haug", "kuml"], "mine": ["náma", "gruf"],
+    "wood": ["skog", "við"], "lake": ["vatn", "sjó"], "river": ["á", "fljót"], "peak": ["fjall", "tind"],
+    "pass": ["skarð", "hlið"], "marsh": ["mýr", "fen"], "sand": ["sand", "eyri"], "shore": ["strönd", "nes"],
+    "isle": ["ey", "holm"], "plain": ["voll", "vang"], "road": ["veg", "gata"], "cave": ["hellir", "gjá"],
+    "deep": ["djúp", "undir"], "vault": ["kista", "hirsla"], "grove": ["lund", "horg"], "gate": ["grind", "port"],
+    "rift": ["sprunga", "rif"], "realm": ["ríki", "veldi"], "land": ["land", "heim"], "march": ["mörk", "jaðar"]
+  },
+  "generators": {
+    "surM": {
+      "label": "Family name (masc.)", "group": "People",
+      "branches": [
+        { "seq": ["gM", "lit:sson"], "weight": 70 },
+        { "seq": ["byname"], "weight": 30 }
+      ]
+    },
+    "surF": {
+      "label": "Family name (fem.)", "group": "People",
+      "branches": [
+        { "seq": ["gM", "lit:sdóttir"], "weight": 70 },
+        { "seq": ["byname"], "weight": 30 }
+      ]
+    }
+  }
+}

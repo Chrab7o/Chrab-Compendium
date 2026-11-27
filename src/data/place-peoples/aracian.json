@@ -1,0 +1,25 @@
+{
+  "id": "aracian",
+  "label": "Aracian",
+  "note": "The strongest flair: a guttural tongue from below, with throat sounds (gh, kh, q, rr), long uu and aa, glottal stops written ’, and names counted in crystal growth (of the Seventh Bloom).",
+  "mix": 0.4,
+  "parts": {
+    "nA": ["Ghur", "Khaa", "Qorr", "Uugh", "Grokh", "Hrakk", "Mogh", "Zhuur", "Bruq", "Rruk"],
+    "nB": ["’akh", "’ugh", "rrak", "’ul", "gha", "’duk", "khur", "’oq", "rug", "’ghaa"],
+    "mod": [
+      { "t": "Ghur", "m": "glowing" }, { "t": "Qorr", "m": "crystal" }, { "t": "Khaa", "m": "quiet" },
+      { "t": "Rrukh", "m": "deep" }, { "t": "Mogh", "m": "fungus" }, { "t": "Uugh", "m": "hollow" }
+    ],
+    "gM": ["Ghurrak", "Khaa’drug", "Qorrukh", "Uugh’tal", "Grokhar", "Durrg", "Hrakk’ul", "Mogh’ar", "Zhuurg", "Bruuq", "Kragh’un", "Ghol", "Rruk’akh", "Throgg"],
+    "gF": ["Urrgha", "Khaada", "Ghuul’ah", "Qorra", "Hrakka", "Mughra", "Zhaa’kh", "Druuga", "Ghessh", "Rrokha", "Khraa’la", "Uuthka", "Bhogga", "Qaar’uk"],
+    "ordinal": ["First", "Second", "Third", "Fourth", "Fifth", "Sixth", "Seventh", "Eighth", "Ninth", "Tenth", "Eleventh", "Twelfth"],
+    "bloom": ["Bloom", "Facet", "Growth", "Lattice", "Glow", "Hollow", "Spire", "Chime"],
+    "cave": ["ghrukk", "qhor’akh"],
+    "deep": ["uurgh", "khaa’dun"],
+    "grove": ["mogh’ar", "ghurr"]
+  },
+  "branches": {
+    "surM": [{ "seq": ["lit:of the ", "ordinal", "lit: ", "bloom"], "weight": 50 }],
+    "surF": [{ "seq": ["lit:of the ", "ordinal", "lit: ", "bloom"], "weight": 50 }]
+  }
+}

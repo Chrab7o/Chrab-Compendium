@@ -1,0 +1,27 @@
+{
+  "id": "goblin",
+  "label": "Goblin",
+  "note": "Names that are soft insults or something faintly disgusting (Snivel, Wartina), family names like Stinkfoot, and the odd nickname like Bird Brain.",
+  "mix": 0.25,
+  "parts": {
+    "nA": ["Snot", "Grub", "Muk", "Gunk", "Pus", "Ick", "Blech", "Wart", "Scab", "Slob"],
+    "nB": ["ble", "gle", "ick", "ooze", "slop", "snit", "rot", "wump", "glop", "dreg"],
+    "mod": [
+      { "t": "Grot", "m": "rotten" }, { "t": "Ick", "m": "gross" }, { "t": "Muk", "m": "muddy" },
+      { "t": "Skab", "m": "scabby" }, { "t": "Blech", "m": "foul" }, { "t": "Snot", "m": "snotty" }
+    ],
+    "gM": ["Snivel", "Grubbin", "Mildo", "Pustle", "Wartley", "Smudge", "Drool", "Scabby", "Fester", "Gunk", "Belch", "Sludge", "Muckle", "Dregs", "Grime", "Zogg"],
+    "gF": ["Idra", "Ick", "Blotch", "Phlegma", "Wartina", "Mildew", "Smeary", "Snivvy", "Pickle", "Moldy", "Ooze", "Grubbet", "Sourmilk", "Gristle", "Clotty", "Fusty"],
+    "gobA": ["Stink", "Snot", "Mold", "Wart", "Belch", "Gunk", "Drool", "Sour", "Muck", "Grub", "Scab", "Rot", "Fester", "Slime"],
+    "gobB": ["foot", "nose", "sock", "bottom", "belly", "knuckle", "britches", "finger", "tooth", "ear", "breath", "pants"],
+    "nick": ["Bird Brain", "Dimwit", "Muttonhead", "Nitwit", "Half-Wit", "Lumpkin", "Dungheap", "Puddle", "Noodle", "Clodpole", "Butterfingers", "Pea-Brain", "Mudbath", "Turnip"],
+    "market": ["skrap", "swapz"],
+    "camp": ["dug", "midden"]
+  },
+  "branches": {
+    "surM": [{ "seq": ["gobA", "gobB"], "weight": 40 }],
+    "surF": [{ "seq": ["gobA", "gobB"], "weight": 40 }],
+    "fullM": [{ "seq": ["gM", "lit: \"", "nick", "lit:\" ", "gen:surM"], "weight": 15 }],
+    "fullF": [{ "seq": ["gF", "lit: \"", "nick", "lit:\" ", "gen:surF"], "weight": 15 }]
+  }
+}

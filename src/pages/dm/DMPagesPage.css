@@ -1,0 +1,34 @@
+/* DM pages (/dm/pages). The list rows reuse .dm-list; each row is one link
+   filling the row, so the whole card is the target. */
+
+.dmp-list li { padding: 0; }
+
+.dmp-card {
+  display: grid;
+  gap: 0.2rem;
+  width: 100%;
+  padding: 0.7rem 0.9rem;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.dmp-card:hover { color: var(--text); }
+
+.dmp-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+/* The page fills what's left of the window; it scrolls inside its frame. */
+.dmp-frame {
+  display: block;
+  width: 100%;
+  height: calc(100vh - 12rem);
+  min-height: 480px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}

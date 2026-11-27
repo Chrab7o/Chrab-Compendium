@@ -1,0 +1,88 @@
+{
+  "id": "padian",
+  "label": "Padian",
+  "kind": "region",
+  "note": "The Padian Desert and its cities. People are named in an Arabic style (ibn and bint, al- names taken from a home town, trade names) with some Persian. Places are built Persian-style from a root plus a place word (Shamsabad, Mahrud, Zarbagh), and the invented names follow the desert villages (Rimala, Zahara, Qadima).",
+  "lower": ["ibn", "bint", "al"],
+  "parts": {
+    "j": ["", "", "", "-"],
+    "mod": [
+      { "t": "Shams", "m": "sun" }, { "t": "Mah", "m": "moon" }, { "t": "Nur", "m": "light" },
+      { "t": "Zar", "m": "golden" }, { "t": "Sim", "m": "silver" }, { "t": "Sorkh", "m": "red" },
+      { "t": "Sefid", "m": "white" }, { "t": "Siyah", "m": "black" }, { "t": "Kohan", "m": "old" },
+      { "t": "Now", "m": "new" }, { "t": "Bala", "m": "high" }, { "t": "Shah", "m": "king's" },
+      { "t": "Nakhl", "m": "palm" }, { "t": "Gol", "m": "rose" }, { "t": "Bad", "m": "wind" },
+      { "t": "Atash", "m": "fire" }, { "t": "Namak", "m": "salt" }, { "t": "Sitar", "m": "star" },
+      { "t": "Firuz", "m": "victorious" }, { "t": "Pak", "m": "pure" }, { "t": "Zamurd", "m": "emerald" },
+      { "t": "Khorram", "m": "joyful" }, { "t": "Ab", "m": "water" }, { "t": "Tir", "m": "arrow" }
+    ],
+    "nA": ["Za", "Sa", "Ja", "Qa", "Ra", "Ta", "Na", "Sha", "Ha", "Ma", "Ba", "Fa", "Ka", "Da", "Ri", "Su"],
+    "nB": ["hara", "fira", "mara", "dima", "wara", "mala", "sira", "biya", "naz", "rif", "zan", "diya", "lim", "sun", "qir", "bat"],
+    "gM": [
+      "Amir", "Bashir", "Dariush", "Farid", "Hakim", "Idris", "Jamal", "Kamran", "Karim", "Khalid",
+      "Malik", "Nasir", "Rashid", "Rostam", "Samir", "Tariq", "Zayd", "Faris", "Harun", "Ilyas",
+      "Jafar", "Mansur", "Navid", "Parviz", "Qasim", "Ramin", "Saman", "Sohrab", "Tahir", "Walid",
+      "Yasin", "Zaman", "Bahram", "Kourosh", "Darab", "Faraz", "Hamid", "Javad", "Anwar", "Murad"
+    ],
+    "gF": [
+      "Amira", "Azadeh", "Dalia", "Farah", "Fariba", "Habiba", "Jamila", "Laleh", "Layla", "Mahsa",
+      "Nadia", "Nasrin", "Parisa", "Rana", "Rania", "Roxana", "Safiya", "Salma", "Samira", "Shirin",
+      "Soraya", "Tahmina", "Yasmin", "Zahra", "Zainab", "Zara", "Anahita", "Bahar", "Dunya", "Golnar",
+      "Hala", "Iman", "Nour", "Parvaneh", "Rima", "Sahar", "Shadi", "Taraneh", "Mina", "Leyli"
+    ],
+    "nisba": [
+      "Qadimi", "Shamsi", "Zahari", "Jawari", "Rimali", "Safiri", "Padi", "Burji", "Sukari", "Talmundi",
+      "Dhari", "Tristi", "Tamari", "Nari", "Wadi", "Sahrawi", "Bazari", "Kaviri"
+    ],
+    "trade": [
+      "Haddad", "Najjar", "Attar", "Sabbagh", "Khayyat", "Sarraf", "Bazzaz", "Qassab", "Kateb", "Jamal",
+      "Saqqa", "Khabbaz", "Nahhas", "Dabbagh", "Zargar", "Kuzehgar"
+    ],
+    "city": ["shahr", "abad"], "town": ["kand", "gerd"], "village": ["deh", "sara"], "camp": ["khayma", "ordu"],
+    "hold": ["qala", "dezh"], "tower": ["borj", "minar"], "hall": ["divan", "kakh"], "ruin": ["kharaba", "viran"],
+    "market": ["bazar", "suq"], "port": ["bandar", "mina"], "grave": ["gur", "maqbara"], "mine": ["kan", "madan"],
+    "wood": ["jangal", "bisheh"], "lake": ["darya", "hawz"], "river": ["rud", "nahr"], "peak": ["kuh", "jabal"],
+    "pass": ["gardaneh", "darband"], "marsh": ["mordab", "batlaq"], "sand": ["reg", "ramla"], "shore": ["sahil", "kenar"],
+    "isle": ["jazira", "jaz"], "plain": ["dasht", "sahra"], "road": ["rah", "darb"], "cave": ["ghar", "kahf"],
+    "deep": ["zharf", "ghur"], "vault": ["ganj", "khazina"], "grove": ["bagh", "bustan"], "gate": ["dar", "bab"],
+    "rift": ["shekaf", "shaqq"], "realm": ["keshvar", "mulk"], "land": ["stan", "zamin"], "march": ["marz", "thaghr"]
+  },
+  "generators": {
+    "village": {
+      "label": "Village", "group": "Settlements",
+      "branches": [
+        { "seq": ["nA", "nB"], "weight": 55 },
+        { "seq": ["mod", "j", "village"], "weight": 25 },
+        { "seq": ["person", "lit:'s Well"], "weight": 10 },
+        { "seq": ["lit:Bir ", "nA", "nB"], "weight": 10 }
+      ]
+    },
+    "hamlet": {
+      "label": "Hamlet", "group": "Settlements",
+      "branches": [
+        { "seq": ["nA", "nB"], "weight": 40 },
+        { "seq": ["person", "lit:'s Well"], "weight": 25 },
+        { "seq": ["mod", "j", "village"], "weight": 20 },
+        { "seq": ["lit:Ain ", "nA", "nB"], "weight": 15 }
+      ]
+    },
+    "surM": {
+      "label": "Family name (masc.)", "group": "People",
+      "branches": [
+        { "seq": ["lit:ibn ", "gM"], "weight": 40 },
+        { "seq": ["lit:al-", "nisba"], "weight": 35 },
+        { "seq": ["trade"], "weight": 15 },
+        { "seq": ["gM", "lit:zadeh"], "weight": 10 }
+      ]
+    },
+    "surF": {
+      "label": "Family name (fem.)", "group": "People",
+      "branches": [
+        { "seq": ["lit:bint ", "gM"], "weight": 40 },
+        { "seq": ["lit:al-", "nisba"], "weight": 35 },
+        { "seq": ["trade"], "weight": 15 },
+        { "seq": ["gM", "lit:zadeh"], "weight": 10 }
+      ]
+    }
+  }
+}

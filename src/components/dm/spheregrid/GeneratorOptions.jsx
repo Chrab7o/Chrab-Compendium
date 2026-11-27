@@ -1,10 +1,11 @@
-import { parsePlaceSource, placeGenerators, placeLanguages } from '../../../lib/placeNames'
+import { languageGroups, parsePlaceSource, placeGenerators, placePeoples } from '../../../lib/placeNames'
 
 const MANIFEST = import.meta.glob('../../../data/name-schemes/manifest.json', { eager: true })
 const manifest = Object.values(MANIFEST)[0]?.default ?? { races: [] }
 
-// Place generators grouped the way the Location kinds are ("Settlements",
-// "Wilderness", ...), in file order.
+// Culture generators grouped the way the Location kinds are ("Settlements",
+// "Wilderness", ...), in file order; people names come first, as "People".
+const groupLabel = (group) => (group === 'People' ? 'People · by culture' : `Places · ${group}`)
 const placeGroups = Object.entries(placeGenerators).reduce((groups, [key, gen]) => {
   const group = groups.find((g) => g.label === gen.group) ?? groups[groups.push({ label: gen.group, items: [] }) - 1]
   group.items.push({ key, label: gen.label })
@@ -23,8 +24,9 @@ export function isKnownSource(source, pools) {
 /**
  * The <optgroup>s for a generator <select>, valued with source strings:
  * `pool:<id>`, `place:<key>` or `scheme:<id>`. Kinds store the same string as
- * their default generator, optionally with a language (`place:lake@old`) -
- * the language has its own picker, see LanguageOptions.
+ * their default generator, optionally with a culture and a people's flair
+ * (`place:lake@old`, `place:fullM@northern+dwarven`) - those have their own
+ * pickers, see LanguageOptions and PeopleOptions.
  */
 export default function GeneratorOptions({ pools }) {
   return (
@@ -39,7 +41,7 @@ export default function GeneratorOptions({ pools }) {
         </optgroup>
       )}
       {placeGroups.map((group) => (
-        <optgroup key={group.label} label={`Places · ${group.label}`}>
+        <optgroup key={group.label} label={groupLabel(group.label)}>
           {group.items.map((item) => (
             <option key={item.key} value={`place:${item.key}`}>
               {item.label}
@@ -60,11 +62,24 @@ export default function GeneratorOptions({ pools }) {
   )
 }
 
-/** <option>s for the invented languages place names are built from. */
+/** <optgroup>s for the cultures names are built from: regions, then the old tongues. */
 export function LanguageOptions() {
-  return placeLanguages.map((l) => (
-    <option key={l.id} value={l.id}>
-      {l.label}
+  return languageGroups.map((group) => (
+    <optgroup key={group.label} label={group.label}>
+      {group.items.map((l) => (
+        <option key={l.id} value={l.id} title={l.note}>
+          {l.label}
+        </option>
+      ))}
+    </optgroup>
+  ))
+}
+
+/** <option>s for a people's flair on top of a culture. The empty value (human) is the caller's. */
+export function PeopleOptions() {
+  return placePeoples.map((p) => (
+    <option key={p.id} value={p.id} title={p.note}>
+      {p.label}
     </option>
   ))
 }

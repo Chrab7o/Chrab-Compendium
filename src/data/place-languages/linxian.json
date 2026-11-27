@@ -1,0 +1,72 @@
+{
+  "id": "linxian",
+  "label": "Linxian",
+  "kind": "region",
+  "note": "Linx and its steppe. Mongolian in style: the father's name comes first as a patronymic (Batbayaryn Saran) or a clan name, given names fused from meaningful parts (Altangerel, \"golden light\"), and places named for their look (Khar Gol, Ulaannuur, Tsagaan Uul). Hanimaku, the great city, is an older name and stays a one-off.",
+  "parts": {
+    "j": [" ", " ", ""],
+    "mod": [
+      { "t": "Khar", "m": "black" }, { "t": "Tsagaan", "m": "white" }, { "t": "Ulaan", "m": "red" },
+      { "t": "Shar", "m": "yellow" }, { "t": "Khukh", "m": "blue" }, { "t": "Altan", "m": "golden" },
+      { "t": "Mungun", "m": "silver" }, { "t": "Ikh", "m": "great" }, { "t": "Baga", "m": "little" },
+      { "t": "Khuiten", "m": "cold" }, { "t": "Khaluun", "m": "hot" }, { "t": "Shine", "m": "new" },
+      { "t": "Khuuchin", "m": "old" }, { "t": "Ongon", "m": "sacred" }, { "t": "Bayan", "m": "rich" },
+      { "t": "Erdene", "m": "jewel" }, { "t": "Tumur", "m": "iron" }, { "t": "Chuluun", "m": "stone" },
+      { "t": "Chono", "m": "wolf" }, { "t": "Burged", "m": "eagle" }, { "t": "Morin", "m": "horse" },
+      { "t": "Salkhi", "m": "wind" }
+    ],
+    "nA": ["Khar", "Ulaan", "Bor", "Tsag", "Ord", "Ong", "Erd", "Bat", "Sel", "Khan", "Tol", "Bul", "Zuun", "Bay", "Dar", "Gal"],
+    "nB": ["khan", "gol", "tai", "baatar", "lig", "nuur", "ten", "bulag", "khot", "sai", "dag", "mur", "gin", "chin", "at", "gom"],
+    "gM": [
+      "Batbayar", "Ganbold", "Altangerel", "Temujin", "Bold", "Chuluun", "Sukhbaatar", "Tumurbaatar", "Munkhbat", "Erdenebat",
+      "Ganzorig", "Batzorig", "Bayarsaikhan", "Dorj", "Gansukh", "Khurelbaatar", "Naranbaatar", "Ochir", "Purev", "Batmunkh",
+      "Jargal", "Enkhbold", "Tsogt", "Delger", "Sanjaa", "Otgon", "Baatar", "Khuyag", "Zorig", "Mergen",
+      "Tulga", "Arslan", "Chinbat", "Gantulga", "Tamir", "Ulzii", "Altai", "Boldbaatar", "Dash", "Khasar"
+    ],
+    "gF": [
+      "Saran", "Naran", "Oyun", "Khulan", "Tsetseg", "Altantsetseg", "Oyuntsetseg", "Narantuya", "Sarantuya", "Enkhjargal",
+      "Erdenechimeg", "Bolormaa", "Gerelmaa", "Odval", "Tuya", "Delgermaa", "Ariuna", "Bayarmaa", "Undrakh", "Nomin",
+      "Solongo", "Uyanga", "Anu", "Burte", "Temulun", "Altani", "Sarnai", "Tsolmon", "Ulziimaa", "Enkhtuya",
+      "Gerel", "Khongorzul", "Mandukhai", "Navch", "Oyunbileg", "Sarangerel", "Tungalag", "Unur", "Yesui", "Zaya"
+    ],
+    "clan": [
+      "Khoshuud", "Altanuud", "Tsagaanchuud", "Kharachin", "Ulaanchuud", "Shonochin", "Mergeduud", "Burgedchin",
+      "Morinchuud", "Salkhiud", "Chonod", "Tumurchin", "Ongonuud", "Bayanchuud", "Erdeneud", "Galchin"
+    ],
+    "city": ["khot", "balgas"], "town": ["suurin", "khot"], "village": ["ail", "bag"], "camp": ["khuree", "ord"],
+    "hold": ["kherem", "shivee"], "tower": ["tsamkhag", "suvarga"], "hall": ["ord", "ger"], "ruin": ["tuur", "balgas"],
+    "market": ["zakh", "delgur"], "port": ["boomt", "gatsaa"], "grave": ["bulsh", "khirgisuur"], "mine": ["uurkhai", "nukh"],
+    "wood": ["oi", "shugui"], "lake": ["nuur", "bulag"], "river": ["gol", "murun"], "peak": ["uul", "khairkhan"],
+    "pass": ["davaa", "kham"], "marsh": ["namag", "shalbag"], "sand": ["els", "gobi"], "shore": ["ergiin", "khoshuu"],
+    "isle": ["aral", "tolgoi"], "plain": ["tal", "khudoo"], "road": ["zam", "urtuu"], "cave": ["agui", "khongil"],
+    "deep": ["gun", "tungalag"], "vault": ["san", "khuv"], "grove": ["shugui", "tugul"], "gate": ["khaalga", "am"],
+    "rift": ["ankhal", "khavtsal"], "realm": ["uls", "khaganat"], "land": ["nutag", "gazar"], "march": ["khil", "zakh"]
+  },
+  "generators": {
+    "fullM": {
+      "label": "Full name (masc.)", "group": "People",
+      "branches": [{ "seq": ["gen:surM", "lit: ", "gM"], "weight": 100 }]
+    },
+    "fullF": {
+      "label": "Full name (fem.)", "group": "People",
+      "branches": [{ "seq": ["gen:surF", "lit: ", "gF"], "weight": 100 }]
+    },
+    "surM": {
+      "label": "Family name (masc.)", "group": "People",
+      "branches": [
+        { "seq": ["gM", "lit:yn"], "weight": 60 },
+        { "seq": ["gM", "lit:iin"], "weight": 15 },
+        { "seq": ["clan"], "weight": 25 }
+      ]
+    },
+    "nomads": {
+      "label": "Nomadic group", "group": "People",
+      "branches": [
+        { "seq": ["lit:The ", "clan"], "weight": 30 },
+        { "seq": ["nA", "lit:chuud"], "weight": 20 },
+        { "seq": ["person", "lit:'s ", "nomadWord"], "weight": 20 },
+        { "seq": ["lit:The ", "mod", "j", "plain", "lit: ", "nomadWord"], "weight": 30 }
+      ]
+    }
+  }
+}

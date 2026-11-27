@@ -1,0 +1,66 @@
+{
+  "id": "imperial",
+  "label": "Imperial",
+  "kind": "region",
+  "note": "The lands beyond Calypso (Larcosis and the Busarian Empire, Vicenia, Palcidia, Miros). Latin and Italian with some Greek: a given name plus a family name in -us or -a, or di plus a place, and two-word places (Alba Silva, Nova Porta) beside invented names like Vicenia and Larcosis.",
+  "lower": ["di", "da"],
+  "parts": {
+    "j": [" "],
+    "mod": [
+      { "t": "Alba", "m": "white" }, { "t": "Nigra", "m": "black" }, { "t": "Rubra", "m": "red" },
+      { "t": "Aurea", "m": "golden" }, { "t": "Argentea", "m": "silver" }, { "t": "Vetera", "m": "old" },
+      { "t": "Nova", "m": "new" }, { "t": "Alta", "m": "high" }, { "t": "Magna", "m": "great" },
+      { "t": "Sancta", "m": "holy" }, { "t": "Aqua", "m": "water" }, { "t": "Solis", "m": "sun's" },
+      { "t": "Luna", "m": "moon" }, { "t": "Stella", "m": "star" }, { "t": "Ferrea", "m": "iron" },
+      { "t": "Regia", "m": "royal" }, { "t": "Umbra", "m": "shadow" }, { "t": "Ignea", "m": "fiery" },
+      { "t": "Tacita", "m": "silent" }, { "t": "Prima", "m": "first" }, { "t": "Ultima", "m": "last" },
+      { "t": "Lucida", "m": "shining" }, { "t": "Gelida", "m": "frozen" }, { "t": "Viridis", "m": "green" }
+    ],
+    "nA": ["Vic", "Pal", "Lar", "Mir", "Ser", "Cal", "Ost", "Ver", "Aqu", "Tar", "Cor", "Sal", "Bus", "Lin", "Pis", "Rav"],
+    "nB": ["enia", "cidia", "cosis", "ona", "ium", "entum", "ara", "ica", "ano", "era", "ella", "ossa", "ena", "ia", "ura", "os"],
+    "gM": [
+      "Aurelian", "Cassian", "Decimus", "Flavian", "Gaius", "Lucan", "Marcellus", "Octavian", "Quintus", "Severin",
+      "Tiberius", "Valerian", "Lucius", "Titus", "Cyprian", "Florian", "Adrian", "Julian", "Maximus", "Felix",
+      "Demetrios", "Theodor", "Alexios", "Basil", "Leontios", "Isidore", "Stefanos", "Andronikos", "Anselm", "Benedetto",
+      "Lorenzo", "Matteo", "Orsino", "Silvio", "Tommaso", "Vittorio", "Dario", "Fabrizio", "Nikandros", "Corvin"
+    ],
+    "gF": [
+      "Aurelia", "Cassia", "Livia", "Octavia", "Valeria", "Julia", "Lucia", "Flavia", "Cornelia", "Claudia",
+      "Drusilla", "Marcella", "Severina", "Sabina", "Theodora", "Irene", "Zoe", "Helena", "Eudokia", "Thekla",
+      "Sophia", "Alexia", "Chiara", "Lucrezia", "Serafina", "Vittoria", "Isabetta", "Ginevra", "Allegra", "Paola",
+      "Fiorella", "Bianca", "Domitia", "Antonia", "Junia", "Placidia", "Galla", "Kallista", "Melania", "Ottavia"
+    ],
+    "gensM": [
+      "Aurelius", "Valerius", "Cassius", "Flavius", "Cornelius", "Severus", "Varro", "Lucanus", "Corvinus", "Marcellus",
+      "Tullius", "Albinus", "Petronius", "Vitellius", "Calvus", "Maximian", "Ostorius", "Laurentius", "Doukianos", "Palaiologos"
+    ],
+    "gensF": [
+      "Aurelia", "Valeria", "Cassia", "Flavia", "Cornelia", "Severa", "Varrona", "Lucana", "Corvina", "Marcella",
+      "Tullia", "Albina", "Petronia", "Vitellia", "Calva", "Maximiana", "Ostoria", "Laurentia", "Doukiana", "Palaiologina"
+    ],
+    "city": ["Polis", "Urbs"], "town": ["Vicus", "Oppidum"], "village": ["Villa", "Pagus"], "camp": ["Castra", "Stativa"],
+    "hold": ["Castrum", "Arx"], "tower": ["Turris", "Pharos"], "hall": ["Aula", "Basilica"], "ruin": ["Rudera", "Lapides"],
+    "market": ["Forum", "Agora"], "port": ["Portus", "Limen"], "grave": ["Necropolis", "Sepulcra"], "mine": ["Fodina", "Metalla"],
+    "wood": ["Silva", "Nemus"], "lake": ["Lacus", "Limne"], "river": ["Flumen", "Amnis"], "peak": ["Mons", "Oros"],
+    "pass": ["Fauces", "Saltus"], "marsh": ["Palus", "Helos"], "sand": ["Harena", "Psammos"], "shore": ["Litus", "Akte"],
+    "isle": ["Insula", "Nesos"], "plain": ["Campus", "Pedion"], "road": ["Via", "Odos"], "cave": ["Spelunca", "Antrum"],
+    "deep": ["Abyssus", "Profunda"], "vault": ["Thesaurus", "Arca"], "grove": ["Lucus", "Alsos"], "gate": ["Porta", "Pyle"],
+    "rift": ["Fissura", "Chasma"], "realm": ["Imperium", "Regnum"], "land": ["Terra", "Chora"], "march": ["Limes", "Finis"]
+  },
+  "generators": {
+    "surM": {
+      "label": "Family name (masc.)", "group": "People",
+      "branches": [
+        { "seq": ["gensM"], "weight": 65 },
+        { "seq": ["lit:di ", "nA", "nB"], "weight": 35 }
+      ]
+    },
+    "surF": {
+      "label": "Family name (fem.)", "group": "People",
+      "branches": [
+        { "seq": ["gensF"], "weight": 65 },
+        { "seq": ["lit:di ", "nA", "nB"], "weight": 35 }
+      ]
+    }
+  }
+}

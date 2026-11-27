@@ -1,0 +1,69 @@
+{
+  "id": "lowland",
+  "label": "Lowland",
+  "kind": "region",
+  "note": "Kolor Forest and Geuford. Dutch, Flemish and Low German: van and van der names, trades, -sen patronymics, and places fused from a root and a place word (Eikenhout, Zwartveen, Hoogbrug), with invented names like Kolor and Geuford.",
+  "lower": ["van", "der", "de", "den", "ter"],
+  "parts": {
+    "j": ["", "", "en"],
+    "mod": [
+      { "t": "Zwart", "m": "black" }, { "t": "Wit", "m": "white" }, { "t": "Rood", "m": "red" },
+      { "t": "Groen", "m": "green" }, { "t": "Oud", "m": "old" }, { "t": "Nieuw", "m": "new" },
+      { "t": "Hoog", "m": "high" }, { "t": "Laag", "m": "low" }, { "t": "Eik", "m": "oak" },
+      { "t": "Berk", "m": "birch" }, { "t": "Wilg", "m": "willow" }, { "t": "Klei", "m": "clay" },
+      { "t": "Mos", "m": "moss" }, { "t": "Riet", "m": "reed" }, { "t": "Hazel", "m": "hazel" },
+      { "t": "Koning", "m": "king's" }, { "t": "Heilig", "m": "holy" }, { "t": "Diep", "m": "deep" },
+      { "t": "Stil", "m": "still" }, { "t": "Goud", "m": "golden" }, { "t": "Molen", "m": "mill" },
+      { "t": "Vos", "m": "fox" }, { "t": "Hert", "m": "stag" }, { "t": "Nevel", "m": "mist" }
+    ],
+    "nA": ["Vleu", "Geu", "Kol", "Ber", "Dor", "Lie", "Mech", "Zut", "Hel", "Ter", "Ruys", "Wil", "Grob", "Oos", "Mid", "Har"],
+    "nB": ["or", "burn", "ford", "ade", "aal", "doorn", "ingen", "ens", "um", "ike", "ewijk", "uiden", "oek", "egem", "sel", "laar"],
+    "gM": [
+      "Aart", "Bram", "Cornelis", "Dirk", "Joost", "Floris", "Gerrit", "Hendrik", "Jan", "Joris",
+      "Klaas", "Lieven", "Maarten", "Pieter", "Reinout", "Sander", "Teun", "Willem", "Wouter", "Ruben",
+      "Jasper", "Hugo", "Gijs", "Koen", "Lucas", "Bastiaan", "Evert", "Frans", "Govert", "Huib",
+      "Jurgen", "Lambert", "Mathijs", "Olivier", "Roel", "Sjoerd", "Tijmen", "Valentijn", "Wessel", "Ewout"
+    ],
+    "gF": [
+      "Anneke", "Beatrix", "Cato", "Fenna", "Femke", "Geertje", "Griet", "Hanna", "Hilde", "Ida",
+      "Jet", "Josefien", "Katrijn", "Liesbeth", "Lotte", "Marijke", "Mies", "Neeltje", "Romy", "Saskia",
+      "Sanne", "Trijntje", "Wilhelmina", "Willemijn", "Elke", "Floor", "Fleur", "Gerda", "Imke", "Klara",
+      "Lieke", "Maaike", "Noor", "Petra", "Roos", "Sofie", "Tess", "Veerle", "Wies", "Aleid"
+    ],
+    "lowNoun": ["Meer", "Veen", "Berg", "Linde", "Molen", "Brug", "Dijk", "Heide", "Wal", "Poel", "Beek", "Horst", "Laan", "Velde"],
+    "trade": [
+      "Bakker", "Visser", "Smit", "Mulder", "Kuiper", "Timmerman", "Brouwer", "Schipper", "Kramer", "Verver",
+      "Wever", "Molenaar", "Jager", "Hofman", "Koopman", "Schilder", "Snijder", "Dekker", "Glazenmaker", "Koster"
+    ],
+    "city": ["burg", "stad"], "town": ["heim", "wijk"], "village": ["dorp", "hoeve", "rode", "zele", "kerke", "wijk", "loo"], "camp": ["kamp", "leger"],
+    "hold": ["burcht", "slot"], "tower": ["toren", "baak"], "hall": ["hal", "huis"], "ruin": ["puin", "val"],
+    "market": ["markt", "waag"], "port": ["haven", "sluis"], "grave": ["graf", "kerkhof"], "mine": ["groeve", "mijn"],
+    "wood": ["hout", "bos"], "lake": ["meer", "plas"], "river": ["stroom", "vliet"], "peak": ["berg", "kop"],
+    "pass": ["pas", "gat"], "marsh": ["veen", "broek"], "sand": ["zand", "duin"], "shore": ["strand", "kust"],
+    "isle": ["oog", "waard"], "plain": ["veld", "heide"], "road": ["weg", "pad"], "cave": ["grot", "kuil"],
+    "deep": ["diep", "kelder"], "vault": ["kluis", "schat"], "grove": ["lo", "gaarde"], "gate": ["poort", "hek"],
+    "rift": ["kloof", "spleet"], "realm": ["rijk", "kroon"], "land": ["land", "gouw"], "march": ["mark", "grens"]
+  },
+  "generators": {
+    "village": {
+      "label": "Village", "group": "Settlements",
+      "branches": [
+        { "seq": ["mod", "j", "village"], "weight": 45 },
+        { "seq": ["nA", "nB"], "weight": 30 },
+        { "seq": ["nA", "j", "village"], "weight": 15 },
+        { "seq": ["lit:Sint-", "person"], "weight": 10 }
+      ]
+    },
+    "surM": {
+      "label": "Family name (masc.)", "group": "People",
+      "branches": [
+        { "seq": ["lit:van ", "nA", "nB"], "weight": 20 },
+        { "seq": ["lit:van der ", "lowNoun"], "weight": 20 },
+        { "seq": ["trade"], "weight": 25 },
+        { "seq": ["lit:de ", "trade"], "weight": 10 },
+        { "seq": ["gM", "lit:sen"], "weight": 15 },
+        { "seq": ["lit:van ", "mod", "j", "village"], "weight": 10 }
+      ]
+    }
+  }
+}

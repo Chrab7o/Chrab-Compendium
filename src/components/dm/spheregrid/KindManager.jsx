@@ -4,7 +4,7 @@ import { kindDescendants, kindPath, kindPrompts, kindTree, parsePoolText } from 
 import { tagsByGroup, ungroupedTags } from '../../../lib/tags'
 import { useTags } from '../../../contexts/TagContext'
 import { parsePlaceSource, placeSource } from '../../../lib/placeNames'
-import GeneratorOptions, { LanguageOptions } from './GeneratorOptions'
+import GeneratorOptions, { LanguageOptions, PeopleOptions } from './GeneratorOptions'
 import KindSelect from './KindSelect'
 
 const emptyKind = { label: '', parent_id: null, tag: '' }
@@ -343,9 +343,9 @@ export default function KindManager({ kinds, prompts, hidden, overrides, pools, 
               <select
                 value={draftPlace ? placeSource(draftPlace.generator) : kindDraft.name_generator}
                 onChange={(e) => {
-                  // Switching between place generators keeps the language.
+                  // Switching between culture generators keeps the culture and flair.
                   const next = parsePlaceSource(e.target.value)
-                  const value = next ? placeSource(next.generator, draftPlace?.language) : e.target.value
+                  const value = next ? placeSource(next.generator, draftPlace?.language, draftPlace?.people) : e.target.value
                   setKindDraft({ ...kindDraft, name_generator: value })
                 }}
               >
@@ -354,18 +354,38 @@ export default function KindManager({ kinds, prompts, hidden, overrides, pools, 
               </select>
             </label>
             {draftPlace && (
-              <label>
-                In language
-                <select
-                  value={draftPlace.language ?? ''}
-                  onChange={(e) =>
-                    setKindDraft({ ...kindDraft, name_generator: placeSource(draftPlace.generator, e.target.value) })
-                  }
-                >
-                  <option value="">— Whichever is picked when generating —</option>
-                  <LanguageOptions />
-                </select>
-              </label>
+              <>
+                <label>
+                  In culture
+                  <select
+                    value={draftPlace.language ?? ''}
+                    onChange={(e) =>
+                      setKindDraft({
+                        ...kindDraft,
+                        name_generator: placeSource(draftPlace.generator, e.target.value, draftPlace.people),
+                      })
+                    }
+                  >
+                    <option value="">— Whichever is picked when generating —</option>
+                    <LanguageOptions />
+                  </select>
+                </label>
+                <label>
+                  With flair
+                  <select
+                    value={draftPlace.people ?? ''}
+                    onChange={(e) =>
+                      setKindDraft({
+                        ...kindDraft,
+                        name_generator: placeSource(draftPlace.generator, draftPlace.language, e.target.value),
+                      })
+                    }
+                  >
+                    <option value="">— Whichever is picked when generating —</option>
+                    <PeopleOptions />
+                  </select>
+                </label>
+              </>
             )}
             <div className="dm-form-actions">
               <button type="submit" disabled={saving}>

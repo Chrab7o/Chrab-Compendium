@@ -1,0 +1,26 @@
+{
+  "id": "elven",
+  "label": "Elven",
+  "note": "As old as the dragonborn. Soft vowels and liquid endings (-iel, -wen, -aris) with old roots (Eld, Aeth, Ilu, Oro) worked into the local names, and lineage names like Moonglow or Elderfall kept whatever region they live in.",
+  "mix": 0.25,
+  "parts": {
+    "nA": ["Ael", "Ili", "Syl", "Thal", "Vae", "Lae", "Eri", "Fae", "Ny", "Ith", "Eld", "Aeth", "Ilu", "Oro", "Saer", "Cael"],
+    "nB": ["iel", "wen", "ys", "aris", "ene", "orin", "ael", "essa", "iane", "ion", "athel", "indra", "oryn", "aelor", "uviel", "esse"],
+    "mod": [
+      { "t": "Ael", "m": "star" }, { "t": "Syl", "m": "silver" }, { "t": "Ith", "m": "moon" },
+      { "t": "Lae", "m": "dawn" }, { "t": "Vael", "m": "green" }, { "t": "Nyr", "m": "dusk" },
+      { "t": "Eld", "m": "elder" }, { "t": "Aeth", "m": "ancient" }, { "t": "Ilu", "m": "first" },
+      { "t": "Oro", "m": "undying" }, { "t": "Saer", "m": "remembered" }
+    ],
+    "gM": ["Ilvar", "Thaeron", "Saelith", "Vaelis", "Lorian", "Ithrel", "Faelan", "Nyrion", "Elandor", "Caelis", "Iravel", "Taelor", "Vaerin", "Aelor", "Eldathel", "Aethoryn", "Iluvar", "Orothel"],
+    "gF": ["Ilyana", "Saelwen", "Lirien", "Naelith", "Vaessa", "Thaliene", "Elowen", "Sylene", "Ithiel", "Faelys", "Mirael", "Aelwyn", "Nymara", "Lae", "Eldiane", "Aethesse", "Iluviel", "Oroswen"],
+    "lineA": ["Moon", "Star", "Dawn", "Dusk", "Silver", "Leaf", "Dew", "Mist", "Willow", "Night", "Sun", "Glimmer", "Elder", "Ever", "First", "Twilight", "Old", "Deep"],
+    "lineB": ["glow", "song", "whisper", "bough", "shade", "fall", "bloom", "weaver", "light", "brook", "veil", "thorn", "root", "crown", "ember", "moon", "star", "memory"],
+    "grove": ["lith", "aelen"],
+    "wood": ["sylva", "eldwen"]
+  },
+  "branches": {
+    "surM": [{ "seq": ["lineA", "lineB"], "weight": 40 }],
+    "surF": [{ "seq": ["lineA", "lineB"], "weight": 40 }]
+  }
+}

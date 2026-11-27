@@ -19,6 +19,7 @@ const LINKS = [
   { to: '/dm/item-forge', label: 'Item Forge' },
   { to: '/dm/shops', label: 'Shops' },
   { to: '/dm/name-generator', label: 'Name Generator' },
+  { to: '/dm/pages', label: 'Pages' },
   { to: '/dm/screen', label: 'DM Screen' },
   { to: '/dm/notes', label: 'Player Notes' },
   { to: '/dm/import', label: 'Import' },

@@ -1,0 +1,78 @@
+{
+  "id": "eastern",
+  "label": "Eastern",
+  "kind": "region",
+  "note": "Old Slavic: Radomir Kovac, Lyudmila Yaroslavovna; patronymics in -ovich and -ovna, trade names, and places fused from a root and a place word (Belograd, Dubrobrod, Zlatogora). Shares its words with the lab's worldgen Eastern tongue.",
+  "parts": {
+    "j": [""],
+    "mod": [
+      { "t": "Belo", "m": "white" }, { "t": "Cherno", "m": "black" }, { "t": "Krasno", "m": "fair" },
+      { "t": "Zeleno", "m": "green" }, { "t": "Novo", "m": "new" }, { "t": "Staro", "m": "old" },
+      { "t": "Vysho", "m": "high" }, { "t": "Sosno", "m": "pine" }, { "t": "Berezo", "m": "birch" },
+      { "t": "Dubro", "m": "oak" }, { "t": "Lipo", "m": "linden" }, { "t": "Kameno", "m": "stone" },
+      { "t": "Zlato", "m": "golden" }, { "t": "Solo", "m": "salt" }, { "t": "Medo", "m": "honey" },
+      { "t": "Volko", "m": "wolf" }, { "t": "Orlo", "m": "eagle" }, { "t": "Svyato", "m": "holy" },
+      { "t": "Konyo", "m": "horse" }, { "t": "Yaro", "m": "bright" }, { "t": "Bolo", "m": "swamp" },
+      { "t": "Rybo", "m": "fish" }
+    ],
+    "nA": ["Rad", "Bor", "Vlad", "Dob", "Mil", "Stan", "Vys", "Zvor", "Lub", "Pere", "Gost", "Kras", "Yar", "Bel", "Drag", "Tver"],
+    "nB": ["ets", "itsa", "ovo", "ino", "sk", "no", "any", "ichi", "ava", "ka", "ov", "en", "insk", "ezh", "ograd", "omir"],
+    "gM": [
+      "Vasil", "Danilo", "Bogdan", "Lev", "Oleg", "Igor", "Gleb", "Ratibor", "Mstislav", "Vojtech",
+      "Dobrynya", "Stoyan", "Zoran", "Kazimir", "Vuk", "Milos", "Dusan", "Rostislav", "Yaropolk", "Vsevolod",
+      "Boyan", "Zhelimir", "Radomir", "Bogumil", "Yaroslav", "Branimir", "Dobromir", "Ostromir", "Lyubomir", "Stanislav",
+      "Svyatoslav", "Vladimir", "Miroslav", "Borislav", "Tverdimir", "Gostislav", "Domislav", "Ratimir", "Zlatomir", "Predrag"
+    ],
+    "gF": [
+      "Lyudmila", "Vesna", "Zora", "Dragana", "Milena", "Bozena", "Radka", "Svetla", "Olga", "Dobrava",
+      "Zlata", "Mira", "Vlasta", "Branka", "Zdenka", "Yarina", "Rogneda", "Predslava", "Malusha", "Snezhana",
+      "Lada", "Dubrava", "Bogumila", "Yaroslava", "Radomira", "Lyubomira", "Stanislava", "Miroslava", "Dobroslava", "Zlatomira",
+      "Vladislava", "Borislava", "Svyatoslava", "Ostromira", "Domislava", "Ratislava", "Gostimira", "Branislava", "Dragomira", "Vyacheslava"
+    ],
+    "trade": [
+      "Kovac", "Mlinar", "Tkach", "Kolar", "Rybar", "Pekar", "Gonchar", "Bondar", "Kravets", "Lesnik",
+      "Pastukh", "Mechnik", "Pivovar", "Kozhemyaka", "Bortnik", "Sokolnik", "Perevoznik", "Znakhar"
+    ],
+    "tradeF": [
+      "Kovacova", "Mlinarova", "Tkachova", "Kolarova", "Rybarova", "Pekarova", "Goncharova", "Bondarova", "Kravetsova", "Lesnikova",
+      "Pastukhova", "Mechnikova", "Pivovarova", "Bortnikova", "Sokolnikova", "Znakharova"
+    ],
+    "city": ["grad", "gorod"], "town": ["sk", "grad"], "village": ["selo", "ovo"], "camp": ["stan", "tabor"],
+    "hold": ["grad", "krepost"], "tower": ["bashnya", "vezha"], "hall": ["dvor", "terem"], "ruin": ["ruina", "zgar"],
+    "market": ["torg", "rynok"], "port": ["pristan", "gavan"], "grave": ["kurgan", "mogila"], "mine": ["rudnik", "shakhta"],
+    "wood": ["les", "bor"], "lake": ["ozero", "voda"], "river": ["reka", "itsa"], "peak": ["gora", "vrkh"],
+    "pass": ["pereval", "vrata"], "marsh": ["boloto", "top"], "sand": ["pesok", "dyuna"], "shore": ["breg", "kraj"],
+    "isle": ["ostrov", "otok"], "plain": ["pole", "step"], "road": ["put", "shlyakh"], "cave": ["peshchera", "yama"],
+    "deep": ["glubina", "pod"], "vault": ["sokrovishche", "skrinya"], "grove": ["gaj", "roshcha"], "gate": ["vrata", "most"],
+    "rift": ["yar", "rasselina"], "realm": ["tsarstvo", "knyazhestvo"], "land": ["zemlya", "kraj"], "march": ["krajina", "rubezh"]
+  },
+  "generators": {
+    "nomads": {
+      "label": "Nomadic group", "group": "People",
+      "branches": [
+        { "seq": ["gM", "lit:ichi"], "weight": 30 },
+        { "seq": ["lit:The ", "nA", "nB", "lit: ", "nomadWord"], "weight": 30 },
+        { "seq": ["person", "lit:'s Horde"], "weight": 15 },
+        { "seq": ["lit:The ", "mod", "j", "plain", "lit: Riders"], "weight": 25 }
+      ]
+    },
+    "surM": {
+      "label": "Family name (masc.)", "group": "People",
+      "branches": [
+        { "seq": ["gM", "lit:ovich"], "weight": 40 },
+        { "seq": ["trade"], "weight": 30 },
+        { "seq": ["mod", "city", "lit:ski"], "weight": 20 },
+        { "seq": ["nA", "lit:ov"], "weight": 10 }
+      ]
+    },
+    "surF": {
+      "label": "Family name (fem.)", "group": "People",
+      "branches": [
+        { "seq": ["gM", "lit:ovna"], "weight": 40 },
+        { "seq": ["tradeF"], "weight": 30 },
+        { "seq": ["mod", "city", "lit:ska"], "weight": 20 },
+        { "seq": ["nA", "lit:ova"], "weight": 10 }
+      ]
+    }
+  }
+}

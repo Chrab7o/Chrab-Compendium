@@ -32,6 +32,7 @@ import DMCharacterNotesPage from './pages/dm/DMCharacterNotesPage'
 import SessionPlanEditorPage from './pages/dm/SessionPlanEditorPage'
 import DMShopsPage from './pages/dm/DMShopsPage'
 import DMNameGeneratorPage from './pages/dm/DMNameGeneratorPage'
+import DMPagesPage from './pages/dm/DMPagesPage'
 import DMScreenPage from './pages/dm/DMScreenPage'
 import DMNpcForgePage from './pages/dm/DMNpcForgePage'
 import NpcEditor from './components/dm/npc/NpcEditor'
@@ -151,6 +152,8 @@ export default function App() {
               <Route path="feature-forge/*" element={<FeatureForgeRedirect />} />
               <Route path="shops" element={<DMShopsPage />} />
               <Route path="name-generator" element={<DMNameGeneratorPage />} />
+              <Route path="pages" element={<DMPagesPage />} />
+              <Route path="pages/:slug" element={<DMPagesPage />} />
               <Route path="screen" element={<DMScreenPage />} />
               <Route path="notes" element={<DMNotesPage />} />
               <Route path="import" element={<ImportPage />} />

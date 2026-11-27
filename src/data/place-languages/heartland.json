@@ -1,0 +1,56 @@
+{
+  "id": "heartland",
+  "label": "Heartland",
+  "kind": "region",
+  "note": "The cities of central Calypso (Illebridge, Calhoun, Longwood, Agatha). Medieval English: trade names, place names and -son patronymics, and places fused from a root and an English place word (Ashford, Blackmere, Kingsbury).",
+  "parts": {
+    "j": [""],
+    "mod": [
+      { "t": "Ash", "m": "ash" }, { "t": "Ald", "m": "old" }, { "t": "Black", "m": "black" },
+      { "t": "Whit", "m": "white" }, { "t": "Red", "m": "red" }, { "t": "Bright", "m": "bright" },
+      { "t": "Thorn", "m": "thorn" }, { "t": "Oak", "m": "oak" }, { "t": "Elm", "m": "elm" },
+      { "t": "Hart", "m": "stag" }, { "t": "Stan", "m": "stone" }, { "t": "Bram", "m": "bramble" },
+      { "t": "Cold", "m": "cold" }, { "t": "Long", "m": "long" }, { "t": "Kings", "m": "king's" },
+      { "t": "Mid", "m": "middle" }, { "t": "New", "m": "new" }, { "t": "Lark", "m": "lark" },
+      { "t": "Rook", "m": "rook" }, { "t": "Mill", "m": "mill" }, { "t": "Wolf", "m": "wolf" },
+      { "t": "Holy", "m": "holy" }, { "t": "Grey", "m": "grey" }, { "t": "Wych", "m": "witch" }
+    ],
+    "nA": ["Ille", "Cal", "Brad", "Dun", "Ell", "Har", "Kel", "Lang", "Mar", "Nor", "Pen", "Ros", "Sel", "Wen", "Wel", "Ather"],
+    "nB": ["bridge", "houn", "hampton", "more", "dale", "combe", "stow", "well", "field", "wich", "ton", "ley", "by", "ford", "wick", "thorpe"],
+    "gM": [
+      "Aldous", "Ambrose", "Bartholomew", "Benedict", "Cuthbert", "Edmund", "Edric", "Gilbert", "Godfrey", "Hal",
+      "Hugh", "Jasper", "Lambert", "Miles", "Osric", "Percival", "Piers", "Ralph", "Robin", "Rowan",
+      "Simon", "Tobias", "Walter", "Wat", "William", "Arthur", "Bennet", "Cedric", "Colin", "Elias",
+      "Garret", "Harold", "Jory", "Martin", "Nicholas", "Oswin", "Roger", "Thomas", "Alfred", "Edwin"
+    ],
+    "gF": [
+      "Agatha", "Agnes", "Alys", "Amice", "Beatrice", "Bess", "Cecily", "Edith", "Elinor", "Emma",
+      "Joan", "Juliana", "Kate", "Lettice", "Mabel", "Margery", "Matilda", "Maud", "Mirabel", "Nell",
+      "Philippa", "Rose", "Rowena", "Sybil", "Tamsin", "Wynn", "Ada", "Alice", "Bryony", "Clemence",
+      "Elspeth", "Gwen", "Hazel", "Ivy", "Lark", "Meg", "Molly", "Rosalind", "Winifred", "Hester"
+    ],
+    "trade": [
+      "Cooper", "Fletcher", "Thatcher", "Miller", "Smith", "Ward", "Baker", "Carter", "Chandler", "Mason",
+      "Tanner", "Turner", "Weaver", "Fowler", "Hayward", "Wainwright", "Sawyer", "Brewer", "Cartwright", "Fisher"
+    ],
+    "surPlace": ["ford", "wood", "field", "by", "ton", "well", "more", "worth", "ley", "dale", "brook", "hurst", "wick", "combe"],
+    "city": ["chester", "bury"], "town": ["ton", "borough"], "village": ["ham", "stead"], "camp": ["cote", "fold"],
+    "hold": ["castle", "hold"], "tower": ["tower", "steeple"], "hall": ["hall", "worth"], "ruin": ["fall", "stones"],
+    "market": ["chepe", "mart"], "port": ["port", "mouth"], "grave": ["barrow", "low"], "mine": ["pit", "delf"],
+    "wood": ["wood", "hurst"], "lake": ["mere", "water"], "river": ["bourne", "brook"], "peak": ["fell", "pike"],
+    "pass": ["gap", "gate"], "marsh": ["fen", "moss"], "sand": ["sands", "dune"], "shore": ["strand", "cliff"],
+    "isle": ["ey", "holm"], "plain": ["field", "ley"], "road": ["way", "street"], "cave": ["hole", "delve"],
+    "deep": ["deep", "dene"], "vault": ["vault", "hoard"], "grove": ["grove", "shaw"], "gate": ["gate", "bridge"],
+    "rift": ["cleft", "rift"], "realm": ["realm", "crown"], "land": ["land", "shire"], "march": ["march", "mark"]
+  },
+  "generators": {
+    "surM": {
+      "label": "Family name (masc.)", "group": "People",
+      "branches": [
+        { "seq": ["trade"], "weight": 35 },
+        { "seq": ["mod", "surPlace"], "weight": 40 },
+        { "seq": ["gM", "lit:son"], "weight": 25 }
+      ]
+    }
+  }
+}

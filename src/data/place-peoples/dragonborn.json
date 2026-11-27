@@ -1,0 +1,33 @@
+{
+  "id": "dragonborn",
+  "label": "Dragonborn",
+  "note": "As old as the elves, and guardians of ancient things. Names carry fragments of famous dragons (Fafnir, Níðhöggr, Tiamat, Ladon, Vritra, Apep, Typhon, Jörmungandr, Ouroboros, Bahamut, Ryūjin), family names are wyrm lineages, and some carry the ancient thing they guard (Jormira, Warden of the Drowned Library).",
+  "mix": 0.25,
+  "parts": {
+    "nA": ["Faf", "Nidh", "Tia", "Lad", "Vrit", "Ap", "Typh", "Jor", "Pyth", "Ryu", "Baha", "Ouro", "Glau", "Anca", "Zmey"],
+    "nB": ["nir", "hogg", "mat", "on", "ra", "ep", "hon", "mund", "gand", "jin", "mut", "boros", "rung", "lagon", "rax"],
+    "mod": [
+      { "t": "Faf", "m": "hoard" }, { "t": "Nidh", "m": "root" }, { "t": "Tia", "m": "primal" },
+      { "t": "Lad", "m": "guarded" }, { "t": "Vrit", "m": "coiled" }, { "t": "Ouro", "m": "endless" },
+      { "t": "Orrh", "m": "ancestor's" }, { "t": "Bahm", "m": "ancient" }
+    ],
+    "gM": ["Fafrax", "Nidhorr", "Tiamar", "Ladonis", "Vritharr", "Apepos", "Typhrax", "Jormundar", "Pythorr", "Ryujar", "Bahamir", "Glaurex", "Ancalorr", "Ouroth"],
+    "gF": ["Tiamessa", "Ladira", "Nidhra", "Vritha", "Pythia", "Apepha", "Typhessa", "Jormira", "Fafnira", "Ryuna", "Bahara", "Zmeya", "Glaurin", "Ourossa"],
+    "wyrmA": ["Faf", "Nidh", "Tia", "Lad", "Vrit", "Typh", "Jor", "Ouro", "Baha", "Anca"],
+    "wyrmB": ["nir", "hogg", "mat", "on", "ra", "hon", "mund", "boros", "mut", "lagon"],
+    "ward": [
+      "Elder Gate", "First Flame", "Sunken Throne", "Old Oath", "Ashen Seal", "Last Hoard", "Buried Crown",
+      "Sleeping Vault", "World Root", "Long Vigil", "Broken Sky", "Drowned Library", "Coiled Stair", "Silent Egg"
+    ],
+    "hold": ["thraxis", "orrhun"],
+    "vault": ["fafnyr", "vrithal"],
+    "gate": ["ladonar", "jormund"],
+    "peak": ["vrakh", "tiamor"]
+  },
+  "branches": {
+    "surM": [{ "seq": ["wyrmA", "wyrmB"], "weight": 35 }],
+    "surF": [{ "seq": ["wyrmA", "wyrmB"], "weight": 35 }],
+    "fullM": [{ "seq": ["gM", "lit:, Warden of the ", "ward"], "weight": 20 }],
+    "fullF": [{ "seq": ["gF", "lit:, Warden of the ", "ward"], "weight": 20 }]
+  }
+}

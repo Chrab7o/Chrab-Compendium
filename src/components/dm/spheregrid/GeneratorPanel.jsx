@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { generateNamed, generatorLabel } from '../../../lib/nameSchemes'
-import { meaningLine, parsePlaceSource, placeLanguages, placeScheme } from '../../../lib/placeNames'
+import { meaningLine, parsePlaceSource, placeLanguages, placePeoples, placeScheme } from '../../../lib/placeNames'
 import { answerLine, drawFromPool, kindChain, kindTag } from '../../../lib/sphereGrid'
-import GeneratorOptions, { isKnownSource, LanguageOptions } from './GeneratorOptions'
+import GeneratorOptions, { isKnownSource, LanguageOptions, PeopleOptions } from './GeneratorOptions'
 import KindSelect from './KindSelect'
 import TagGroupPicker from '../../TagGroupPicker'
 
@@ -13,16 +13,27 @@ const pathFor = (id) => `../../../data/name-schemes/${id}.json`
 
 const MAX_COUNT = 20
 
-// The last language picked is remembered per browser; it's only a default.
+// The last culture and flair picked are remembered per browser; they're only defaults.
 const LANGUAGE_KEY = 'sphereGrid.placeLanguage'
-function storedLanguage() {
+const PEOPLE_KEY = 'sphereGrid.placePeople'
+function stored(key, list, fallback) {
   try {
-    const id = localStorage.getItem(LANGUAGE_KEY)
-    if (placeLanguages.some((l) => l.id === id)) return id
+    const id = localStorage.getItem(key)
+    if (list.some((l) => l.id === id)) return id
   } catch {
     // Storage blocked - fall through to the default.
   }
-  return placeLanguages.find((l) => l.id === 'sylvan')?.id ?? placeLanguages[0]?.id ?? ''
+  return fallback
+}
+const storedLanguage = () =>
+  stored(LANGUAGE_KEY, placeLanguages, placeLanguages.find((l) => l.id === 'heartland')?.id ?? placeLanguages[0]?.id ?? '')
+const storedPeople = () => stored(PEOPLE_KEY, placePeoples, '')
+function remember(key, value) {
+  try {
+    localStorage.setItem(key, value)
+  } catch {
+    // Not remembered - fine.
+  }
 }
 
 // The generation loop: pick a generator and a count, get a draft batch,
@@ -32,7 +43,8 @@ function storedLanguage() {
 // used by an entry anywhere in the wiki comes back. Picking a kind switches to
 // that kind's default generator, unless one was picked by hand.
 //
-// Place generators speak one of the invented languages. A name built from
+// Culture generators (people and places) speak one culture - a region or an
+// old tongue - with an optional people's flair on top. A name built from
 // roots with meanings keeps its meaning on the draft row, and the meaning is
 // written into the new entry - unless the name was retyped.
 export default function GeneratorPanel({ kinds, pools, existingNames, selectedSpheres, onCreate }) {
@@ -40,6 +52,7 @@ export default function GeneratorPanel({ kinds, pools, existingNames, selectedSp
   const [scheme, setScheme] = useState(null)
   const [schemeGen, setSchemeGen] = useState('')
   const [language, setLanguage] = useState(storedLanguage)
+  const [people, setPeople] = useState(storedPeople)
   const [count, setCount] = useState(5)
   const [batchTags, setBatchTags] = useState([])
   const [kindId, setKindId] = useState(null)
@@ -62,11 +75,12 @@ export default function GeneratorPanel({ kinds, pools, existingNames, selectedSp
 
   function changeLanguage(next) {
     setLanguage(next)
-    try {
-      localStorage.setItem(LANGUAGE_KEY, next)
-    } catch {
-      // Not remembered - fine.
-    }
+    remember(LANGUAGE_KEY, next)
+  }
+
+  function changePeople(next) {
+    setPeople(next)
+    remember(PEOPLE_KEY, next)
   }
 
   // A pool's own tags are the default for what it generates.
@@ -101,8 +115,8 @@ export default function GeneratorPanel({ kinds, pools, existingNames, selectedSp
   // `{ name, meaning, language }` items; meaning is '' unless a place name's
   // roots carry one.
   function draw(n, exclude) {
-    if (pool) return drawFromPool(pool.names, n, exclude).map((name) => ({ name, meaning: '', language: null }))
-    const [from, gen] = placeKey ? [placeScheme(language), placeKey] : [scheme, schemeGen]
+    if (pool) return drawFromPool(pool.names, n, exclude).map((name) => ({ name, meaning: '', language: null, people: null }))
+    const [from, gen] = placeKey ? [placeScheme(language, people || null), placeKey] : [scheme, schemeGen]
     if (!from || !gen) return []
     const skip = new Set(exclude.map((x) => x.trim().toLowerCase()))
     const out = []
@@ -111,7 +125,7 @@ export default function GeneratorPanel({ kinds, pools, existingNames, selectedSp
       const key = name.toLowerCase()
       if (!name || skip.has(key)) continue
       skip.add(key)
-      out.push({ name, meaning, language: placeKey ? language : null })
+      out.push({ name, meaning, language: placeKey ? language : null, people: placeKey ? people || null : null })
     }
     return out
   }
@@ -146,7 +160,7 @@ export default function GeneratorPanel({ kinds, pools, existingNames, selectedSp
     .filter((d) => d.name.trim())
     .map((d) => ({
       title: d.name.trim(),
-      content: d.meaning ? answerLine('Meaning', meaningLine(d.meaning, d.language)) : '',
+      content: d.meaning ? answerLine('Meaning', meaningLine(d.meaning, d.language, d.people)) : '',
     }))
 
   // A new entry should never start out with nothing describing it: a kind
@@ -163,11 +177,13 @@ export default function GeneratorPanel({ kinds, pools, existingNames, selectedSp
       ? kindChain(kinds, next).map((k) => k.name_generator).find((g) => isKnownSource(g, pools))
       : null
     if (preferred && (!source || source === autoSource.current)) {
-      // A place default may pin a language (place:ruins@old); it's split off
-      // so the dropdown holds the plain generator.
+      // A culture default may pin a culture and a flair (place:ruins@old,
+      // place:fullM@northern+dwarven); they're split off so the dropdown holds
+      // the plain generator.
       const place = parsePlaceSource(preferred)
       const value = place ? `place:${place.generator}` : preferred
       if (place?.language) changeLanguage(place.language)
+      if (place?.people) changePeople(place.people)
       autoSource.current = value
       setSource(value)
     }
@@ -211,12 +227,21 @@ export default function GeneratorPanel({ kinds, pools, existingNames, selectedSp
           </select>
         </label>
         {placeKey && (
-          <label>
-            Language
-            <select value={language} onChange={(e) => changeLanguage(e.target.value)}>
-              <LanguageOptions />
-            </select>
-          </label>
+          <div className="dm-form-row">
+            <label>
+              Culture
+              <select value={language} onChange={(e) => changeLanguage(e.target.value)}>
+                <LanguageOptions />
+              </select>
+            </label>
+            <label>
+              Flair
+              <select value={people} onChange={(e) => changePeople(e.target.value)}>
+                <option value="">None (human)</option>
+                <PeopleOptions />
+              </select>
+            </label>
+          </div>
         )}
         {scheme && (
           <label>
@@ -259,7 +284,7 @@ export default function GeneratorPanel({ kinds, pools, existingNames, selectedSp
           <button type="button" onClick={generate} disabled={!ready}>
             {draft.length ? 'Reroll all' : 'Generate'}
           </button>
-          <button type="button" className="secondary" onClick={() => setDraft((rows) => [...rows, row({ name: '', meaning: '', language: null })])}>
+          <button type="button" className="secondary" onClick={() => setDraft((rows) => [...rows, row({ name: '', meaning: '', language: null, people: null })])}>
             Add a name by hand
           </button>
         </div>
@@ -281,7 +306,7 @@ export default function GeneratorPanel({ kinds, pools, existingNames, selectedSp
                   }
                   placeholder="Type a name"
                   aria-label={`Name ${i + 1}`}
-                  title={d.meaning ? meaningLine(d.meaning, d.language) : undefined}
+                  title={d.meaning ? meaningLine(d.meaning, d.language, d.people) : undefined}
                 />
                 {d.meaning && <span className="sg-draft-meaning">{d.meaning}</span>}
                 <button
